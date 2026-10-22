@@ -42,7 +42,7 @@
   {"point": "browser.open", "hook": {"at": "0x400a6602", "stock": "4eb9400a3052", "op": "jsr", "symbol": "ref2_hook_open"},
    "why": "the browser reads the file it opens: on a REF2 track the label shows its name, then the stock open reads it"}
  ],
- "claims": {"sound_slots": [28], "record_slots": [28], "ram": [], "gestures": ["RETRIG + COLOR"], "views": ["main", "knob"]},
+ "claims": {"sound_slots": [28], "record_slots": [28], "ram": [], "gestures": [{"combo": "RETRIG + COLOR", "situation": "params", "meaning": "Octave"}], "views": ["main", "knob"]},
  "cost": {"emulation": {"status": "not measured"}, "device": {"status": "not measured"}},
  "stock_behaviour": {"changes": [], "fixes": [], "unchanged": ["other tracks and machines"]},
  "compat": {"built_against": ["model27"], "requires": [], "conflicts_declared": []},

@@ -83,7 +83,8 @@ maintained by 18nelli18; model27 is not affiliated with it, and never speaks for
 ## Repository map
 
 ```
-tweaks/model-cycles_OS1.13/   tweak JSON files (generated), device.json, PROVENANCE.md
+tweaks/model-cycles_OS1.13/   tweak JSON files (generated), device.json, PROVENANCE.md, claims/claims.json (the
+                              tweaks' declared claims, written by hand, notes/65)
 tools/build.py                Python build: applies tweaks, checks caves, repacks and re-signs (mtlib)
 tools/gen_*.py                one generator per mod: writes its tweak JSON, --check verifies it is up to date
 tools/machines/<mod>/         C and assembly sources compiled into the firmware
@@ -126,6 +127,10 @@ tools/check_overlaps.py       no firmware needed: mods that can be ticked togeth
                               the same whole write or a mod applied on top of another (`requires`) (notes/49)
 tools/registry.py             no firmware needed: builds tweaks/model-cycles_OS1.13/REGISTRY.md from the tweaks, the
                               registry of free space (freed sprite masks, caves, payloads) and OS hooks (notes/52)
+tools/claims.py               no firmware needed, Level C (notes/65): the declared claims of packages, parts and tweaks
+                              (saved slots, key combinations, descriptors, formatters, MIDI, RAM, views), their
+                              vocabulary and the stock combinations; --check, --list, --self-test. Step C1: data only,
+                              no conflict is computed from it yet
 tools/ref_mainos.py           reference hashes in docs/flasher/app.js: each mod (REF_MODS) and a sample of combinations
                               (REF_MAINOS: each card alone, every pair, the largest ones)
 tools/web*_check.*, webflash_smoke.*   checks of the web flasher against the Python build (node, jsdom)
@@ -179,6 +184,7 @@ python3 tools/gen_flasher_tweaks.py --check      # tweaks.js matches tweaks/
 python3 tools/check_overlaps.py                  # mods ticked together never write the same bytes (notes/49), except the
                                                  # same whole write or a mod on top of another (`requires`)
 python3 tools/registry.py --check                # REGISTRY.md (free space and hooks, notes/52) matches tweaks/
+python3 tools/claims.py --check --self-test      # the declared claims (notes/65): ids, words, ranges, manifests
 python3 tools/relocate_6ch.py --check            # needs m68k binutils (below)
 tools/webbuild_check.sh                          # builder.js == build.py, byte for byte (node)
 tools/webcompose_check.sh                        # composer.js places packages as relocate.py, byte for byte (node)

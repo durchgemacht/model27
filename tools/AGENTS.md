@@ -95,6 +95,11 @@ and check the writes of **every** other tweak for overlaps.
   same bytes (except the same whole write, or one applied on top of the other through `requires`), every write is
   well formed, and the payloads of every installable set chain up (`at`, `END_LIMIT`, `dest`). With `--git` it reads
   branches and checks them together (the open PRs). This is what lets the flasher check mods one by one (notes/49).
+- `claims.py [--check] [--list] [--self-test]` (notes/65): no firmware needed. Reads and checks the declared claims:
+  a package's `claims` in its manifest, a part's in its `part.json`, the tweaks' in
+  `tweaks/model-cycles_OS1.13/claims/claims.json`. A mod that keeps values in a sound or a pattern, answers a key
+  combination, or takes a descriptor, a formatter, MIDI numbers, RAM or a view declares it there; the words of a
+  combination are the vocabulary at the top of `claims.py`. `--check` in validation.
 - `registry.py [--check] [--git REF …] [--cycles SYX]`: no firmware needed. Rewrites
   `tweaks/model-cycles_OS1.13/REGISTRY.md`, the registry of free space and hook points built from the tweak writes
   (notes/52): freed masks taken and free, 0xFF caves, payload chains, OS detours, rewritten pointers, what each mod

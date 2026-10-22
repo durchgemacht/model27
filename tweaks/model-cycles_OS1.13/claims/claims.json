@@ -1,0 +1,114 @@
+{
+ "schema": "model27-claims/0.1",
+ "about": [
+  "The declared claims of this folder's tweaks (notes/65): what they keep in a sound or a pattern, the key combinations they answer, and the other things no write shows.",
+  "One entry per tweak or family of variants, with the note that shows its claims; an id may use * as a wildcard. A tweak without an entry claims nothing the tools read.",
+  "A package's claims are in its manifest (tools/machines/<id>/manifest.json), a part's in its part.json.",
+  "Every claim here covers every track and every sound, unless it names another scope. Read and checked by tools/claims.py --check; the words of a combination are listed there."
+ ],
+ "entries": [
+  {
+   "ids": ["track-filter"],
+   "source": "notes/47",
+   "claims": {
+    "sound_slots": [28, 29, 30, 31],
+    "record_slots": [18, 27, 30, 31],
+    "plock_rows": true,
+    "descriptors": [1, 2, 3, 4],
+    "midi": {"cc": [74, 71], "nrpn": ["1:20", "1:21"]},
+    "gestures": [{"combo": "MACHINES + COLOR/SHAPE/SWEEP/CONTOUR", "situation": "params",
+                  "meaning": "Filter Env / Env Decay / Filter Cutoff / Filter Reso"}]
+   }
+  },
+  {
+   "ids": ["lfo-plus"],
+   "source": "notes/56 §3",
+   "claims": {
+    "sound_slots": [28, 29, 30, 31, 32],
+    "record_slots": [30, 31],
+    "plock_rows": true,
+    "ram": [["0x4233f000", "0x4233f49c"]],
+    "gestures": [{"combo": "LFO", "situation": "page:LFO", "meaning": "LFO 2, 3 and 4, then the page closes",
+                  "replaces": "closes the LFO page"}]
+   },
+   "open": ["The stock meaning of LFO pressed on the LFO page is a hypothesis (notes/65 §3.2)."]
+  },
+  {
+   "ids": ["model-tg", "model-tg-st"],
+   "source": "notes/31; notes/47 §11",
+   "claims": {
+    "sound_slots": [23, 24, 25, 26, 27],
+    "record_slots": [24, 25, 26, 27, 28, 29],
+    "gestures": [{"combo": "MACHINES + DECAY/SWEEP/CONTOUR", "situation": "params",
+                  "meaning": "Attack / Filter / Resonance"}]
+   },
+   "open": ["The scope of its slots: every sound is assumed, since its Attack, Filter and Resonance act on the stock machines too (notes/31).",
+            "Whether it re-numbers the p-lock rows of k 23-27.",
+            "Its other key combinations (resampling, retrig, master effects) are not collected."]
+  },
+  {
+   "ids": ["macro", "macro-*", "syntakt-*macro*"],
+   "source": "notes/55 §8 (every tweak with MACRO carries the lo-fi: gen_syntakt_engines.lofi_index)",
+   "claims": {
+    "gestures": [{"combo": "FUNC + PITCH", "situation": "params", "scope": "machine:MACRO",
+                  "meaning": "FINE as lo-fi RATE / BITS", "replaces": "FINE, the fine adjust of PITCH"}]
+   }
+  },
+  {
+   "ids": ["control-all-config"],
+   "source": "notes/58 §2",
+   "claims": {
+    "gestures": [{"combo": "TRACK + TRIG 1-6", "meaning": "takes the track out of Control All, or back"}]
+   }
+  },
+  {
+   "ids": ["latching-mute"],
+   "source": "its tweak, 01-latching-mute.json (drumkilla, PROVENANCE.md); no note",
+   "claims": {
+    "gestures": [{"combo": "TRACK + FUNC", "meaning": "latches the mute mode"}]
+   },
+   "open": ["The stock meaning of TRACK held + FUNC is not read (notes/65 §10)."]
+  },
+  {
+   "ids": ["trig-preview"],
+   "source": "notes/34",
+   "claims": {
+    "gestures": [{"combo": "TRIG 1-16 + PAGE", "situation": "grid",
+                  "meaning": "the held step sounds, sequencer stopped or paused", "replaces": "PAGE turns the page"}]
+   }
+  },
+  {
+   "ids": ["arp"],
+   "source": "notes/32",
+   "claims": {
+    "saved": [{"where": "pattern, track +512", "bytes": 1}],
+    "gestures": [{"combo": "RETRIG + NOTES", "meaning": "an arpeggio of the held notes when Arp is not OFF",
+                  "replaces": "the retrig"}]
+   }
+  },
+  {
+   "ids": ["chord-keys"],
+   "source": "notes/42",
+   "claims": {
+    "gestures": [{"combo": "TRIG 1-16", "situation": "keys", "scope": "machine:CHORD",
+                  "meaning": "the chords of a scale, in the Keys mode of the retrig menu"}]
+   },
+   "open": ["The stock meaning of the TRIG keys in this mode (notes/42)."]
+  },
+  {
+   "ids": ["midi-live-both"],
+   "source": "notes/53",
+   "claims": {
+    "gestures": [{"combo": "FUNC + DATA-PRESS", "situation": "menu:MIDI-PORTS",
+                  "meaning": "adds the Cycles' own MIDI to THRU, or takes it away"}]
+   }
+  },
+  {
+   "ids": ["level-pan-values"],
+   "source": "its tweak, 46-level-pan-values.json; STANDARD.md §3.1",
+   "claims": {
+    "views": [{"view": "main", "how": "its own hooks, 0x400081f2 and 0x4001aa4e"}]
+   }
+  }
+ ]
+}

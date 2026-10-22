@@ -67,6 +67,15 @@ the validation. It refuses a write into a freed mask whose sprite the tweak (or 
 redirect, and any write into a kept copy. Bytes of saved structures a mod claims (pattern, project) are declared in
 its `DECLARED` table with the note that proves them unused.
 
+## `claims/claims.json`
+
+The declared claims of the folder's tweaks (notes/65): the sound slots k and record slots a tweak keeps its values
+in, other saved bytes, the key combinations it answers, descriptors, formatters, MIDI numbers, RAM, views. Written by
+hand, one entry per tweak or family (`ids` may use `*`), each with the note that shows it and what is still `open`;
+a package's claims are in its manifest instead. It sits in a subfolder because the tools read every `*.json` of this
+folder as a tweak. A new tweak that claims any of these adds its entry in the same commit;
+`python3 tools/claims.py --check` checks the file.
+
 ## `PROVENANCE.md`
 
 One row per tweak (or family): author, origin (repo + commit for outside work), license, what this project changed,

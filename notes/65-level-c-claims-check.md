@@ -1,7 +1,7 @@
 # 65 — Level C: conflicts computed from what mods declare, saved slots and gestures (plan)
 
-**Status: plan, 2026-10-22; the maintainer's decisions the same day: the six recommendations of §9 (§11).** Nothing
-built yet.
+**Status: plan, 2026-10-22; the maintainer's decisions the same day: the six recommendations of §9 (§11); step C1
+built on 2026-10-23 (§12): the claims as data, checked, nothing computed from them yet.**
 
 The maintainer's request after step B4e (2026-10-22): a "Gesten- und Slot-Prüfung" (a check of gestures and slots),
 so that a clash that writes no common byte is computed instead of found by chance. Two such clashes are on record,
@@ -355,3 +355,61 @@ your recommendations for all six decisions).
 5. **The page** shows a computed reason where no hand-written one exists (C4), in English and French like everything
    users see (AGENTS.md). The two cards offered today do not clash, so no reason shows yet.
 6. **C1 covers the tweaks of §3.** The others get no entry: they claim nothing a tool could check.
+
+## 12. C1 built (2026-10-23)
+
+### 12.1 What was built
+
+- **`tools/claims.py`**, standard library only:
+  - **the vocabulary:**
+    - the keys by their codes (notes/63 §1.1), with GATE, PAGE and PATTERN whose codes are not traced;
+    - the knobs by number, and DATA for LEVEL/DATA;
+    - two other actions, NOTES (notes on the pads or the keyboard) and DATA-PRESS;
+    - the situations `any`, `params`, `grid`, `keys`, `page:LFO`, `menu:RETRIG`, `menu:TRACK-SETUP`,
+      `menu:MIDI-PORTS`;
+    - the scopes `all`, `machine`, and `machine:<NAME>` for the six stock machines, MACRO, ACID or a package.
+  - **the stock list:** 12 combinations, 140 atoms, each with its source. The LFO page's entry is marked as a
+    hypothesis.
+  - **the reading:** `atoms()` gives a combination's atoms, `normalize()` a holder's claims in one form with their
+    scopes, and `holders()` the packages, the parts and the tweaks' entries.
+  - **`--check`:**
+    - `claims.json`: its schema and fields; each id pattern names tweaks of the folder; no tweak in two entries; no
+      package, since a package's claims stay in its manifest;
+    - every claim: its type, its range (k 0–32, record slots 0–31, descriptors 1–4, CC and NRPN 0–127), its
+      words, its situation and its scope;
+    - each manifest's claims against its `uses`: the RAM, the views, and each shortcut with its combination and
+      slots;
+    - the shortcut part's claims against its own list.
+  - `--list`, and `--self-test` (54 cases).
+- **`tweaks/model-cycles_OS1.13/claims/claims.json`:** 11 entries for the tweaks of §3. Each has its source note,
+  and 6 items are marked `open`.
+  - They cover 139 of the 286 tweaks. MACRO's lo-fi accounts for 128 of them: every tweak with MACRO carries it,
+    because `gen_syntakt_engines.lofi_index` finds MACRO wherever it stands.
+  - The file sits in a subfolder, not next to the tweaks as §4.1 planned. About a dozen tools read every `*.json` of
+    the tweak folder as a tweak and would stop on it: `gen_flasher_tweaks.py`, several proofs.
+- **The shortcut part's claims:** k 28–31, record slots 28–31, descriptors 1–4, and RETRIG + the four knobs in
+  `params`. Its declared lfo-plus stays until C2 computes it.
+- **The manifests:**
+  - REF2's gesture is now an object (`params`, "Octave");
+  - SAMPLE's formatter has scope `all` (§12.2);
+  - REF claims nothing.
+
+### 12.2 A formatter belongs to an interface object, not to a machine `[FAIT]`
+
+- SAMPLE shows its Cutoff through interface object 53, which is also SNARE's SWEEP (`machine/view.c`):
+  - `smp_fmt_cutoff` falls back to the stock formatter off SAMPLE's tracks;
+  - `smp_view_install` puts it in only while the stock formatter is there.
+- An object has one formatter pointer. Two formatter claims on one object therefore meet whatever their scopes. A
+  second mod on object 53 would leave SAMPLE's Cutoff showing the stock 0..127, and nothing would say so.
+- So C2 compares formatters by object alone, a change to §5.1.
+
+### 12.3 Checks
+
+- **New, green:**
+  - `claims.py --self-test`: ALL OK (54 cases).
+  - `claims.py --check`: ALL OK. That is 11 entries for 139 tweaks, 12 stock combinations (140 atoms), 3 packages
+    and 2 parts.
+- **Unchanged and green:** `gen_parts.py --check`, `gen_flasher_tweaks.py --check` (no claim reaches the page yet),
+  `gen_sampler.py --check`, `gen_refmachine.py --check`, `check_overlaps.py`, `registry.py --check`,
+  `webcompose_check.sh` (the nine selections identical, the MAIN OS hashes of §7) and `py_compile`.
+- **Nothing is computed yet.** No tool reads the claims for a conflict, so every build is byte for byte what it was.
