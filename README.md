@@ -1,7 +1,15 @@
 # model27
 
-**An attempt to make as many Model:Cycles mods as possible work together, and above all added machines: tick the
-machines you want, in any combination, and the page builds them into one firmware.**
+****The Model:Cycles with added machines you can combine freely, built in your browser from your own copy of the official OS.****
+
+- **Machines combine freely.** Up to six added machines, in any combination, put together when you build. Nothing is pre-built, and no machine rules out another.
+- **What goes together is checked.** Every mod declares what it touches; the builder checks each build and stops one that would write the same bytes or use the same memory, instead of making a firmware.
+- **It still plays like a Model:Cycles.** Extra values sit on one fixed set of shortcuts, RETRIG + a knob, the same on every machine and saved with the sound.
+- **Few mods, worked out to the end.** Each one is proven in an emulator running the OS's own code, and tested on a real Model:Cycles before it is called tested.
+- **Your files stay yours.** The firmware is built in your browser from your own official OS file, nothing is
+  uploaded, and only the main OS is changed, so the official firmware can always go back on.
+- **Easy to write for.** A machine is one package, its code and a manifest; the builder gives it its slot, its
+  memory and its place in the OS. Two reference machines in the repository show how, by hand or with an AI.
 
 model27 is a downstream fork of [Modded-Cycles](https://github.com/18nelli18/Modded-Cycles), started from its
 release 1.55, the last one with a mod picker, plus the Control All Config mod. It keeps the picker: you tick what
