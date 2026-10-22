@@ -1,15 +1,20 @@
 # model27
 
-****The Model:Cycles with added machines you can combine freely, built in your browser from your own copy of the official OS.****
+**The Model:Cycles with added machines you can combine freely, built in your browser from your own copy of the
+official OS.**
 
-- **Machines combine freely.** Up to six added machines, in any combination, put together when you build. Nothing is pre-built, and no machine rules out another.
-- **What goes together is checked.** Every mod declares what it touches; the builder checks each build and stops one that would write the same bytes or use the same memory, instead of making a firmware.
-- **It still plays like a Model:Cycles.** Extra values sit on one fixed set of shortcuts, RETRIG + a knob, the same on every machine and saved with the sound.
-- **Few mods, worked out to the end.** Each one is proven in an emulator running the OS's own code, and tested on a real Model:Cycles before it is called tested.
+- **Machines combine freely.** Up to six added machines, in any combination, put together when you build. Nothing is
+  pre-built, and no machine rules out another.
+- **What goes together is checked.** Every mod declares what it touches; the builder checks each build and stops one
+  that would write the same bytes or use the same memory, instead of making a firmware.
+- **It still plays like a Model:Cycles.** Extra values sit on one fixed set of shortcuts, RETRIG + a knob, the same on
+  every machine and saved with the sound.
+- **Few mods, worked out to the end.** Each one is proven in an emulator running the OS's own code, and tested on a
+  real Model:Cycles before it is called tested.
 - **Your files stay yours.** The firmware is built in your browser from your own official OS file, nothing is
   uploaded, and only the main OS is changed, so the official firmware can always go back on.
-- **Easy to write for.** A machine is one package, its code and a manifest; the builder gives it its slot, its
-  memory and its place in the OS. Two reference machines in the repository show how, by hand or with an AI.
+- **Easy to write for.** A machine is one package, its code and a manifest; the builder gives it its slot, its memory
+  and its place in the OS. Two reference machines in the repository show how, by hand or with an AI.
 
 model27 is a downstream fork of [Modded-Cycles](https://github.com/18nelli18/Modded-Cycles), started from its
 release 1.55, the last one with a mod picker, plus the Control All Config mod. It keeps the picker: you tick what
@@ -22,10 +27,11 @@ are the **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-stand
 both tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
 [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples on the +Drive,
 and [Control All Config](https://github.com/durchgemacht/cycles-control-all-config). The
-[guide](https://durchgemacht.github.io/model27/guide/) explains them. Combining machines is proven with internal
-reference machines: SAMPLE with the first one on a Model:Cycles, and the second one, with a shortcut and shared
-views, in emulation so far. The next machine card is the first that users will combine. The other Modded-Cycles
-1.55 mods stay buildable from the command line.
+[guide](https://durchgemacht.github.io/model27/guide/) explains them. Combining machines is proven with two internal
+reference machines: SAMPLE with the first one on a Model:Cycles; the second one, with a shortcut, and sharing the
+main screen, the knob view, the screen's tick and the browser with SAMPLE, in emulation so far, composed by the page
+as by the command line. The next machine card is the first that users will combine. The other Modded-Cycles 1.55
+mods stay buildable from the command line.
 
 > [!IMPORTANT]
 > **No Elektron firmware is included in this repository**, original or modified. You bring the official OS
@@ -70,13 +76,6 @@ p-locked or used as LFO destinations, and no card on the page uses a shortcut ye
   a matter of listening.
 - **A track remembers a machine slot, not a machine.** The added machines take their slots in the order they are
   ticked, so keep one project per build ([notes/64](notes/64-projects-and-machines.md)).
-
-## What model27 is for
-
-- **It still plays like a Model:Cycles.** An added machine uses the same controls as the six original ones, and a
-  mod adds something small and leaves everything else as it is, bit for bit.
-- **A few engines, worked out to the end.** Knob ranges that mean something end to end, no clicks under a square LFO, a measured
-  cost, a test on a real machine before a mod is called tested.
 
 ## What goes in first
 
