@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Assembles the builder's parts into their committed objects (notes/63 §3 and §5, step B4b).
+"""Builds the builder's parts into their committed objects (notes/63 §3 to §5, steps B4b and B4c).
 
 A part is code of model27's builder, not a machine: tools/compose.py adds it to the builds that need it, as it adds
 the registrar runtime to every build. It lives in tools/machines/<id>/ with its sources and a part.json (schema
 model27-part/0.1): the recipe, the roots relocate.py keeps, the patch points, and what the composer writes for it.
-This generator assembles the sources with that recipe and joins them with ld -r into tools/machines/<id>/<id>.o, as
-a package's generator writes its object, then checks what the composer relies on: the roots are defined, the only
-undefined symbols are the patch points, every relocation is R_68K_32. --check compares with the committed object.
+This generator compiles or assembles the sources with that recipe and joins them with ld -r into
+tools/machines/<id>/<id>.o, as a package's generator writes its object, then checks what the composer relies on: the
+roots are defined, the only undefined symbols are the patch points, every relocation is R_68K_32. --check compares
+with the committed object.
 
-Today one part: shortcuts, the machine shortcuts and the sound record chain (tools/machines/shortcuts/). Needs the
-m68k toolchain; compose.py does not.
+Today two parts: shortcuts, the machine shortcuts and the sound record chain (tools/machines/shortcuts/, B4b), and
+dispatch, the dispatchers of the points two machines share (tools/machines/dispatch/, B4c). Needs the m68k
+toolchain; compose.py does not.
 
     python3 tools/gen_parts.py [--check]
 """
@@ -24,7 +26,7 @@ sys.path.insert(0, str(HERE))
 import compose                     # noqa: E402
 import relocate                    # noqa: E402
 
-PARTS = ("shortcuts",)
+PARTS = ("shortcuts", "dispatch")
 
 
 def main():

@@ -4,8 +4,8 @@
    template for the smallest one. Step B4a (notes/63 §7): a second package with REF's contract and code, a
    triangle in place of REF's parabola so that the two are told apart by ear and in the proofs. Step B4b: a
    shortcut, RETRIG + COLOR = Octave (-2 to +2), declared in the manifest; the builder's shortcut layer shows and
-   saves it in k 28, and this code only reads it. The next steps add a handler on every other hook SAMPLE uses
-   (B4c, B4d). Never offered to users.
+   saves it in k 28, and this code only reads it. Step B4c: the main screen label and the knob view, in
+   ref2_view.c. Step B4d adds a handler on the tick and the browser. Never offered to users.
 
    Contract of the voice loop (One-Shot TECHNICAL §5, Modded-Cycles notes/14 and notes/43):
    ref2_update(pmod, v, p), then ref2_render(out, v), once per block of 32 frames at 48 kHz. pmod is

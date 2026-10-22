@@ -1,0 +1,24 @@
+{
+ "schema": "model27-part/0.1",
+ "id": "dispatch",
+ "version": "0.1",
+ "name": "Dispatchers: an OS point that two or more machines take, called for the selected track's machine",
+ "description": "A part of model27's builder, not a machine (notes/63 §4): compiled once into dispatch.o by tools/gen_parts.py, added by tools/compose.py to a build in which two or more machines take the same vtable entry. The entry goes to the part's dispatcher; the composer writes the data block (each machine's method by machine number) right after the part's code. A point one machine takes keeps that machine's own entry, so SAMPLE alone does not change.",
+ "license": "MIT",
+ "build": {
+  "sources": ["dispatch.c"],
+  "include": [],
+  "cflags": ["-std=c99", "-mcpu=54418", "-O2", "-ffreestanding", "-fno-builtin", "-fno-tree-loop-distribute-patterns",
+             "-nostdlib", "-fno-pic", "-fno-common", "-ffunction-sections", "-fdata-sections", "-Wall", "-Wextra",
+             "-Werror"],
+  "defines": {},
+  "objects": ["dispatch.o"],
+  "roots": ["dp_main", "dp_knob"],
+  "patch_points": [{"symbol": "dp_data", "kind": "dispatch_data"}]
+ },
+ "sites": {
+  "view.main": {"vtable": "0x400ffe30", "stock_ptr": "0x4001b22a", "symbol": "dp_main", "table": 4},
+  "view.knob": {"vtable": "0x4010053c", "stock_ptr": "0x4001e40a", "symbol": "dp_knob", "table": 28}
+ },
+ "data": {"first": 0, "count": 1, "size": 52, "max_machines": 6}
+}

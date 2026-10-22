@@ -1,7 +1,7 @@
 # 63 — Level B, step 4: machine shortcuts and dispatchers, proven by a second reference machine (plan)
 
 **Status: plan, 2026-10-22; the maintainer's decisions (§9); B4a built and proven in emulation (§10); B4b built and proven
-in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
+in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
 ids were dropped ([notes/62](62-level-b4-stable-machine-ids.md) §9). It covers two pieces:
 
 - the dispatcher tables for the hooks two packages share;
@@ -456,3 +456,109 @@ the page changes only in B4e, without new cards.
   - REF2 plays the same as machine 6, 7 or 8 at Octave 0, and SNARE plays as in the stock OS, sample for sample.
 - **Device:** not tried. The tests of §6 apply, with REF2 alone and with SAMPLE: the shortcut and its display, the
   octave, saving and reloading the project, copying a sound (`0x4005aa54`, `[HYP]`) and loading a preset.
+
+## 12. B4c built (2026-10-22)
+
+### 12.1 What was built
+
+- **The dispatchers, a second part** (`tools/machines/dispatch/`, MIT):
+  - `dispatch.c`, compiled once by `tools/gen_parts.py` into the committed `dispatch.o` (230 bytes of code, 6
+    relocations, no variables);
+  - `part.json`: the recipe, the roots `dp_main` and `dp_knob`, the patch point `dp_data`, the two sites
+    (MainScreenView's draw entry `0x400ffe30`, stock `0x4001b22a`; the knob view's `0x4010053c`, stock `0x4001e40a`)
+    and the layout of the data block (first machine, number of machines, one table of 6 draws per point).
+
+  Each dispatcher finds the selected track's machine as SAMPLE's views do: the project singleton's track
+  + 212 + t × 68, the sound from the method at +40 of its vtable, the machine in the sound's byte +38. It then calls
+  that machine's draw from its table, or the stock draw, with the same arguments (GCC makes it a `jmp`).
+- **`tools/compose.py`**:
+  - `dispatch_layer()` takes each point of the part that two or more packages use: the entry goes to the part's
+    dispatcher, and the table gets each package's draw at its machine;
+  - a point one package takes keeps that package's own entry, so SAMPLE alone, REF2 alone and SAMPLE + REF do not
+    change;
+  - only the dispatchers a build needs are placed (they are the layout's roots), after the shortcut layer;
+  - `package_writes()` skips the entries a dispatcher takes.
+- **REF2's views**, in the new `refmachine2/ref2_view.c`:
+  - `ref2_main_draw`: on a REF2 track and without a value window, the stock main screen, then `OCT +1` (`OCT 0`,
+    `OCT -2`, …) in the free band of its right half;
+  - `ref2_knob_draw`: while the Octave is shown on a REF2 track and no trig is held, OCTAVE and five boxes, −2 to
+    +2, the current one filled, the values below; any other case draws the stock knob view;
+  - the machine number comes from a patch point, `ref2_machine_index` (kind `machine_index`), as SAMPLE's
+    `cm_machine_index` does;
+  - the manifest gains the `view.main` and `view.knob` entries, the two draws in `keep`, and `claims.views`.
+
+  `29-refmachine2.json` is regenerated: 122 writes, 2 more than in B4b, the two vtable entries, written directly since
+  REF2 is alone there.
+- **`tools/emu/test_views.py`**: the proof (§12.4), to be run by the maintainer.
+
+### 12.2 Decisions in the build, and why `[FAIT]` (code reading)
+
+1. **The dispatcher picks by the selected track's machine, and the machine's draw still checks the track.**
+   - Both points concern the selected track, and SAMPLE's draws already decide that way.
+   - With its own check kept, a machine's draw works the same whether it is the only one on the point (its entry,
+     no dispatcher) or one of several (through the dispatcher).
+   - The dispatcher spares the other machines' draws the calls on tracks that are not theirs. SAMPLE's object and
+     manifest do not change: its draws were already kept symbols, named in its `view.main` and `view.knob` entries.
+2. **The dispatchers are C, not assembly**, because they call the OS the way SAMPLE's C does. The data block is a
+   struct behind the patch point.
+3. **Where the label goes.** The stock main draw (`0x4001b22a`) shows:
+   - the left half as a lit panel (filled, then turned over: `0x40070dea` with colours 1 and −1);
+   - the right half dark, with "TRn" centred at x 96 on rows 34..42 (`0x4001b6ba`), the pan bar at y 25
+     (`0x4001b754`) and the level bar at y 12 (`0x4001b7e4`);
+   - while `0x40a744c8` is set, a sign at x 65, y 58 (`0x4001b844`).
+
+   Rows 44..56 of the right half stay free. The label is centred at x 96 from row 46, in the small font, 9 rows high.
+4. **The knob view's case** is SAMPLE's test for Start and Length, with REF2's descriptor:
+   - descriptor 1 at the view's `+0x230`, where the encoder handler keeps the lookup's answer (`0x4001f73a`);
+   - a value window open;
+   - no trig held.
+5. **Still to come.**
+   - The `screen.tick` and `browser.open` points come in B4d, which extends the part's data block.
+   - `composer.js` does not know the dispatchers yet either: that is B4e, and `webcompose_synth.py` still leaves REF2
+     out.
+
+### 12.3 Measured
+
+| Build | Writes | Added to the image | Dispatchers (code + data) | MAIN OS |
+|---|---|---|---|---|
+| SAMPLE alone | 123 | 36 096 | none | `ccdadb37…`, unchanged |
+| SAMPLE + REF | 123 | 37 760 | none | `d1765ab3…`, unchanged |
+| REF2 alone | 122 | 8 636 | none: REF2's entries | `44fad54f…` |
+| SAMPLE + REF2 | 124 | 39 904 | 230 + 52 at `0x4300839c` | `0392f11d…` |
+| REF2 + SAMPLE | 124 | 39 904 | 230 + 52 at `0x4300839c` | `0933c755…` |
+| SAMPLE + REF + REF2 | 124 | 41 688 | 230 + 52 at `0x43008914` | `44d5e5e1…` |
+
+- REF2's object is 2 470 bytes of code and tables, 1 152 more than in B4b: its two views.
+- With SAMPLE, the tables hold SAMPLE's and REF2's draws at their machines, and 0 at REF's.
+- **Conflicts:** unchanged. REF2's new entries only meet SAMPLE's, a conflict already listed. `REGISTRY.md` lists
+  the two entries for REF2 and SAMPLE, with two values depending on the build.
+
+### 12.4 Checks
+
+- **Static checks, green:**
+  - `compose.py --machines sampler --compare 27-sampler.json`: writes, payload and symbols identical;
+  - `--compare-ld` and `--compare-b1` for the six builds above;
+  - `gen_parts.py --check` (both parts), `gen_refmachine.py --check`, `gen_sampler.py --check` and
+    `gen_registrar.py --check`;
+  - `check_overlaps.py`, `registry.py --check`, `gen_flasher_tweaks.py --check` and `ref_mainos.py --check`;
+  - `webcompose_check.sh` (REF2's new object at 23 placements, the five selections without REF2 identical);
+  - `py_compile` and `test_compose.py --dry`.
+- **Emulation** `[FAIT]` (the maintainer's runs, Unicorn on the OS's own code, 2026-10-22): **ALL OK** for
+  `test_views.py` (with `--show`), `test_shortcuts.py` and `test_compose.py`, on their default builds.
+  - **`test_views.py`**, four builds (REF2 alone, SAMPLE + REF2, REF2 + SAMPLE, SAMPLE + REF + REF2):
+    - the sites: REF2 alone writes its two draws itself; with SAMPLE, both entries go to the dispatchers, whose
+      tables hold SAMPLE's and REF2's draws at their machines;
+    - the dispatchers call the selected track's machine's draw or the stock one, once with the same arguments, for
+      every machine, a track past 5 and no project;
+    - REF2's main draw, with the OS's own text code and small font: the label only in the free band of the right
+      half, five different labels, nothing on another track or with a value window open. With `--show` (REF2
+      alone), `OCT +1` lies at x 79..113, rows 46..54, and the five values take 68 to 77 pixels;
+    - REF2's knob draw: the blanked screen and its five boxes, and the stock view in every other case. The picture
+      shows OCTAVE on rows 50..58, the boxes on rows 20..35 with +1 filled, and −2, −1, 0, +1, +2 under them on
+      rows 6..14.
+  - **`test_shortcuts.py` and `test_compose.py`** on the B4c builds, where the dispatchers lie in the payload next to
+    the shortcut layer: the results of §11.4 again.
+- **Device:** not tried. To check with REF2 alone and with SAMPLE:
+  - the label on the main screen, and that it hides nothing (with the sign at x 65 shown too);
+  - the boxes while RETRIG + COLOR turns;
+  - SAMPLE's waveform and its Start and Length views as before.
