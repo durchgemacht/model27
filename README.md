@@ -3,14 +3,14 @@
 **The Model:Cycles with added machines you can combine freely, built in your browser from your own copy of the
 official OS.**
 
-- **Machines combine freely.** Up to six added machines, in any combination, put together when you build. Nothing is
-  pre-built, and no machine rules out another.
+- **Machines combine freely.** Up to six added machines for now, a limit that will be raised soon, in any
+  combination, put together when you build. Nothing is pre-built, and no machine rules out another.
 - **What goes together is checked.** Every mod declares what it touches; the builder checks each build and stops one
   that would write the same bytes or use the same memory, instead of making a firmware.
 - **It still plays like a Model:Cycles.** Extra values sit on one fixed set of shortcuts, RETRIG + a knob, the same on
   every machine and saved with the sound.
-- **Few mods, worked out to the end.** Each one is proven in an emulator running the OS's own code, and tested on a
-  real Model:Cycles before it is called tested.
+- **Tested means played on a real Model:Cycles.** Before a mod reaches the flasher, it runs in an emulator on the
+  Model:Cycles' own code. Its card says Experimental until it has been played on the device, and Tested after.
 - **Your files stay yours.** The firmware is built in your browser from your own official OS file, nothing is
   uploaded, and only the main OS is changed, so the official firmware can always go back on.
 - **Easy to write for.** A machine is one package, its code and a manifest; the builder gives it its slot, its memory
@@ -47,7 +47,7 @@ that says what it touches, and the builder composes the packages you tick each t
 
 | | One tweak per combination (upstream) | One package per machine (model27) |
 |---|---|---|
-| **Machines ticked together** | only the combinations built in advance: 283 tweak files upstream, 252 of them combinations of the Syntakt engines | any combination, up to six next to the six original machines |
+| **Machines ticked together** | only the combinations built in advance: 283 tweak files upstream, 252 of them combinations of the Syntakt engines | any combination, up to six for now (to be raised soon) next to the six original machines |
 | **A new machine** | a new file for every combination with the machines already there | one package; the others stay as they are |
 | **Its slot, its place in memory, its registration in the OS** | fixed by its own generator | assigned by the builder at each build |
 | **Extra controls** | each machine picks its own key combinations | a fixed list of shortcuts, handled by the builder |
