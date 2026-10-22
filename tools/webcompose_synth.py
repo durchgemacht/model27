@@ -31,9 +31,9 @@ import relocate  # noqa: E402
 
 MACHINES = HERE / "machines"
 CODE_END = 0x48000000                       # no limit here: the composer checks the room, not this comparison
+# without REF2 until B4e: its shortcut brings in the shortcut layer (notes/63 §3), which composer.js does not compose yet
 SELECTIONS = ((["sampler"], []), (["refmachine"], []), (["sampler", "refmachine"], []), (["refmachine", "sampler"], []),
-              (["sampler", "refmachine"], ["arp", "trig-hold"]), (["refmachine2"], []), (["sampler", "refmachine2"], []),
-              (["sampler", "refmachine", "refmachine2"], []))
+              (["sampler", "refmachine"], ["arp", "trig-hold"]))
 COMPARED = ("id", "order", "name", "version", "conflicts", "writes", "append", "symbols")
 
 

@@ -34,14 +34,17 @@ Points from code reading are marked as such: they have not been tried on the dev
   changes machine, these values stay, and the new machine reads them its own way: another happy accident.
 - These values cannot be p-locked or used as LFO destinations, for now. Holding a trig or LFO keeps the knob on its
   usual parameter.
-- Status: planned in [notes/63](63-level-b4-shortcuts-dispatchers.md) (§9), not built yet.
+- A new sound starts with every such value at 0, which is also what a sound saved before a machine had the shortcut
+  reads: 0 is each one's neutral setting.
+- Status: built in [notes/63](63-level-b4-shortcuts-dispatchers.md) §11 for the internal machine REF2 (the machine
+  change keeping the values: code reading, §11.2); not tried on the device yet, and no machine card offers one.
 
 ## 4. Back on the official OS
 
 - A project made with added machines plays CHORD on those tracks on the official OS, and the MACHINES page shows
   "Error": the voice loop and the page check the slot. Whether every screen copes with such a track there, turning
   its knobs for one, has not been checked, since the official OS has no registrar to catch it.
-- The official OS does not keep the extra settings of added machines, such as SAMPLE's sample choice and, later,
+- The official OS does not keep the extra settings of added machines, such as SAMPLE's sample choice and the
   shortcut values.
   - Loaded there, a sound comes without them, and saving the sound or the project erases them for good: the official
     save keeps only the stock parameters.

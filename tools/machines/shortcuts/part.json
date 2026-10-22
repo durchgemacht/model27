@@ -1,0 +1,35 @@
+{
+ "schema": "model27-part/0.1",
+ "id": "shortcuts",
+ "version": "0.1",
+ "name": "Machine shortcuts: RETRIG + COLOR, SHAPE, SWEEP or CONTOUR on an added machine's tracks, saved with the sound",
+ "description": "A part of model27's builder, not a machine (notes/63 §3): assembled once into shortcuts.o by tools/gen_parts.py, added by tools/compose.py to a build in which a machine declares a shortcut. The knob lookup's vtable entry and the three sound record functions jump into it; the composer writes the data block (the machines' shortcuts, the next of the record chain) right after its code, and a package's own wrapper on a record function (SAMPLE's) becomes the next of the chain instead of a hook of its own.",
+ "license": "MIT",
+ "build": {
+  "sources": ["shortcuts.S"],
+  "include": [],
+  "cflags": ["-mcpu=54418"],
+  "defines": {},
+  "objects": ["shortcuts.o"],
+  "roots": ["sc_knob", "sc_save2", "sc_save1", "sc_load"],
+  "patch_points": [{"symbol": "sc_data", "kind": "shortcut_data"}]
+ },
+ "shortcut": {
+  "key": "RETRIG",
+  "knobs": ["COLOR", "SHAPE", "SWEEP", "CONTOUR"],
+  "descriptors": [1, 2, 3, 4],
+  "sound_slots": [28, 29, 30, 31],
+  "record_slots": [28, 29, 30, 31],
+  "range": [-128, 127],
+  "formatter": "0x400456c8"
+ },
+ "sites": {
+  "knob": {"vtable": "0x401005a8", "stock_ptr": "0x4001e814", "symbol": "sc_knob"},
+  "record": [
+   {"at": "0x4005afa0", "stock": "4feffff448d71c00", "symbol": "sc_save2"},
+   {"at": "0x4005b054", "stock": "4feffff448d71c00", "symbol": "sc_save1"},
+   {"at": "0x4005aecc", "stock": "4feffff448d71c00", "symbol": "sc_load"}
+  ]
+ },
+ "data": {"next": 0, "descn": 12, "first": 16, "count": 17, "entries": 20, "entry_size": 24}
+}

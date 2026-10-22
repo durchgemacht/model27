@@ -1,23 +1,25 @@
 /* REF2: model27's second reference machine for the Model:Cycles OS 1.13 (notes/63).
 
    The template for a machine that uses everything the Cycles Mod Standard lets a machine use, as REF is the
-   template for the smallest one. Step B4a (notes/63 §7): a plain second package with REF's contract and code, a
-   triangle in place of REF's parabola so that the two are told apart by ear and in the proofs. The next steps add
-   a shortcut (RETRIG + COLOR = Octave, B4b) and a handler on every hook SAMPLE uses (B4c, B4d). Never offered to
-   users.
+   template for the smallest one. Step B4a (notes/63 §7): a second package with REF's contract and code, a
+   triangle in place of REF's parabola so that the two are told apart by ear and in the proofs. Step B4b: a
+   shortcut, RETRIG + COLOR = Octave (-2 to +2), declared in the manifest; the builder's shortcut layer shows and
+   saves it in k 28, and this code only reads it. The next steps add a handler on every other hook SAMPLE uses
+   (B4c, B4d). Never offered to users.
 
    Contract of the voice loop (One-Shot TECHNICAL §5, Modded-Cycles notes/14 and notes/43):
    ref2_update(pmod, v, p), then ref2_render(out, v), once per block of 32 frames at 48 kHz. pmod is
    the trig's note in semitones << 16, v the track's voice (0x31c bytes at 0x42308828 + t * 0x31c),
    p its parameters as 8.8 words (+0x14 PITCH, +0x16 COLOR, +0x18 SHAPE, +0x1a SWEEP, +0x1c CONTOUR,
-   +0x22 FINE, +0x24 DECAY). v+0x34 is set in the block of a trig, v+0x38 in the block after it,
-   v+0x3c when the note ends; v+0x00..0x3c is cleared when the track changes machine (0x400a7ab8),
-   so a marker at v+0x2c tells the first block on this machine.
+   +0x22 FINE, +0x24 DECAY, and k 28..31 of the shortcuts at +0x38..+0x3e, signed). v+0x34 is set in the
+   block of a trig, v+0x38 in the block after it, v+0x3c when the note ends; v+0x00..0x3c is cleared when
+   the track changes machine (0x400a7ab8), so a marker at v+0x2c tells the first block on this machine.
 
    Sound: a triangle (no table) mixed with white noise, through a one-pole lowpass. COLOR = Tone (the
    lowpass, 127 = open), SHAPE = Noise (0 = triangle only, 127 = noise only), SWEEP = Detune (-1 .. +1
-   semitone, 64 = none), CONTOUR = Level. PITCH, FINE and the trig's note set the pitch as on every
-   machine: PITCH - 64 + note + FINE (+-2 semitones). DECAY, GATE and PUNCH are the stock amp chain.
+   semitone, 64 = none), CONTOUR = Level, RETRIG + COLOR = Octave (-2 .. +2, 0 = none). PITCH, FINE and the
+   trig's note set the pitch as on every machine: PITCH - 64 + note + FINE (+-2 semitones), then 12 semitones
+   per octave. DECAY, GATE and PUNCH are the stock amp chain.
    Plain C99, no libc, no float, no 64-bit arithmetic. */
 #include <stdint.h>
 
@@ -88,7 +90,7 @@ static u32 phase_inc(s32 note)
 void ref2_update(s32 pmod, char *v, const char *p)
 {
 	struct track *tr = &trk[((u32)v - CYC_VOICE0) / CYC_VSTRIDE];
-	s32 dec, note, tune;
+	s32 dec, note, tune, oct;
 
 	if (V32(MARK_OFF) != MARK) {                    /* first block since the track changed machine */
 		tr->phase = 0;
@@ -111,10 +113,13 @@ void ref2_update(s32 pmod, char *v, const char *p)
 		V32(0x48) = 0;
 		tr->phase = 0;                              /* every note starts at the zero crossing */
 	}
-	/* pitch: the trig's note, PITCH - 64, FINE (+-2 semitones), Detune (+-1 semitone) */
+	/* pitch: the trig's note, PITCH - 64, FINE (+-2 semitones), Detune (+-1 semitone), Octave (12 semitones) */
 	note = pmod < 0 ? 0 : (pmod > (127 << 16) ? 127 << 16 : pmod);
 	tune = ((s32)P16(0x14) << 8) + (((s32)P16(0x22) - 0x4000) << 3) - (64 << 16)
 	       + (((s32)P16(0x1a) - 0x4000) << 2);
+	oct = (s32)P16(0x38) >> 8;                      /* k 28: RETRIG + COLOR, -2 .. +2 (the shortcut layer clamps it) */
+	oct = oct < -2 ? -2 : (oct > 2 ? 2 : oct);
+	tune += oct * (12 << 16);
 	note += tune;
 	note = note < 0 ? 0 : (note > (127 << 16) ? 127 << 16 : note);
 	tr->inc = phase_inc(note);

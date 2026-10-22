@@ -3,7 +3,7 @@
  "id": "refmachine2",
  "version": "0.1",
  "name": "REF2 machine: model27's second reference machine, a triangle and noise through the stock chain",
- "description": "The template for a machine that uses everything the standard lets a machine use (notes/63). Step B4a: a plain second package, REF's contract with a triangle in place of REF's parabola; the shortcut (RETRIG + COLOR = Octave) and a handler on every hook SAMPLE uses come in B4b to B4d. Never offered to users.",
+ "description": "The template for a machine that uses everything the standard lets a machine use (notes/63). REF's contract with a triangle in place of REF's parabola (B4a), and a shortcut, RETRIG + COLOR = Octave, -2 to +2, saved with the sound by the builder's shortcut layer (B4b); a handler on every other hook SAMPLE uses comes in B4c and B4d. Never offered to users.",
  "license": "MIT",
  "credit": {"kind": "own", "who": "durchgemacht and Claude", "repo": "durchgemacht/model27"},
  "device": "Model:Cycles",
@@ -27,11 +27,14 @@
     {"long": "Tone", "short": "TONE", "default": 127},
     {"long": "Noise", "short": "NOIS", "default": 0},
     {"long": "Detune", "short": "DTUN", "default": 64},
-    {"long": "Level", "short": "LEVL", "default": 100}]}
+    {"long": "Level", "short": "LEVL", "default": 100}]},
+  {"point": "shortcut", "key": "RETRIG", "knob": "COLOR",
+   "param": {"long": "Octave", "short": "OCT", "min": -2, "max": 2, "default": 0},
+   "why": "the note's octave, -2 to +2: k 28, which the voice reads at p + 0x38; the shortcut layer saves it"}
  ],
- "claims": {"sound_slots": [], "record_slots": [], "ram": [], "gestures": [], "views": []},
+ "claims": {"sound_slots": [28], "record_slots": [28], "ram": [], "gestures": ["RETRIG + COLOR"], "views": []},
  "cost": {"emulation": {"status": "not measured"}, "device": {"status": "not measured"}},
  "stock_behaviour": {"changes": [], "fixes": [], "unchanged": ["other tracks and machines"]},
  "compat": {"built_against": ["model27"], "requires": [], "conflicts_declared": []},
- "tests": {"emulation": {"tool": "tools/emu/test_compose.py (Unicorn, the OS's own code, notes/63 §10)", "date": "2026-10-22", "build": "alone, as machine 7 next to sampler, and as machine 8 of sampler, refmachine, refmachine2"}, "hardware": {"status": "not yet run"}, "status": "experimental"}
+ "tests": {"emulation": {"tool": "tools/emu/test_compose.py and tools/emu/test_shortcuts.py (Unicorn, the OS's own code, notes/63 §10 and §11.4)", "date": "2026-10-22", "build": "alone, as machine 6 or 7 next to sampler, and as machine 8 of sampler, refmachine, refmachine2"}, "hardware": {"status": "not yet run"}, "status": "experimental"}
 }

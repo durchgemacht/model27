@@ -16,7 +16,9 @@ composer takes the packages the user names, in that order, and:
      the bounds, the jumps into the committed registrar runtime, its parameter block for this build, the boot
      hook from the committed stub template; tools/machines/registrar/, notes/60 §4-5; --registrar b1 calls
      gen_macro.added_machine instead and --compare-b1 compares the two), then adds each package's own hooks
-     and vtable entries from its manifest;
+     and vtable entries from its manifest; when a machine declares a shortcut, adds the shortcut layer
+     (tools/machines/shortcuts/, notes/63 §3: a committed part placed after the packages, its data block, the
+     knob lookup and the sound record functions jumping into it, a package's record wrapper chained behind it);
   4. computes what the result cannot be installed with: every tweak of tweaks/ that writes other bytes to the same
      address or runs a payload in the composed payload or in a claimed RAM range, plus what the manifests declare;
   5. emits one tweak in Modded-Cycles' format, which tools/build.py and the web flasher apply like any other, and
@@ -94,6 +96,21 @@ def load_manifest(mid):
     if not m["_machine"]:
         sys.exit(f"!! {mid}: no 'machine' entry in uses: not an added machine")
     return m
+
+
+def load_part(pid):
+    """A part of the builder (notes/63 §5): tools/machines/<pid>/part.json (schema model27-part/0.1), code assembled
+    once into a committed object (tools/gen_parts.py) that the composer adds to the builds that need it."""
+    path = MACHINES / pid / "part.json"
+    if not path.is_file():
+        sys.exit(f"!! no part {pid}: {path} is missing")
+    p = json.loads(path.read_text(encoding="utf-8"))
+    if p.get("schema") != "model27-part/0.1":
+        sys.exit(f"!! {path}: schema {p.get('schema')!r}, expected model27-part/0.1")
+    if p["id"] != pid:
+        sys.exit(f"!! {path}: id {p['id']!r} is not the folder's name")
+    p["_dir"] = MACHINES / pid
+    return p
 
 
 def align4(x):
@@ -548,13 +565,123 @@ def compare_b1_(reg, writes, append, writes1, append1):
           f"for B1's {size_of(append1, f'{gs.STUBS:#x}')} of detours) and the parameter block ({size_of(append, regs)} bytes)")
 
 
-def package_writes(m, img, syms):
-    """The package's own hooks (jsr/jmp into its code) and vtable entries, each checked against the stock bytes."""
+def shortcut_uses(mans, part):
+    """The shortcuts the machines declare ("shortcut" in their uses), checked against the builder's list (notes/63
+    §1.3, §5): [(machine's position, knob's position in the list, param)]. A value is 8.8 in a 16-bit word that a new
+    sound, a sound saved before the machine had the shortcut and the official OS leave at 0: 0 is the default."""
+    sc = part["shortcut"]
+    lo, hi = sc["range"]
+    out = []
+    for i, m in enumerate(mans):
+        seen = set()
+        for u in m["uses"]:
+            if u["point"] != "shortcut":
+                continue
+            where = f"{m['id']}: shortcut {u.get('key')} + {u.get('knob')}"
+            if u.get("key") != sc["key"] or u.get("knob") not in sc["knobs"]:
+                sys.exit(f"!! {where}: not on the builder's list, {sc['key']} + {', '.join(sc['knobs'])} (notes/63 §1.3)")
+            if u["knob"] in seen:
+                sys.exit(f"!! {where}: declared twice")
+            seen.add(u["knob"])
+            prm = u["param"]
+            names = (prm.get("long", ""), prm.get("short", ""))
+            if not all(names) or not all(s_.isascii() and s_.isprintable() for s_ in names) or len(names[1]) > 4:
+                sys.exit(f"!! {where}: a long name and a short name of 4 characters at most, in printable ASCII")
+            rng = (prm.get("min"), prm.get("max"), prm.get("default", 0))
+            if not all(type(v) is int for v in rng) or not lo <= rng[0] <= 0 <= rng[1] <= hi or rng[0] == rng[1]:
+                sys.exit(f"!! {where}: integers min <= 0 <= max, from {lo} to {hi}")
+            if rng[2] != 0:
+                sys.exit(f"!! {where}: default {rng[2]}; a shortcut's default is 0, the value of a new sound, of a sound "
+                         "saved before the machine had the shortcut and of the official OS (notes/63 §11)")
+            out.append((i, sc["knobs"].index(u["knob"]), prm))
+    return out
+
+
+def shortcut_layer(img, part, mans, syms_of, uses, at, code_end, first):
+    """The shortcut layer of this build (notes/63 §3, B4b): the part's committed object placed at at, its data block
+    right after its code, the knob lookup's vtable entry and the three sound record functions jumping into it. A
+    package's own hook on a record function, a wrapper over the same 8 bytes (SAMPLE's), becomes the next of the
+    chain and its write is left out. Returns (blob, symbols, writes, the sites left out, info)."""
+    b, d, sc, sites = part["build"], part["data"], part["shortcut"], part["sites"]
+    path = object_path(part)
+    if not path.is_file():
+        sys.exit(f"!! {path} is missing: run tools/gen_parts.py")
+    roots = b["roots"]
+    lay = relocate.layout(path.read_bytes(), roots[0], roots[1], roots[2:], part["id"])
+    data_at = align4(at + len(lay["code"]))
+    # --- the record chain: one package's wrapper at most behind each record function
+    nexts, skip = [], set()
+    for s in sites["record"]:
+        va = int(s["at"], 16)
+        if img[va - BASE:va - BASE + 8] != bytes.fromhex(s["stock"]):
+            sys.exit(f"!! {va:#x}: {s['stock']} expected, {img[va - BASE:va - BASE + 8].hex()} found")
+        hooked = [(m, u["hook"]) for m in mans for u in m["uses"] if "hook" in u and int(u["hook"]["at"], 16) == va]
+        if len(hooked) > 1:
+            sys.exit(f"!! {', '.join(m['id'] for m, _ in hooked)} all hook {va:#x}: one wrapper behind the shortcut layer")
+        if hooked:
+            m, h = hooked[0]
+            if h["op"] != "jmp" or h["stock"] != s["stock"]:
+                sys.exit(f"!! {m['id']}: its hook at {va:#x} is not a wrapper over the function's first 8 bytes")
+            nexts.append(syms_of[m["id"]][h["symbol"]])
+            skip.add(va)
+        else:
+            nexts.append(0)
+    # --- the data block: the header, the shortcuts per machine and knob, their strings
+    nk, es = len(sc["knobs"]), d["entry_size"]
+    entries = bytearray(es * nk * len(mans))
+    str_at, strings, addr = data_at + d["entries"] + len(entries), bytearray(), {}
+    for i, k, prm in uses:
+        for s_ in (prm["long"], prm["short"]):
+            if s_ not in addr:
+                addr[s_] = str_at + len(strings)
+                strings += s_.encode("ascii") + b"\0"
+        fmt = int(sc["formatter"], 16)
+        if "format" in prm:
+            fmt = syms_of[mans[i]["id"]].get(prm["format"])
+            if fmt is None:
+                sys.exit(f"!! {mans[i]['id']}: formatter {prm['format']} is not a symbol of the package (keep it)")
+        struct.pack_into(">IIiiiI", entries, es * (nk * i + k), addr[prm["long"]], addr[prm["short"]], prm["min"] << 8,
+                         prm["max"] << 8, prm.get("default", 0) << 8, fmt)
+    head = bytearray(d["entries"])
+    for j, nxt in enumerate(nexts):
+        struct.pack_into(">I", head, d["next"] + 4 * j, nxt)
+    struct.pack_into(">I", head, d["descn"], gs.DESCN)
+    head[d["first"]], head[d["count"]] = first, len(mans)
+    data = bytes(head + entries + strings)
+    if data_at + len(data) > code_end:
+        sys.exit(f"!! the shortcut layer ends at {data_at + len(data):#x}, past {code_end:#x}")
+    values = {"shortcut_data": data_at}
+    code, syms, _ = relocate.apply(lay, at, at, code_end, {pp["symbol"]: values[pp["kind"]] for pp in b["patch_points"]})
+    blob = code + bytes(data_at - at - len(code)) + data
+    # --- the writes: the knob lookup's vtable entry, a jmp and a nop over each record function's first 8 bytes
+    kv = sites["knob"]
+    va, method = int(kv["vtable"], 16), int(kv["stock_ptr"], 16)
+    if g7.refs32(img, method) != [va]:
+        sys.exit(f"!! references to {method:#x}: {[hex(r) for r in g7.refs32(img, method)]}")
+    for m in mans:
+        if any("vtable" in u and int(u["vtable"]["at"], 16) == va for u in m["uses"]):
+            sys.exit(f"!! {m['id']}: replaces the knob lookup ({va:#x}), which the shortcut layer takes")
+    writes = [{"off": va - BASE, "old": g7.be32(method).hex(), "new": g7.be32(syms[kv["symbol"]]).hex()}]
+    for s in sites["record"]:
+        writes.append({"off": int(s["at"], 16) - BASE, "old": s["stock"],
+                       "new": (bytes.fromhex("4ef9") + g7.be32(syms[s["symbol"]]) + bytes.fromhex("4e71")).hex()})
+    out = {r: syms[r] for r in roots}
+    out.update({pp["symbol"]: values[pp["kind"]] for pp in b["patch_points"]})
+    info = dict(id=part["id"], code_at=at, code=len(code), data_at=data_at, data=len(data), shortcuts=len(uses),
+                chained=[f"{n:#x}" for n in nexts])
+    return blob, out, writes, skip, info
+
+
+def package_writes(m, img, syms, skip=()):
+    """The package's own hooks (jsr/jmp into its code) and vtable entries, each checked against the stock bytes; the
+    hooks at the sites in skip are left out (the shortcut layer chains them)."""
     writes = []
     for u in m["uses"]:
         if "hook" in u:
             h = u["hook"]
             va, old = int(h["at"], 16), bytes.fromhex(h["stock"])
+            if va in skip:
+                continue
             target = g7.be32(syms[h["symbol"]])
             new = (bytes.fromhex("4eb9") + target if h["op"] == "jsr"
                    else bytes.fromhex("4ef9") + target + bytes.fromhex("4e71"))
@@ -661,6 +788,13 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             info_pkgs.append(dict(id=m["id"], index=first + i, desc=76 + 5 * i, code_at=code_at, code=len(blob),
                                   bss_at=bss_at, bss=bss_end - bss_at))
             code_cursor, bss_cursor = code_at + len(blob), bss_end
+        layer = None                         # the shortcut layer, in the builds whose machines declare a shortcut
+        if any(u["point"] == "shortcut" for m in mans for u in m["uses"]):
+            part = load_part("shortcuts")
+            at = align4(code_cursor)
+            layer = shortcut_layer(img, part, mans, syms_of, shortcut_uses(mans, part), at, gs.STUBS, first)
+            blobs.append((at, layer[0]))
+            code_cursor = at + len(layer[0])
         for m in mans:                       # a package's RAM claim must lie outside the payload
             for lo, hi in ram_claims(m):
                 if lo < bss_cursor and pay < hi:
@@ -676,7 +810,9 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
         else:
             writes, append = writes1, append1
     for m in mans:
-        writes += package_writes(m, img, syms_of[m["id"]])
+        writes += package_writes(m, img, syms_of[m["id"]], layer[3] if layer else ())
+    if layer:
+        writes += layer[2]
     writes.sort(key=lambda x: x["off"])
     for a_, b_ in zip(writes, writes[1:]):
         if a_["off"] + len(a_["new"]) // 2 > b_["off"]:
@@ -707,7 +843,13 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
         "symbols": {k: f"{v:#x}" for m in mans for k, v in syms_of[m["id"]].items()
                     if k in (m["build"]["symbols"]["update"], m["build"]["symbols"]["render"], *m["build"].get("keep", []))},
     }
-    info = dict(pay=pay, end=bss_cursor, image=sum(n for _, n in append["pack"]), packages=info_pkgs)
+    if layer:
+        li = layer[4]
+        tweak["description"].insert(6, f"With the shortcut layer (tools/machines/shortcuts/, notes/63 §3) at {li['code_at']:#x}, "
+                                       f"its data at {li['data_at']:#x}: {li['shortcuts']} shortcut(s).")
+        tweak["symbols"].update({k: f"{v:#x}" for k, v in layer[1].items()})
+    info = dict(pay=pay, end=bss_cursor, image=sum(n for _, n in append["pack"]), packages=info_pkgs,
+                part=layer[4] if layer else None)
     return tweak, info
 
 
@@ -802,6 +944,10 @@ def main():
     for p in info["packages"]:
         print(f"  {p['id']:12s} machine {p['index']}, descriptors {p['desc']}..{p['desc'] + 4}, code {p['code']} bytes at "
               f"{p['code_at']:#x}, variables {p['bss']} bytes at {p['bss_at']:#x}")
+    if info["part"]:
+        p = info["part"]
+        print(f"  {p['id']:12s} {p['shortcuts']} shortcut(s), code {p['code']} bytes at {p['code_at']:#x}, data {p['data']} "
+              f"bytes at {p['data_at']:#x}, record chain {', '.join(p['chained'])}")
     print(f"  tweak {tweak['id']}: {len(tweak['writes'])} writes, payload {info['pay']:#x}..{info['end']:#x}, "
           f"{info['image']} bytes added to the image, {len(tweak['conflicts'])} conflicts computed")
     ok = True

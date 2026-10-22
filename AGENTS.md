@@ -103,9 +103,15 @@ tools/gen_registrar.py        Level B, increments B2b and B2c: assembles the boo
 tools/machines/registrar/     registrar.S, the runtime: the detours of the added machines reading a parameter block the
                               composer fills per build; registrar.json, its committed code, entries and the stub template;
                               frame.json, what every build of n machines writes, filled per build by composer.js
+tools/gen_parts.py            Level B, step B4b: assembles the builder's parts (tools/machines/<id>/part.json) into their
+                              committed objects, --check compares (notes/63 §3, §5)
+tools/machines/shortcuts/     the shortcut layer, a part (notes/63 §3): RETRIG + COLOR / SHAPE / SWEEP / CONTOUR on an
+                              added machine's tracks, saved with the sound; compose.py adds it only to the builds whose
+                              machines declare a shortcut, and chains a package's record wrapper (SAMPLE's) behind it
 tools/machines/refmachine/    the reference machine: the smallest added machine, proves the composer, never offered
 tools/machines/refmachine2/   the second reference machine (notes/63): grows into the template that uses every point a
-                              machine may use (shortcut, dispatched hooks); never offered
+                              machine may use (its shortcut, Octave on RETRIG + COLOR, since B4b; dispatched hooks next);
+                              never offered
 tools/emu/                    Unicorn emulation of the OS: test_<mod>.py proofs, mcengine.py, emac.py, syntakt.py
 tools/gen_flasher_tweaks.py   FEATURES list -> docs/flasher/tweaks.js (generated); a machine card embeds its package and
                               the registrar's frame, composed in the page (notes/61)

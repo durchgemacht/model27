@@ -1,6 +1,7 @@
 # 63 — Level B, step 4: machine shortcuts and dispatchers, proven by a second reference machine (plan)
 
-**Status: plan, 2026-10-22; the maintainer's decisions (§9); B4a built and proven in emulation (§10).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
+**Status: plan, 2026-10-22; the maintainer's decisions (§9); B4a built and proven in emulation (§10); B4b built and proven
+in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
 ids were dropped ([notes/62](62-level-b4-stable-machine-ids.md) §9). It covers two pieces:
 
 - the dispatcher tables for the hooks two packages share;
@@ -323,3 +324,135 @@ the page changes only in B4e, without new cards.
     - REF plays the same as machine 6 or 7;
     - SAMPLE with no sample stays silent;
     - SNARE on track 1 is the stock OS's in every build.
+
+## 11. B4b built (2026-10-22)
+
+### 11.1 What was built
+
+- **The shortcut layer, a part of the builder** (`tools/machines/shortcuts/`, MIT): `shortcuts.S`, assembled once by
+  the new `tools/gen_parts.py` into the committed `shortcuts.o` (466 bytes of code, 4 relocations, no variables), and
+  `part.json` (schema `model27-part/0.1`): the recipe, the roots, the patch point `sc_data`, the list (RETRIG + COLOR,
+  SHAPE, SWEEP, CONTOUR), descriptors 1–4, slots 28–31, the sites and the layout of the data block.
+  - **`sc_knob`** replaces the knob → descriptor lookup in `ParameterPageView`'s vtable (`0x401005a8`, stock
+    `0x4001e814`). It calls the stock lookup first. With RETRIG held and FUNC, TRACK, LFO and every trig released, on a
+    knob 4–7 that the track's machine declared, it writes descriptor `knob − 3` and its interface object, then returns
+    that descriptor; otherwise it returns the stock answer.
+  - **`sc_save2`, `sc_save1`, `sc_load`** take the first 8 bytes of the three record functions (`jmp` + `nop`). Each
+    runs the next of the chain (a package's own wrapper, or the 8 bytes and the stock body), then copies k 28–31 into
+    record slots 28–31 (save) or back (load).
+- **`tools/compose.py`**:
+  - `load_part()` reads a part;
+  - `shortcut_uses()` checks the machines' `shortcut` entries against the list;
+  - `shortcut_layer()` places the part after the packages, writes its data block after its code, writes the vtable
+    entry and the three record sites, and chains a package's record wrapper;
+  - `package_writes()` skips the record sites the layer chains.
+
+  A build whose machines declare no shortcut gets no part and does not change.
+- **REF2**:
+  - its manifest declares `{"point": "shortcut", "key": "RETRIG", "knob": "COLOR", "param": {"long": "Octave",
+    "short": "OCT", "min": -2, "max": 2, "default": 0}}`;
+  - `refmachine2.c` reads k 28 at `p + 0x38`, clamps it to −2..2 and adds 12 semitones per octave.
+
+  `29-refmachine2.json` is regenerated with 120 writes, 4 more than in B4a: the vtable entry and the three record
+  sites.
+- **`tools/emu/test_shortcuts.py`**: the proof on the OS's own code (§11.4), to be run by the maintainer.
+
+### 11.2 Where B4b departs from §3, and why `[FAIT]` (code reading)
+
+1. **The hook is the vtable entry**, not 6 bytes at `0x4001e908`.
+   - This is the track filter's way, tested on the device (notes/47 §3.2), and the lookup has no direct call: the
+     three OS calls go through the entry.
+   - Nothing is patched inside the lookup, so the registrar's `knob_vec` there stays as it is.
+2. **FUNC is the held key** (`isKeyHeld(1)`), not the lookup's FUNC argument, so that the three call sites behave
+   alike. The trig is `0x4006b736(0x400cf9a8())` (`UIStates + 356`, the hold of notes/33), as in SAMPLE's `TRIG_HELD`.
+3. **Descriptors 1–4 keep machine −1** (the track filter's are 7).
+   - The tables built at boot (`0x4005a274`) leave them out, so a shortcut value is in no row, CC, NRPN or LFO
+     destination list.
+   - The edit path reads a descriptor's machine in `0x4001dff4`, where −1 goes the way of machines 0–9: the track's
+     sound.
+   - The value setter `0x4000b274` clamps with `blt`/`ble` (signed) to the range from `0x4005a65a`, so −2..+2 works.
+4. **The layer also writes `+0x14` = 0, CC and NRPN = −1 and `+0x20` = 0.**
+   - The stock "Error" descriptors 1–3 carry CC 1/33, 2/34 and 6/38 at `+0x18`, which the OS would send when the value
+     is edited.
+   - Their `+0x14` is 1 and their `+0x20` is 1–4; every parameter's descriptor has 0 there, and so do the track
+     filter's.
+   - The display is the stock integer formatter `0x400456c8`, signed (`asr`). A machine may name its own (`format`, a
+     kept symbol of its object).
+5. **k 28–31 are saved and loaded for every sound**, not only for the machines with shortcuts.
+   - This is simpler, and a value kept through a machine change (notes/64 §3) survives a save too.
+   - The copy runs only when the function did its work, its result byte being 1. The saves and the load return 0 for a
+     null record or sound, and the load also for a record of another version than 2, which it leaves untouched.
+6. **A machine change keeps the values without a hook**, as decision 2 wants.
+   - `0x40014072` resets only the five parameters of the new machine's record (entries 1–5, the list at `0x400feb7c`).
+   - The full initialisation (`0x400618f2` → `0x40061866`: new project, cleared sound) writes every k, 0 where the
+     machine's rows have no descriptor. A new sound therefore starts with k 28–31 at 0.
+7. **0 is every shortcut's default**, a rule of the builder.
+   - A new sound, a sound saved before the machine had the shortcut and a sound from the official OS all read 0.
+   - `shortcut_uses()` refuses another default, a range without 0 or beyond −128..127, names outside printable ASCII,
+     and a short name of more than 4 characters.
+8. **`sound.record` with SAMPLE is a chain**, not a dispatcher table.
+   - The layer's wrapper runs first and calls SAMPLE's own wrapper as the next one (`sc_data` +0..+8); SAMPLE's jump
+     is then not written. SAMPLE's object and manifest do not change.
+   - A second package with a wrapper on the same record function is refused (one wrapper behind the layer).
+     B4c and B4d bring the dispatchers for the other points.
+9. **`composer.js` does not know the layer yet.** That comes with B4e, as §7 orders it, against §5's "in the same
+   commit". Until then `webcompose_synth.py` leaves REF2, never offered, out of its selections (`tools/AGENTS.md`).
+
+### 11.3 Measured
+
+| Build | Writes | Added to the image | Layer (code + data) | MAIN OS |
+|---|---|---|---|---|
+| SAMPLE alone | 123 | 36 096 | none | `ccdadb37…`, unchanged |
+| REF2 alone | 120 | 7 484 | 466 + 127 at `0x43000528` | `18161a83…` |
+| SAMPLE + REF2 | 124 | 38 468 | 466 + 223 at `0x43007c68` | `0aaf5b0c…` |
+| REF2 + SAMPLE | 124 | 38 468 | 466 + 223 at `0x43007c68` | `ea3045a1…` |
+| REF + REF2 | 120 | 9 200 | 466 + 223 at `0x43000a40` | `163c175c…` |
+| SAMPLE + REF + REF2 | 124 | 40 252 | 466 + 319 at `0x43008180` | `7dd3c1ab…` |
+
+- The data block holds 20 bytes of header, 96 bytes per machine (4 knobs × 24) and the strings.
+- With SAMPLE, the chain is SAMPLE's three wrappers (`smp_hook_save2`, `smp_hook_save1`, `smp_hook_load`).
+- **Conflicts.** `29-refmachine2.json` gains `track-filter`, computed (the vtable entry and the record sites). Nothing
+  else changes in `tweaks/`.
+
+### 11.4 Checks
+
+- **Static checks, green:**
+  - `compose.py --machines sampler --compare 27-sampler.json`: writes, payload and symbols identical;
+  - `--compare-ld` and `--compare-b1` for the six builds above;
+  - `gen_parts.py --check`, `gen_refmachine.py --check`, `gen_sampler.py --check` and `gen_registrar.py --check`;
+  - `check_overlaps.py`, `registry.py --check`, `gen_flasher_tweaks.py --check` and `ref_mainos.py --check`;
+  - `webcompose_check.sh` (REF2's object at 23 placements; the five selections without REF2 identical);
+  - `webbuild_check.sh`, `webflash_check.sh`, `py_compile`, and `test_compose.py --dry`.
+- **Emulation** `[FAIT]` (the maintainer's run of `tools/emu/test_shortcuts.py`, Unicorn on the OS's own code,
+  2026-10-22): **ALL OK** for the four builds: REF2 alone, SAMPLE + REF2, REF2 + SAMPLE, and SAMPLE + REF + REF2.
+  - **The sites:** the vtable entry and the three record functions jump into the layer. With SAMPLE, the chain ends
+    in SAMPLE's three wrappers, and their own jumps are not written.
+  - **The knob, 1 792 to 2 240 cases per build:** descriptor 1 for RETRIG + COLOR on REF2 only. Every other case gets
+    the stock answer: the 15 other knobs, the other machines (stock, SAMPLE, REF, one past the last, 100, −1), no key
+    held, and FUNC, TRACK, LFO or a trig held with RETRIG. The stock lookup is called once each time with the same
+    arguments, and the stack comes back.
+  - **Descriptor 1:**
+    - its fields: k 28, −2..+2, default 0, no CC, no NRPN, Octave / OCT, machine −1, the other descriptors untouched;
+    - the OS's range getter reads (−512, 512, 0);
+    - its value setter clamps −1000 and −513 to −512, and 513 and 1000 to 512;
+    - interface object 1, from the OS's own constructor, shows "-2" to "2".
+  - **The tables built at boot** are identical with descriptor 1 installed: rows, CC rows, k → descriptor, CC, NRPN.
+  - **Save and load:**
+    - versions 2 and 1 give the stock record plus k 28–31 in slots 28–31 (bytes 84 to 90 differ);
+    - the load gives them back, and everything else as the stock load;
+    - a version 1 record is refused as before, and the sound is left as it was;
+    - a record from the official OS loads them at 0;
+    - a SAMPLE sound keeps its key, and its record is otherwise that of SAMPLE's build alone.
+  - **A real machine change** into REF2, from CHORD, SAMPLE or REF: REF2's knobs at their defaults, k 28–31 kept.
+  - **The voice loop:** REF2 at Octave +1 and note 48, and at −1 and note 72, plays note 60 at 0, sample for sample;
+    +3 plays as +2; REF ignores k 28.
+  - The first run stopped in the test itself, before the save: its random sound held a velocity destination that the
+    stock save reads as a table index without a bound (`0x4005b02e`). The test sound now carries valid destinations,
+    as `test_track_filter.py`'s does.
+- **`test_compose.py`** `[FAIT]` (the maintainer's run, 2026-10-22): **ALL OK** for its seven selections. The three
+  with REF2 now carry the layer in their payload.
+  - Each build starts up: the bootstrap reads the grown OS back, and the boot hook copies the payload.
+  - The registrar's mechanics pass, and the runtime equals B1's detours input for input.
+  - REF2 plays the same as machine 6, 7 or 8 at Octave 0, and SNARE plays as in the stock OS, sample for sample.
+- **Device:** not tried. The tests of §6 apply, with REF2 alone and with SAMPLE: the shortcut and its display, the
+  octave, saving and reloading the project, copying a sound (`0x4005aa54`, `[HYP]`) and loading a preset.
