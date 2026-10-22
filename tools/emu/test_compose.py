@@ -3,7 +3,8 @@
 tools/compose.py registers through the registrar runtime (registrar.S, a parameter block per build) behave in the
 OS as the per-build detours of B1 (gen_macro.added_machine) made them behave, and the rest of the OS as stock.
 
-For each selection (by default: sampler; refmachine; sampler,refmachine; refmachine,sampler), on the official OS 1.13:
+For each selection (by default: sampler; refmachine; sampler,refmachine; refmachine,sampler; refmachine2;
+sampler,refmachine2; sampler,refmachine,refmachine2), on the official OS 1.13:
   1. start-up: the bootstrap's own aPLib depacker reads the grown OS back; the boot hook copies the packed payload
      to its place, segment by segment, and clears the BSS;
   2. the registrar's mechanics, with the checks of test_syntakt_machines.py configured for the composed machines:
@@ -12,8 +13,9 @@ For each selection (by default: sampler; refmachine; sampler,refmachine; refmach
      machine change, the main screen's knobs, a machine this build does not have, the small icon;
   3. the runtime against B1: the same results, input for input, from the OS functions that go through the detours
      (B1 is built with the m68k toolchain; without it this part is skipped and says so);
-  4. the voice loop: REF plays the same as machine 6 alone and as machine 7 next to SAMPLE; SNARE on track 1 is the
-     stock OS's, sample for sample; SAMPLE with no sample loaded stays silent; no access outside memory.
+  4. the voice loop: REF plays the same as machine 6 alone and as machine 7 next to SAMPLE, REF2 the same as machine
+     6, 7 or 8 (notes/63), and REF2 does not sound like REF; SNARE on track 1 is the stock OS's, sample for sample;
+     SAMPLE with no sample loaded stays silent; no access outside memory.
 
 The payload is given to the emulator as it lies in memory (build.payload_runtime) with the code ranges read from the
 composed tweak's parts, so the EMAC instructions of a package are emulated wherever the composer placed it
@@ -47,7 +49,8 @@ import test_sdvintage_7th as t7     # noqa: E402
 import test_syntakt_machines as TS  # noqa: E402
 from test_sdvintage_7th import UI, check, fill_records, REC_LEN, SCRATCH  # noqa: E402
 
-SELECTIONS = [["sampler"], ["refmachine"], ["sampler", "refmachine"], ["refmachine", "sampler"]]
+SELECTIONS = [["sampler"], ["refmachine"], ["sampler", "refmachine"], ["refmachine", "sampler"],
+              ["refmachine2"], ["sampler", "refmachine2"], ["sampler", "refmachine", "refmachine2"]]
 POOL = (0x43800000, 0x46700000)          # SAMPLE's sample pool (its memory.ram claim), mapped empty in the voice loop
 MUTED = 0x7f                             # a machine no build has: the voice loop renders nothing on that track
 
@@ -184,23 +187,29 @@ def play(e, track, machine, knobs, decay, blocks, note=60):
 
 def voice_loop(stock, builds, blocks):
     """builds: selection key -> (tweak, img, runtime, added)."""
-    ref = {}
+    plays = {"refmachine": "REF", "refmachine2": "REF2"}          # the reference machines, with their default knobs
+    out = {code: {} for code in plays}
     for key, (tweak, img, runtime, added) in builds.items():
         for m in added:
             e = engine(img, runtime, tweak)
             x = play(e, 0, m["index"], [k[2] for k in m["knobs"]], m["decay"], blocks)
-            if m["code"] == "refmachine":
-                ref[key] = (m["index"], x)
+            if m["code"] in plays:
+                out[m["code"]][key] = (m["index"], x)
                 check(np.max(np.abs(x)) > 1e6 and not e.unmapped,
-                      f"{key}: REF (machine {m['index']}) plays, peak {np.max(np.abs(x)):.3g}, no access outside memory")
+                      f"{key}: {plays[m['code']]} (machine {m['index']}) plays, peak {np.max(np.abs(x)):.3g}, "
+                      "no access outside memory")
             elif m["code"] == "sampler":
                 check(not x.any() and not e.unmapped,
                       f"{key}: SAMPLE (machine {m['index']}) with no sample loaded: silent, no access outside memory")
-    if len(ref) > 1:
-        (k0, (i0, x0)), *rest = ref.items()
-        check(all(np.array_equal(x0, x) for _, (_, x) in rest),
-              f"REF identical sample for sample as machine {i0} ({k0}) and as machine "
-              + ", ".join(f"{i} ({k})" for k, (i, _) in rest))
+    for code, got in out.items():
+        if len(got) > 1:
+            (k0, (i0, x0)), *rest = got.items()
+            check(all(np.array_equal(x0, x) for _, (_, x) in rest),
+                  f"{plays[code]} identical sample for sample as machine {i0} ({k0}) and as machine "
+                  + ", ".join(f"{i} ({k})" for k, (i, _) in rest))
+    if out["refmachine"] and out["refmachine2"]:
+        x1, x2 = next(iter(out["refmachine"].values()))[1], next(iter(out["refmachine2"].values()))[1]
+        check(not np.array_equal(x1, x2), "REF2 does not sound like REF: a triangle, not REF's parabola")
     snare = (0, 127, 8, 0)
     e = engine(stock)
     x = play(e, 1, 1, snare, 40, blocks)

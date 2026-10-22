@@ -1,6 +1,6 @@
 # 63 — Level B, step 4: machine shortcuts and dispatchers, proven by a second reference machine (plan)
 
-**Status: plan, 2026-10-22; the maintainer's decisions (§9).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
+**Status: plan, 2026-10-22; the maintainer's decisions (§9); B4a built (§10).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
 ids were dropped ([notes/62](62-level-b4-stable-machine-ids.md) §9). It covers two pieces:
 
 - the dispatcher tables for the hooks two packages share;
@@ -279,3 +279,36 @@ the page changes only in B4e, without new cards.
 3. **Hooks:** REF2 covers every point SAMPLE uses: `sound.record`, `view.main`, `view.knob`, `screen.tick` and
    `browser.open` (§2, §4.2), so that the standard is complete for machines before the call.
 4. **REF2:** Octave on RETRIG + COLOR, −2 to +2.
+
+## 10. B4a built (2026-10-22)
+
+- **`tools/machines/refmachine2/`** (MIT): REF2 is REF's contract and code with three changes:
+  - its symbols are `ref2_update` and `ref2_render`, so that a build with both has no clash;
+  - its voice marker at `+0x2c` is `'REF2'`, so that a track switching between REF and REF2 restarts;
+  - it plays a triangle in place of REF's parabola, so that the two are told apart by ear and in the proofs.
+
+  Its manifest is REF's with order 29, the name REF2, and tests not yet run.
+- **`tools/gen_refmachine.py`** now writes both reference machines: `28-refmachine.json` and `29-refmachine2.json`,
+  and the committed objects `refmachine.o` (unchanged) and `refmachine2.o`.
+- **Measured.**
+  - REF2 alone is 116 writes, 1 282 bytes of code and tables, 192 bytes of variables, and 6 852 bytes added to the
+    image; its MAIN OS is `59d3a916…`.
+  - `--compare-ld` is identical to `ld` and `--compare-b1` to B1 for REF2 alone, SAMPLE + REF2, REF2 + REF, and the
+    first build of three machines, SAMPLE 6, REF 7 and REF2 8. That build has 39 428 bytes added, B1's detours 854
+    bytes against the runtime's 826, a parameter block of 64 bytes, and MAIN OS `32467e74…`.
+- **Conflicts.** With a new tweak in the folder, the composer computes one conflict more for the machines already
+  there: `27-sampler.json` and `28-refmachine.json` gain `refmachine2` in their `conflicts`, and nothing else. Their
+  writes and payload are unchanged, so `REF_MODS`, `REF_MAINOS` and the page stay as they are. `REGISTRY.md` lists REF2
+  at the registrar's sites and its payload.
+- **SAMPLE alone is unchanged.** `compose.py --machines sampler` gives `27-sampler.json`'s writes, payload and symbols
+  identical, and the MAIN OS `ccdadb37…`.
+- **Checks.**
+  - `webcompose_check.sh` with the official file: REF2 placed at 23 placements; REF2 alone, SAMPLE + REF2 and the
+    three machines identical between JavaScript and Python, MAIN OS included.
+  - Also green: `check_overlaps.py`, `registry.py --check`, `gen_flasher_tweaks.py --check`, `ref_mainos.py
+    --check`, `gen_registrar.py --check`, `webbuild_check.sh`, `webflash_check.sh`, and `test_compose.py --dry` with
+    the three new selections.
+- **Emulation, to be run by the maintainer.** `tools/emu/test_compose.py` now covers REF2 alone, next to SAMPLE, and
+  as machine 8 of three, with the registrar's mechanics and the comparison with B1 for each. Its voice loop checks
+  that REF2 plays the same as machine 6, 7 or 8, and that it does not sound like REF. Unicorn stops in this sandbox,
+  so the run is the maintainer's.

@@ -1,0 +1,37 @@
+{
+ "schema": "cycles-mod/0.1",
+ "id": "refmachine2",
+ "version": "0.1",
+ "name": "REF2 machine: model27's second reference machine, a triangle and noise through the stock chain",
+ "description": "The template for a machine that uses everything the standard lets a machine use (notes/63). Step B4a: a plain second package, REF's contract with a triangle in place of REF's parabola; the shortcut (RETRIG + COLOR = Octave) and a handler on every hook SAMPLE uses come in B4b to B4d. Never offered to users.",
+ "license": "MIT",
+ "credit": {"kind": "own", "who": "durchgemacht and Claude", "repo": "durchgemacht/model27"},
+ "device": "Model:Cycles",
+ "os": "1.13",
+ "order": 29,
+ "build": {
+  "sources": ["refmachine2.c"],
+  "include": ["."],
+  "cflags": ["-std=c99", "-mcpu=54418", "-O2", "-ffreestanding", "-fno-builtin", "-fno-tree-loop-distribute-patterns",
+             "-nostdlib", "-fno-pic", "-fno-common", "-ffunction-sections", "-fdata-sections", "-Wall", "-Wextra",
+             "-Werror"],
+  "defines": {},
+  "objects": ["refmachine2.o"],
+  "patch_points": [],
+  "symbols": {"update": "ref2_update", "render": "ref2_render"},
+  "keep": []
+ },
+ "uses": [
+  {"point": "machine", "name": "REF2", "image": 4, "decay_default": 64,
+   "knobs": [
+    {"long": "Tone", "short": "TONE", "default": 127},
+    {"long": "Noise", "short": "NOIS", "default": 0},
+    {"long": "Detune", "short": "DTUN", "default": 64},
+    {"long": "Level", "short": "LEVL", "default": 100}]}
+ ],
+ "claims": {"sound_slots": [], "record_slots": [], "ram": [], "gestures": [], "views": []},
+ "cost": {"emulation": {"status": "not measured"}, "device": {"status": "not measured"}},
+ "stock_behaviour": {"changes": [], "fixes": [], "unchanged": ["other tracks and machines"]},
+ "compat": {"built_against": ["model27"], "requires": [], "conflicts_declared": []},
+ "tests": {"emulation": {"status": "not yet run"}, "hardware": {"status": "not yet run"}, "status": "experimental"}
+}

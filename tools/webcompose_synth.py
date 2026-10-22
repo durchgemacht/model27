@@ -32,7 +32,8 @@ import relocate  # noqa: E402
 MACHINES = HERE / "machines"
 CODE_END = 0x48000000                       # no limit here: the composer checks the room, not this comparison
 SELECTIONS = ((["sampler"], []), (["refmachine"], []), (["sampler", "refmachine"], []), (["refmachine", "sampler"], []),
-              (["sampler", "refmachine"], ["arp", "trig-hold"]))
+              (["sampler", "refmachine"], ["arp", "trig-hold"]), (["refmachine2"], []), (["sampler", "refmachine2"], []),
+              (["sampler", "refmachine", "refmachine2"], []))
 COMPARED = ("id", "order", "name", "version", "conflicts", "writes", "append", "symbols")
 
 

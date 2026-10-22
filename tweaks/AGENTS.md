@@ -6,7 +6,7 @@ One folder per device and OS (`model-cycles_OS1.13/` is the only one). Read the 
 
 Every tweak is written by a script and checked by its `--check`: `gen_<mod>.py`, `relocate_6ch.py` (6ch-usbup),
 `gen_model_tg.py` (Model-TG), `gen_syntakt_engines.py` (the `24-syntakt-*`, `31-syntakt-tg-*` combinations and the
-`90`–`92` diagnostics), `gen_sdvintage*.py` and `gen_syntakt_machines.py` (`20`–`23`). `27-sampler.json` is written by `gen_sampler.py`, `28-refmachine.json` by `gen_refmachine.py` through
+`90`–`92` diagnostics), `gen_sdvintage*.py` and `gen_syntakt_machines.py` (`20`–`23`). `27-sampler.json` is written by `gen_sampler.py`, `28-refmachine.json` and `29-refmachine2.json` by `gen_refmachine.py` through
 `compose.py` (notes/59), both from the package's committed object placed by `relocate.py` and registered by the registrar runtime of `tools/machines/registrar/` (notes/60); a tweak `compose.py` emits for several machines is a build, kept out of this folder. A new tweak names its generator
 and its note in the last line of its `description`. Change the generator or its sources, rerun it, commit both.
 The exceptions are drumkilla's `01`–`03` (copied as-is, SHA-256 listed in `PROVENANCE.md`; `02` carries our 3-byte fix)

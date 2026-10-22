@@ -104,6 +104,8 @@ tools/machines/registrar/     registrar.S, the runtime: the detours of the added
                               composer fills per build; registrar.json, its committed code, entries and the stub template;
                               frame.json, what every build of n machines writes, filled per build by composer.js
 tools/machines/refmachine/    the reference machine: the smallest added machine, proves the composer, never offered
+tools/machines/refmachine2/   the second reference machine (notes/63): grows into the template that uses every point a
+                              machine may use (shortcut, dispatched hooks); never offered
 tools/emu/                    Unicorn emulation of the OS: test_<mod>.py proofs, mcengine.py, emac.py, syntakt.py
 tools/gen_flasher_tweaks.py   FEATURES list -> docs/flasher/tweaks.js (generated); a machine card embeds its package and
                               the registrar's frame, composed in the page (notes/61)
