@@ -1,6 +1,6 @@
 # 63 — Level B, step 4: machine shortcuts and dispatchers, proven by a second reference machine (plan)
 
-**Status: plan, 2026-10-22; the maintainer's decisions (§9); B4a built (§10).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
+**Status: plan, 2026-10-22; the maintainer's decisions (§9); B4a built and proven in emulation (§10).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
 ids were dropped ([notes/62](62-level-b4-stable-machine-ids.md) §9). It covers two pieces:
 
 - the dispatcher tables for the hooks two packages share;
@@ -308,7 +308,18 @@ the page changes only in B4e, without new cards.
   - Also green: `check_overlaps.py`, `registry.py --check`, `gen_flasher_tweaks.py --check`, `ref_mainos.py
     --check`, `gen_registrar.py --check`, `webbuild_check.sh`, `webflash_check.sh`, and `test_compose.py --dry` with
     the three new selections.
-- **Emulation, to be run by the maintainer.** `tools/emu/test_compose.py` now covers REF2 alone, next to SAMPLE, and
-  as machine 8 of three, with the registrar's mechanics and the comparison with B1 for each. Its voice loop checks
-  that REF2 plays the same as machine 6, 7 or 8, and that it does not sound like REF. Unicorn stops in this sandbox,
-  so the run is the maintainer's.
+- **Emulation** `[FAIT]` (the maintainer's run of `tools/emu/test_compose.py`, Unicorn on the OS's own code,
+  2026-10-22): **ALL OK** for the seven selections: SAMPLE, REF, both pairs, REF2, SAMPLE + REF2, and SAMPLE + REF +
+  REF2.
+  - Each starts up: the bootstrap reads the grown OS back, and the boot hook copies the payload and clears the BSS.
+  - The registrar's mechanics pass for each, and the runtime equals B1's detours input for input.
+  - The three machines:
+    - nine names and nine marks on the MACHINES page, on two rows;
+    - the machine setter takes 6, 7 and 8 and refuses 9; the wheel stops at 8;
+    - records 7, 8 and 9 are SAMPLE's, REF's and REF2's, and a real machine change goes Chord → SAMPLE → REF → REF2;
+    - machines 9, 10 and 100 fall back to KICK's record and knobs, with no access outside memory.
+  - The voice loop:
+    - REF2 plays the same, sample for sample, as machine 6, 7 or 8, and does not sound like REF;
+    - REF plays the same as machine 6 or 7;
+    - SAMPLE with no sample stays silent;
+    - SNARE on track 1 is the stock OS's in every build.
