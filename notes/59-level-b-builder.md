@@ -119,7 +119,8 @@ behaviour must not.
 2. **orders** the machines (B1: the order given; B4: by registry id) and assigns `first + i`, `76 + 5 i`;
 3. **lays out** the payload: the registrar runtime, then each package's sections one after the other from `pay`
    (code, rodata, data) with BSS above the tables at `+0x36000` as MACRO does; refuses when the end crosses a
-   `memory.ram` claim (SAMPLE's pool at `0x43800000`) or `gs.STUBS`;
+   `memory.ram` claim (SAMPLE's pool at `0x43800000`) or `gs.STUBS`, and when the `memory.ram` claims of two
+   packages overlap (built 2026-10-22, `compose.check_ram_claims`);
 4. **relocates**: B1 with `m68k-elf-ld` and a generated linker script (as `gen_sampler.compile_machine` does
    today); B2 with its own `R_68K_32` loop over the ELF relocation tables;
 5. writes the **patch points** and fills the **parameter block**;

@@ -235,6 +235,16 @@ function patchValues(p, values) {
 
 const ramClaims = (p) => p.uses.filter((u) => u.point === "memory.ram").map((u) => u.range.map((x) => parseInt(x, 16)));
 
+// compose.check_ram_claims(): two packages never claim the same RAM
+function checkRamClaims(packages) {
+  const claims = packages.flatMap((p) => ramClaims(p).map(([lo, hi]) => [p.id, lo, hi]));
+  claims.forEach(([a, lo, hi], i) => {
+    for (const [b, lo2, hi2] of claims.slice(i + 1))
+      if (a !== b && lo < hi2 && lo2 < hi)
+        throw new Error(`${a} and ${b} claim the same RAM: ${hx(lo)}..${hx(hi)} and ${hx(lo2)}..${hx(hi2)}`);
+  });
+}
+
 // compose.package_writes(): the package's own hooks (jsr/jmp into its code) and vtable entries, each checked against
 // the stock bytes. That a vtable entry is the only reference to its method is a property of the stock OS, which the
 // Python composer checks on every build (notes/61 §4); here the entry's stock bytes are checked like any write's.
@@ -309,6 +319,7 @@ function compose(mainOs, frames, packages, tweaks = []) {
     for (const [lo, hi] of ramClaims(p))
       if (lo < bssCursor && pay < hi)
         throw new Error(`${p.id}: the payload (${hx(pay)}..${hx(bssCursor)}) runs into its RAM claim ${hx(lo)}..${hx(hi)}`);
+  checkRamClaims(packages);
   const { writes, append } = fill(frameOf(frames, packages.length), mainOs, machines, blobs, bssCursor);
   for (const p of packages) writes.push(...packageWrites(p, mainOs, symsOf[p.id]));
   writes.sort((a, b) => a.off - b.off);

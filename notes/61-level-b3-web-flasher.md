@@ -154,7 +154,8 @@ toolchain paths:
 1. the packages in the order given (card order, SAMPLE first until B4, notes/59 §6), machine `6 + i`, first
    descriptor `76 + 5 i`;
 2. the layout: code from `pay`, variables from `pay + 0x36000`, both cursors aligned to 4; refused when the code
-   passes `STUBS` or the payload runs into a package's `memory.ram` claim;
+   passes `STUBS` or the payload runs into a package's `memory.ram` claim, or the `memory.ram` claims of two
+   packages overlap (`checkRamClaims`, as `compose.check_ram_claims`, 2026-10-22);
 3. `place` (§2) with the patch-point values;
 4. `fill` (§3) with the stock values read in `mainOs`;
 5. the packages' own hooks and vtable entries from their manifests (`package_writes`). Whether a vtable entry is the

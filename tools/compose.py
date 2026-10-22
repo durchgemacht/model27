@@ -11,7 +11,8 @@ composer takes the packages the user names, in that order, and:
      sources as B1 did (--compare-ld does both and compares them, notes/60 §3);
   2. lays them out in the added machines' payload window (0x43000000, gs.PAY_ALONE): code and tables one after the
      other from the window's start, variables one after the other from +0x36000 (above the moved tables, as MACRO),
-     links each one there, and refuses a layout that crosses the stubs or a package's RAM claim;
+     links each one there, and refuses a layout that crosses the stubs or a package's RAM claim, and two
+     packages whose RAM claims overlap;
   3. registers them all at once (registrar_writes: the tables of names, update/render, records and descriptors,
      the bounds, the jumps into the committed registrar runtime, its parameter block for this build, the boot
      hook from the committed stub template; tools/machines/registrar/, notes/60 §4-5; --registrar b1 calls
@@ -760,6 +761,15 @@ def ram_claims(m):
     return [(int(a, 16), int(b, 16)) for u in m["uses"] if u["point"] == "memory.ram" for a, b in [u["range"]]]
 
 
+def check_ram_claims(mans):
+    """Two packages never claim the same RAM: a build where the claims of two of them overlap is refused."""
+    claims = [(m["id"], lo, hi) for m in mans for lo, hi in ram_claims(m)]
+    for i, (a, lo, hi) in enumerate(claims):
+        for b, lo2, hi2 in claims[i + 1:]:
+            if a != b and lo < hi2 and lo2 < hi:
+                sys.exit(f"!! {a} and {b} claim the same RAM: {lo:#x}..{hi:#x} and {lo2:#x}..{hi2:#x}")
+
+
 def folder_tweaks():
     """The tweaks of tweaks/model-cycles_OS1.13/ that have an id: what the conflicts are computed against."""
     out = []
@@ -863,6 +873,7 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             for lo, hi in ram_claims(m):
                 if lo < bss_cursor and pay < hi:
                     sys.exit(f"!! {m['id']}: the payload ({pay:#x}..{bss_cursor:#x}) runs into its RAM claim {lo:#x}..{hi:#x}")
+        check_ram_claims(mans)
         reg = load_registrar()
         if registrar == "b1" or compare_b1:
             writes1, append1 = gm.added_machine(img, None, machines, tmp, blobs, bss_cursor)
