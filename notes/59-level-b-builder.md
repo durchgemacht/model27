@@ -178,7 +178,8 @@ The composer never needs the Braids clone or any source: it reads committed `.o`
    Detailed plan, measurements and proofs: [notes/61](61-level-b3-web-flasher.md) (2026-10-22).
 4. **B4, registry and dispatchers** (§6), when a second package needs a shared hook or a stable id.
    Plan for the stable ids, measurements and the dispatchers as an outlook: [notes/62](62-level-b4-stable-machine-ids.md)
-   (2026-10-22); decided the same day: option C, no stable ids (§9 there).
+   (2026-10-22); decided the same day: option C, no stable ids (§9 there). The dispatchers and the machine
+   shortcuts, proven by a second reference machine: [notes/63](63-level-b4-shortcuts-dispatchers.md) (plan, 2026-10-22).
 
 Hardware tests follow every increment, by the maintainer, before anything is called tested.
 
