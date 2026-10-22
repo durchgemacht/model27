@@ -2,7 +2,8 @@
 
 **Status: plan, 2026-10-22; the maintainer's decisions the same day: the six recommendations of §9 (§11); step C1
 built on 2026-10-23 (§12): the claims as data, checked; step C2 built the same day (§13): the rules, in the Python and
-the JavaScript composer and in `check_overlaps.py`; step C3 the same day (§14): `REGISTRY.md` from the claims.**
+the JavaScript composer and in `check_overlaps.py`; step C3 the same day (§14): `REGISTRY.md` from the claims; step
+C4 the same day (§15): the page's computed reasons and the standard's draft 0.4. Level C is built as planned.**
 
 The maintainer's request after step B4e (2026-10-22): a "Gesten- und Slot-Prüfung" (a check of gestures and slots),
 so that a clash that writes no common byte is computed instead of found by chance. Two such clashes are on record,
@@ -544,3 +545,51 @@ your recommendations for all six decisions).
 - `registry.py --check`, after regenerating; `registry.py --git HEAD`;
 - `claims.py --check --self-test`, `check_overlaps.py` and `py_compile`.
 - No tweak, tool output for a build, or page file changes, so the composers' checks need no rerun.
+
+## 15. C4 built (2026-10-23)
+
+### 15.1 What was built
+
+- **The page's computed reasons** (§11, decision 5):
+  - `claims.py` splits its rule in two: `clash_items()` gives each clash with its kind, and `clashes()` keeps the
+    texts the tools print.
+  - `clash_kinds()` gives each kind once, in order: `slots`, `saved`, `descriptors`, `formatter`, `plock`, `midi`,
+    `ram` or `combo`. A `combo` comes with its shared combination, written by `combo_text()` from the shared atoms
+    (`MACHINES + SWEEP/CONTOUR` for the track filter against Model-TG, knobs in panel order).
+  - `gen_flasher_tweaks.py` writes `clash_reasons` into `tweaks.js`. For each pair of offered cards that exclude
+    each other, it lists the kinds their claims show; a card's claims are those of every tweak it can build.
+  - `app.js` has a new function, `autoWhy()`. A card pair's hand-written reason comes first, then the card's own,
+    then the first computed kind, then the generic "both change the same part of the firmware".
+  - The eight kinds are said for musicians, in English and in French, for example "both keep their settings in the
+    same place of the sound" and "les deux utilisent les touches TRACK + TRIG 1-6".
+  - The two cards offered today do not exclude each other, so `clash_reasons` is empty and nothing shows yet.
+  - `webflash_smoke.js` asks the page's `autoWhy()` for an injected reason, in English and in French. `app.js`
+    exposes it among its test hooks.
+- **The self-test** grows to 81 cases: the kinds of two real pairs, and combinations written back from atoms.
+- **The pages' stamp** goes to `2026-10-23-02`, since `app.js` and `tweaks.js` change.
+- **The standard's draft 0.4**, in `cycles-mod-standard`:
+  - `STANDARD.md`:
+    - §3.1, the `gesture` and `param.sound` points as computed;
+    - §4.2, the shapes of `claims`;
+    - a new §4.5, the claims as model27 reads them (where they live, scopes, numbers, the words of a combination,
+      situations, the stock combinations);
+    - §4.3 and §4.4, rules 2 and 3 as built, with what building them settled;
+    - §5, no number file, the claims instead, and §5.2 to §5.5 from the registry (§5.4 now has every gesture
+      declared);
+    - §7.1, §7.3 and §7.4, the claims and the counts;
+    - §8 to §11.
+  - `APPLYING.md`: the claims in the inventory, the registry check and the manifest skeleton, `claims.py --check`
+    in §12, and both prompts.
+  - `README.md`: the status, the extension points, how "works with" is computed, and what is built.
+
+### 15.2 Checks
+
+- `claims.py --check --self-test`: ALL OK, 81 cases.
+- **Unchanged and green:** `gen_flasher_tweaks.py --check`, `check_overlaps.py`, `registry.py --check`,
+  `ref_mainos.py --check`, `webbuild_check.sh`, `webflash_check.sh`, `webcompose_check.sh` and `py_compile`.
+- **`webflash_smoke.sh`**, run by the maintainer because it needs `registry.npmjs.org`:
+  - The first run was ALL OK but the new check. That check read the reason from the SAMPLE row of the injected
+    conflict, but SAMPLE has a hand-written reason of its own ("both add machines at the same place of the
+    firmware"), which comes first, as decided (§11).
+  - The check now asks `autoWhy()` directly, and verifies that it says nothing once the injected reason is gone.
+  - The second run: ALL OK.

@@ -646,7 +646,18 @@ def render():
     check_requires(features, by_id)
     machine_excludes(features, by_id)
     tweaks, shared = share(tweaks)
-    claimed = __import__("claims").tweak_claims() if packages else {}
+    cl = __import__("claims")
+    claimed = cl.tweak_claims()
+
+    def card_claims(feat):                  # every tweak the card can build, its package's for a machine card
+        out = {}
+        for tid in ([feat["package"]] if feat.get("package") else []) + card_tweaks(feat):
+            if tid in claimed:
+                out = cl.merge(out, claimed[tid])
+        return out
+    by_feat = {f["id"]: f for f in features}
+    reasons = {f"{f['id']}|{g}": kinds for f in features for g in f.get("excludes", []) if g in by_feat
+               for kinds in [cl.clash_kinds(card_claims(f), card_claims(by_feat[g]))] if kinds}
     payload = {
         "device": {k: device[k] for k in ("device", "os", "section_sha256", "stock_syx_sha256", "cave_refs_ok")
                    if k in device},
@@ -661,6 +672,9 @@ def render():
         # model27, Level C (notes/65, C2): the declared claims of the offered tweaks, which the machine cards are
         # composed against (tools/claims.py's to_json form)
         "claims": {t["id"]: claimed[t["id"]] for t in tweaks if t["id"] in claimed} if packages else None,
+        # model27, Level C (notes/65, C4): for two cards that exclude each other, the kinds of clash their claims
+        # show ("<card>|<card>": [[kind, combination]]); the page says the first where no hand-written reason exists
+        "clash_reasons": reasons,
         # onglet « OS Samples » : l'OS Model:Samples officiel, mis dans le conteneur du Cycles (crossflash)
         "samples": {"syx_sha256": OFFICIAL["samples"]["syx"], "main_sha256": OFFICIAL["samples"]["main"],
                     "download": "https://www.elektron.se/support-downloads/modelsamples"},

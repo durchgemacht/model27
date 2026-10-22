@@ -151,6 +151,15 @@ const T = {
     good_to_know: "Good to know:",
     clash_row: "<b>Doesn't go with the mod {name}</b>, already ticked: {why}. Ticking this one unticks it.",
     clash_generic: "both change the same part of the firmware",
+    // reasons computed from what the mods declare (notes/65): the first kind of clash of the two cards
+    why_slots: "both keep their settings in the same place of the sound",
+    why_saved: "both keep their settings in the same place of the pattern or the project",
+    why_descriptors: "both add parameters in the same place",
+    why_formatter: "both change how the same value is shown",
+    why_plock: "both change how parameter locks are saved",
+    why_midi: "both answer the same MIDI controller",
+    why_ram: "both use the same memory",
+    why_combo: "both use the buttons {combo}",
     swapped: "The mod {off} was unticked: it doesn't go with {on}.",
     swapped_n: "The mods {off} were unticked: they don't go with {on}.",
     quoted: "“{name}”",
@@ -432,6 +441,14 @@ const T = {
     good_to_know: "À savoir :",
     clash_row: "<b>Ne va pas avec le mod {name}</b>, déjà coché : {why}. Cocher celui-ci le décochera.",
     clash_generic: "les deux modifient le même endroit du firmware",
+    why_slots: "les deux rangent leurs réglages au même endroit du son",
+    why_saved: "les deux rangent leurs réglages au même endroit du pattern ou du projet",
+    why_descriptors: "les deux ajoutent des paramètres au même endroit",
+    why_formatter: "les deux changent l'affichage de la même valeur",
+    why_plock: "les deux changent la façon dont les p-locks sont sauvegardés",
+    why_midi: "les deux répondent au même contrôleur MIDI",
+    why_ram: "les deux utilisent la même mémoire",
+    why_combo: "les deux utilisent les touches {combo}",
     swapped: "Le mod {off} a été décoché : il ne va pas avec {on}.",
     swapped_n: "Les mods {off} ont été décochés : ils ne vont pas avec {on}.",
     quoted: "« {name} »",
@@ -1081,7 +1098,14 @@ const order = () => CATS.flatMap((c) => features().filter((f) => catOf(f) === c)
 const clashOnly = (f, g) => (f.excludes || []).includes(g.id) || (g.excludes || []).includes(f.id);
 // "clash_<id>": why this card doesn't go with that one in particular; "clash": with any other
 const clashWhy = (f, g) => featText(f.id, "clash_" + g.id, "") || featText(g.id, "clash_" + f.id, "")
-  || featText(f.id, "clash", "") || featText(g.id, "clash", "") || t("clash_generic");
+  || featText(f.id, "clash", "") || featText(g.id, "clash", "") || autoWhy(f, g) || t("clash_generic");
+// notes/65 (C4): where no hand-written reason exists, the first kind of clash the two cards' declared claims show
+// (tweaks.js "clash_reasons", written by tools/gen_flasher_tweaks.py from tools/claims.py)
+function autoWhy(f, g) {
+  const r = (window.MC_TWEAKS && window.MC_TWEAKS.clash_reasons) || {};
+  const first = (r[`${f.id}|${g.id}`] || r[`${g.id}|${f.id}`] || [])[0];
+  return first && T.en["why_" + first[0]] ? t("why_" + first[0], { combo: first[1] }) : "";
+}
 // the card whose clash with g keeps f from going with g: f itself, or the card f requires (ticking sample preview
 // ticks Model-TG, so it doesn't go with what Model-TG doesn't go with); null if f goes with g
 function clashVia(f, g) {
@@ -2448,7 +2472,7 @@ function init() {
 // test hooks (tools/webflash_smoke.js)
 window.MCFlasherApp = { state: st, REF_MAINOS, REF_MODS, REF_SAMPLES_ON_CYCLES, REF_CYCLES_ON_SAMPLES, REF_SAMPLES_BACK, loadOs,
   loadSamples, loadSyntakt, setMode, setSmpDir, setMachine, setMethod, applyLang, render,
-  chosenTweaks, chosenLabels, CATS };
+  chosenTweaks, chosenLabels, CATS, autoWhy };
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
 else init();

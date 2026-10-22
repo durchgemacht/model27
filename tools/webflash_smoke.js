@@ -385,6 +385,19 @@ async function main() {
       "× on a chip unticks the mod, the focus goes to the next ×");
     await clearAll();
     check(ids() === "" && /No mod ticked yet/.test(text(doc, "mod-sel")), "« Untick all » empties the selection");
+    // notes/65 C4: a reason computed from the claims, said where no hand-written one exists. SAMPLE has its own (its
+    // "clash"), so the page's function is asked directly, in English and in French
+    const reasons = w.MC_TWEAKS.clash_reasons, hooks = w.MCFlasherApp, lang = hooks.state.lang;
+    w.MC_TWEAKS.clash_reasons = { "control-all-config|sampler": [["combo", "TRACK + TRIG 1-6"]] };
+    const whyEn = hooks.autoWhy({ id: "sampler" }, { id: "control-all-config" });
+    hooks.state.lang = "fr";
+    const whyFr = hooks.autoWhy({ id: "sampler" }, { id: "control-all-config" });
+    hooks.state.lang = lang;
+    w.MC_TWEAKS.clash_reasons = reasons;
+    check(reasons && typeof reasons === "object" && !Array.isArray(reasons)
+      && whyEn === "both use the buttons TRACK + TRIG 1-6" && whyFr === "les deux utilisent les touches TRACK + TRIG 1-6"
+      && hooks.autoWhy({ id: "sampler" }, { id: "control-all-config" }) === "",
+      `a computed reason where no hand-written one exists, in English and in French: ${whyEn} / ${whyFr}`);
     // a conflict injected between the two cards (they do go together), said before ticking, then Undo
     cac.excludes = ["sampler"];
     await click(box("feat-sampler"));

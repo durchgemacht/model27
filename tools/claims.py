@@ -29,6 +29,7 @@ flasher's composer applies the same rules to the same data (to_json).
     python3 tools/claims.py --self-test    # the parser, the checks and the rules, on synthetic and real claims
 """
 import argparse
+import collections
 import fnmatch
 import itertools
 import json
@@ -386,42 +387,90 @@ def situations_meet(s, t):
     return s == "any" or t == "any" or s == t
 
 
-def clashes(a, b):
+def clash_items(a, b):
     """Why two holders' claims (to_json, resolved) cannot be installed together, by notes/65 §5: the same sound
     slot, record slot, saved bytes or descriptor in scopes that meet; the same interface object's formatter, whatever
     the scopes (one pointer per object, §12.2); both re-numbering the p-lock rows; the same CC or NRPN; RAM that
-    overlaps; a shared atom in situations and scopes that meet, with another meaning. Empty when they can."""
+    overlaps; a shared atom in situations and scopes that meet, with another meaning. As (kind, text, the shared
+    atoms or None); empty when they can."""
     out = []
-    for key, label in (("sound_slots", "k"), ("record_slots", "record slots"), ("descriptors", "descriptors")):
+    for key, label, kind in (("sound_slots", "k", "slots"), ("record_slots", "record slots", "slots"),
+                             ("descriptors", "descriptors", "descriptors")):
         hit = sorted({n for n, s in a.get(key, []) for m, t in b.get(key, []) if n == m and meet(s, t)})
         if hit:
-            out.append(f"{label} {_ranges(hit)}")
+            out.append((kind, f"{label} {_ranges(hit)}", None))
     for w in sorted({w for w, _n, s in a.get("saved", []) for w2, _m, t in b.get("saved", [])
                      if w == w2 and meet(s, t)}):
-        out.append(f"saved bytes: {w}")
+        out.append(("saved", f"saved bytes: {w}", None))
     for o in sorted({o for o, _s, _k in a.get("formatters", []) for o2, _t, _l in b.get("formatters", []) if o == o2}):
-        out.append(f"the formatter of interface object {o}")
+        out.append(("formatter", f"the formatter of interface object {o}", None))
     if a.get("plock_rows") and b.get("plock_rows"):
-        out.append("the p-lock rows of k >= 23")
+        out.append(("plock", "the p-lock rows of k >= 23", None))
     ma, mb = a.get("midi", {}), b.get("midi", {})
     cc = sorted(set(ma.get("cc", [])) & set(mb.get("cc", [])))
     nrpn = sorted(set(ma.get("nrpn", [])) & set(mb.get("nrpn", [])))
     if cc:
-        out.append("CC " + ", ".join(map(str, cc)))
+        out.append(("midi", "CC " + ", ".join(map(str, cc)), None))
     if nrpn:
-        out.append("NRPN " + ", ".join(nrpn))
+        out.append(("midi", "NRPN " + ", ".join(nrpn), None))
     for lo, hi in a.get("ram", []):
         for lo2, hi2 in b.get("ram", []):
             if lo < hi2 and lo2 < hi:
-                out.append(f"RAM {max(lo, lo2):#x}..{min(hi, hi2):#x}")
+                out.append(("ram", f"RAM {max(lo, lo2):#x}..{min(hi, hi2):#x}", None))
     for g in a.get("gestures", []):
         for h in b.get("gestures", []):
             if not (meet(g["scope"], h["scope"]) and situations_meet(g["situation"], h["situation"])):
                 continue
             if g["meaning"] and g["meaning"] == h["meaning"]:
                 continue                        # the same claim twice is allowed (STANDARD.md §3.2)
-            if {tuple(x) for x in g["atoms"]} & {tuple(x) for x in h["atoms"]}:
-                out.append(f"{g['combo']} against {h['combo']}")
+            shared = {tuple(x) for x in g["atoms"]} & {tuple(x) for x in h["atoms"]}
+            if shared:
+                out.append(("combo", f"{g['combo']} against {h['combo']}", shared))
+    return out
+
+
+def clashes(a, b):
+    """clash_items() as texts, for the tools' messages and reports."""
+    return [text for _kind, text, _atoms in clash_items(a, b)]
+
+
+def combo_text(atoms_):
+    """Atoms (to_json form) as a combination the way the tables write it: "MACHINES + SWEEP/CONTOUR",
+    "TRACK + TRIG 1-6", "TRIG 1-16 + PAGE"."""
+    order = {w: i for i, w in enumerate([*KNOBS, *KEYS, *OTHER])}     # knobs as on the panel, then keys
+
+    def trigs(words):                       # TRIG 1, TRIG 2, TRIG 3 -> TRIG 1-3
+        nums = sorted(int(w[5:]) for w in words if w.startswith("TRIG "))
+        rest = sorted((w for w in words if not w.startswith("TRIG ")), key=lambda w: (order.get(w, 99), w))
+        return rest + ([f"TRIG {r}" for r in _ranges(nums).split(", ")] if nums else [])
+    by_held = collections.defaultdict(set)
+    for held, action in atoms_:
+        by_held[held].add(action)
+    by_actions = collections.defaultdict(set)   # the same actions under several held keys: one part
+    for held, actions in by_held.items():
+        by_actions["/".join(trigs(actions))].add(held)
+    parts = []
+    for actions, helds in sorted(by_actions.items()):
+        if helds == {""}:
+            parts.append(actions)
+            continue
+        singles = [h for h in helds if "+" not in h]
+        multi = sorted(h for h in helds if "+" in h)
+        if singles:
+            parts.append(" + ".join(["/".join(trigs(singles)), actions]))
+        parts += [" + ".join(h.split("+") + [actions]) for h in multi]
+    return ", ".join(parts)
+
+
+def clash_kinds(a, b):
+    """The kinds of clash between two holders, each once and in order, for the web flasher's computed reasons
+    (notes/65, step C4): [kind, the shared combination or ""], kind one of slots, saved, descriptors, formatter,
+    plock, midi, ram, combo."""
+    out, seen = [], set()
+    for kind, _text, shared in clash_items(a, b):
+        if kind not in seen:
+            seen.add(kind)
+            out.append([kind, combo_text(shared) if shared else ""])
     return out
 
 
@@ -824,6 +873,15 @@ def self_test():
            "claims": {"sound_slots": [28, 30], "record_slots": [28]}}
     case("a package's own k 30 next to its shortcut on COLOR: a clash with the layer",
          check_build(build_holders([x30], sc_part)) == ["x and shortcuts: k 30"])
+    case("the kinds of lfo-plus × the track filter: slots, p-lock rows",
+         clash_kinds(real["lfo-plus"], real["track-filter"]) == [["slots", ""], ["plock", ""]])
+    case("the kinds of the track filter × Model-TG: slots, the shared MACHINES + SWEEP/CONTOUR",
+         clash_kinds(real["track-filter"], real["model-tg"]) == [["slots", ""],
+                                                               ["combo", "MACHINES + SWEEP/CONTOUR"]])
+    texts = [combo_text({("+".join(sorted(h)), x) for h, x in atoms(c)})
+             for c in ("TRACK + TRIG 2-4", "TRIG 1-16 + PAGE", "LFO")]
+    case("combo_text: TRACK + TRIG 2-4, TRIG 1-16 + PAGE, LFO",
+         texts == ["TRACK + TRIG 2-4", "TRIG 1-16 + PAGE", "LFO"])
     case("claim_conflicts names the tweak and its reasons",
          claim_conflicts(build_holders([ref2], sc_part), {"lfo-plus": real["lfo-plus"], "arp": real["arp"]})
          == {"lfo-plus": ["k 28", "k 28-31", "record slots 30-31"]})
