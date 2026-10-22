@@ -127,7 +127,8 @@ tools/check_overlaps.py       no firmware needed: mods that can be ticked togeth
                               the same whole write or a mod applied on top of another (`requires`) (notes/49), nor
                               claim the same saved slot, key combination, descriptor or formatter (notes/65)
 tools/registry.py             no firmware needed: builds tweaks/model-cycles_OS1.13/REGISTRY.md from the tweaks, the
-                              registry of free space (freed sprite masks, caves, payloads) and OS hooks (notes/52)
+                              registry of free space (freed sprite masks, caves, payloads) and OS hooks (notes/52),
+                              and from the declared claims the saved data, key combinations, MIDI and views (notes/65)
 tools/claims.py               no firmware needed, Level C (notes/65): the declared claims of packages, parts and tweaks
                               (saved slots, key combinations, descriptors, formatters, MIDI, RAM, views), their
                               vocabulary and the stock combinations, and the rules compose.py, composer.js and
@@ -185,7 +186,8 @@ python3 tools/gen_flasher_tweaks.py --check      # tweaks.js matches tweaks/
 python3 tools/check_overlaps.py                  # mods ticked together never write the same bytes (notes/49), except the
                                                  # same whole write or a mod on top of another (`requires`), and
                                                  # their declared claims never clash (notes/65)
-python3 tools/registry.py --check                # REGISTRY.md (free space and hooks, notes/52) matches tweaks/
+python3 tools/registry.py --check                # REGISTRY.md (free space and hooks, notes/52; claims, notes/65)
+                                                 # matches tweaks/
 python3 tools/claims.py --check --self-test      # the declared claims (notes/65): ids, words, ranges, manifests
 python3 tools/relocate_6ch.py --check            # needs m68k binutils (below)
 tools/webbuild_check.sh                          # builder.js == build.py, byte for byte (node)

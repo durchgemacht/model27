@@ -27,9 +27,15 @@ deviennent id@source) ; le registre montre alors qui, parmi les branches ouverte
 Le classement d'une écriture se lit dans ses octets : redirection (la constante d'un sprite passe à la copie gardée),
 masque (dans un masque libérable), cave (octets 0xFF d'origine), crochet (jsr, jmp, bsr.l ou bra.l remplace les
 instructions de l'OS), pointeur (constante 32 bits vers le code d'un mod), patch (tout le reste).
+
+model27, notes/65 (step C3): §6 (the saved data) and §8 to §10 (the key combinations; the descriptors, formatters,
+p-lock rows and MIDI numbers; the views) come from the declared claims (tools/claims.py: the packages' manifests, the
+parts' part.json, the tweaks' claims/claims.json), which replace the table DECLARED this script kept.
 """
 import argparse
 import collections
+import fnmatch
+import json
 import pathlib
 import re
 import sys
@@ -37,6 +43,7 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import check_overlaps as co          # noqa: E402
+import claims as cl                   # noqa: E402
 import sprites                       # noqa: E402
 
 ROOT = co.ROOT
@@ -47,13 +54,6 @@ DETOURS = {0x4EB9: "jsr", 0x4EF9: "jmp", 0x61FF: "bsr.l", 0x60FF: "bra.l"}
 ENGINE = re.compile(r"^(syntakt-(?:tg-)?)(?:sd|cp|toy|bits|swarm|meter|profile)(?:-(?:sd|cp|toy|bits|swarm))*"
                     r"((?:-macro)?(?:-acid)?)$")
 
-# Déclaré à la main, d'après les notes : ce que les écritures ne montrent pas (octets des structures sauvegardées).
-DECLARED = (
-    ("arp", "octet +512 de chaque piste dans le pattern : sens de l'arpège et octaves (inutilisé par l'OS, sauvegardé "
-            "avec le pattern)", "notes/32 §4"),
-    ("lfo-plus", "octets +88..+91 de l'enregistrement d'un son : LFO 2 empaqueté (format de DavidCaruso) ; mémoire "
-                 "0x4233f000..0x4233f49b, au-dessus du BSS de l'OS, remise à zéro au premier usage", "notes/56 §3"),
-)
 
 
 def fmt(n):
@@ -87,6 +87,164 @@ def names(ids, by_id, extra=None):
         else:
             out.append(f"{ms[0]} ({extra[ms[0]]} o)" if extra else ms[0])
     return ", ".join(out)
+
+
+# model27, Level C (notes/65, step C3): the claims' sections of the registry.
+
+def claim_holders(by_id):
+    """The holders of declared claims among these tweaks, as (label, claims in claims.to_json form, source): the
+    entries of claims/claims.json, each package whose tweak is here, and the shortcut layer, which the builds whose
+    machines declare a shortcut carry."""
+    pkgs = cl.packages()
+    out = []
+    for e in json.loads(cl.CLAIMS_FILE.read_text(encoding="utf-8"))["entries"]:
+        ids = sorted({i for pat in e["ids"] for i in fnmatch.filter(list(by_id), pat)})
+        if ids:
+            out.append((names(ids, by_id), cl.checked(e["claims"], "tweak", ", ".join(e["ids"]), pkgs), e["source"]))
+    for pid, m in pkgs.items():
+        c = cl.resolve(cl.package_claims(m, pkgs), pid) if pid in by_id else None
+        if c:                                            # a package that claims something
+            out.append((pid, c, f"tools/machines/{pid}/manifest.json"))
+    part = cl.parts().get("shortcuts")
+    if part and part.get("claims"):
+        out.append(("shortcuts (part)", cl.part_claims(part), "tools/machines/shortcuts/part.json"))
+    return sorted(out)
+
+
+def scope_text(s, what):
+    """A claim's scope in the tables: nothing for every track, " (SAMPLE's sounds)" for a machine's."""
+    if s == "all":
+        return ""
+    name = s.split(":", 1)[1]
+    m = cl.packages().get(name)
+    if m:
+        name = next(u["name"] for u in m["uses"] if u["point"] == "machine")
+    return f" ({name}'s {what})"
+
+
+def merged_rows(by_n):
+    """[(numbers, holders)] from {number: [holder]}: consecutive numbers with the same holders in one row."""
+    rows = []
+    for n in sorted(by_n):
+        hs = "; ".join(sorted(set(by_n[n])))
+        if rows and rows[-1][2] == hs and rows[-1][1] == n - 1:
+            rows[-1][1] = n
+        else:
+            rows.append([n, n, hs])
+    return [(f"{a}" if a == b else f"{a}–{b}", hs) for a, b, hs in rows]
+
+
+def claims_lines(holders):
+    """§6 (the saved data) and §8 to §10 (the key combinations; the descriptors, formatters, p-lock rows and MIDI;
+    the views) of the registry, from the declared claims: (lines of §6, lines of §8 to §10)."""
+    six, rest = [], []
+    p = six.append
+    p("## 6. Saved data (declared claims, notes/65)")
+    p("")
+    p("What the writes do not show: where each mod keeps its values, in a sound's parameters (k), in a sound's record "
+      "and elsewhere in the saved structures. From the declared claims (`tools/claims.py`: a package's manifest, a "
+      "part's `part.json`, the tweaks' `claims/claims.json`): a mod that keeps a value adds its claim there, with its "
+      "note. A value scoped to a machine is kept on that machine's sounds only. Two mods that can be ticked together "
+      "never share a number in scopes that meet (`tools/check_overlaps.py`). The RAM where payloads run is in §3; the "
+      "state mods keep in their masks, in §1.")
+    p("")
+    record = "Record slots (`+28 + 2 · slot` of a sound's record)"
+    for key, title, head, os_numbers in (("sound_slots", "Sound parameters k", "k", range(0, 23)),
+                                          ("record_slots", record, "slot", sorted(cl.OS_RECORD))):
+        by_n = {n: ["the OS"] for n in os_numbers}
+        for label, c, _src in holders:
+            for n, s in c.get(key, []):
+                by_n.setdefault(n, []).append(label + scope_text(s, "sounds"))
+        p(f"### {title}")
+        p("")
+        p(f"| {head} | held by |")
+        p("|---|---|")
+        for ns, hs in merged_rows(by_n):
+            p(f"| {ns} | {hs} |")
+        p("")
+    p("### Other saved bytes, and RAM outside the payloads")
+    p("")
+    p("| mod | what | source |")
+    p("|---|---|---|")
+    for label, c, src in holders:
+        for w, b, s in c.get("saved", []):
+            p(f"| {label}{scope_text(s, 'tracks')} | {w}: {b} byte{'s' if b > 1 else ''} | {src} |")
+        for lo, hi in c.get("ram", []):
+            p(f"| {label} | RAM `{lo:#x}`..`{hi:#x}` | {src} |")
+    p("")
+
+    p = rest.append
+    p("## 8. Key combinations (declared claims, notes/65)")
+    p("")
+    p("The combinations each mod answers: the held keys, then one action, in the words `tools/claims.py` lists. Two "
+      "mods that can be ticked together never take one combination with another meaning in situations and scopes that "
+      "meet (`tools/check_overlaps.py`). A mod that takes a stock combination (the second table) says what it "
+      "replaces, or `tools/claims.py --check` refuses it.")
+    p("")
+    p("| combination | situation | held by | meaning | replaces |")
+    p("|---|---|---|---|---|")
+    for row in sorted((g["combo"], g["situation"], label + scope_text(g["scope"], "tracks"), g["meaning"],
+                       g["replaces"] or "") for label, c, _src in holders for g in c.get("gestures", [])):
+        p("| " + " | ".join(row) + " |")
+    p("")
+    p("The stock combinations, as far as they are read:")
+    p("")
+    p("| combination | situation | meaning | source |")
+    p("|---|---|---|---|")
+    for st in cl.STOCK:
+        p(f"| {st['combo']} | {st.get('situation', 'any')} | {st['meaning']}"
+          f"{' (a hypothesis)' if st.get('hyp') else ''} | {st['source']} |")
+    p("")
+    p("## 9. Descriptors, formatters, p-lock rows and MIDI (declared claims, notes/65)")
+    p("")
+    p("Two mods that can be ticked together never share one of these in scopes that meet; a formatter belongs to its "
+      "interface object, whatever the scopes (notes/65 §12.2). The stock CC and NRPN map is not collected "
+      "(STANDARD.md §5.5): a MIDI claim is checked against the other mods only.")
+    p("")
+    p("| claim | held by |")
+    p("|---|---|")
+    desc = collections.defaultdict(list)
+    for label, c, _src in holders:
+        for n, s in c.get("descriptors", []):
+            desc[n].append(label + scope_text(s, "tracks"))
+    for ns, hs in merged_rows(desc):
+        p(f"| descriptors {ns} | {hs} |")
+    fmts = collections.defaultdict(list)
+    for label, c, _src in holders:
+        for o, _s, knob in c.get("formatters", []):
+            fmts[o].append(f"{label} ({knob})")
+    for o in sorted(fmts):
+        p(f"| the formatter of interface object {o} | {'; '.join(sorted(fmts[o]))} |")
+    plock = [label for label, c, _src in holders if c.get("plock_rows")]
+    if plock:
+        p(f"| the p-lock rows of k ≥ 23 | {'; '.join(plock)} |")
+    for kind, order in (("cc", int), ("nrpn", lambda x: tuple(map(int, x.split(":"))))):
+        groups = collections.defaultdict(set)
+        for label, c, _src in holders:
+            for x in c.get("midi", {}).get(kind, []):
+                groups[x].add(label)
+        rows = collections.defaultdict(list)
+        for x, labels in groups.items():
+            rows["; ".join(sorted(labels))].append(x)
+        for hs, xs in sorted(rows.items()):
+            p(f"| {kind.upper()} {', '.join(str(x) for x in sorted(xs, key=order))} | {hs} |")
+    p("")
+    p("## 10. Views (declared claims, notes/65)")
+    p("")
+    p("A machine draws on its own tracks; when two machines are built together, their draws go through the "
+      "dispatchers (notes/63 §4). A draw on every track next to a machine's is a warning, not a conflict (notes/65 "
+      "§5.4): only a look on the device tells whether they share the screen well.")
+    p("")
+    p("| view | drawn by |")
+    p("|---|---|")
+    views = collections.defaultdict(list)
+    for label, c, _src in holders:
+        for v, s, how in c.get("views", []):
+            views[v].append(label + (scope_text(s, "tracks") or " (every track)") + (f": {how}" if how else ""))
+    for v in sorted(views):
+        p(f"| {v} | {'; '.join(sorted(views[v]))} |")
+    p("")
+    return six, rest
 
 
 def note_of(t):
@@ -240,6 +398,7 @@ def verify_inventory(stock):
 
 def render(tweaks, zones, rows, warns):
     by_id = {t["id"]: t for t in tweaks}
+    holders = claim_holders(by_id)                       # notes/65: the declared claims
     L = []
     p = L.append
     users = collections.defaultdict(dict)                  # masque -> {id: octets écrits}
@@ -302,6 +461,8 @@ def render(tweaks, zones, rows, warns):
     p(f"- Pointeurs réécrits : {len({k[0] for k in ptrs})} adresses. Écritures dans des octets 0xFF hors masques : "
       f"{len(caves)} zones.")
     p(f"- Charges utiles ajoutées après l'OS : {len(apps)} tweaks ; place restante au §3.")
+    p(f"- Declared claims (notes/65): {len(holders)} holders; the saved data in §6, the key combinations in §8, the "
+      "descriptors, formatters, p-lock rows and MIDI in §9, the views in §10.")
     p("")
     # §1
     p("## 1. Masques de sprites libérés")
@@ -413,19 +574,9 @@ def render(tweaks, zones, rows, warns):
         where = f"{zone} +{next(iter(vs)):#x}" if len(vs) == 1 else f"{zone}, {len(vs)} valeurs selon la combinaison"
         p(f"| `{va:#x}` | `{old.hex()}` | {where} | {names(ids, by_id)} |")
     p("")
-    # §6
-    p("## 6. Données sauvegardées (déclaré d'après les notes)")
-    p("")
-    p("Ce que les écritures ne montrent pas : les octets des structures sauvegardées (pattern, projet) qu'un mod "
-      "s'attribue. Un nouveau mod qui en prend un l'ajoute à `DECLARED` dans `tools/registry.py`, avec sa note. La "
-      "mémoire où tournent les charges utiles est au §3 ; l'état que les mods gardent dans leurs masques, au §1.")
-    p("")
-    p("| mod | ce qu'il s'attribue | source |")
-    p("|---|---|---|")
-    for tid, what, src in DECLARED:
-        if tid in by_id:
-            p(f"| {tid} | {what} | {src} |")
-    p("")
+    # §6, and §8 to §10 after §7: from the declared claims (notes/65)
+    six, rest = claims_lines(holders)
+    L.extend(six)
     # §7
     p("## 7. Ce que chaque mod touche")
     p("")
@@ -451,6 +602,7 @@ def render(tweaks, zones, rows, warns):
           f"{span(x['redirect'] for x in c)} | {span(x['cave'] for x in c)} | {apc} | "
           f"{', '.join(sorted({note_of(t) for t in ts if note_of(t)}))} |")
     p("")
+    L.extend(rest)
     if warns:
         p("## Remarques")
         p("")

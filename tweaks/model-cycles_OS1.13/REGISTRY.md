@@ -11,6 +11,7 @@ Adresses : VA de l'OS 1.13 (la section 3 commence en `0x40000400`). Un mod qui v
 - Crochets sur l'OS : 107 adresses détournées, dont 61 à l'identique par des mods de familles différentes.
 - Pointeurs réécrits : 65 adresses. Écritures dans des octets 0xFF hors masques : 14 zones.
 - Charges utiles ajoutées après l'OS : 265 tweaks ; place restante au §3.
+- Declared claims (notes/65): 14 holders; the saved data in §6, the key combinations in §8, the descriptors, formatters, p-lock rows and MIDI in §9, the views in §10.
 
 ## 1. Masques de sprites libérés
 
@@ -739,14 +740,41 @@ Constantes 32 bits de l'OS (tables de fonctions, données) qui pointent maintena
 | `0x4011862c` | `400ab3b0` | charge utile (mémoire) +0x31000 | sdvintage-exact |
 | `0x4011862c` | `400ab3b0` | masque `0x4016cae8` +0x0 | sdvintage-snare |
 
-## 6. Données sauvegardées (déclaré d'après les notes)
+## 6. Saved data (declared claims, notes/65)
 
-Ce que les écritures ne montrent pas : les octets des structures sauvegardées (pattern, projet) qu'un mod s'attribue. Un nouveau mod qui en prend un l'ajoute à `DECLARED` dans `tools/registry.py`, avec sa note. La mémoire où tournent les charges utiles est au §3 ; l'état que les mods gardent dans leurs masques, au §1.
+What the writes do not show: where each mod keeps its values, in a sound's parameters (k), in a sound's record and elsewhere in the saved structures. From the declared claims (`tools/claims.py`: a package's manifest, a part's `part.json`, the tweaks' `claims/claims.json`): a mod that keeps a value adds its claim there, with its note. A value scoped to a machine is kept on that machine's sounds only. Two mods that can be ticked together never share a number in scopes that meet (`tools/check_overlaps.py`). The RAM where payloads run is in §3; the state mods keep in their masks, in §1.
 
-| mod | ce qu'il s'attribue | source |
+### Sound parameters k
+
+| k | held by |
+|---|---|
+| 0–22 | the OS |
+| 23–24 | model-tg, model-tg-st |
+| 25–27 | model-tg, model-tg-st; sampler (SAMPLE's sounds) |
+| 28 | lfo-plus; refmachine2 (REF2's sounds); shortcuts (part); track-filter |
+| 29–31 | lfo-plus; shortcuts (part); track-filter |
+| 32 | lfo-plus |
+
+### Record slots (`+28 + 2 · slot` of a sound's record)
+
+| slot | held by |
+|---|---|
+| 0–17 | the OS |
+| 18 | track-filter |
+| 19–23 | the OS |
+| 24–26 | model-tg, model-tg-st; sampler (SAMPLE's sounds) |
+| 27 | model-tg, model-tg-st; sampler (SAMPLE's sounds); track-filter |
+| 28 | model-tg, model-tg-st; refmachine2 (REF2's sounds); shortcuts (part) |
+| 29 | model-tg, model-tg-st; shortcuts (part) |
+| 30–31 | lfo-plus; shortcuts (part); track-filter |
+
+### Other saved bytes, and RAM outside the payloads
+
+| mod | what | source |
 |---|---|---|
-| arp | octet +512 de chaque piste dans le pattern : sens de l'arpège et octaves (inutilisé par l'OS, sauvegardé avec le pattern) | notes/32 §4 |
-| lfo-plus | octets +88..+91 de l'enregistrement d'un son : LFO 2 empaqueté (format de DavidCaruso) ; mémoire 0x4233f000..0x4233f49b, au-dessus du BSS de l'OS, remise à zéro au premier usage | notes/56 §3 |
+| arp | pattern, track +512: 1 byte | notes/32 |
+| lfo-plus | RAM `0x4233f000`..`0x4233f49c` | notes/56 §3 |
+| sampler | RAM `0x43800000`..`0x46700000` | tools/machines/sampler/manifest.json |
 
 ## 7. Ce que chaque mod touche
 
@@ -797,4 +825,61 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | midi-both | 3 | 3 | 0 | 0 | 0 | 0 | 0 |  | notes/53 |
 | midi-live-both | 6 | 0 | 4 | 0 | 1 | 1 | 0 |  | notes/53 |
 | lfo-plus | 30 | 0 | 12 | 4 | 7 | 7 | 0 |  | notes/56 |
+
+## 8. Key combinations (declared claims, notes/65)
+
+The combinations each mod answers: the held keys, then one action, in the words `tools/claims.py` lists. Two mods that can be ticked together never take one combination with another meaning in situations and scopes that meet (`tools/check_overlaps.py`). A mod that takes a stock combination (the second table) says what it replaces, or `tools/claims.py --check` refuses it.
+
+| combination | situation | held by | meaning | replaces |
+|---|---|---|---|---|
+| FUNC + DATA-PRESS | menu:MIDI-PORTS | midi-live-both | adds the Cycles' own MIDI to THRU, or takes it away |  |
+| FUNC + PITCH | params | macro, macro-acid, macro-acid-tg, macro-tg, syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31), syntakt-tg-*-macro (31/31), syntakt-tg-*-macro-acid (31/31) (MACRO's tracks) | FINE as lo-fi RATE / BITS | FINE, the fine adjust of PITCH |
+| LFO | page:LFO | lfo-plus | LFO 2, 3 and 4, then the page closes | closes the LFO page |
+| MACHINES + COLOR/SHAPE/SWEEP/CONTOUR | params | track-filter | Filter Env / Env Decay / Filter Cutoff / Filter Reso |  |
+| MACHINES + DECAY/SWEEP/CONTOUR | params | model-tg, model-tg-st | Attack / Filter / Resonance |  |
+| RETRIG + COLOR | params | refmachine2 (REF2's tracks) | Octave |  |
+| RETRIG + COLOR/SHAPE/SWEEP/CONTOUR | params | shortcuts (part) | the shortcut of the track's machine |  |
+| RETRIG + NOTES | any | arp | an arpeggio of the held notes when Arp is not OFF | the retrig |
+| TRACK + FUNC | any | latching-mute | latches the mute mode |  |
+| TRACK + TRIG 1-6 | any | control-all-config | takes the track out of Control All, or back |  |
+| TRIG 1-16 | keys | chord-keys (CHORD's tracks) | the chords of a scale, in the Keys mode of the retrig menu |  |
+| TRIG 1-16 + PAGE | grid | trig-preview | the held step sounds, sequencer stopped or paused | PAGE turns the page |
+
+The stock combinations, as far as they are read:
+
+| combination | situation | meaning | source |
+|---|---|---|---|
+| FUNC + PITCH/DECAY/COLOR/SHAPE/SWEEP/CONTOUR | params | fine adjust | notes/63 §1.2 |
+| TRACK + PITCH/DECAY/COLOR/SHAPE/SWEEP/CONTOUR | params | Control All | notes/63 §1.2 |
+| LFO + PITCH/DECAY/COLOR/SHAPE/SWEEP/CONTOUR | params | the parameter becomes the LFO's destination | notes/63 §1.2 |
+| TRIG 1-16 + PITCH/DECAY/COLOR/SHAPE/SWEEP/CONTOUR | params | parameter lock | notes/63 §1.3 |
+| TRACK + PUNCH/GATE | any | Control All of PUNCH and GATE | STANDARD.md §5.4 |
+| FUNC + TRACK | any | the Track Setup menu | STANDARD.md §5.4 |
+| FUNC + MACHINES | any | the PRESET browser | STANDARD.md §5.4 |
+| FUNC + RETRIG | any | the retrig menu | notes/63 §1.2 |
+| TRACK + RECORD/PLAY/STOP | any | copy, clear, paste | notes/58 §2 |
+| RETRIG + NOTES | any | the retrig | notes/63 §1.2, notes/32 |
+| TRIG 1-16 + PAGE | grid | PAGE turns the page | notes/34 |
+| LFO | page:LFO | closes the LFO page (a hypothesis) | notes/65 §3.2 |
+
+## 9. Descriptors, formatters, p-lock rows and MIDI (declared claims, notes/65)
+
+Two mods that can be ticked together never share one of these in scopes that meet; a formatter belongs to its interface object, whatever the scopes (notes/65 §12.2). The stock CC and NRPN map is not collected (STANDARD.md §5.5): a MIDI claim is checked against the other mods only.
+
+| claim | held by |
+|---|---|
+| descriptors 1–4 | shortcuts (part); track-filter |
+| the formatter of interface object 53 | sampler (Cutoff) |
+| the p-lock rows of k ≥ 23 | lfo-plus; track-filter |
+| CC 71, 74 | track-filter |
+| NRPN 1:20, 1:21 | track-filter |
+
+## 10. Views (declared claims, notes/65)
+
+A machine draws on its own tracks; when two machines are built together, their draws go through the dispatchers (notes/63 §4). A draw on every track next to a machine's is a warning, not a conflict (notes/65 §5.4): only a look on the device tells whether they share the screen well.
+
+| view | drawn by |
+|---|---|
+| knob | refmachine2 (REF2's tracks); sampler (SAMPLE's tracks) |
+| main | level-pan-values (every track): its own hooks, 0x400081f2 and 0x4001aa4e; refmachine2 (REF2's tracks); sampler (SAMPLE's tracks) |
 

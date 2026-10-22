@@ -2,7 +2,7 @@
 
 **Status: plan, 2026-10-22; the maintainer's decisions the same day: the six recommendations of §9 (§11); step C1
 built on 2026-10-23 (§12): the claims as data, checked; step C2 built the same day (§13): the rules, in the Python and
-the JavaScript composer and in `check_overlaps.py`.**
+the JavaScript composer and in `check_overlaps.py`; step C3 the same day (§14): `REGISTRY.md` from the claims.**
 
 The maintainer's request after step B4e (2026-10-22): a "Gesten- und Slot-Prüfung" (a check of gestures and slots),
 so that a clash that writes no common byte is computed instead of found by chance. Two such clashes are on record,
@@ -515,3 +515,32 @@ your recommendations for all six decisions).
 - **No build changes**, so the emulation runs of notes/63 §13 hold.
 - `webflash_smoke.sh`, the page in jsdom with both official files: ALL OK, run by the maintainer because it needs
   `registry.npmjs.org`, which this sandbox blocks.
+
+## 14. C3 built (2026-10-23)
+
+### 14.1 What was built
+
+- **`registry.py` writes the claims' sections of `REGISTRY.md`** from the declared claims (`claim_holders()`): the
+  entries of `claims/claims.json`, the packages whose tweaks are in the folder, and the shortcut layer. There are 14
+  holders today.
+  - **§6, "Saved data"**, replaces the hand table:
+    - a map of the sound parameters k and of the record slots, number by number, with who holds each and in which
+      scope, consecutive numbers merged;
+    - the other saved bytes (arp's pattern byte +512) and the RAM claimed outside the payloads (lfo-plus's,
+      SAMPLE's pool).
+  - **§8, "Key combinations"**: each mod's combinations with their situation, scope, meaning and what they replace,
+    then the stock list.
+  - **§9**: the descriptors, formatters, p-lock rows and MIDI numbers, and who holds each.
+  - **§10, "Views"**: who draws on which view, and in which scope.
+  - "En bref" gains one line on the claims.
+- **`DECLARED` is gone.** Its two rows are claims now: arp's byte +512 and lfo-plus's record bytes and RAM, all in
+  `claims.json`.
+- The new sections are in English, like everything new (AGENTS.md), and the rest of the registry stays French. Notes 52
+  and 56 still speak of `DECLARED`, as the tool was then.
+- `tools/AGENTS.md`, `tweaks/AGENTS.md` and `AGENTS.md` say where a claim goes now.
+
+### 14.2 Checks
+
+- `registry.py --check`, after regenerating; `registry.py --git HEAD`;
+- `claims.py --check --self-test`, `check_overlaps.py` and `py_compile`.
+- No tweak, tool output for a build, or page file changes, so the composers' checks need no rerun.

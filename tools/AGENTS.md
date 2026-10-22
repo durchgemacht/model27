@@ -109,7 +109,9 @@ and check the writes of **every** other tweak for overlaps.
   `tweaks/model-cycles_OS1.13/REGISTRY.md`, the registry of free space and hook points built from the tweak writes
   (notes/52): freed masks taken and free, 0xFF caves, payload chains, OS detours, rewritten pointers, what each mod
   touches. `--check` in validation; `--git` adds branches (to the screen); `--cycles` also verifies the mask survey on
-  the official OS. Saved-structure bytes a mod claims (the arpeggiator's pattern byte +512) go in its `DECLARED` table.
+  the official OS. What a mod claims beyond its writes (saved slots and bytes, key combinations, descriptors,
+  formatters, MIDI, views) is declared as claims (`claims.py` above, notes/65); the registry lists it in §6 and §8 to
+  §10.
 - `ref_mainos.py --cycles … --syntakt … [--check]`: rewrites `REF_MODS` (each tweak's writes and payload hashes) and
   `REF_MAINOS` (the MAIN OS of a sample: each card alone, every pair, the largest combinations) in
   `docs/flasher/app.js`. Rerun after any change to a tweak or to `FEATURES`; it reads the card rules like `app.js`.
