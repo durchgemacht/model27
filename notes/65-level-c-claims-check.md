@@ -1,6 +1,7 @@
 # 65 — Level C: conflicts computed from what mods declare, saved slots and gestures (plan)
 
-**Status: plan, 2026-10-22.** Nothing built yet.
+**Status: plan, 2026-10-22; the maintainer's decisions the same day: the six recommendations of §9 (§11).** Nothing
+built yet.
 
 The maintainer's request after step B4e (2026-10-22): a "Gesten- und Slot-Prüfung" (a check of gestures and slots),
 so that a clash that writes no common byte is computed instead of found by chance. Two such clashes are on record,
@@ -315,6 +316,8 @@ computed reasons (§9, decision 5).
 
 ## 9. Decisions for the maintainer
 
+*Answered in §11.*
+
 1. **Where the tweaks' claims live:** one declared file, `claims.json` (recommended: one place to review, as
    `PROVENANCE.md`), or a `claims` field written by each tweak's generator.
 2. **How gestures are written:** strings on a fixed vocabulary, with optional fields (recommended: as the standard's
@@ -336,3 +339,19 @@ computed reasons (§9, decision 5).
   `compose.py` and `composer.js` write 0. A package's gesture stays a claim until they are.
 - The claims are declared, so a wrong claim gives a wrong answer. The emulation proofs stay the check of what the
   code does: the claims check stands in front of them, not in their place (STANDARD.md §8).
+
+## 11. Decisions (2026-10-22)
+
+The maintainer took the six recommendations of §9: "Übernimm deine Empfehlungen für alle sechs Entscheidungen" (take
+your recommendations for all six decisions).
+
+1. **The tweaks' claims** live in one declared file, `tweaks/model-cycles_OS1.13/claims.json`, each entry with its
+   source note (§4.1). The tweaks' generators stay as they are.
+2. **Gestures** are strings on the fixed vocabulary of §4.3, with the optional fields `situation`, `scope`, `meaning`
+   and `replaces`.
+3. **A stock combination taken without `replaces`** is refused (C2).
+4. **Views:** two drawings of one view whose scopes meet give a warning in the build report and in `REGISTRY.md`, not
+   a refusal (C2, C3).
+5. **The page** shows a computed reason where no hand-written one exists (C4), in English and French like everything
+   users see (AGENTS.md). The two cards offered today do not clash, so no reason shows yet.
+6. **C1 covers the tweaks of §3.** The others get no entry: they claim nothing a tool could check.
