@@ -20,8 +20,8 @@ composer takes the packages the user names, in that order, and:
      and vtable entries from its manifest; when a machine declares a shortcut, adds the shortcut layer
      (tools/machines/shortcuts/, notes/63 §3: a committed part placed after the packages, its data block, the
      knob lookup and the sound record functions jumping into it, a package's record wrapper chained behind it);
-     when two packages take the same vtable entry, adds the dispatchers (tools/machines/dispatch/, notes/63 §4:
-     another part, the entry going to its dispatcher, which calls the method of the selected track's machine);
+     when two packages take the same vtable entry or hook, adds the dispatchers (tools/machines/dispatch/, notes/63
+     §4: another part, the entry or hook going to its dispatcher, which calls the right machine's method);
   4. computes what the result cannot be installed with: every tweak of tweaks/ that writes other bytes to the same
      address or runs a payload in the composed payload or in a claimed RAM range, plus what the manifests declare;
   5. emits one tweak in Modded-Cycles' format, which tools/build.py and the web flasher apply like any other, and
@@ -676,19 +676,22 @@ def shortcut_layer(img, part, mans, syms_of, uses, at, code_end, first):
 
 
 def dispatch_layer(img, part, mans, syms_of, at, code_end, first):
-    """The dispatchers of this build (notes/63 §4, B4c): each point of the part that two or more packages take (their
-    vtable entries at the same address) gets the part's dispatcher in that entry, and the data block after the
-    part's code lists each package's method by machine. A point one package takes keeps that package's own entry.
-    Returns None when no point is shared, else (blob, symbols, writes, the entries left out, info)."""
+    """The dispatchers of this build (notes/63 §4, B4c and B4d): each point of the part that two or more packages take
+    (their vtable entries, or their hooks, at the same address) gets the part's dispatcher there, and the data block
+    after the part's code lists each package's method by machine. A point one package takes keeps that package's own
+    entry or hook. Returns None when no point is shared, else (blob, symbols, writes, the sites left out, info)."""
     d, sites = part["data"], part["sites"]
     shared = {}
     for name, s in sites.items():
-        va = int(s["vtable"], 16)
-        users = [(i, m, u["vtable"]) for i, m in enumerate(mans) for u in m["uses"]
-                 if "vtable" in u and int(u["vtable"]["at"], 16) == va]
-        for _i, m, vt in users:
-            if vt["stock_ptr"] != s["stock_ptr"]:
-                sys.exit(f"!! {m['id']}: {name} at {va:#x} replaces {vt['stock_ptr']}, the dispatcher {s['stock_ptr']}")
+        kind = "vtable" if "vtable" in s else "hook"
+        va = int(s[kind], 16)
+        users = [(i, m, u[kind]) for i, m in enumerate(mans) for u in m["uses"]
+                 if kind in u and int(u[kind]["at"], 16) == va]
+        for _i, m, h in users:
+            same = (h["stock_ptr"] == s["stock_ptr"] if kind == "vtable"
+                    else h["stock"] == s["stock"] and h["op"] == s["op"])
+            if not same:
+                sys.exit(f"!! {m['id']}: its {kind} at {va:#x} is not the dispatcher's ({name})")
         if len(users) > 1:
             shared[name] = users
     if not shared:
@@ -704,8 +707,8 @@ def dispatch_layer(img, part, mans, syms_of, at, code_end, first):
     block = bytearray(d["size"])
     block[d["first"]], block[d["count"]] = first, len(mans)
     for name, users in shared.items():
-        for i, m, vt in users:
-            struct.pack_into(">I", block, sites[name]["table"] + 4 * i, syms_of[m["id"]][vt["symbol"]])
+        for i, m, h in users:
+            struct.pack_into(">I", block, sites[name]["table"] + 4 * i, syms_of[m["id"]][h["symbol"]])
     if data_at + len(block) > code_end:
         sys.exit(f"!! the dispatchers end at {data_at + len(block):#x}, past {code_end:#x}")
     values = {"dispatch_data": data_at}
@@ -715,15 +718,22 @@ def dispatch_layer(img, part, mans, syms_of, at, code_end, first):
     writes, skip = [], set()
     for name in shared:
         s = sites[name]
-        va, method = int(s["vtable"], 16), int(s["stock_ptr"], 16)
-        if g7.refs32(img, method) != [va]:
-            sys.exit(f"!! references to {method:#x}: {[hex(r) for r in g7.refs32(img, method)]}")
-        writes.append({"off": va - BASE, "old": g7.be32(method).hex(), "new": g7.be32(syms[s["symbol"]]).hex()})
+        target = g7.be32(syms[s["symbol"]])
+        if "vtable" in s:
+            va, method = int(s["vtable"], 16), int(s["stock_ptr"], 16)
+            if g7.refs32(img, method) != [va]:
+                sys.exit(f"!! references to {method:#x}: {[hex(r) for r in g7.refs32(img, method)]}")
+            writes.append({"off": va - BASE, "old": g7.be32(method).hex(), "new": target.hex()})
+        else:
+            va, old = int(s["hook"], 16), bytes.fromhex(s["stock"])
+            if s["op"] != "jsr" or img[va - BASE:va - BASE + len(old)] != old:
+                sys.exit(f"!! {va:#x}: {s['op']} {old.hex()} expected, {img[va - BASE:va - BASE + len(old)].hex()} found")
+            writes.append({"off": va - BASE, "old": old.hex(), "new": (bytes.fromhex("4eb9") + target).hex()})
         skip.add(va)
     out = {r: syms[r] for r in roots}
     out.update({pp["symbol"]: values[pp["kind"]] for pp in pps})
     info = dict(id=part["id"], code_at=at, code=len(code), data_at=data_at, data=len(block),
-                points={n: [m["id"] for _i, m, _v in users] for n, users in shared.items()})
+                points={n: [m["id"] for _i, m, _h in users] for n, users in shared.items()})
     return blob, out, writes, skip, info
 
 

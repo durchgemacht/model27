@@ -108,14 +108,15 @@ tools/gen_parts.py            Level B, steps B4b and B4c: builds the builder's p
 tools/machines/shortcuts/     the shortcut layer, a part (notes/63 §3): RETRIG + COLOR / SHAPE / SWEEP / CONTOUR on an
                               added machine's tracks, saved with the sound; compose.py adds it only to the builds whose
                               machines declare a shortcut, and chains a package's record wrapper (SAMPLE's) behind it
-tools/machines/dispatch/      the dispatchers, a part (notes/63 §4): a vtable entry two packages take (the main screen's
-                              and the knob view's draws) goes to a dispatcher that calls the selected track's machine's
-                              method; compose.py adds only the dispatchers a build needs
+tools/machines/dispatch/      the dispatchers, a part (notes/63 §4): a vtable entry or hook two packages take (the main
+                              screen's and the knob view's draws, the screen's tick, the browser's open) goes to a
+                              dispatcher that calls the right machine's method, or every machine's tick; compose.py adds
+                              only the dispatchers a build needs
 tools/machines/refmachine/    the reference machine: the smallest added machine, proves the composer, never offered
 tools/machines/refmachine2/   the second reference machine (notes/63): grows into the template that uses every point a
                               machine may use (its shortcut, Octave on RETRIG + COLOR, since B4b; its main screen label
-                              and knob view, through the dispatchers next to SAMPLE, since B4c; the tick and the browser
-                              next); never offered
+                              and knob view, since B4c; a tick that blinks the label's dot and a browser hook that shows
+                              the opened file's name, since B4d; through the dispatchers next to SAMPLE); never offered
 tools/emu/                    Unicorn emulation of the OS: test_<mod>.py proofs, mcengine.py, emac.py, syntakt.py
 tools/gen_flasher_tweaks.py   FEATURES list -> docs/flasher/tweaks.js (generated); a machine card embeds its package and
                               the registrar's frame, composed in the page (notes/61)

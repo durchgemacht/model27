@@ -1,7 +1,7 @@
 # 63 — Level B, step 4: machine shortcuts and dispatchers, proven by a second reference machine (plan)
 
 **Status: plan, 2026-10-22; the maintainer's decisions (§9); B4a built and proven in emulation (§10); B4b built and proven
-in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
+in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK); B4d built and proven in emulation (§13: the same three proofs, ALL OK).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
 ids were dropped ([notes/62](62-level-b4-stable-machine-ids.md) §9). It covers two pieces:
 
 - the dispatcher tables for the hooks two packages share;
@@ -562,3 +562,106 @@ the page changes only in B4e, without new cards.
   - the label on the main screen, and that it hides nothing (with the sign at x 65 shown too);
   - the boxes while RETRIG + COLOR turns;
   - SAMPLE's waveform and its Start and Length views as before.
+
+## 13. B4d built (2026-10-22)
+
+### 13.1 What was built
+
+- **The dispatch part, version 0.2**, with two more dispatchers. The data block grows from 52 to 100 bytes, with a
+  tick table at +52 and a browser table at +76. `dispatch.o` is 418 bytes of code with 14 relocations.
+  - `dp_tick` sits at `0x400075f0`, the `jsr 0x40076be4` in the screen's redraw. It calls every machine's tick in
+    machine order, then the stock `0x40076be4` once, and returns its answer.
+  - `dp_open` sits at `0x400a6602`, the browser's `jsr 0x400a3052` (`open.S`):
+    - it keeps the call's registers and stack: a0 = &result, a2 = the browser, d2..d7 with d4 = the entry's index;
+    - it asks `dp_open_pick` (C) for the hook of the machine of the track the browser loads into (the browser's
+      +664), or the stock open;
+    - then it jumps there.
+  - `dp_main` and `dp_knob` do the same as in B4c. Their machine lookup is now shared with the browser's
+    (`machine_of`), so their bytes change.
+- **`tools/compose.py`**: `dispatch_layer()` takes hook sites as well as vtable entries.
+  - A hook counts as the same point when another package has a `jsr` at the same address with the same stock bytes.
+  - The dispatcher's `jsr` goes there, and `package_writes()` skips the package's own.
+- **REF2** (`ref2_view.c`, new `ref2_open.S`):
+  - `ref2_hook_tick` counts the ticks. Every 16th tick, on a REF2 track without a value window, it asks the main
+    screen for a redraw with View::setNeedsRedraw (`0x40076082`), on the view its draw last got. It returns
+    `0x40076be4(view)`.
+  - The label gains a dot at x 120..121, rows 49..50, lit while the number of ticks divided by 16 is odd: it blinks
+    about once a second.
+  - `ref2_hook_open`, on a REF2 track:
+    - asks the browser's list (+640, method +16) for the entry's name, with the index in d4;
+    - keeps the name's first 15 characters;
+    - destroys the string (`0x400f7d5c`);
+    - jumps to the stock open with the call's registers.
+
+    On another machine's track it goes straight to the stock open.
+  - The label shows the name's first 10 characters for the next 6 redraws of that track, then OCT again. The redraws
+    come every 16 ticks, so the name stays for about 3 s.
+  - The manifest gains the `screen.tick` and `browser.open` hooks, the two hook functions in `keep`, and
+    `ref2_open.S` in the sources.
+
+  `29-refmachine2.json` has 124 writes, 2 more than in B4c: the two hooks, which REF2 alone writes itself. REF2's
+  object is 3 200 bytes of code and tables and 220 bytes of variables.
+- **`tools/emu/test_views.py`** gains sections 5 and 6, and the tick's and the browser's dispatchers in section 2.
+
+### 13.2 Decisions in the build, and why `[FAIT]` (code reading)
+
+1. **The tick goes to every machine.**
+   - `0x40076be4(view)` only reads the view's byte +32, whether the view needs drawing.
+   - So every machine's tick may end with it, as SAMPLE's does, and the dispatcher calls it once more for the answer
+     it gives.
+   - SAMPLE's tick and manifest do not change.
+2. **The browser goes by the track it loads into**, the browser's +664 as SAMPLE's hook reads it, not by the selected
+   track.
+3. **`dp_open` keeps the call's registers.** SAMPLE's hook takes a0 and a2, and REF2's takes d4 too.
+   - Its C helper is called with them kept: a0 on the stack, d2..d7 and a2 by the C ABI.
+4. **The file's name comes the way the OS gets it.**
+   - Right after the open, the browser asks its list (+640) for the entry's name: method +16, with the index in d4
+     (`0x400a661a..0x400a662c`).
+   - The method writes a std::string at a0, and the browser destroys it with `0x400f7d5c` (`0x400a663e`).
+   - REF2 does the same before the open. d4 holds the index from `0x400a6518` to that call.
+5. **The redraw is the OS's own.**
+   - MainScreenView's 1 Hz timer binds View::setNeedsRedraw (`0x40076082`, `0x4001bffc`), which sets the view's +20
+     and its screen's +32.
+   - REF2 calls it every 16 ticks, on the view its draw last got, only on a REF2 track without a value window.
+
+### 13.3 Measured
+
+| Build | Writes | Added to the image | Dispatchers (code + data) | MAIN OS |
+|---|---|---|---|---|
+| SAMPLE alone | 123 | 36 096 | none | `ccdadb37…`, unchanged |
+| SAMPLE + REF | 123 | 37 760 | none | `d1765ab3…`, unchanged |
+| REF2 alone | 124 | 9 364 | none: REF2's entries and hooks | `105b3740…` |
+| SAMPLE + REF2 | 124 | 40 868 | 418 + 100 at `0x43008674` | `bbde0178…` |
+| REF2 + SAMPLE | 124 | 40 868 | 418 + 100 at `0x43008674` | `1a14e092…` |
+| SAMPLE + REF + REF2 | 124 | 42 652 | 418 + 100 at `0x43008bec` | `8c92546a…` |
+
+- With SAMPLE, all four tables hold SAMPLE's and REF2's methods at their machines.
+- **Conflicts:** unchanged. `REGISTRY.md` lists REF2 at the tick and browser sites, with two targets depending on the
+  build.
+
+### 13.4 Checks
+
+- **Static checks, green:**
+  - `compose.py --machines sampler --compare 27-sampler.json`: writes, payload and symbols identical;
+  - `--compare-ld` and `--compare-b1` for the six builds above;
+  - every generator's `--check`, `check_overlaps.py`, `registry.py --check`, `gen_flasher_tweaks.py --check` and
+    `ref_mainos.py --check`;
+  - `webcompose_check.sh` (REF2's object at 23 placements);
+  - `py_compile` and `test_compose.py --dry`.
+- **Emulation** `[FAIT]` (the maintainer's runs, Unicorn on the OS's own code, 2026-10-22): **ALL OK** for
+  `test_views.py` (with `--show`), `test_shortcuts.py` and `test_compose.py`, on their default builds.
+  - **`test_views.py`**, four builds:
+    - the four sites and their tables;
+    - the draws' dispatchers;
+    - the tick's dispatcher: every machine's tick in machine order, then the getter once;
+    - the browser's dispatcher: the hook of the right track's machine, with a0, a2, d4 and the stack as at the call;
+    - REF2's label and knob view as in §12.4;
+    - REF2's tick: the redraws at ticks 16 and 32, and the dot lit, then dark;
+    - REF2's browser hook: the name asked of the list, the string destroyed, the stock open with the call's
+      registers, and the name shown for 6 redraws of that track.
+  - **`test_shortcuts.py` and `test_compose.py`** on the B4d builds: the results of §11.4 again.
+- **Device:** not tried. To check:
+  - on a REF2 track, the dot blinks about once a second;
+  - opening a preset from the browser on a REF2 track shows its name for about 3 s, and the OS loads the preset as
+    before;
+  - with SAMPLE, samples still load, and the browser still opens samples on SAMPLE tracks.
