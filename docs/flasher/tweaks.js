@@ -3074,6 +3074,279 @@ window.MC_TWEAKS = {
    }
   }
  },
+ "parts": {
+  "shortcuts": {
+   "id": "shortcuts",
+   "version": "0.1",
+   "roots": [
+    "sc_knob",
+    "sc_save2",
+    "sc_save1",
+    "sc_load"
+   ],
+   "patch_points": [
+    {
+     "symbol": "sc_data",
+     "kind": "shortcut_data"
+    }
+   ],
+   "sites": {
+    "knob": {
+     "vtable": "0x401005a8",
+     "stock_ptr": "0x4001e814",
+     "symbol": "sc_knob"
+    },
+    "record": [
+     {
+      "at": "0x4005afa0",
+      "stock": "4feffff448d71c00",
+      "symbol": "sc_save2"
+     },
+     {
+      "at": "0x4005b054",
+      "stock": "4feffff448d71c00",
+      "symbol": "sc_save1"
+     },
+     {
+      "at": "0x4005aecc",
+      "stock": "4feffff448d71c00",
+      "symbol": "sc_load"
+     }
+    ]
+   },
+   "data": {
+    "next": 0,
+    "descn": 12,
+    "first": 16,
+    "count": 17,
+    "entries": 20,
+    "entry_size": 24
+   },
+   "bundle": {
+    "code": "2f2f00102f2f00102f2f00102f2f00104eb94001e8144fef00104feffff048d7041c2800242f001859827003b082650000ec487800044eb94007faf4588f4a80670000da45fa00e2719a67122f004eb94007faf4588f4a8067ee600000c04eb9400cf9a82f004eb94006b736588f4a00660000aa2f2f00202f2f00184eb94001e318508f45f90000000073aa001090816b00008a73aa0011b08164000080e588d082c0fc001841f208144a906700006e7601d6822003c0fc0038226a000cd3c0701cd0822340000420280008234000082028000c2340000c202800102340001042a9001470ff234000182340001c42a9002020102340002c20280004234000342003c0fc006443f940a71754d3c0202800142340002042a9002c280320044cd7041c4fef00104e75010208002f2f00082f2f0008487a006020390000000066524feffff448d71c004ef94005afa82f2f00082f2f0008487a003e20390000000066304feffff448d71c004ef94005b05c2f2f00082f2f0008487a003a203900000000660e4feffff448d71c004ef94005aed420404ed04a0067162057226f00042229004c214100542229005021410058508f4e754a0067162257206f0004222800542341004c2228005823410050508f4e75",
+    "relocs": [
+     [
+      134,
+      "sc_data",
+      0
+     ],
+     [
+      314,
+      "sc_data",
+      0
+     ],
+     [
+      348,
+      "sc_data",
+      4
+     ],
+     [
+      382,
+      "sc_data",
+      8
+     ]
+    ],
+    "symbols": {
+     "sc_knob": [
+      "code",
+      0
+     ],
+     "sc_save2": [
+      "code",
+      300
+     ],
+     "sc_save1": [
+      "code",
+      334
+     ],
+     "sc_load": [
+      "code",
+      368
+     ]
+    },
+    "bss": 0
+   },
+   "shortcut": {
+    "key": "RETRIG",
+    "knobs": [
+     "COLOR",
+     "SHAPE",
+     "SWEEP",
+     "CONTOUR"
+    ],
+    "descriptors": [
+     1,
+     2,
+     3,
+     4
+    ],
+    "sound_slots": [
+     28,
+     29,
+     30,
+     31
+    ],
+    "record_slots": [
+     28,
+     29,
+     30,
+     31
+    ],
+    "range": [
+     -128,
+     127
+    ],
+    "formatter": "0x400456c8"
+   },
+   "conflicts_declared": [
+    "lfo-plus"
+   ]
+  },
+  "dispatch": {
+   "id": "dispatch",
+   "version": "0.2",
+   "roots": [
+    "dp_main",
+    "dp_knob",
+    "dp_tick",
+    "dp_open"
+   ],
+   "patch_points": [
+    {
+     "symbol": "dp_data",
+     "kind": "dispatch_data"
+    }
+   ],
+   "sites": {
+    "view.main": {
+     "vtable": "0x400ffe30",
+     "stock_ptr": "0x4001b22a",
+     "symbol": "dp_main",
+     "table": 4
+    },
+    "view.knob": {
+     "vtable": "0x4010053c",
+     "stock_ptr": "0x4001e40a",
+     "symbol": "dp_knob",
+     "table": 28
+    },
+    "screen.tick": {
+     "hook": "0x400075f0",
+     "stock": "4eb940076be4",
+     "op": "jsr",
+     "symbol": "dp_tick",
+     "table": 52
+    },
+    "browser.open": {
+     "hook": "0x400a6602",
+     "stock": "4eb9400a3052",
+     "op": "jsr",
+     "symbol": "dp_open",
+     "table": 76
+    }
+   },
+   "data": {
+    "first": 0,
+    "count": 1,
+    "size": 100,
+    "max_machines": 6
+   },
+   "bundle": {
+    "code": "518f2f3c4001b22a2f6f001000042f6f001400084879000000004eb9000000002f6f000c001822402f6f000800144fef00104ed1518f2f3c4001e40a2f6f001000042f6f001400084879000000004eb9000000002f6f000c001822402f6f000800144fef00104ed12f024eb9400cf8664a80673e7205b2af00086536222f000874444c0218000681000000d4d081224020514a88671c206800284a8867142f004e90588f4a80670a204071a80026241f4e75241f70ff4e752f024eb9400cf8664a80673e2f004eb94000eb902f004eb9400124122f004eb90000000075b90000000073b9000000004fef000c9082b0816410206f000820300c004a806704241f4e75202f000c241f4e754feffff048d7041c282f00144a3900000000672077b90000000045f9000000004282205a4a8867062f044e90588f5282b68266ee2f4400144cd7041c4fef00104ef940076be42f02206f000820502f2802984eb90000000073b900000000588f41f90000000075909082b280630c20300c4c4a806704241f4e75241f203c400a30524e7500002f082f0a4eb900000000588f205f22404ed1",
+    "relocs": [
+     [
+      216,
+      "code",
+      104
+     ],
+     [
+      222,
+      "dp_data",
+      0
+     ],
+     [
+      228,
+      "dp_data",
+      1
+     ],
+     [
+      22,
+      "dp_data",
+      4
+     ],
+     [
+      28,
+      "code",
+      184
+     ],
+     [
+      74,
+      "dp_data",
+      28
+     ],
+     [
+      80,
+      "code",
+      184
+     ],
+     [
+      280,
+      "dp_data",
+      1
+     ],
+     [
+      288,
+      "dp_data",
+      1
+     ],
+     [
+      294,
+      "dp_data",
+      52
+     ],
+     [
+      350,
+      "code",
+      104
+     ],
+     [
+      356,
+      "dp_data",
+      1
+     ],
+     [
+      364,
+      "dp_data",
+      0
+     ],
+     [
+      406,
+      "code",
+      336
+     ]
+    ],
+    "symbols": {
+     "dp_main": [
+      "code",
+      0
+     ],
+     "dp_knob": [
+      "code",
+      52
+     ],
+     "dp_tick": [
+      "code",
+      266
+     ],
+     "dp_open": [
+      "code",
+      400
+     ]
+    },
+    "bss": 0
+   }
+  }
+ },
  "samples": {
   "syx_sha256": "e11859b68deb7e5e3fe86ab32581212093849c4be5d3950add011eac398a2ce8",
   "main_sha256": "a351392c62ec1c6c3324a807baf46934690d54edfc76029a4b4882541cad1ab2",

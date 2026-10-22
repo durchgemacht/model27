@@ -655,6 +655,8 @@ def render():
         "packages": packages,
         "registrar": json.loads((HERE / "machines" / "registrar" / "frame.json").read_text(encoding="utf-8"))
         if packages else None,
+        # model27, Level B (notes/63, B4e): the builder's parts, which the machines' shortcuts and shared points need
+        "parts": {pid: __import__("compose").web_part(pid) for pid in ("shortcuts", "dispatch")} if packages else None,
         # onglet « OS Samples » : l'OS Model:Samples officiel, mis dans le conteneur du Cycles (crossflash)
         "samples": {"syx_sha256": OFFICIAL["samples"]["syx"], "main_sha256": OFFICIAL["samples"]["main"],
                     "download": "https://www.elektron.se/support-downloads/modelsamples"},

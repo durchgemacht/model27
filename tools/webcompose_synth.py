@@ -2,16 +2,18 @@
 """Reference data for tools/webcompose_check.js (notes/61): what docs/flasher/composer.js must give, computed by the
 Python composer, so that the page and tools/compose.py compose the same bytes.
 
-Part 1 (B3a), no firmware needed: every package of tools/machines/ that has an object, laid out once
-(relocate.layout, relocate.bundle), and what relocate.place gives at a set of placements: the code and the variables
-at 4-aligned addresses (where the composer puts the packages alone and in pairs, then random ones), the patch points
-at assorted values.
+Part 1 (B3a), no firmware needed: every package of tools/machines/ that has an object, and every part of the
+builder (B4e: the shortcut layer, the dispatchers, laid out with all their roots), laid out once (relocate.layout,
+relocate.bundle), and what relocate.place gives at a set of placements: the code and the variables at 4-aligned
+addresses (where the composer puts the packages alone and in pairs, then random ones), the patch points at assorted
+values.
 
 Part 2 (B3b), with the official file (--cycles): the tweak compose.compose() composes for each selection of
 SELECTIONS and the MAIN OS compose.build_syx() builds from it with the tweaks named on top, and what the page composes
 them from: each package as compose.web_package() gives it, the committed frame.json (refused when it is not what
 compose.frames() gives), the folder's tweaks reduced to what the conflicts read plus a few probes, device.json. Then
-compose.fill() for 1 to 6 synthetic machines, what two packages cannot reach.
+compose.fill() for 1 to 6 synthetic machines, what two packages cannot reach. The parts go with them
+(compose.web_part), and the selections with REF2 bring in the shortcut layer and the dispatchers (B4e).
 
     python3 tools/webcompose_synth.py <outdir> [--cycles model-cycles_OS1.13.syx]
         # writes <outdir>/compose.json, with --cycles also <outdir>/composed.json
@@ -31,43 +33,48 @@ import relocate  # noqa: E402
 
 MACHINES = HERE / "machines"
 CODE_END = 0x48000000                       # no limit here: the composer checks the room, not this comparison
-# without REF2 until B4e: its shortcut brings in the shortcut layer (notes/63 §3), which composer.js does not compose yet
 SELECTIONS = ((["sampler"], []), (["refmachine"], []), (["sampler", "refmachine"], []), (["refmachine", "sampler"], []),
-              (["sampler", "refmachine"], ["arp", "trig-hold"]))
+              (["sampler", "refmachine"], ["arp", "trig-hold"]), (["refmachine2"], []), (["sampler", "refmachine2"], []),
+              (["refmachine2", "sampler"], []), (["sampler", "refmachine", "refmachine2"], []))
+PARTS = ("shortcuts", "dispatch")
 COMPARED = ("id", "order", "name", "version", "conflicts", "writes", "append", "symbols")
 
 
 def packages():
-    """(manifest, object bytes) of every package with exactly one committed object."""
+    """(id, roots, patch points, object bytes) of every package with exactly one committed object, then of every part
+    of the builder, laid out with all its roots."""
     for d in sorted(p for p in MACHINES.iterdir() if p.is_dir()):
         mf = d / "manifest.json"
         if not mf.is_file():
             continue
         m = json.loads(mf.read_text(encoding="utf-8"))
-        objs = m.get("build", {}).get("objects", [])
+        b = m.get("build", {})
+        objs = b.get("objects", [])
         if len(objs) == 1 and (d / objs[0]).is_file():
-            yield m, (d / objs[0]).read_bytes()
+            yield (m["id"], [b["symbols"]["update"], b["symbols"]["render"], *b.get("keep", [])],
+                   b.get("patch_points", []), (d / objs[0]).read_bytes())
+    for pid in PARTS:
+        b = json.loads((MACHINES / pid / "part.json").read_text(encoding="utf-8"))["build"]
+        yield pid, b["roots"], b["patch_points"], (MACHINES / pid / b["objects"][0]).read_bytes()
 
 
 def part1(out):
     rnd = random.Random(61)
     ref = {}
-    for m, obj in packages():
-        b = m["build"]
-        upd, rnd_sym, keep = b["symbols"]["update"], b["symbols"]["render"], b.get("keep", [])
-        names = [upd, rnd_sym, *keep]
-        lay = relocate.layout(obj, upd, rnd_sym, keep, m["id"])
-        points = [pp["symbol"] for pp in b.get("patch_points", []) if "symbol" in pp]
+    for mid, names, pps, obj in packages():
+        upd, rnd_sym, keep = names[0], names[1], names[2:]
+        lay = relocate.layout(obj, upd, rnd_sym, keep, mid)
+        points = [pp["symbol"] for pp in pps if "symbol" in pp]
         spots = [(0x43000000, 0x43036000), (0x43000518, 0x430360c0), (0x43007740, 0x4304a038)]
         spots += [(0x43000000 + 4 * rnd.randrange(0x8000), 0x43036000 + 4 * rnd.randrange(0x8000)) for _ in range(20)]
         cases = []
         for code_at, bss_at in spots:
             values = {p: rnd.randrange(200) for p in points}
-            blob, syms, end = relocate.place(obj, upd, rnd_sym, keep, code_at, bss_at, CODE_END, values, m["id"])
+            blob, syms, end = relocate.place(obj, upd, rnd_sym, keep, code_at, bss_at, CODE_END, values, mid)
             cases.append({"code_at": code_at, "bss_at": bss_at, "values": values, "blob": blob.hex(),
                           "symbols": {k: syms[k] for k in names}, "bss_end": end})
-        ref[m["id"]] = {"bundle": relocate.bundle(lay, names), "cases": cases}
-        print(f"{m['id']}: {len(lay['code'])} bytes of code and tables, {len(lay['relocs'])} relocations, "
+        ref[mid] = {"bundle": relocate.bundle(lay, names), "cases": cases}
+        print(f"{mid}: {len(lay['code'])} bytes of code and tables, {len(lay['relocs'])} relocations, "
               f"{len(cases)} placements")
     (out / "compose.json").write_text(json.dumps(ref), encoding="utf-8")
 
@@ -101,7 +108,7 @@ def part2(out, cycles):
                {"id": "probe-other-bytes", "writes": [{"off": hook["off"], "new": "4e71" * (len(hook["new"]) // 4)}]}]
     pkgs, cases = {}, []
     for ids, with_ in SELECTIONS:
-        tweak, info = compose.compose(img, ids, against=tweaks)
+        tweak, info = compose.compose(img, ids, against=tweaks)            # with the parts the build needs
         with contextlib.redirect_stdout(io.StringIO()):          # build.py's report of the caves, for each build
             _syx, patched = compose.build_syx(raw, [tweak] + [full[w] for w in with_])
         for i in ids:
@@ -135,7 +142,8 @@ def part2(out, cycles):
     device = json.loads((compose.DEV / "device.json").read_text(encoding="utf-8"))
     used = {w for _ids, with_ in SELECTIONS for w in with_}
     (out / "composed.json").write_text(json.dumps({
-        "device": device, "frames": frs, "packages": pkgs, "tweaks": tweaks,
+        "device": device, "frames": frs, "packages": pkgs, "parts": {pid: compose.web_part(pid) for pid in PARTS},
+        "tweaks": tweaks,
         "with": {k: full[k] for k in sorted(used)}, "cases": cases, "fills": fills}), encoding="utf-8")
 
 

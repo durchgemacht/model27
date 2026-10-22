@@ -1,7 +1,7 @@
 # 63 — Level B, step 4: machine shortcuts and dispatchers, proven by a second reference machine (plan)
 
 **Status: plan, 2026-10-22; the maintainer's decisions (§9); B4a built and proven in emulation (§10); B4b built and proven
-in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK); B4d built and proven in emulation (§13: the same three proofs, ALL OK).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
+in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK); B4d built and proven in emulation (§13: the same three proofs, ALL OK); B4e built (§14): the web flasher composes them, the standard's draft 0.3.** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
 ids were dropped ([notes/62](62-level-b4-stable-machine-ids.md) §9). It covers two pieces:
 
 - the dispatcher tables for the hooks two packages share;
@@ -665,3 +665,66 @@ the page changes only in B4e, without new cards.
   - opening a preset from the browser on a REF2 track shows its name for about 3 s, and the OS loads the preset as
     before;
   - with SAMPLE, samples still load, and the browser still opens samples on SAMPLE tracks.
+
+## 14. B4e built (2026-10-22)
+
+### 14.1 What was built
+
+- **`docs/flasher/composer.js`** gains `shortcutUses()`, `shortcutLayer()` and `dispatchLayer()`, the ports of
+  `compose.shortcut_uses()`, `compose.shortcut_layer()` and `compose.dispatch_layer()`.
+  - `compose()` takes the builder's parts as a fifth argument and adds them as `compose.compose()` does.
+  - `packageWrites()` skips the sites the parts take.
+  - The tweak's symbols gain the parts' symbols.
+- **`compose.web_part()`** gives a part as the page reads it: its object laid out once with all its roots
+  (`relocate.bundle`), its sites, the layout of its data block, its patch points, the shortcut list and its declared
+  conflicts.
+  - `gen_flasher_tweaks.py` embeds both parts in `tweaks.js` next to the registrar's frame (5.4 KB more).
+  - `app.js` passes them to `MCComposer.compose`.
+  - `web_package()` now passes the `shortcut` entries on.
+- **The dispatch part is placed whole** as soon as one point is shared, so that it has one layout the page can embed.
+  Before, only the dispatchers of the shared points were placed. No build changes: every build so far shares all four
+  points or none, and all MAIN OS hashes stay as in §13.3.
+- **A declared conflict of the shortcut layer** (`part.json`, `conflicts_declared`): lfo-plus.
+  - lfo-plus keeps its LFO 2 in k 28..32 and packs it into record slots 30..31 from inside the stock save and load
+    (`0x4005b028`, `0x4005b0dc`, `0x4005af1c`; notes/56).
+  - It writes no byte the layer writes, so the composer did not compute the clash. With both, the layer would show
+    lfo-plus's words as the machines' shortcuts and overwrite its packed slots.
+  - `compose()` and `composer.js` now add the part's declared conflicts to a build that has the layer:
+    `29-refmachine2.json` gains `lfo-plus` (267 conflicts).
+- **`webcompose_synth.py`** places both parts' objects at 23 placements, as it does for the packages. Its selections
+  include REF2 again: REF2 alone, SAMPLE + REF2, REF2 + SAMPLE, SAMPLE + REF + REF2. `webcompose_check.js` passes the
+  parts to the composer.
+- **The pages' stamp** goes to `2026-10-22-06` (`composer.js`, `app.js` and `tweaks.js` change). The page does not
+  change for users: SAMPLE alone needs neither part, so no release entry.
+- **`tools/AGENTS.md`**: the Python-only exception of B4b to B4d is gone.
+- **The standard**, `cycles-mod-standard`, draft 0.3:
+  - `STANDARD.md`:
+    - §3.1: the points as model27 dispatches them, and the `shortcut` point;
+    - §3.2: the "by machine" rule;
+    - §3.3: the parts;
+    - §4.2: the `shortcut` entry;
+    - §5.1: option C;
+    - §5.2 to §5.4: k, record slots and keys;
+    - §7.4: REF2's manifest, the template;
+    - §8 to §11.
+  - `APPLYING.md` §12, porting a machine to model27's builder, step by step, with a prompt for an AI assistant, and
+    the inventory's table brought up to date.
+  - The README's status.
+
+### 14.2 Checks
+
+- `webcompose_check.sh` with the official file:
+  - the three packages and the two parts identical to `relocate.place` at 23 placements each;
+  - the nine selections identical to `compose.py`: tweak (writes, payload, symbols, conflicts) and MAIN OS. Among
+    them: REF2 alone `105b3740…`, SAMPLE + REF2 `bbde0178…`, REF2 + SAMPLE `1a14e092…`, SAMPLE + REF + REF2
+    `8c92546a…`;
+  - `fill` for 1 to 6 synthetic machines.
+- Every generator's `--check`, `gen_flasher_tweaks.py --check`, `ref_mainos.py --check` (`REF_MAINOS` and `REF_MODS`
+  unchanged), `check_overlaps.py`, `registry.py --check`, `webbuild_check.sh`, `webflash_check.sh` and `py_compile`.
+- `compose.py` against B4d (`72c6298`) for the eight selections of the Unicorn tests: the same writes and payload;
+  only the conflicts of the builds with REF2 gain `lfo-plus`. The emulation runs of §13 hold for B4e.
+- `webflash_smoke.sh`, the page in jsdom with both official files, run by the maintainer because it needs
+  `registry.npmjs.org`, which this sandbox blocks: ALL OK, 142 checks and one skip (three cards outside the sample:
+  only two plain cards are offered). The pages load with the stamp `2026-10-22-06`; SAMPLE composed in the page
+  still gives `REF_MAINOS["sampler"]`, MAIN OS `ccdadb37…`.
+- **Device:** nothing new to test for users. The B4b to B4d tests of §11.4, §12.4 and §13.4 still apply to REF2.

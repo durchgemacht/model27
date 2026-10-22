@@ -16,10 +16,10 @@ platform and ISA pitfalls: [`notes/03-plateforme-coldfire.md`](../notes/03-plate
   machine cards in the page (notes/61): a change to how a package is placed, registered (`frame`, `fill`) or its
   conflicts computed goes into both in the same commit, and `tools/webcompose_check.sh model-cycles_OS1.13.syx`
   must pass. A change to `registrar.S` or to `frame()` regenerates `frame.json` (`gen_registrar.py --cycles`).
-  One exception until step B4e (notes/63 §7, §11, §12): the shortcut layer and the dispatchers
-  (`compose.shortcut_layer`, `compose.dispatch_layer`, parts built by `gen_parts.py`) are in Python only, `composer.js`
-  gets them in B4e, and `webcompose_synth.py` leaves REF2, the only machine that needs them and never offered, out of
-  its selections until then.
+  This holds for the builder's parts too (notes/63, B4e): the shortcut layer and the dispatchers
+  (`compose.shortcut_layer`, `compose.dispatch_layer`, parts built by `gen_parts.py`) have their twins
+  (`shortcutLayer`, `dispatchLayer`), the page gets the parts laid out once (`compose.web_part`, embedded in
+  `tweaks.js`), and `webcompose_synth.py` composes REF2, which needs both, among its selections.
 - Detect the cross toolchain as the existing generators do:
   `next((c for c in ("m68k-linux-gnu-", "m68k-elf-") if shutil.which(c + "gcc")), "m68k-linux-gnu-")`.
   Compiled code is built with `-mcpu=54418`. Pin the compiler version used in the note when output bytes depend on it.

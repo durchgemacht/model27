@@ -1,6 +1,7 @@
 // docs/flasher/composer.js against the Python composer (tools/webcompose_synth.py writes the reference), notes/61.
-// Part 1 (B3a): each package placed at every reference placement gives relocate.place's bytes, entry symbols and end
-// of the variables. Part 2 (B3b), with the official file: compose() on the file's MAIN OS gives compose.compose()'s
+// Part 1 (B3a): each package and each part of the builder (B4e) placed at every reference placement gives
+// relocate.place's bytes, entry symbols and end of the variables. Part 2 (B3b, B4e), with the official file: compose()
+// on the file's MAIN OS, with the parts (the shortcut layer, the dispatchers), gives compose.compose()'s
 // tweak for each selection (id, order, name, version, the conflicts against the folder's tweaks and the probes,
 // writes, append, symbols), MCBuilder.build() makes of it, with the tweaks named on top, the MAIN OS
 // compose.build_syx() makes, and fill() gives compose.fill()'s writes and payload for 1 to 6 synthetic machines.
@@ -37,7 +38,7 @@ if (process.argv[3]) {
   for (const c of ref2.cases) {
     const label = c.ids.join("+") + c.with.map((w) => ` + ${w}`).join("");
     try {
-      const { tweak } = C.compose(mainOs, ref2.frames, c.ids.map((id) => ref2.packages[id]), ref2.tweaks);
+      const { tweak } = C.compose(mainOs, ref2.frames, c.ids.map((id) => ref2.packages[id]), ref2.tweaks, ref2.parts);
       const differ = Object.keys(c.tweak).filter((k) => canon(tweak[k]) !== canon(c.tweak[k]));
       const built = B.build(raw, ref2.device, [tweak, ...c.with.map((w) => ref2.with[w])]);
       if (built.mainOsSha !== c.main_os) differ.push("MAIN OS");

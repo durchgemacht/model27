@@ -31,5 +31,8 @@
    {"at": "0x4005aecc", "stock": "4feffff448d71c00", "symbol": "sc_load"}
   ]
  },
- "data": {"next": 0, "descn": 12, "first": 16, "count": 17, "entries": 20, "entry_size": 24}
+ "data": {"next": 0, "descn": 12, "first": 16, "count": 17, "entries": 20, "entry_size": 24},
+ "conflicts_declared": [
+  {"with": "lfo-plus", "why": "lfo-plus keeps its LFO 2 in k 28..32 and packs it into record slots 30..31 from inside the stock save and load (notes/56): the same words the shortcut layer keeps and saves for the machines' shortcuts, at other bytes, so no write clashes"}
+ ]
 }

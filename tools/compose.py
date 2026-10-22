@@ -240,11 +240,32 @@ def web_package(mid):
         sys.exit(f"!! {mid}: {path} is missing: run the package's generator (it writes the object)")
     lay = relocate.layout(path.read_bytes(), upd, rnd, keep, mid)
     uses = [{k: v for k, v in u.items() if k != "why"} for u in m["uses"]
-            if u["point"] in ("machine", "memory.ram") or "hook" in u or "vtable" in u]
+            if u["point"] in ("machine", "memory.ram", "shortcut") or "hook" in u or "vtable" in u]
     return {"id": mid, "name": m["name"], "order": m["order"], "version": m["version"],
             "symbols": {"update": upd, "render": rnd}, "keep": keep, "patch_points": pps, "uses": uses,
             "conflicts_declared": [c["with"] for c in m.get("compat", {}).get("conflicts_declared", [])],
             "bundle": relocate.bundle(lay, [upd, rnd, *keep])}
+
+
+def web_part(pid):
+    """A part as the web flasher reads it (B4e, notes/63 §5): what shortcut_layer() or dispatch_layer() reads in its
+    part.json (the shortcut list, the sites, the data block's layout, the patch points, the roots) and its committed
+    object laid out once with all its roots (relocate.layout, relocate.bundle). docs/flasher/composer.js composes the
+    layer from it as compose() does from the part."""
+    p = load_part(pid)
+    b = p["build"]
+    path = object_path(p)
+    if not path.is_file():
+        sys.exit(f"!! {path} is missing: run tools/gen_parts.py")
+    roots = b["roots"]
+    lay = relocate.layout(path.read_bytes(), roots[0], roots[1], roots[2:], pid)
+    out = {"id": pid, "version": p["version"], "roots": roots, "patch_points": b["patch_points"], "sites": p["sites"],
+           "data": p["data"], "bundle": relocate.bundle(lay, roots)}
+    if "shortcut" in p:
+        out["shortcut"] = p["shortcut"]
+    if p.get("conflicts_declared"):
+        out["conflicts_declared"] = [c["with"] for c in p["conflicts_declared"]]
+    return out
 
 
 def emit_bytes(path, data, check):
@@ -679,7 +700,8 @@ def dispatch_layer(img, part, mans, syms_of, at, code_end, first):
     """The dispatchers of this build (notes/63 §4, B4c and B4d): each point of the part that two or more packages take
     (their vtable entries, or their hooks, at the same address) gets the part's dispatcher there, and the data block
     after the part's code lists each package's method by machine. A point one package takes keeps that package's own
-    entry or hook. Returns None when no point is shared, else (blob, symbols, writes, the sites left out, info)."""
+    entry or hook. The part is placed whole as soon as one point is shared, so that it has one layout. Returns None
+    when no point is shared, else (blob, symbols, writes, the sites left out, info)."""
     d, sites = part["data"], part["sites"]
     shared = {}
     for name, s in sites.items():
@@ -701,8 +723,8 @@ def dispatch_layer(img, part, mans, syms_of, at, code_end, first):
     path = object_path(part)
     if not path.is_file():
         sys.exit(f"!! {path} is missing: run tools/gen_parts.py")
-    roots = [sites[n]["symbol"] for n in shared]
-    lay = relocate.layout(path.read_bytes(), roots[0], roots[1] if len(roots) > 1 else roots[0], roots[2:], part["id"])
+    roots = part["build"]["roots"]           # the whole part: one layout, the one the web flasher embeds (B4e)
+    lay = relocate.layout(path.read_bytes(), roots[0], roots[1], roots[2:], part["id"])
     data_at = align4(at + len(lay["code"]))
     block = bytearray(d["size"])
     block[d["first"]], block[d["count"]] = first, len(mans)
@@ -865,7 +887,7 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             info_pkgs.append(dict(id=m["id"], index=first + i, desc=76 + 5 * i, code_at=code_at, code=len(blob),
                                   bss_at=bss_at, bss=bss_end - bss_at))
             code_cursor, bss_cursor = code_at + len(blob), bss_end
-        layer = None                         # the shortcut layer, in the builds whose machines declare a shortcut
+        layer, part = None, None             # the shortcut layer, in the builds whose machines declare a shortcut
         if any(u["point"] == "shortcut" for m in mans for u in m["uses"]):
             part = load_part("shortcuts")
             at = align4(code_cursor)
@@ -906,6 +928,8 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             sys.exit(f"!! writes overlap at {BASE + b_['off']:#x}")
     ram = [(pay, bss_cursor)] + [r for m in mans for r in ram_claims(m)]
     declared = {c["with"] for m in mans for c in m.get("compat", {}).get("conflicts_declared", [])}
+    if layer:                                # what the shortcut layer clashes with at no shared byte
+        declared |= {c["with"] for c in part.get("conflicts_declared", [])}
     tid = "+".join(ids)
     conflicts = computed_conflicts(writes, ram, declared, against) - {tid}
     tweak = {

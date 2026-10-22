@@ -1583,7 +1583,8 @@ const mainOsOfFile = new WeakMap();
 function composeMachines(raw, ids) {
   const tw = window.MC_TWEAKS;
   if (!mainOsOfFile.has(raw)) mainOsOfFile.set(raw, window.MCBuilder.mainOsOf(raw, tw.device));
-  const r = window.MCComposer.compose(mainOsOfFile.get(raw), tw.registrar, ids.map((id) => tw.packages[id]), tw.tweaks);
+  const r = window.MCComposer.compose(mainOsOfFile.get(raw), tw.registrar, ids.map((id) => tw.packages[id]), tw.tweaks,
+                                     tw.parts || {});
   log(`Composed ${r.tweak.id}: ${r.info.packages.map((p) => `${p.id} as machine ${p.index}`).join(", ")}, ` +
     `${r.tweak.writes.length} writes, ${r.info.image} bytes added to the OS.`, "is-ok");
   return r.tweak;

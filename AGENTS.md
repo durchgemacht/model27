@@ -15,7 +15,7 @@ you touch:
 **model27** is a downstream fork of [Modded-Cycles](https://github.com/18nelli18/Modded-Cycles), started from its
 release 1.55 (the last one with a mod picker) plus the Control All Config mod. It keeps the mod picker and aims at a
 short, curated list of mods, four-knob machines and the
-[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard) (a companion draft, 0.2):
+[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard) (a companion draft, 0.3):
 every mod declares what it touches, and what can be ticked together is computed from that. Everything below about the
 build, the proofs and the licenses is inherited from Modded-Cycles and still applies.
 

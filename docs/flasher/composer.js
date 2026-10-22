@@ -15,6 +15,10 @@
  * after the other, registered together, their hooks and vtable entries added, the conflicts computed against the
  * tweaks given. It returns the tweak, which MCBuilder.build() applies like any other.
  *
+ * B4e (notes/63): the builder's parts (compose.web_part(): the shortcut layer, the dispatchers) come laid out once like
+ * a package; shortcutLayer() and dispatchLayer() place them and write their data blocks and sites as
+ * compose.shortcut_layer() and compose.dispatch_layer() do, in the builds whose machines need them.
+ *
  * License: MIT (the repository's LICENSE).
  *
  * Wrapped in an IIFE: in a classic <script>, top-level declarations are global and would collide.
@@ -248,11 +252,13 @@ function checkRamClaims(packages) {
 // compose.package_writes(): the package's own hooks (jsr/jmp into its code) and vtable entries, each checked against
 // the stock bytes. That a vtable entry is the only reference to its method is a property of the stock OS, which the
 // Python composer checks on every build (notes/61 §4); here the entry's stock bytes are checked like any write's.
-function packageWrites(p, mainOs, syms) {
+// The hooks and entries at the addresses in skip are left out: the shortcut layer chains them, a dispatcher takes them.
+function packageWrites(p, mainOs, syms, skip = new Set()) {
   const sym = (s) => { if (!has(syms, s)) throw new Error(`${p.id}: no symbol ${s}`); return syms[s]; };
   const writes = [];
   for (const u of p.uses) {
     if ("hook" in u) {
+      if (skip.has(parseInt(u.hook.at, 16))) continue;
       const h = u.hook, va = parseInt(h.at, 16), old = fromHex(h.stock), target = be32(sym(h.symbol));
       const nw = h.op === "jsr" ? concat(bytesOf(0x4e, 0xb9), target) : concat(bytesOf(0x4e, 0xf9), target, bytesOf(0x4e, 0x71));
       if (nw.length !== old.length) throw new Error(`${p.id}: hook at ${hx(va)}: ${nw.length} bytes for ${old.length}`);
@@ -261,11 +267,157 @@ function packageWrites(p, mainOs, syms) {
       writes.push({ off: va - BASE, old: hex(old), new: hex(nw) });
     } else if ("vtable" in u) {
       const vt = u.vtable, va = parseInt(vt.at, 16), method = parseInt(vt.stock_ptr, 16);
+      if (skip.has(va)) continue;
       if (u32(mainOs, va - BASE) !== method) throw new Error(`${p.id}: ${hx(va)}: not the stock entry ${hx(method)}`);
       writes.push({ off: va - BASE, old: hex(be32(method)), new: hex(be32(sym(vt.symbol))) });
     }
   }
   return writes;
+}
+
+// The parts of the builder (notes/63 §3 to §5, B4b to B4e): code compiled once, laid out once with all its roots
+// (compose.web_part(): its bundle, its sites, its data block's layout), placed after the packages, its data block
+// right after its code.
+const asciiz = (s) => concat(Uint8Array.from(s, (ch) => ch.charCodeAt(0)), new Uint8Array(1));
+function placePart(part, at, codeEnd, values) {   // relocate.apply() of the part, its patch points from values (by kind)
+  const pv = {};
+  for (const pp of part.patch_points) pv[pp.symbol] = values[pp.kind];
+  const { blob, symbols } = place(part.bundle, at, at, pv);
+  if (at + blob.length > codeEnd) throw new Error(`${part.id}: code ends at ${hx(at + blob.length)}, past ${hx(codeEnd)}`);
+  const out = {};
+  for (const r of part.roots) out[r] = symbols[r];
+  return { code: blob, symbols: Object.assign(out, pv) };
+}
+
+// compose.shortcut_uses(): the shortcuts the machines declare, checked against the builder's list (notes/63 §1.3, §5):
+// [[machine's position, knob's position in the list, param]]. 0 is every shortcut's default.
+function shortcutUses(packages, part) {
+  const sc = part.shortcut, [lo, hi] = sc.range, out = [];
+  packages.forEach((p, i) => {
+    const seen = new Set();
+    for (const u of p.uses) {
+      if (u.point !== "shortcut") continue;
+      const where = `${p.id}: shortcut ${u.key} + ${u.knob}`;
+      if (u.key !== sc.key || !sc.knobs.includes(u.knob))
+        throw new Error(`${where}: not on the builder's list, ${sc.key} + ${sc.knobs.join(", ")} (notes/63 §1.3)`);
+      if (seen.has(u.knob)) throw new Error(`${where}: declared twice`);
+      seen.add(u.knob);
+      const prm = u.param, names = [prm.long || "", prm.short || ""];
+      if (!names.every((x) => x && /^[\x20-\x7e]*$/.test(x)) || names[1].length > 4)
+        throw new Error(`${where}: a long name and a short name of 4 characters at most, in printable ASCII`);
+      const rng = [prm.min, prm.max, has(prm, "default") ? prm.default : 0];
+      if (!rng.every(Number.isInteger) || !(lo <= rng[0] && rng[0] <= 0 && rng[1] >= 0 && rng[1] <= hi) || rng[0] === rng[1])
+        throw new Error(`${where}: integers min <= 0 <= max, from ${lo} to ${hi}`);
+      if (rng[2] !== 0) throw new Error(`${where}: default ${rng[2]}; a shortcut's default is 0 (notes/63 §11)`);
+      out.push([i, sc.knobs.indexOf(u.knob), prm]);
+    }
+  });
+  return out;
+}
+
+// compose.shortcut_layer(): the part placed at at, its data block after its code (the next of each record function's
+// chain, the descriptor table, the machines, their shortcuts per knob, the strings), the knob lookup's vtable entry
+// and the three sound record functions jumping into it; a package's wrapper over a record function becomes the next
+// of the chain and its write is left out. Returns { blob, symbols, writes, skip, info }.
+function shortcutLayer(mainOs, part, packages, symsOf, uses, at, codeEnd, first, descn) {
+  const d = part.data, sc = part.shortcut, sites = part.sites;
+  const dataAt = align4(at + part.bundle.code.length / 2);
+  const nexts = [], skip = new Set();
+  for (const s of sites.record) {
+    const va = parseInt(s.at, 16), here = hex(mainOs.subarray(va - BASE, va - BASE + 8));
+    if (here !== s.stock) throw new Error(`${hx(va)}: ${s.stock} expected, ${here} found`);
+    const hooked = packages.flatMap((p) => p.uses.filter((u) => "hook" in u && parseInt(u.hook.at, 16) === va)
+      .map((u) => [p, u.hook]));
+    if (hooked.length > 1)
+      throw new Error(`${hooked.map(([p]) => p.id).join(", ")} all hook ${hx(va)}: one wrapper behind the shortcut layer`);
+    if (hooked.length) {
+      const [p, h] = hooked[0];
+      if (h.op !== "jmp" || h.stock !== s.stock)
+        throw new Error(`${p.id}: its hook at ${hx(va)} is not a wrapper over the function's first 8 bytes`);
+      nexts.push(symsOf[p.id][h.symbol]);
+      skip.add(va);
+    } else nexts.push(0);
+  }
+  const nk = sc.knobs.length, es = d.entry_size;
+  const entries = new Uint8Array(es * nk * packages.length);
+  const strAt = dataAt + d.entries + entries.length, addr = new Map();
+  let strEnd = strAt;
+  for (const [i, k, prm] of uses) {
+    for (const x of [prm.long, prm.short])
+      if (!addr.has(x)) { addr.set(x, strEnd); strEnd += x.length + 1; }
+    let fmt = parseInt(sc.formatter, 16);
+    if (has(prm, "format")) {
+      fmt = symsOf[packages[i].id][prm.format];
+      if (fmt === undefined) throw new Error(`${packages[i].id}: formatter ${prm.format} is not a symbol of the package (keep it)`);
+    }
+    const o = es * (nk * i + k);
+    [addr.get(prm.long), addr.get(prm.short), prm.min << 8, prm.max << 8, (has(prm, "default") ? prm.default : 0) << 8, fmt]
+      .forEach((v, j) => put32(entries, o + 4 * j, v));
+  }
+  const head = new Uint8Array(d.entries);
+  nexts.forEach((v, j) => put32(head, d.next + 4 * j, v));
+  put32(head, d.descn, descn);
+  head[d.first] = first;
+  head[d.count] = packages.length;
+  const data = concat(head, entries, ...[...addr.keys()].map(asciiz));
+  if (dataAt + data.length > codeEnd) throw new Error(`the shortcut layer ends at ${hx(dataAt + data.length)}, past ${hx(codeEnd)}`);
+  const { code, symbols } = placePart(part, at, codeEnd, { shortcut_data: dataAt });
+  const kv = sites.knob, va = parseInt(kv.vtable, 16), method = parseInt(kv.stock_ptr, 16);
+  if (u32(mainOs, va - BASE) !== method) throw new Error(`${hx(va)}: not the stock entry ${hx(method)}`);
+  for (const p of packages)
+    if (p.uses.some((u) => "vtable" in u && parseInt(u.vtable.at, 16) === va))
+      throw new Error(`${p.id}: replaces the knob lookup (${hx(va)}), which the shortcut layer takes`);
+  const writes = [{ off: va - BASE, old: hex(be32(method)), new: hex(be32(symbols[kv.symbol])) }];
+  for (const s of sites.record)
+    writes.push({ off: parseInt(s.at, 16) - BASE, old: s.stock,
+                  new: hex(concat(bytesOf(0x4e, 0xf9), be32(symbols[s.symbol]), bytesOf(0x4e, 0x71))) });
+  return { blob: concat(code, new Uint8Array(dataAt - at - code.length), data), symbols, writes, skip,
+           info: { id: part.id, code_at: at, code: code.length, data_at: dataAt, data: data.length, shortcuts: uses.length } };
+}
+
+// compose.dispatch_layer(): each point of the part that two or more packages take (their vtable entries, or their
+// hooks, at the same address) gets the part's dispatcher there, and the data block after the part's code lists each
+// package's method by machine; a point one package takes keeps the package's own entry or hook. The part is placed
+// whole. Returns null when no point is shared, else { blob, symbols, writes, skip, info }.
+function dispatchLayer(mainOs, part, packages, symsOf, at, codeEnd, first) {
+  const d = part.data, sites = part.sites, shared = [];
+  for (const [name, s] of Object.entries(sites)) {
+    const kind = "vtable" in s ? "vtable" : "hook", va = parseInt(s[kind], 16), users = [];
+    packages.forEach((p, i) => { for (const u of p.uses) if (kind in u && parseInt(u[kind].at, 16) === va) users.push([i, p, u[kind]]); });
+    for (const [, p, h] of users) {
+      const same = kind === "vtable" ? h.stock_ptr === s.stock_ptr : h.stock === s.stock && h.op === s.op;
+      if (!same) throw new Error(`${p.id}: its ${kind} at ${hx(va)} is not the dispatcher's (${name})`);
+    }
+    if (users.length > 1) shared.push([name, users]);
+  }
+  if (!shared.length) return null;
+  if (packages.length > d.max_machines) throw new Error(`${packages.length} machines: the dispatchers' tables hold ${d.max_machines}`);
+  const dataAt = align4(at + part.bundle.code.length / 2);
+  const block = new Uint8Array(d.size);
+  block[d.first] = first;
+  block[d.count] = packages.length;
+  for (const [name, users] of shared)
+    for (const [i, p, h] of users) put32(block, sites[name].table + 4 * i, symsOf[p.id][h.symbol]);
+  if (dataAt + block.length > codeEnd) throw new Error(`the dispatchers end at ${hx(dataAt + block.length)}, past ${hx(codeEnd)}`);
+  const { code, symbols } = placePart(part, at, codeEnd, { dispatch_data: dataAt });
+  const writes = [], skip = new Set();
+  for (const [name] of shared) {
+    const s = sites[name], target = be32(symbols[s.symbol]);
+    if ("vtable" in s) {
+      const va = parseInt(s.vtable, 16), method = parseInt(s.stock_ptr, 16);
+      if (u32(mainOs, va - BASE) !== method) throw new Error(`${hx(va)}: not the stock entry ${hx(method)}`);
+      writes.push({ off: va - BASE, old: hex(be32(method)), new: hex(target) });
+      skip.add(va);
+    } else {
+      const va = parseInt(s.hook, 16), here = hex(mainOs.subarray(va - BASE, va - BASE + s.stock.length / 2));
+      if (s.op !== "jsr" || here !== s.stock) throw new Error(`${hx(va)}: ${s.op} ${s.stock} expected, ${here} found`);
+      writes.push({ off: va - BASE, old: s.stock, new: hex(concat(bytesOf(0x4e, 0xb9), target)) });
+      skip.add(va);
+    }
+  }
+  return { blob: concat(code, new Uint8Array(dataAt - at - code.length), block), symbols, writes, skip,
+           info: { id: part.id, code_at: at, code: code.length, data_at: dataAt, data: block.length,
+                   points: Object.fromEntries(shared.map(([n, users]) => [n, users.map(([, p]) => p.id)])) } };
 }
 
 // compose.computed_conflicts(): the ids of the given tweaks this build cannot be installed with (other bytes at the
@@ -289,8 +441,9 @@ function computedConflicts(writes, ram, declared, tweaks) {
 
 // compose.compose() without the toolchain: mainOs = the user's MAIN OS (MCBuilder.mainOsOf), frames = frame.json,
 // packages = compose.web_package() of each machine, in order (machines 6, 7, ...), tweaks = what the conflicts are
-// computed against. Returns { tweak, info }.
-function compose(mainOs, frames, packages, tweaks = []) {
+// computed against, parts = compose.web_part() of the builder's parts by id (the shortcut layer, the dispatchers),
+// needed only by the builds that use them. Returns { tweak, info }.
+function compose(mainOs, frames, packages, tweaks = [], parts = {}) {
   if (!packages.length) throw new Error("name at least one machine");
   const ids = packages.map((p) => p.id);
   if (new Set(ids).size !== ids.length) throw new Error("a machine is named twice");
@@ -315,22 +468,49 @@ function compose(mainOs, frames, packages, tweaks = []) {
     codeCursor = codeAt + blob.length;
     bssCursor = bssEnd;
   });
+  let layer = null, dispatch = null;              // the shortcut layer, the dispatchers: in the builds that need them
+  if (packages.some((p) => p.uses.some((u) => u.point === "shortcut"))) {
+    if (!parts.shortcuts) throw new Error("a machine declares a shortcut, and the page lacks the shortcut layer");
+    const at = align4(codeCursor);
+    layer = shortcutLayer(mainOs, parts.shortcuts, packages, symsOf, shortcutUses(packages, parts.shortcuts), at,
+                          lay.stubs, first, lay.descn);
+    blobs.push([at, layer.blob]);
+    codeCursor = at + layer.blob.length;
+  }
+  if (packages.length > 1) {
+    const at = align4(codeCursor);
+    if (parts.dispatch) dispatch = dispatchLayer(mainOs, parts.dispatch, packages, symsOf, at, lay.stubs, first);
+    else {
+      const sites = packages.flatMap((p) => p.uses.filter((u) => "hook" in u || "vtable" in u)
+        .map((u) => ("hook" in u ? u.hook : u.vtable).at));
+      if (new Set(sites).size !== sites.length) throw new Error("two machines take the same point, and the page lacks the dispatchers");
+    }
+    if (dispatch) {
+      blobs.push([at, dispatch.blob]);
+      codeCursor = at + dispatch.blob.length;
+    }
+  }
   for (const p of packages)                       // a package's RAM claim must lie outside the payload
     for (const [lo, hi] of ramClaims(p))
       if (lo < bssCursor && pay < hi)
         throw new Error(`${p.id}: the payload (${hx(pay)}..${hx(bssCursor)}) runs into its RAM claim ${hx(lo)}..${hx(hi)}`);
   checkRamClaims(packages);
   const { writes, append } = fill(frameOf(frames, packages.length), mainOs, machines, blobs, bssCursor);
-  for (const p of packages) writes.push(...packageWrites(p, mainOs, symsOf[p.id]));
+  const skip = new Set([...(layer ? layer.skip : []), ...(dispatch ? dispatch.skip : [])]);
+  for (const p of packages) writes.push(...packageWrites(p, mainOs, symsOf[p.id], skip));
+  for (const x of [layer, dispatch]) if (x) writes.push(...x.writes);
   writes.sort((a, b) => a.off - b.off);
   checkOverlaps(writes);
   const ram = [[pay, bssCursor]].concat(...packages.map(ramClaims));
   const tid = ids.join("+");
-  const declared = packages.flatMap((p) => p.conflicts_declared || []);
+  const declared = packages.flatMap((p) => p.conflicts_declared || [])
+    .concat(layer ? parts.shortcuts.conflicts_declared || [] : []);   // what the shortcut layer clashes with at no shared byte
   const conflicts = [...computedConflicts(writes, ram, declared, tweaks)].filter((x) => x !== tid).sort();
   const symbols = {};
   for (const p of packages)
     for (const k of [p.symbols.update, p.symbols.render, ...(p.keep || [])]) symbols[k] = hx(symsOf[p.id][k]);
+  for (const x of [layer, dispatch])
+    if (x) for (const [k, v] of Object.entries(x.symbols)) symbols[k] = hx(v);
   const tweak = {
     id: tid,
     order: Math.min(...packages.map((p) => p.order)),
@@ -346,10 +526,12 @@ function compose(mainOs, frames, packages, tweaks = []) {
     append,
     symbols,
   };
-  return { tweak, info: { pay, end: bssCursor, image: append.pack.reduce((s, [, k]) => s + k, 0), packages: info } };
+  return { tweak, info: { pay, end: bssCursor, image: append.pack.reduce((s, [, k]) => s + k, 0), packages: info,
+                          part: layer && layer.info, dispatch: dispatch && dispatch.info } };
 }
 
-const API = { place, frameOf, fill, segments, bootStub, parameterBlock, packageWrites, computedConflicts, compose, fromHex };
+const API = { place, frameOf, fill, segments, bootStub, parameterBlock, packageWrites, shortcutUses, shortcutLayer,
+              dispatchLayer, computedConflicts, compose, fromHex };
 if (typeof module !== "undefined" && module.exports) module.exports = API;
 if (typeof window !== "undefined") window.MCComposer = API;
 })();

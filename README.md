@@ -8,7 +8,7 @@ release 1.55, the last one with a mod picker, plus the Control All Config mod. I
 you want, the page builds the firmware from **your own copy** of the official OS in your browser and sends it to the
 Model:Cycles over USB. Modded-Cycles itself went on to a single OS with 2.0; model27 works on how mods are put
 together, so that a new machine fits next to the others instead of excluding them. The rules a mod follows for that
-are the **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.2), written alongside.
+are the **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.3), written alongside.
 
 **Status: beta, release 0.4.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers two cards,
 both tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
