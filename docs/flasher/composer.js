@@ -19,6 +19,11 @@
  * a package; shortcutLayer() and dispatchLayer() place them and write their data blocks and sites as
  * compose.shortcut_layer() and compose.dispatch_layer() do, in the builds whose machines need them.
  *
+ * C2 (notes/65): the declared claims. A package's and a part's come with them (tools/claims.py's to_json form), the
+ * tweaks' as a map by id. claimClashes() is claims.clashes(): the same saved slot, key combination, descriptor or
+ * formatter, so a build also conflicts with the tweaks whose claims clash with its own, and a build whose own packages
+ * clash is refused.
+ *
  * License: MIT (the repository's LICENSE).
  *
  * Wrapped in an IIFE: in a classic <script>, top-level declarations are global and would collide.
@@ -420,6 +425,114 @@ function dispatchLayer(mainOs, part, packages, symsOf, at, codeEnd, first) {
                    points: Object.fromEntries(shared.map(([n, users]) => [n, users.map(([, p]) => p.id)])) } };
 }
 
+// tools/claims.py's rules (notes/65 §5), on the claims in its to_json form. A scope "all" meets every scope, a machine
+// itself; a situation "any" meets every situation.
+const meet = (s, t) => s === "all" || t === "all" || s === t;
+const situationsMeet = (s, t) => s === "any" || t === "any" || s === t;
+
+function rangesText(nums) {                       // claims._ranges(): "28-31", "18, 27, 30-31"
+  const out = [];
+  for (const n of [...new Set(nums)].sort((a, b) => a - b)) {
+    if (out.length && n === out[out.length - 1][1] + 1) out[out.length - 1][1] = n;
+    else out.push([n, n]);
+  }
+  return out.map(([a, b]) => (a === b ? `${a}` : `${a}-${b}`)).join(", ");
+}
+
+// claims.resolve(): a package's claims with its machine named, "machine" becoming "machine:<id>"
+function resolveClaims(c, pid) {
+  const s = (x) => (x === "machine" ? `machine:${pid}` : x);
+  const out = Object.assign({}, c);
+  for (const key of ["sound_slots", "record_slots", "descriptors"])
+    if (c[key]) out[key] = c[key].map(([n, t]) => [n, s(t)]);
+  if (c.saved) out.saved = c.saved.map(([w, b, t]) => [w, b, s(t)]);
+  if (c.formatters) out.formatters = c.formatters.map(([o, t, k]) => [o, s(t), k]);
+  if (c.views) out.views = c.views.map(([v, t, h]) => [v, s(t), h]);
+  if (c.gestures) out.gestures = c.gestures.map((g) => Object.assign({}, g, { scope: s(g.scope) }));
+  return out;
+}
+
+// claims.clashes(): why two holders' claims cannot be installed together, empty when they can
+function claimClashes(a, b) {
+  const out = [];
+  for (const [key, label] of [["sound_slots", "k"], ["record_slots", "record slots"], ["descriptors", "descriptors"]]) {
+    const hit = [];
+    for (const [n, s] of a[key] || []) for (const [m, t] of b[key] || []) if (n === m && meet(s, t)) hit.push(n);
+    if (hit.length) out.push(`${label} ${rangesText(hit)}`);
+  }
+  const saved = new Set();
+  for (const [w, , s] of a.saved || []) for (const [w2, , t] of b.saved || []) if (w === w2 && meet(s, t)) saved.add(w);
+  for (const w of [...saved].sort()) out.push(`saved bytes: ${w}`);
+  const objects = new Set();                      // one formatter per interface object: the scope does not narrow it
+  for (const [o] of a.formatters || []) for (const [o2] of b.formatters || []) if (o === o2) objects.add(o);
+  for (const o of [...objects].sort((x, y) => x - y)) out.push(`the formatter of interface object ${o}`);
+  if (a.plock_rows && b.plock_rows) out.push("the p-lock rows of k >= 23");
+  const ma = a.midi || {}, mb = b.midi || {};
+  const cc = [...new Set(ma.cc || [])].filter((x) => (mb.cc || []).includes(x)).sort((x, y) => x - y);
+  const nrpn = [...new Set(ma.nrpn || [])].filter((x) => (mb.nrpn || []).includes(x)).sort();
+  if (cc.length) out.push(`CC ${cc.join(", ")}`);
+  if (nrpn.length) out.push(`NRPN ${nrpn.join(", ")}`);
+  for (const [lo, hi] of a.ram || [])
+    for (const [lo2, hi2] of b.ram || [])
+      if (lo < hi2 && lo2 < hi) out.push(`RAM ${hx(Math.max(lo, lo2))}..${hx(Math.min(hi, hi2))}`);
+  for (const g of a.gestures || [])
+    for (const h of b.gestures || []) {
+      if (!(meet(g.scope, h.scope) && situationsMeet(g.situation, h.situation))) continue;
+      if (g.meaning && g.meaning === h.meaning) continue;        // the same claim twice is allowed
+      const mine = new Set(g.atoms.map((x) => x.join("|")));
+      if (h.atoms.some((x) => mine.has(x.join("|")))) out.push(`${g.combo} against ${h.combo}`);
+    }
+  return out;
+}
+
+// claims.beyond_shortcuts(): a package's claims without what its shortcuts take through the shortcut layer
+function beyondShortcuts(c, p, part) {
+  const sc = part.shortcut, ks = new Set(), rs = new Set(), own = new Set();
+  for (const u of p.uses)
+    if (u.point === "shortcut" && sc.knobs.includes(u.knob)) {
+      const i = sc.knobs.indexOf(u.knob);
+      ks.add(sc.sound_slots[i]);
+      rs.add(sc.record_slots[i]);
+      own.add(`${u.key}|${u.knob}`);
+    }
+  const out = Object.assign({}, c);
+  if (c.sound_slots) out.sound_slots = c.sound_slots.filter(([n]) => !ks.has(n));
+  if (c.record_slots) out.record_slots = c.record_slots.filter(([n]) => !rs.has(n));
+  if (c.gestures) out.gestures = c.gestures.filter((g) => !g.atoms.every((x) => own.has(x.join("|"))));
+  return out;
+}
+
+// claims.build_holders(): [name, claims, claims to compare with the parts, is a part] for each package, its machine
+// named, then the shortcut layer when the build carries it
+function buildHolders(packages, layerPart) {
+  const out = packages.map((p) => {
+    const c = resolveClaims(p.claims || {}, p.id);
+    return [p.id, c, layerPart ? beyondShortcuts(c, p, layerPart) : c, false];
+  });
+  if (layerPart) out.push([layerPart.id, layerPart.claims || {}, layerPart.claims || {}, true]);
+  return out;
+}
+
+// claims.check_build(): two holders of one build that clash
+function checkBuildClaims(holders) {
+  const out = [];
+  holders.forEach(([a, ca, xa, pa], i) => holders.slice(i + 1).forEach(([b, cb, xb, pb]) => {
+    const why = claimClashes(pb ? xa : ca, pa ? xb : cb);
+    if (why.length) out.push(`${a} and ${b}: ${why.join(", ")}`);
+  }));
+  return out;
+}
+
+// claims.claim_conflicts(): {tweak id: reasons} for the tweaks whose claims clash with a holder of the build
+function claimConflicts(holders, against) {
+  const out = {};
+  for (const [tid, tc] of Object.entries(against)) {
+    const why = holders.flatMap(([, c]) => claimClashes(c, tc));
+    if (why.length) out[tid] = why;
+  }
+  return out;
+}
+
 // compose.computed_conflicts(): the ids of the given tweaks this build cannot be installed with (other bytes at the
 // same address, or a payload in one of the RAM ranges), plus the declared ones
 function computedConflicts(writes, ram, declared, tweaks) {
@@ -442,8 +555,9 @@ function computedConflicts(writes, ram, declared, tweaks) {
 // compose.compose() without the toolchain: mainOs = the user's MAIN OS (MCBuilder.mainOsOf), frames = frame.json,
 // packages = compose.web_package() of each machine, in order (machines 6, 7, ...), tweaks = what the conflicts are
 // computed against, parts = compose.web_part() of the builder's parts by id (the shortcut layer, the dispatchers),
-// needed only by the builds that use them. Returns { tweak, info }.
-function compose(mainOs, frames, packages, tweaks = [], parts = {}) {
+// needed only by the builds that use them, claims = the declared claims of those tweaks by id (tools/claims.py's
+// tweak_claims). Returns { tweak, info }.
+function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {}) {
   if (!packages.length) throw new Error("name at least one machine");
   const ids = packages.map((p) => p.id);
   if (new Set(ids).size !== ids.length) throw new Error("a machine is named twice");
@@ -504,8 +618,15 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}) {
   const ram = [[pay, bssCursor]].concat(...packages.map(ramClaims));
   const tid = ids.join("+");
   const declared = packages.flatMap((p) => p.conflicts_declared || [])
-    .concat(layer ? parts.shortcuts.conflicts_declared || [] : []);   // what the shortcut layer clashes with at no shared byte
-  const conflicts = [...computedConflicts(writes, ram, declared, tweaks)].filter((x) => x !== tid).sort();
+    .concat(layer ? parts.shortcuts.conflicts_declared || [] : []);   // none since notes/65 C2: computed
+  const holders = buildHolders(packages, layer ? parts.shortcuts : null);       // notes/65: the claims
+  const clash = checkBuildClaims(holders);
+  if (clash.length) throw new Error(`the build's own claims clash (notes/65): ${clash.join("; ")}`);
+  const pool = new Set(tweaks.filter((t) => t.id).map((t) => t.id));
+  const others = Object.fromEntries(Object.entries(claims).filter(([i]) => pool.has(i) && !ids.includes(i)));
+  const byClaims = claimConflicts(holders, others);
+  const conflicts = [...new Set([...computedConflicts(writes, ram, declared, tweaks), ...Object.keys(byClaims)])]
+    .filter((x) => x !== tid).sort();
   const symbols = {};
   for (const p of packages)
     for (const k of [p.symbols.update, p.symbols.render, ...(p.keep || [])]) symbols[k] = hx(symsOf[p.id][k]);
@@ -527,11 +648,12 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}) {
     symbols,
   };
   return { tweak, info: { pay, end: bssCursor, image: append.pack.reduce((s, [, k]) => s + k, 0), packages: info,
-                          part: layer && layer.info, dispatch: dispatch && dispatch.info } };
+                          part: layer && layer.info, dispatch: dispatch && dispatch.info, byClaims } };
 }
 
 const API = { place, frameOf, fill, segments, bootStub, parameterBlock, packageWrites, shortcutUses, shortcutLayer,
-              dispatchLayer, computedConflicts, compose, fromHex };
+              dispatchLayer, computedConflicts, resolveClaims, claimClashes, buildHolders, checkBuildClaims,
+              claimConflicts, compose, fromHex };
 if (typeof module !== "undefined" && module.exports) module.exports = API;
 if (typeof window !== "undefined") window.MCComposer = API;
 })();

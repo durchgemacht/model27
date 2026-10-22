@@ -26,8 +26,14 @@ tweaks incompatibles entre eux (on n'installe jamais les deux versions d'un mêm
 vaut pour toutes ses versions ; un « requires » vise la version de sa propre source : un mod d'une branche posé sur la
 version d'un autre mod changée par une autre branche n'est donc pas vérifié ici, mais par ce script et
 tools/ref_mainos.py une fois l'une des deux branches fusionnée dans l'autre.
+
+model27, notes/65 (step C2): the declared claims too (tools/claims.py). Two tweaks that can be installed together
+never claim the same saved slot, key combination, descriptor or formatter, unless one applies on top of the other;
+and each declared conflict is shown by what proves it: the bytes, the claims, both, or its text only (the pairs
+shown by their text only are listed).
 """
 import argparse
+import collections
 import itertools
 import json
 import pathlib
@@ -36,6 +42,8 @@ import subprocess
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+import claims as cl              # noqa: E402  (tools/claims.py, notes/65)
 ROOT = HERE.parent
 DEV = "model-cycles_OS1.13"
 BASE = 0x40000400                 # VA du premier octet de la section 3 (tools/build.py)
@@ -248,6 +256,51 @@ def check_appends(tweaks, g, section_len):
     return errs, len(sets)
 
 
+# model27, Level C (notes/65, C2): the declared claims (tools/claims.py), the second half of this check. Two tweaks
+# that can be installed together never claim the same saved slot, key combination, descriptor or formatter, as they
+# never write the same bytes; and each declared conflict is shown by what proves it.
+def check_claims(tweaks, g, claimed):
+    """Two tweaks that can be installed together and whose claims clash, unless one applies on top of the other:
+    [violation]."""
+    errs = []
+    have = sorted(t["id"] for t in tweaks if base(t["id"]) in claimed)
+    for a, b in itertools.combinations(have, 2):
+        if not g.installable((a, b)) or g.chained(a, b):
+            continue
+        why = cl.clashes(claimed[base(a)], claimed[base(b)])
+        if why:
+            errs.append(f"{a} and {b} claim the same ({', '.join(why)}) with no conflict declared: declare "
+                        "« conflicts », or change a claim (notes/65)")
+    return errs
+
+
+def base(tid):
+    """An id without its source (--git: id@branch), which has the claims of its id."""
+    return tid.split("@")[0]
+
+
+def declared_report(tweaks, g, claimed):
+    """How each declared conflict (a pair) is shown (STANDARD.md §9, step 5): by the bytes (other bytes at one
+    address, or two payloads at the same place in the image or in memory), by the claims, by both, or by its text
+    only. Returns ({kind: number of pairs}, [pairs shown by their text only])."""
+    mine = {t["id"]: {w["off"] + i: b for w in t.get("writes", []) for i, b in enumerate(bytes.fromhex(w["new"]))}
+            for t in tweaks}
+    count, text = collections.Counter(), []
+    for a, b in sorted({tuple(sorted(p)) for p in g.bad}):
+        small, big = sorted((mine[a], mine[b]), key=len)
+        shown = any(big.get(o, v) != v for o, v in small.items())
+        pa, pb = g.by_id[a].get("append"), g.by_id[b].get("append")
+        if pa and pb and not shown:
+            da, db = int(pa["dest"], 16), int(pb["dest"], 16)
+            shown = pa["at"] == pb["at"] or (da < db + pb["size"] and db < da + pa["size"])
+        by_claims = base(a) in claimed and base(b) in claimed and bool(cl.clashes(claimed[base(a)], claimed[base(b)]))
+        kind = "both" if shown and by_claims else "bytes" if shown else "claims" if by_claims else "text"
+        count[kind] += 1
+        if kind == "text":
+            text.append((a, b))
+    return count, text
+
+
 def check(tweaks, section_len):
     """Toutes les vérifications : (erreurs, résumé)."""
     errs = check_writes(tweaks, section_len)
@@ -259,10 +312,20 @@ def check(tweaks, section_len):
         return errs, ""
     ov, allowed = check_overlaps(tweaks, g)
     ap, nsets = check_appends(tweaks, g, section_len)
+    claimed = cl.tweak_claims()
+    cc = check_claims(tweaks, g, claimed)
+    count, text = declared_report(tweaks, g, claimed)
+    for a, b in text:
+        print(f"   declared, shown by its text only: {a} and {b}")
     n = sum(len(t.get("writes", [])) for t in tweaks)
-    return ov + ap, (f"{len(tweaks)} tweaks, {n} écritures : aucune écriture partagée entre deux mods installables "
-                     f"ensemble, hors {allowed} cas prévus (même écriture, ou mod par-dessus un autre) ; "
-                     f"{nsets} ensembles de charges utiles enchaînés")
+    have = sum(base(t["id"]) in claimed for t in tweaks)
+    return ov + ap + cc, (f"{len(tweaks)} tweaks, {n} écritures : aucune écriture partagée entre deux mods "
+                          f"installables ensemble, hors {allowed} cas prévus (même écriture, ou mod par-dessus un "
+                          f"autre) ; "
+                          f"{nsets} ensembles de charges utiles enchaînés ; claims (notes/65): {have} tweaks, no "
+                          f"clash between two that can be installed together; declared conflicts: "
+                          f"{sum(count.values())} pairs, shown by the bytes {count['bytes']}, by the claims "
+                          f"{count['claims']}, by both {count['both']}, by their text only {count['text']}")
 
 
 def main():

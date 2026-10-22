@@ -13,7 +13,10 @@ SELECTIONS and the MAIN OS compose.build_syx() builds from it with the tweaks na
 them from: each package as compose.web_package() gives it, the committed frame.json (refused when it is not what
 compose.frames() gives), the folder's tweaks reduced to what the conflicts read plus a few probes, device.json. Then
 compose.fill() for 1 to 6 synthetic machines, what two packages cannot reach. The parts go with them
-(compose.web_part), and the selections with REF2 bring in the shortcut layer and the dispatchers (B4e).
+(compose.web_part), and the selections with REF2 bring in the shortcut layer and the dispatchers (B4e). The
+declared claims of the folder's tweaks go with them too (tools/claims.py, notes/65 C2), and a few probes of claims
+only: a slot and a combination of the shortcut layer, SAMPLE's formatter object in another scope, SAMPLE's k 25 on
+another machine's tracks (no clash), a view (a warning, no clash).
 
     python3 tools/webcompose_synth.py <outdir> [--cycles model-cycles_OS1.13.syx]
         # writes <outdir>/compose.json, with --cycles also <outdir>/composed.json
@@ -29,6 +32,7 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
+import claims as cl  # noqa: E402
 import relocate  # noqa: E402
 
 MACHINES = HERE / "machines"
@@ -106,9 +110,19 @@ def part2(out, cycles):
                {"id": "probe-past-pool", "writes": [], "append": {"dest": "0x46700000", "size": 0x10}},
                {"id": "probe-same-bytes", "writes": [{"off": hook["off"], "new": hook["new"]}]},
                {"id": "probe-other-bytes", "writes": [{"off": hook["off"], "new": "4e71" * (len(hook["new"]) // 4)}]}]
+    probe = {"probe-claim-slot": {"sound_slots": [[29, "all"]]},
+             "probe-claim-gesture": {"gestures": [{"combo": "RETRIG + SHAPE", "atoms": [["RETRIG", "SHAPE"]],
+                                                    "situation": "params", "scope": "all", "meaning": "a probe",
+                                                    "replaces": None}]},
+             "probe-claim-formatter": {"formatters": [[53, "machine:CHORD", "a probe"]]},
+             "probe-claim-scope": {"sound_slots": [[25, "machine:CHORD"]]},
+             "probe-claim-view": {"views": [["main", "all", "a probe"]]}}
+    tweaks += [{"id": i, "writes": []} for i in probe]
+    ids_ = {t["id"] for t in tweaks}
+    claimed = {i: c for i, c in cl.tweak_claims().items() if i in ids_} | probe
     pkgs, cases = {}, []
     for ids, with_ in SELECTIONS:
-        tweak, info = compose.compose(img, ids, against=tweaks)            # with the parts the build needs
+        tweak, info = compose.compose(img, ids, against=tweaks, against_claims=claimed)   # with the parts it needs
         with contextlib.redirect_stdout(io.StringIO()):          # build.py's report of the caves, for each build
             _syx, patched = compose.build_syx(raw, [tweak] + [full[w] for w in with_])
         for i in ids:
@@ -143,7 +157,7 @@ def part2(out, cycles):
     used = {w for _ids, with_ in SELECTIONS for w in with_}
     (out / "composed.json").write_text(json.dumps({
         "device": device, "frames": frs, "packages": pkgs, "parts": {pid: compose.web_part(pid) for pid in PARTS},
-        "tweaks": tweaks,
+        "tweaks": tweaks, "claims": claimed,
         "with": {k: full[k] for k in sorted(used)}, "cases": cases, "fills": fills}), encoding="utf-8")
 
 

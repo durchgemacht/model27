@@ -124,13 +124,14 @@ tools/gen_flasher_tweaks.py   FEATURES list -> docs/flasher/tweaks.js (generated
 tools/crossflash.py, tools/mods_for_samples.py   one OS in the other machine's container (notes/41, 57): Samples OS tab,
                               and the mods for a Model:Samples
 tools/check_overlaps.py       no firmware needed: mods that can be ticked together never write the same bytes, except
-                              the same whole write or a mod applied on top of another (`requires`) (notes/49)
+                              the same whole write or a mod applied on top of another (`requires`) (notes/49), nor
+                              claim the same saved slot, key combination, descriptor or formatter (notes/65)
 tools/registry.py             no firmware needed: builds tweaks/model-cycles_OS1.13/REGISTRY.md from the tweaks, the
                               registry of free space (freed sprite masks, caves, payloads) and OS hooks (notes/52)
 tools/claims.py               no firmware needed, Level C (notes/65): the declared claims of packages, parts and tweaks
                               (saved slots, key combinations, descriptors, formatters, MIDI, RAM, views), their
-                              vocabulary and the stock combinations; --check, --list, --self-test. Step C1: data only,
-                              no conflict is computed from it yet
+                              vocabulary and the stock combinations, and the rules compose.py, composer.js and
+                              check_overlaps.py compute conflicts with (step C2); --check, --list, --self-test
 tools/ref_mainos.py           reference hashes in docs/flasher/app.js: each mod (REF_MODS) and a sample of combinations
                               (REF_MAINOS: each card alone, every pair, the largest ones)
 tools/web*_check.*, webflash_smoke.*   checks of the web flasher against the Python build (node, jsdom)
@@ -182,7 +183,8 @@ Without firmware (always possible, run them all):
 ```sh
 python3 tools/gen_flasher_tweaks.py --check      # tweaks.js matches tweaks/
 python3 tools/check_overlaps.py                  # mods ticked together never write the same bytes (notes/49), except the
-                                                 # same whole write or a mod on top of another (`requires`)
+                                                 # same whole write or a mod on top of another (`requires`), and
+                                                 # their declared claims never clash (notes/65)
 python3 tools/registry.py --check                # REGISTRY.md (free space and hooks, notes/52) matches tweaks/
 python3 tools/claims.py --check --self-test      # the declared claims (notes/65): ids, words, ranges, manifests
 python3 tools/relocate_6ch.py --check            # needs m68k binutils (below)

@@ -38,8 +38,5 @@
   "descriptors": [1, 2, 3, 4],
   "gestures": [{"combo": "RETRIG + COLOR/SHAPE/SWEEP/CONTOUR", "situation": "params",
                 "meaning": "the shortcut of the track's machine"}]
- },
- "conflicts_declared": [
-  {"with": "lfo-plus", "why": "lfo-plus keeps its LFO 2 in k 28..32 and packs it into record slots 30..31 from inside the stock save and load (notes/56): the same words the shortcut layer keeps and saves for the machines' shortcuts, at other bytes, so no write clashes"}
- ]
+ }
 }

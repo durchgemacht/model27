@@ -1,7 +1,8 @@
 # 65 — Level C: conflicts computed from what mods declare, saved slots and gestures (plan)
 
 **Status: plan, 2026-10-22; the maintainer's decisions the same day: the six recommendations of §9 (§11); step C1
-built on 2026-10-23 (§12): the claims as data, checked, nothing computed from them yet.**
+built on 2026-10-23 (§12): the claims as data, checked; step C2 built the same day (§13): the rules, in the Python and
+the JavaScript composer and in `check_overlaps.py`.**
 
 The maintainer's request after step B4e (2026-10-22): a "Gesten- und Slot-Prüfung" (a check of gestures and slots),
 so that a clash that writes no common byte is computed instead of found by chance. Two such clashes are on record,
@@ -413,3 +414,104 @@ your recommendations for all six decisions).
   `gen_sampler.py --check`, `gen_refmachine.py --check`, `check_overlaps.py`, `registry.py --check`,
   `webcompose_check.sh` (the nine selections identical, the MAIN OS hashes of §7) and `py_compile`.
 - **Nothing is computed yet.** No tool reads the claims for a conflict, so every build is byte for byte what it was.
+
+## 13. C2 built (2026-10-23)
+
+### 13.1 What was built
+
+- **The rules, in `tools/claims.py`** (§5):
+  - `clashes()` gives why two holders cannot be installed together:
+    - the same sound slot, record slot, saved bytes or descriptor, in scopes that meet;
+    - the same interface object's formatter, whatever the scopes (§12.2);
+    - both re-numbering the p-lock rows;
+    - the same CC or NRPN;
+    - RAM that overlaps;
+    - a shared atom in situations and scopes that meet, with another meaning. The same claim twice is allowed.
+  - `own_errors()` is part of `--check` and refuses the OS's own slots and a stock combination taken without
+    `replaces`.
+  - `view_warnings()` flags the same view drawn in scopes that meet, as a warning.
+  - `build_holders()` gives a build's holders: its packages with their machine named, then the shortcut layer. A
+    package meets the layer with its claims beyond its shortcuts (`beyond_shortcuts()`, §5.5).
+  - `tweak_claims()` gives the folder's claims by id. A package's own tweak gets the layer's claims too when the
+    package declares a shortcut.
+  - The self-test grows to 78 cases: the three clashes of §2 and the known pairs of §7 on the real data, then
+    synthetic ones.
+- **`compose.py`:**
+  - A build's conflicts are its bytes, its declared conflicts, and the tweaks whose claims clash with one of its
+    holders (`claim_conflicts()`).
+  - A build whose own holders clash is refused.
+  - The report prints the conflicts the claims show, the declared ones that nothing shows ("declared only") and the
+    view warnings.
+  - A package's own tweak is left out of the claims: it is an alternative to the build, and its bytes already make
+    it a conflict.
+  - The composed tweak's description says so.
+- **`composer.js`, the twin:**
+  - The rules as `claimClashes()`, `resolveClaims()`, `beyondShortcuts()`, `buildHolders()`, `checkBuildClaims()` and
+    `claimConflicts()`.
+  - `compose()` takes the tweaks' claims as a sixth argument, and `app.js` passes them.
+  - The page gets them in `tweaks.js`: the packages' and the parts' claims (`web_package`, `web_part`), and the
+    offered tweaks' claims by id (`claims`; today Control All Config's).
+- **`check_overlaps.py`:**
+  - Two tweaks that can be installed together and whose claims clash fail, as shared bytes do, unless one applies on
+    top of the other.
+  - Then the report says how each declared conflict is shown.
+- **The shortcut part's declared lfo-plus is gone.** The slots compute it now, and REF2's tweak keeps `lfo-plus` in
+  its conflicts.
+- **`webcompose_synth.py`** carries the folder's claims and five probes of claims only; `webcompose_check.js` passes
+  them.
+- **Regenerated:**
+  - the pages' stamp, now `2026-10-23-01`, since `composer.js`, `app.js` and `tweaks.js` change;
+  - `28-refmachine.json` and `29-refmachine2.json`, whose description changes by one sentence;
+  - `REGISTRY.md`, whose hook rows now cite notes/65 for the two reference machines.
+
+### 13.2 Where C2 departs from the plan
+
+- **The JavaScript twin came with C2, not C4 (§8).**
+  - `tools/AGENTS.md` wants a change to how conflicts are computed made in both composers in the same commit.
+  - With the declared lfo-plus gone, the page has to compute that conflict too, or `webcompose_check.sh` fails.
+  - C4 keeps the page's computed reasons (§11, decision 5), the standard 0.4 and APPLYING.
+- **A package's own tweak in the folder is not compared with a build that contains the package** (`sampler` with
+  SAMPLE + REF2). §6 did not say so.
+
+### 13.3 Measured
+
+- **The folder** (`check_overlaps.py`):
+  - 141 tweaks have claims, and no two that can be installed together clash.
+  - Of the 35 137 declared conflict pairs, the bytes show 35 118. The claims alone show 2: lfo-plus × the track
+    filter, lfo-plus × REF2. Both show 9, among them the track filter × Model-TG, SAMPLE × Model-TG, SAMPLE × the
+    track filter and REF2 × the track filter.
+  - 8 are shown by their text only:
+    - browser-scroll × model-tg and × model-tg-st;
+    - model-tg × sdvintage-snare and model-tg-st × sdvintage-snare;
+    - model-tg × trig-preview and model-tg-st × trig-preview;
+    - sampler × sample-preview and × sample-preview-st.
+  - Model-TG carries its own browser scrolling and trig preview (notes/34; multiline-browser's description), which
+    its claims do not hold yet (§10).
+- **The builds:**
+  - SAMPLE: 268 conflicts, as before. The claims show model-tg, model-tg-st and the track filter, which rule 1
+    already found. Declared only: sample-preview and sample-preview-st. A warning: level-pan-values draws on the main
+    screen too.
+  - REF2: 267 conflicts, as before. The claims show lfo-plus, now computed, model-tg, model-tg-st and the track
+    filter. The same warning.
+  - In `27-sampler.json`, `28-refmachine.json` and `29-refmachine2.json`, the writes, payload, symbols and conflicts
+    are unchanged.
+
+### 13.4 Checks
+
+- `claims.py --check --self-test`: ALL OK (78 cases).
+- **Unchanged and green:**
+  - `check_overlaps.py`, now with the claims;
+  - `registry.py --check`, after regenerating;
+  - `gen_flasher_tweaks.py --check`;
+  - `gen_parts.py --check`, `gen_sampler.py --check` and `gen_refmachine.py --check`;
+  - `ref_mainos.py --check` (`REF_MAINOS` and `REF_MODS` unchanged);
+  - `webbuild_check.sh` and `webflash_check.sh`;
+  - `py_compile` and `test_compose.py --dry`.
+- **`webcompose_check.sh`:**
+  - The nine selections are identical to `compose.py`, tweak and MAIN OS, with the claims and the five probes.
+  - SAMPLE's builds conflict with the formatter probe, and REF2's with the slot and the combination probes.
+  - None conflicts with the probe on another machine's k 25, or with the view probe.
+  - The MAIN OS hashes are those of §7.
+- **No build changes**, so the emulation runs of notes/63 §13 hold.
+- `webflash_smoke.sh`, the page in jsdom with both official files: ALL OK, run by the maintainer because it needs
+  `registry.npmjs.org`, which this sandbox blocks.

@@ -74,7 +74,8 @@ in, other saved bytes, the key combinations it answers, descriptors, formatters,
 hand, one entry per tweak or family (`ids` may use `*`), each with the note that shows it and what is still `open`;
 a package's claims are in its manifest instead. It sits in a subfolder because the tools read every `*.json` of this
 folder as a tweak. A new tweak that claims any of these adds its entry in the same commit;
-`python3 tools/claims.py --check` checks the file.
+`python3 tools/claims.py --check` checks the file, and `tools/check_overlaps.py` refuses two tweaks that can be
+ticked together and whose claims clash, as it refuses shared bytes.
 
 ## `PROVENANCE.md`
 

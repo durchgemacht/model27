@@ -646,6 +646,7 @@ def render():
     check_requires(features, by_id)
     machine_excludes(features, by_id)
     tweaks, shared = share(tweaks)
+    claimed = __import__("claims").tweak_claims() if packages else {}
     payload = {
         "device": {k: device[k] for k in ("device", "os", "section_sha256", "stock_syx_sha256", "cave_refs_ok")
                    if k in device},
@@ -657,6 +658,9 @@ def render():
         if packages else None,
         # model27, Level B (notes/63, B4e): the builder's parts, which the machines' shortcuts and shared points need
         "parts": {pid: __import__("compose").web_part(pid) for pid in ("shortcuts", "dispatch")} if packages else None,
+        # model27, Level C (notes/65, C2): the declared claims of the offered tweaks, which the machine cards are
+        # composed against (tools/claims.py's to_json form)
+        "claims": {t["id"]: claimed[t["id"]] for t in tweaks if t["id"] in claimed} if packages else None,
         # onglet « OS Samples » : l'OS Model:Samples officiel, mis dans le conteneur du Cycles (crossflash)
         "samples": {"syx_sha256": OFFICIAL["samples"]["syx"], "main_sha256": OFFICIAL["samples"]["main"],
                     "download": "https://www.elektron.se/support-downloads/modelsamples"},

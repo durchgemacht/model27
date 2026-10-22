@@ -23,7 +23,9 @@ composer takes the packages the user names, in that order, and:
      when two packages take the same vtable entry or hook, adds the dispatchers (tools/machines/dispatch/, notes/63
      §4: another part, the entry or hook going to its dispatcher, which calls the right machine's method);
   4. computes what the result cannot be installed with: every tweak of tweaks/ that writes other bytes to the same
-     address or runs a payload in the composed payload or in a claimed RAM range, plus what the manifests declare;
+     address or runs a payload in the composed payload or in a claimed RAM range, or whose declared claims clash
+     with the build's (the same saved slot, key combination, descriptor or formatter: tools/claims.py, notes/65),
+     plus what the manifests declare; refuses a build whose own packages' claims clash;
   5. emits one tweak in Modded-Cycles' format, which tools/build.py and the web flasher apply like any other, and
      builds the .syx with build.py's own steps (writes checked against the stock bytes, caves checked, repacked and
      re-signed, read back).
@@ -56,6 +58,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE / "emu"))
 
 import build as mcb                # noqa: E402
+import claims as cl                # noqa: E402
 import aplib_grow                  # noqa: E402
 import gen_macro as gm             # noqa: E402
 import gen_sdvintage_exact as gx   # noqa: E402
@@ -227,7 +230,8 @@ def place_package(m, code_at, bss_at, code_end, values, obj=None):
 def web_package(mid):
     """A package as the web flasher reads it (B3b, notes/61 §5): what compose() reads in its manifest (the machine,
     the hooks and vtable entries, the RAM claims, the patch points, the entry and kept symbols, order, version, the
-    declared conflicts) and its committed object laid out once (relocate.layout, relocate.bundle).
+    declared conflicts, the declared claims) and its committed object laid out once (relocate.layout,
+    relocate.bundle).
     docs/flasher/composer.js composes from it what compose() composes from the manifest and the object."""
     m = load_manifest(mid)
     b = m["build"]
@@ -244,7 +248,7 @@ def web_package(mid):
     return {"id": mid, "name": m["name"], "order": m["order"], "version": m["version"],
             "symbols": {"update": upd, "render": rnd}, "keep": keep, "patch_points": pps, "uses": uses,
             "conflicts_declared": [c["with"] for c in m.get("compat", {}).get("conflicts_declared", [])],
-            "bundle": relocate.bundle(lay, [upd, rnd, *keep])}
+            "claims": cl.package_claims(m), "bundle": relocate.bundle(lay, [upd, rnd, *keep])}
 
 
 def web_part(pid):
@@ -263,6 +267,8 @@ def web_part(pid):
            "data": p["data"], "bundle": relocate.bundle(lay, roots)}
     if "shortcut" in p:
         out["shortcut"] = p["shortcut"]
+    if "claims" in p:                        # notes/65: what the part claims, in tools/claims.py's to_json form
+        out["claims"] = cl.part_claims(p)
     if p.get("conflicts_declared"):
         out["conflicts_declared"] = [c["with"] for c in p["conflicts_declared"]]
     return out
@@ -838,13 +844,15 @@ def computed_conflicts(writes, ram, declared, tweaks=None):
     return ids
 
 
-def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime", compare_b1=False, against=None):
+def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime", compare_b1=False, against=None,
+            against_claims=None):
     """Builds the tweak for the machines named in ids, in that order. relocator: "python" places each
     package's committed object with tools/relocate.py (no toolchain), "ld" compiles and links it as B1 did;
     compare_ld does both and compares them byte for byte (the proof of the relocator). registrar: "runtime" writes
     the registrar's part itself from the committed runtime and stub template (B2c, no assembler), "b1" calls
     gen_macro.added_machine (assembles the detours per build); compare_b1 does both and compares (notes/60 §5.4).
-    against: the tweaks the conflicts are computed against (default: the folder's). Returns (tweak, info)."""
+    against: the tweaks the conflicts are computed against (default: the folder's); against_claims: their claims,
+    {id: claims} (default: the folder's, tools/claims.py.tweak_claims). Returns (tweak, info)."""
     if not ids:
         sys.exit("!! name at least one machine")
     if len(ids) != len(set(ids)):
@@ -928,10 +936,19 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             sys.exit(f"!! writes overlap at {BASE + b_['off']:#x}")
     ram = [(pay, bss_cursor)] + [r for m in mans for r in ram_claims(m)]
     declared = {c["with"] for m in mans for c in m.get("compat", {}).get("conflicts_declared", [])}
-    if layer:                                # what the shortcut layer clashes with at no shared byte
+    if layer:                                # what the shortcut layer declares (none since notes/65 C2: computed)
         declared |= {c["with"] for c in part.get("conflicts_declared", [])}
     tid = "+".join(ids)
-    conflicts = computed_conflicts(writes, ram, declared, against) - {tid}
+    holders = cl.build_holders(mans, part if layer else None)    # notes/65: the claims, rules 2 and 3
+    clash = cl.check_build(holders)
+    if clash:
+        sys.exit(f"!! the build's own claims clash (notes/65): {'; '.join(clash)}")
+    pool = {t["id"] for t in (folder_tweaks() if against is None else against) if t.get("id")}
+    others = {i: c for i, c in (cl.tweak_claims() if against_claims is None else against_claims).items()
+              if i in pool and i not in ids}          # a package's own tweak: an alternative, its bytes say so
+    by_claims = cl.claim_conflicts(holders, others)
+    by_bytes = computed_conflicts(writes, ram, set(), against)
+    conflicts = (by_bytes | declared | set(by_claims)) - {tid}
     tweak = {
         "id": tid,
         "order": min(m["order"] for m in mans),
@@ -941,8 +958,8 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             "registered together through the registrar runtime (registrar.S, a parameter block per build) or, with",
             "--registrar b1, gen_macro.added_machine; each machine's code from tools/machines/<id>/",
             "(manifest.json), compiled and linked at build time at its place in the payload (%#x..%#x)." % (pay, bss_cursor),
-            "Conflicts computed from the other tweaks: other bytes at the same address, or a payload in this",
-            "build's payload or in a claimed RAM range.",
+            "Conflicts computed from the other tweaks: other bytes at the same address, a payload in this build's",
+            "payload or in a claimed RAM range, or declared claims that clash (tools/claims.py, notes/65).",
         ] + [f"{m['id']}: {m['name']}" for m in mans],
         "device": "Model:Cycles",
         "os": "1.13",
@@ -965,7 +982,10 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                                        f"their data at {di['data_at']:#x}: {', '.join(di['points'])}.")
         tweak["symbols"].update({k: f"{v:#x}" for k, v in dispatch[1].items()})
     info = dict(pay=pay, end=bss_cursor, image=sum(n for _, n in append["pack"]), packages=info_pkgs,
-                part=layer[4] if layer else None, dispatch=dispatch[4] if dispatch else None)
+                part=layer[4] if layer else None, dispatch=dispatch[4] if dispatch else None,
+                claims=dict(by_claims={i: w for i, w in sorted(by_claims.items()) if i != tid},
+                            declared_only=sorted(declared - by_bytes - set(by_claims) - {tid}),
+                            views=cl.claim_views(holders, others)))
     return tweak, info
 
 
@@ -1070,6 +1090,15 @@ def main():
               + "; ".join(f"{n}: {', '.join(ids)}" for n, ids in p["points"].items()))
     print(f"  tweak {tweak['id']}: {len(tweak['writes'])} writes, payload {info['pay']:#x}..{info['end']:#x}, "
           f"{info['image']} bytes added to the image, {len(tweak['conflicts'])} conflicts computed")
+    ci = info["claims"]
+    if ci["by_claims"]:
+        print(f"  by the claims (notes/65): {len(ci['by_claims'])}, "
+              + "; ".join(f"{i}: {', '.join(w)}" for i, w in list(ci["by_claims"].items())[:6])
+              + ("; ..." if len(ci["by_claims"]) > 6 else ""))
+    if ci["declared_only"]:
+        print(f"  declared only, no byte or claim shows it: {', '.join(ci['declared_only'])}")
+    if ci["views"]:
+        print("  warning, the same view drawn: " + "; ".join(f"{i}: {', '.join(w)}" for i, w in ci["views"].items()))
     ok = True
     if args.compare:
         ok = compare(tweak, args.compare)

@@ -17,13 +17,16 @@ joined by "+" ("TRACK + TRIG 1-6", "MACHINES + COLOR/SHAPE/SWEEP/CONTOUR"), on t
 its atoms, one set of held keys and one action each, in a situation ("params", "grid", "keys", "page:LFO",
 "menu:RETRIG"; "any" by default).
 
-This step reads and checks the data: the claim types and their values, the words, the ids, and that a manifest's or a
-part's claims agree with what it uses. The conflicts computed from the claims (rules 2 and 3 of the Cycles Mod
-Standard, notes/65 §5) come with step C2.
+Step C1 reads and checks the data: the claim types and their values, the words, the ids, and that a manifest's or a
+part's claims agree with what it uses. Step C2 adds the rules (rules 2 and 3 of the Cycles Mod Standard, notes/65 §5):
+what one holder may not claim (the OS's own slots, a stock combination without "replaces"), and why two holders cannot
+go together (clashes). tools/compose.py adds the tweaks a build clashes with to its conflicts and refuses a build whose
+own packages clash; tools/check_overlaps.py refuses two tweaks that can be ticked together and clash; the web
+flasher's composer applies the same rules to the same data (to_json).
 
-    python3 tools/claims.py --check        # the data; exit 1 on an error
+    python3 tools/claims.py --check        # the data and what each holder may not claim; exit 1 on an error
     python3 tools/claims.py --list         # each holder's claims, a combination with its number of atoms
-    python3 tools/claims.py --self-test    # the parser and the checks on synthetic claims
+    python3 tools/claims.py --self-test    # the parser, the checks and the rules, on synthetic and real claims
 """
 import argparse
 import fnmatch
@@ -301,6 +304,255 @@ def holders():
     return out
 
 
+# --- the rules (step C2) --------------------------------------------------------------------------------------------
+#
+# The rules read the claims in one JSON form (to_json), the form the web flasher carries too: docs/flasher/composer.js
+# applies the same rules to the same data (claimClashes, buildHolders, claimConflicts), and webcompose_check.sh
+# compares the conflicts both give.
+
+OS_SOUND = range(0, 23)                         # k 0-22: the stock parameters
+OS_RECORD = set(range(0, 24)) - {18}            # record slots 0-23, but 18, which the OS saves into k 0 and drops
+
+
+def to_json(c):
+    """normalize()'s claims as lists of lists; an atom as [held keys joined by "+", action]; empty types left out."""
+    out = {}
+    for key in ("sound_slots", "record_slots", "descriptors"):
+        if c.get(key):
+            out[key] = [[n, s] for n, s in c[key]]
+    if c.get("saved"):
+        out["saved"] = [[w, b, s] for w, b, s in c["saved"]]
+    if c.get("formatters"):
+        out["formatters"] = [[o, s, k] for o, s, k in c["formatters"]]
+    if c.get("plock_rows"):
+        out["plock_rows"] = True
+    if c.get("midi") and (c["midi"]["cc"] or c["midi"]["nrpn"]):
+        out["midi"] = {"cc": list(c["midi"]["cc"]), "nrpn": list(c["midi"]["nrpn"])}
+    if c.get("ram"):
+        out["ram"] = [[lo, hi] for lo, hi in c["ram"]]
+    if c.get("views"):
+        out["views"] = [[v, s, h] for v, s, h in c["views"]]
+    if c.get("gestures"):
+        out["gestures"] = [{"combo": g["combo"], "atoms": [["+".join(sorted(h)), a] for h, a in g["atoms"]],
+                            "situation": g["situation"], "scope": g["scope"], "meaning": g["meaning"],
+                            "replaces": g["replaces"]} for g in c["gestures"]]
+    return out
+
+
+def checked(claims, kind, name, pkgs):
+    """normalize() then to_json(), or stop on an error (claims.py --check names it)."""
+    c, errors = normalize(claims, kind, pkgs)
+    if errors:
+        sys.exit(f"!! {kind} {name}: {'; '.join(errors)} (python3 tools/claims.py --check)")
+    return to_json(c)
+
+
+def resolve(c, pid):
+    """A package's claims with its machine named: the scope "machine" becomes "machine:<id>"."""
+    def s(x):
+        return f"machine:{pid}" if x == "machine" else x
+    out = dict(c)
+    for key in ("sound_slots", "record_slots", "descriptors"):
+        if key in c:
+            out[key] = [[n, s(t)] for n, t in c[key]]
+    if "saved" in c:
+        out["saved"] = [[w, b, s(t)] for w, b, t in c["saved"]]
+    if "formatters" in c:
+        out["formatters"] = [[o, s(t), k] for o, t, k in c["formatters"]]
+    if "views" in c:
+        out["views"] = [[v, s(t), h] for v, t, h in c["views"]]
+    if "gestures" in c:
+        out["gestures"] = [dict(g, scope=s(g["scope"])) for g in c["gestures"]]
+    return out
+
+
+def merge(a, b):
+    """The claims of two holders together, as one tweak carries them (a package and the shortcut layer)."""
+    out = {k: list(a.get(k, [])) + list(b.get(k, [])) for k in set(a) | set(b) if k not in ("plock_rows", "midi")}
+    if a.get("plock_rows") or b.get("plock_rows"):
+        out["plock_rows"] = True
+    if a.get("midi") or b.get("midi"):
+        ma, mb = a.get("midi", {}), b.get("midi", {})
+        out["midi"] = {"cc": ma.get("cc", []) + mb.get("cc", []), "nrpn": ma.get("nrpn", []) + mb.get("nrpn", [])}
+    return out
+
+
+def meet(s, t):
+    """Do two scopes share a track: all meets everything, a machine meets itself."""
+    return s == "all" or t == "all" or s == t
+
+
+def situations_meet(s, t):
+    return s == "any" or t == "any" or s == t
+
+
+def clashes(a, b):
+    """Why two holders' claims (to_json, resolved) cannot be installed together, by notes/65 §5: the same sound
+    slot, record slot, saved bytes or descriptor in scopes that meet; the same interface object's formatter, whatever
+    the scopes (one pointer per object, §12.2); both re-numbering the p-lock rows; the same CC or NRPN; RAM that
+    overlaps; a shared atom in situations and scopes that meet, with another meaning. Empty when they can."""
+    out = []
+    for key, label in (("sound_slots", "k"), ("record_slots", "record slots"), ("descriptors", "descriptors")):
+        hit = sorted({n for n, s in a.get(key, []) for m, t in b.get(key, []) if n == m and meet(s, t)})
+        if hit:
+            out.append(f"{label} {_ranges(hit)}")
+    for w in sorted({w for w, _n, s in a.get("saved", []) for w2, _m, t in b.get("saved", [])
+                     if w == w2 and meet(s, t)}):
+        out.append(f"saved bytes: {w}")
+    for o in sorted({o for o, _s, _k in a.get("formatters", []) for o2, _t, _l in b.get("formatters", []) if o == o2}):
+        out.append(f"the formatter of interface object {o}")
+    if a.get("plock_rows") and b.get("plock_rows"):
+        out.append("the p-lock rows of k >= 23")
+    ma, mb = a.get("midi", {}), b.get("midi", {})
+    cc = sorted(set(ma.get("cc", [])) & set(mb.get("cc", [])))
+    nrpn = sorted(set(ma.get("nrpn", [])) & set(mb.get("nrpn", [])))
+    if cc:
+        out.append("CC " + ", ".join(map(str, cc)))
+    if nrpn:
+        out.append("NRPN " + ", ".join(nrpn))
+    for lo, hi in a.get("ram", []):
+        for lo2, hi2 in b.get("ram", []):
+            if lo < hi2 and lo2 < hi:
+                out.append(f"RAM {max(lo, lo2):#x}..{min(hi, hi2):#x}")
+    for g in a.get("gestures", []):
+        for h in b.get("gestures", []):
+            if not (meet(g["scope"], h["scope"]) and situations_meet(g["situation"], h["situation"])):
+                continue
+            if g["meaning"] and g["meaning"] == h["meaning"]:
+                continue                        # the same claim twice is allowed (STANDARD.md §3.2)
+            if {tuple(x) for x in g["atoms"]} & {tuple(x) for x in h["atoms"]}:
+                out.append(f"{g['combo']} against {h['combo']}")
+    return out
+
+
+def view_warnings(a, b):
+    """Views both draw in scopes that meet, outside the dispatchers: a warning, not a conflict (notes/65 §5.4)."""
+    return sorted({f"view {v}" for v, s, _h in a.get("views", []) for w, t, _i in b.get("views", [])
+                   if v == w and meet(s, t)})
+
+
+def stock_atoms():
+    """The stock list as (combination, meaning, situation, set of atoms in the to_json form)."""
+    return [(s["combo"], s["meaning"], s.get("situation", "any"),
+             {("+".join(sorted(h)), a) for h, a in atoms(s["combo"])}) for s in STOCK]
+
+
+def own_errors(c):
+    """What one holder may not claim: the OS's own slots, and a stock combination without "replaces"."""
+    errors = []
+    k = sorted({n for n, _s in c.get("sound_slots", []) if n in OS_SOUND})
+    if k:
+        errors.append(f"k {_ranges(k)}: the OS's own")
+    r = sorted({n for n, _s in c.get("record_slots", []) if n in OS_RECORD})
+    if r:
+        errors.append(f"record slots {_ranges(r)}: the OS's own")
+    for g in c.get("gestures", []):
+        if g["replaces"]:
+            continue
+        for combo, meaning, situation, stock in stock_atoms():
+            if situations_meet(g["situation"], situation) and {tuple(x) for x in g["atoms"]} & stock:
+                errors.append(f"{g['combo']} takes the stock {combo} ({meaning}) without saying what it replaces")
+                break
+    return errors
+
+
+def package_claims(m, pkgs=None):
+    """A package's claims, to_json, the scope "machine" not yet named."""
+    return checked(m.get("claims", {}), "package", m["id"], packages() if pkgs is None else pkgs)
+
+
+def part_claims(p):
+    return checked(p.get("claims", {}), "part", p["id"], ())
+
+
+def beyond_shortcuts(c, m, part):
+    """A package's claims without what its shortcuts take through the shortcut layer: the knob's slot k, its record
+    slot and its combination. Those are the layer's claims narrowed to the machine (notes/65 §5.5), so they are not
+    compared with the layer."""
+    sc = part["shortcut"]
+    ks, rs, own = set(), set(), set()
+    for u in m["uses"]:
+        if u["point"] == "shortcut" and u["knob"] in sc["knobs"]:
+            i = sc["knobs"].index(u["knob"])
+            ks.add(sc["sound_slots"][i])
+            rs.add(sc["record_slots"][i])
+            own.add((u["key"], u["knob"]))
+    out = dict(c)
+    if "sound_slots" in c:
+        out["sound_slots"] = [x for x in c["sound_slots"] if x[0] not in ks]
+    if "record_slots" in c:
+        out["record_slots"] = [x for x in c["record_slots"] if x[0] not in rs]
+    if "gestures" in c:
+        out["gestures"] = [g for g in c["gestures"] if not all(tuple(x) in own for x in g["atoms"])]
+    return out
+
+
+def build_holders(mans, part=None):
+    """The holders of one build's claims: each package with its machine named, then the shortcut layer when the
+    build carries it. Each as (name, claims, claims to compare with the parts, is a part)."""
+    out = []
+    pkgs = packages()
+    for m in mans:
+        c = resolve(package_claims(m, pkgs), m["id"])
+        out.append((m["id"], c, beyond_shortcuts(c, m, part) if part else c, False))
+    if part:
+        c = part_claims(part)
+        out.append((part["id"], c, c, True))
+    return out
+
+
+def check_build(holders):
+    """Two holders of one build that clash: [reason]. A package meets a part with its claims beyond the part's."""
+    out = []
+    for (a, ca, xa, pa), (b, cb, xb, pb) in itertools.combinations(holders, 2):
+        why = clashes(xa if pb else ca, xb if pa else cb)
+        if why:
+            out.append(f"{a} and {b}: {', '.join(why)}")
+    return out
+
+
+def claim_conflicts(holders, against):
+    """{tweak id: reasons} for the tweaks of against ({id: claims}) whose claims clash with a holder of the build."""
+    out = {}
+    for tid, tc in against.items():
+        why = [w for _n, c, _x, _p in holders for w in clashes(c, tc)]
+        if why:
+            out[tid] = why
+    return out
+
+
+def claim_views(holders, against):
+    """{tweak id: views} the build and a tweak both draw, a warning."""
+    out = {}
+    for tid, tc in against.items():
+        why = sorted({w for _n, c, _x, _p in holders for w in view_warnings(c, tc)})
+        if why:
+            out[tid] = why
+    return out
+
+
+def tweak_claims():
+    """{id: claims} (to_json, resolved) of the folder's tweaks that claim something: the entries of claims.json, and
+    each package's own tweak, with the shortcut layer's claims when the package declares a shortcut (its committed
+    tweak carries the layer)."""
+    ids, pkgs = folder_ids(), packages()
+    out = {}
+    for e in json.loads(CLAIMS_FILE.read_text(encoding="utf-8"))["entries"]:
+        c = checked(e["claims"], "tweak", ", ".join(e["ids"]), pkgs)
+        for pat in e["ids"]:
+            for i in fnmatch.filter(ids, pat):
+                out[i] = c
+    part = parts().get("shortcuts")
+    for pid, m in pkgs.items():
+        if pid in ids:
+            c = resolve(package_claims(m, pkgs), pid)
+            if part and any(u["point"] == "shortcut" for u in m["uses"]):
+                c = merge(c, part_claims(part))
+            if c:
+                out[pid] = c
+    return out
+
+
 # --- the checks -----------------------------------------------------------------------------------------------------
 
 def check_file(data, ids, pkgs):
@@ -395,6 +647,7 @@ def check():
             errs += check_package(h["data"], claims, prts.get("shortcuts"))
         elif h["kind"] == "part" and "shortcut" in h["data"]:
             errs += check_shortcut_part(h["data"], claims)
+        errs += own_errors(to_json(claims))
         n = sum(len(v) if isinstance(v, list) else 1 for v in claims.values())
         line = f"{h['kind']} {h['name']}: {n} claim(s)"
         line += f" for {len(h['ids'])} tweak(s)" if h["kind"] == "tweak" else ""
@@ -515,6 +768,65 @@ def self_test():
     case("a shortcut with its combination and slots passes", not check_package(m, c, sc))
     c2 = normalize({"sound_slots": [28], "record_slots": [29], "gestures": [], "views": []}, "package")[0]
     case("a shortcut without its combination, record slot and view is refused", len(check_package(m, c2, sc)) == 3)
+
+    # --- the rules (C2): the cases of notes/65 §2 and §7 on the folder's real claims, then synthetic ones
+    def j(claims, kind="tweak"):
+        return to_json(normalize(claims, kind, ("sampler",))[0])
+    real, pkgs, sc_part = tweak_claims(), packages(), parts()["shortcuts"]
+    layer = part_claims(sc_part)
+    case("lfo-plus × the track filter: k 28-31, record slots 30-31, the p-lock rows",
+         clashes(real["lfo-plus"], real["track-filter"]) == ["k 28-31", "record slots 30-31",
+                                                              "the p-lock rows of k >= 23"])
+    case("lfo-plus × the shortcut layer: k 28-31, record slots 30-31",
+         clashes(real["lfo-plus"], layer) == ["k 28-31", "record slots 30-31"])
+    case("lfo-plus × REF2's tweak, which carries the layer: a clash",
+         bool(clashes(real["lfo-plus"], real["refmachine2"])))
+    probe = j({"gestures": [{"combo": "TRACK + TRIG 3", "situation": "keys", "meaning": "a probe"}]})
+    case("control-all-config × TRACK + TRIG 3 in keys: a clash", bool(clashes(real["control-all-config"], probe)))
+    case("the track filter × Model-TG: record slot 27, MACHINES + SWEEP and + CONTOUR",
+         clashes(real["track-filter"], real["model-tg"]) == [
+             "record slots 27", "MACHINES + COLOR/SHAPE/SWEEP/CONTOUR against MACHINES + DECAY/SWEEP/CONTOUR"])
+    case("SAMPLE × Model-TG: k 25-27, record slots 24-27",
+         clashes(real["sampler"], real["model-tg"]) == ["k 25-27", "record slots 24-27"])
+    case("SAMPLE × the track filter: record slot 27",
+         clashes(real["sampler"], real["track-filter"]) == ["record slots 27"])
+    case("REF2 × arp: no clash (RETRIG + NOTES is another atom)", not clashes(real["refmachine2"], real["arp"]))
+    case("SAMPLE × REF2: no clash", not clashes(real["sampler"], real["refmachine2"]))
+    octave, tune = (j({"gestures": [{"combo": "RETRIG + COLOR", "situation": "params", "meaning": x}]}, "package")
+                    for x in ("Octave", "Tune"))
+    case("two machines' RETRIG + COLOR do not clash", not clashes(resolve(octave, "a"), resolve(tune, "b")))
+    case("one machine's two meanings of RETRIG + COLOR do", bool(clashes(resolve(octave, "a"), resolve(tune, "a"))))
+    lofi = j({"gestures": [{"combo": "FUNC + PITCH", "situation": "params", "meaning": "lo-fi", "replaces": "FINE"}]})
+    case("the same claim twice is allowed", not clashes(lofi, lofi))
+    fa, fb = (resolve(j({"formatters": [{"knob": "X", "object": 53, "replaces": "0x400456c8"}]}, "package"), x)
+              for x in ("a", "b"))
+    case("two formatters on one interface object clash, whatever their scopes", bool(clashes(fa, fb)))
+    chord = j({"sound_slots": [{"slots": [25, 25], "scope": "machine:CHORD"}]})
+    case("k 25 on CHORD's tracks × SAMPLE's k 25: no clash", not clashes(chord, real["sampler"]))
+    menu = j({"gestures": [{"combo": "RETRIG + COLOR", "situation": "menu:RETRIG", "meaning": "a probe"}]})
+    case("RETRIG + COLOR in menu:RETRIG × the layer's in params: no clash", not clashes(menu, layer))
+    va, vb = j({"views": ["main"]}), j({"views": [{"view": "main", "how": "a probe"}]})
+    case("two drawings of one view: a warning, not a clash",
+         not clashes(va, vb) and view_warnings(va, vb) == ["view main"])
+    case("refused: k 22 and record slot 5, the OS's; record slot 18 allowed",
+         own_errors(j({"sound_slots": [22], "record_slots": [5, 18]})) == ["k 22: the OS's own",
+                                                                           "record slots 5: the OS's own"])
+    case("refused: FUNC + PITCH without replaces",
+         bool(own_errors(j({"gestures": [{"combo": "FUNC + PITCH", "situation": "params"}]}))))
+    case("FUNC + PITCH with replaces: allowed", not own_errors(lofi))
+    case("FUNC + PITCH in menu:RETRIG: not the stock one", not own_errors(
+        j({"gestures": [{"combo": "FUNC + PITCH", "situation": "menu:RETRIG"}]})))
+    ref2 = pkgs["refmachine2"]
+    case("a build of REF2 and the layer: no clash", not check_build(build_holders([ref2], sc_part)))
+    case("a build of SAMPLE, REF2 and the layer: no clash",
+         not check_build(build_holders([pkgs["sampler"], ref2], sc_part)))
+    x30 = {"id": "x", "uses": [{"point": "shortcut", "key": "RETRIG", "knob": "COLOR"}],
+           "claims": {"sound_slots": [28, 30], "record_slots": [28]}}
+    case("a package's own k 30 next to its shortcut on COLOR: a clash with the layer",
+         check_build(build_holders([x30], sc_part)) == ["x and shortcuts: k 30"])
+    case("claim_conflicts names the tweak and its reasons",
+         claim_conflicts(build_holders([ref2], sc_part), {"lfo-plus": real["lfo-plus"], "arp": real["arp"]})
+         == {"lfo-plus": ["k 28", "k 28-31", "record slots 30-31"]})
     return fails
 
 
