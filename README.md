@@ -1,18 +1,23 @@
 # model27
 
-**A small, curated firmware for the Elektron Model:Cycles: four-knob machines, a short list of mods that work
-together, and a standard so that mods from different people fit.**
+**An attempt to make as many Model:Cycles mods as possible work together, and above all added machines: tick the
+machines you want, in any combination, and the page builds them into one firmware.**
 
-model27 is a downstream fork of [Modded-Cycles](https://github.com/18nelli18/Modded-Cycles). It starts from
-Modded-Cycles release 1.55, the last version with a mod picker, plus the Control All Config mod, and keeps the picker:
-you tick what you want, the page builds the firmware from **your own copy** of the official OS in your browser, and
-sends it to the Model:Cycles over USB. Modded-Cycles itself went on to a single OS with 2.0; model27 goes the other
-way, towards fewer, smaller, well-fitting mods.
+model27 is a downstream fork of [Modded-Cycles](https://github.com/18nelli18/Modded-Cycles), started from its
+release 1.55, the last one with a mod picker, plus the Control All Config mod. It keeps the picker: you tick what
+you want, the page builds the firmware from **your own copy** of the official OS in your browser and sends it to the
+Model:Cycles over USB. Modded-Cycles itself went on to a single OS with 2.0; model27 works on how mods are put
+together, so that a new machine fits next to the others instead of excluding them. The rules a mod follows for that
+are the **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.2), written alongside.
 
-**Status: beta.** The web flasher runs at [https://durchgemacht.github.io/model27/flasher/](https://durchgemacht.github.io/model27/flasher/) (it goes live with this
-repository's GitHub Pages) and offers two cards for now, the SAMPLE machine and Control All Config; the [guide](https://durchgemacht.github.io/model27/guide/) explains them.
-The command-line build works for every Modded-Cycles 1.55 mod still in the repository; the short list for the beta
-is being chosen, and nothing has been removed from the tools yet.
+**Status: beta, release 0.4.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers two cards,
+both tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
+[Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples on the +Drive,
+and [Control All Config](https://github.com/durchgemacht/cycles-control-all-config). The
+[guide](https://durchgemacht.github.io/model27/guide/) explains them. Combining machines is proven with internal
+reference machines: SAMPLE with the first one on a Model:Cycles, and the second one, with a shortcut and shared
+views, in emulation so far. The next machine card is the first that users will combine. The other Modded-Cycles
+1.55 mods stay buildable from the command line.
 
 > [!IMPORTANT]
 > **No Elektron firmware is included in this repository**, original or modified. You bring the official OS
@@ -20,15 +25,50 @@ is being chosen, and nothing has been removed from the tools yet.
 > computer. This is an independent project, not affiliated with or endorsed by Elektron, and not affiliated with
 > Modded-Cycles' maintainers. Flashing a modified OS is **at your own risk** and may void your warranty.
 
+## What gets easier
+
+Upstream, an added machine is a tweak whose place in the OS is fixed when it is generated, so two machines go
+together only as a combination built in advance. In model27 a machine is a **package**, its code plus a manifest
+that says what it touches, and the builder composes the packages you tick each time it builds.
+
+| | One tweak per combination (upstream) | One package per machine (model27) |
+|---|---|---|
+| **Machines ticked together** | only the combinations built in advance: 283 tweak files upstream, 252 of them combinations of the Syntakt engines | any combination, up to six next to the six original machines |
+| **A new machine** | a new file for every combination with the machines already there | one package; the others stay as they are |
+| **Its slot, its place in memory, its registration in the OS** | fixed by its own generator | assigned by the builder at each build |
+| **Extra controls** | each machine picks its own key combinations | a fixed list of shortcuts, handled by the builder |
+
+## Shortcuts are predefined
+
+A machine does not choose its own key combinations. model27 gives a fixed list, today **RETRIG held + COLOR, SHAPE,
+SWEEP or CONTOUR**: up to four extra values on the machine's tracks. The machine declares each one's name, range
+and default in its manifest; the builder handles the keys, shows the value and saves it with the sound, and the
+machine only reads it. Each machine gives a shortcut its own meaning, so two machines can use the same one without
+meeting. The list will probably grow, most likely by FUNC + the same four knobs. For now shortcut values cannot be
+p-locked or used as LFO destinations, and no card on the page uses a shortcut yet.
+
+## The conditions, roughly
+
+- **The machine is a package** that follows the standard. The machines Modded-Cycles ships pre-built (MACRO, ACID,
+  the Syntakt engines, Model-TG's Sampler) are not packages and do not go with the packages.
+- **Where two machines use the same place in the OS**, such as the main screen or the knob view, the builder adds a
+  small dispatcher that passes it on to the right machine. Where no dispatcher exists yet, the build stops with a
+  message instead of making a firmware.
+- **Two machines never share memory.** A machine that needs RAM of its own, as SAMPLE does for its samples, claims it
+  in its manifest; a build where two claims overlap stops with a message.
+- **Other mods go with the machines** unless they write the same bytes or use the same memory. The builder computes
+  that from the manifests and the mods themselves.
+- **The processor is shared and not measured by the builder.** How many heavy machines run on six tracks at once is
+  a matter of listening.
+- **A track remembers a machine slot, not a machine.** The added machines take their slots in the order they are
+  ticked, so keep one project per build ([notes/64](notes/64-projects-and-machines.md)).
+
 ## What model27 is for
 
-- **The Model:Cycles workflow stays the Model:Cycles workflow.** A machine has PITCH, four knobs, DECAY, GATE and
-  PUNCH, like the six original ones. A mod adds something small and leaves everything else as it is, bit for bit.
+- **It still plays like a Model:Cycles.** An added machine uses the same controls as the six original ones, and a
+  mod adds something small and leaves everything else as it is, bit for bit.
 - **A few engines, worked out to the end.** Knob ranges that mean something end to end, no clicks under a square LFO, a measured
   cost, a test on a real machine before a mod is called tested.
-- **Mods that fit together.** Every mod declares what it touches, in a manifest; what can be ticked together is
-  computed from those declarations, not from a hand-written list. That is the job of the companion draft, the
-  **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.2), written alongside.
 
 ## What goes in first
 
