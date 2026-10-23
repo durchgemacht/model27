@@ -57,9 +57,9 @@ Write for musicians: what changes on the machine, which buttons to press, the li
    steps (`<ol>`) with the buttons in `<b>`, then `<dl class="facts">` with the limits and a *Tested* / *Experimental*
    line saying how it was checked. Copy the `#tempo` or `#trig-hold` section.
 6. A new entry at the top of `assets/release.js`: next version (the top entry is the last), today's date, 2 to 4 changes
-   (what the user gets, the limits, how it was checked, which mods it goes with). Once merged into `main`, the
-   English text is posted as is to the Discord server's #announcements (`.github/workflows/discord.yml`), so write it
-   for musicians.
+   (what the user gets, the limits, how it was checked, which mods it goes with). The home page shows it as is (the
+   flasher only its version), so write it for musicians. Nothing posts it anywhere else: Modded-Cycles' Discord
+   workflow went with `.github/` at the fork.
 7. Bump the version stamp: the same `YYYY-MM-DD-NN` string in `window.MC_BUILD` (`flasher/index.html`) and every
    `?v=` of the three pages (`index.html`, `flasher/index.html`, `guide/index.html`). A stale stamp makes browsers mix a
    new page with cached old scripts.
@@ -74,8 +74,8 @@ the first of them is, its id their packages' ids joined by `+`; `ref_mainos.py` 
 The home page list (`ol.mods` in `index.html`, each item with the controls it lights in `data-hl` and the screen
 text in `data-lcd`) is a short selection, not every mod: add an item only when the mod is a headline one, and ask.
 
-When Maxime has tested it: `status` to `"tested"` in `FEATURES` (regenerate `tweaks.js`), the guide's *Tested* line,
-the release entry ("Tested on a Model:Cycles"), and the stamp again.
+When the maintainer has tested it on their Model:Cycles: `status` to `"tested"` in `FEATURES` (regenerate
+`tweaks.js`), the guide's *Tested* line, the release entry ("Tested on a Model:Cycles"), and the stamp again.
 
 ## Checks
 

@@ -90,7 +90,8 @@ and check the writes of **every** other tweak for overlaps.
 ## Shared scripts you will regenerate
 
 - `gen_flasher_tweaks.py`: the `FEATURES` list (cards of the web flasher). Add the new mod there, then run it; `--check`
-  in validation. Card `status` is `"experimental"` until Maxime tests it.
+  in validation. Card `status` is `"experimental"` until the maintainer has tested it on their
+  Model:Cycles.
 - `check_overlaps.py [--git REF …]`: no firmware needed. Two tweaks that can be installed together never write the
   same bytes (except the same whole write, or one applied on top of the other through `requires`), every write is
   well formed, and the payloads of every installable set chain up (`at`, `END_LIMIT`, `dest`). With `--git` it reads

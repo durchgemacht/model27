@@ -141,7 +141,8 @@ notes/                        numbered technical notes (French), index in notes/
 BUILD.md, FLASH.md            command-line build and flashing (French)
 README.md                     English overview for Model:Cycles owners (mod table)
 LICENSE, THIRD-PARTY-NOTICES.md   MIT for the project; what it does not cover; every third-party license
-CONTRIBUTING.md               terms for outside contributions
+CONTRIBUTING.md               terms for outside contributions, and how a machine or mod gets in
+.github/                      the pull request template and the issue templates (bug report, new machine or mod)
 ```
 
 ## Adding a feature for users (the usual PR)

@@ -2,7 +2,8 @@
 
 Thanks for wanting to help. model27 keeps its list of mods short on purpose: a new mod gets in when it fits the
 project's aims (the README says what they are) and, once it exists, follows the Cycles Mod Standard. Fixes, test
-reports and ideas are welcome as issues or pull requests.
+reports and ideas are welcome as issues or pull requests; the issue templates ask for what helps (*Bug report*, *New
+machine or mod*).
 
 ## License of your contribution
 
@@ -25,6 +26,30 @@ rules (only the MAIN OS section is touched, every mod is proven in emulation, re
 
 ## How a mod gets in
 
-[`AGENTS.md`](AGENTS.md) describes the usual path: a technical note, a generator, an emulation proof, the flasher card,
-the guide and the release notes. A new mod ships as *Experimental*; it becomes *Tested* only after the maintainer has
-tried it on their own Model:Cycles.
+1. **Open an issue first**, with the *New machine or mod* template: what it does on the machine, where its code is,
+   its license. The maintainer answers whether it fits (for a machine, the Gen 1 rules in the
+   [README](README.md#stability-first-gen-1-machines)) and, if it does, gives it its `order`, the number of its tweak
+   file. Do not pick one yourself, nor a machine number, a sound slot or a record slot.
+2. **A machine comes as a package.** Port it as section 12 of the standard's
+   [porting guide](https://github.com/durchgemacht/cycles-mod-standard/blob/main/APPLYING.md#12-porting-a-machine-to-model27s-builder)
+   describes, starting from a copy of the second reference machine,
+   [`tools/machines/refmachine2/`](tools/machines/refmachine2/); section 12.8 has a prompt if you work with an AI
+   assistant. The pull request holds:
+   - `tools/machines/<id>/`: the sources, the committed object `<id>.o`, `manifest.json` with its claims, and the
+     sources' `LICENSE`;
+   - `tools/gen_<id>.py`: writes the object and the machine's tweak alone,
+     `tweaks/model-cycles_OS1.13/<order>-<id>.json`; `--check` compares both with the committed files;
+   - the proofs of section 12.6 under `tools/emu/`, pointed at your machine;
+   - in its description, the result of each check section 12 names, and "not run" with the reason for a check you
+     could not run.
+3. **Another mod** (not a machine, or a machine that is not a package yet) starts with the inventory of the porting
+   guide's sections 1 to 11, without changing its code. The maintainer then decides with you whether it is ported,
+   offered as a card, or stays a command-line build; [`AGENTS.md`](AGENTS.md) describes the path of a tweak.
+4. **The maintainer takes it from there.** They run the checks again with the official files, the emulation proofs,
+   digiemu and their own Model:Cycles. The flasher card, the guide section, the release notes and the credit come in
+   a commit of their own after the merge: they need the official files, and which cards the page offers is the
+   maintainer's call. A new mod ships as *Experimental*; it becomes *Tested* only after the maintainer has tried it on
+   their own Model:Cycles.
+
+A fix to the site, the guide or a mod already offered is one pull request with its note, proof and release entry, as
+[`AGENTS.md`](AGENTS.md) describes.
