@@ -1,0 +1,41 @@
+{
+ "schema": "cycles-mod/0.1",
+ "id": "refchord",
+ "version": "0.1",
+ "name": "REFC: model27's reference extension of a stock machine, CHORD with a shortcut and two hooks that count",
+ "description": "The smallest package that extends a stock machine instead of adding one (notes/66 §3, step W2): it proves the builder's extensions before CHORD Tables uses them. On CHORD's tracks, RETRIG + SWEEP = Wavetable, 0 to 64, shown and saved in k 30 by the builder's shortcut layer; CHORD's call for its frames (0x400ab15e) and the screen's tick go through REFC's code, which counts and calls the stock functions. Nothing sounds or shows otherwise. Never offered to users.",
+ "license": "MIT",
+ "credit": {"kind": "own", "who": "durchgemacht and Claude", "repo": "durchgemacht/model27"},
+ "device": "Model:Cycles",
+ "os": "1.13",
+ "order": 34,
+ "build": {
+  "sources": ["refchord.c"],
+  "include": ["."],
+  "cflags": ["-std=c99", "-mcpu=54418", "-O2", "-ffreestanding", "-fno-builtin", "-fno-tree-loop-distribute-patterns",
+             "-nostdlib", "-fno-pic", "-fno-common", "-ffunction-sections", "-fdata-sections", "-Wall", "-Wextra",
+             "-Werror"],
+  "defines": {},
+  "objects": ["refchord.o"],
+  "patch_points": [],
+  "roots": ["rc_setup", "rc_hook_tick", "rc_setups", "rc_ticks"]
+ },
+ "uses": [
+  {"point": "machine.stock", "machine": "CHORD",
+   "why": "an extension of CHORD, machine 5: no machine of its own, no descriptor, nothing registered"},
+  {"point": "shortcut", "key": "RETRIG", "knob": "SWEEP",
+   "param": {"long": "Wavetable", "short": "WAVE", "min": 0, "max": 64, "default": 0},
+   "why": "k 30, which CHORD Tables will read (notes/66 §2.4); the shortcut layer shows and saves it, REFC does not read it"},
+  {"point": "chord.waves", "hook": {"at": "0x400ab15e", "stock": "4eb9400a8080", "op": "jsr", "symbol": "rc_setup"},
+   "why": "CHORD's update gets its two frames through this one call (notes/66 §1.1): counted, then the stock function with the same arguments"},
+  {"point": "screen.tick", "hook": {"at": "0x400075f0", "stock": "4eb940076be4", "op": "jsr", "symbol": "rc_hook_tick"},
+   "why": "the screen's redraw, about 30 Hz: counted, then the getter it replaces; with SAMPLE, through the tick dispatcher"}
+ ],
+ "claims": {"sound_slots": [30], "record_slots": [30], "ram": [],
+            "gestures": [{"combo": "RETRIG + SWEEP", "situation": "params", "meaning": "Wavetable"}]},
+ "cost": {"emulation": {"status": "not measured"}, "device": {"status": "not measured"}},
+ "stock_behaviour": {"changes": [], "fixes": [], "unchanged": ["CHORD's sound and every other track"]},
+ "compat": {"built_against": ["model27"], "requires": [], "conflicts_declared": []},
+ "tests": {"emulation": {"tool": "tools/emu/test_refchord.py (Unicorn, the OS's own code, notes/66 §12)", "date": "2026-10-23", "build": "alone, with sampler before and after it, and with sampler and refmachine2"},
+           "hardware": {"status": "not yet run"}, "status": "experimental"}
+}

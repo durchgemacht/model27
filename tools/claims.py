@@ -348,8 +348,15 @@ def checked(claims, kind, name, pkgs):
     return to_json(c)
 
 
+def own_scope(m):
+    """The machine a package's scope "machine" names: its id for an added machine; for an extension of a stock
+    machine ("machine.stock", notes/66 §3), that machine (machine:CHORD)."""
+    stock = next((u for u in m.get("uses", []) if u.get("point") == "machine.stock"), None)
+    return stock["machine"] if stock else m["id"]
+
+
 def resolve(c, pid):
-    """A package's claims with its machine named: the scope "machine" becomes "machine:<id>"."""
+    """A package's claims with its machine named: the scope "machine" becomes "machine:<id>" (pid: own_scope())."""
     def s(x):
         return f"machine:{pid}" if x == "machine" else x
     out = dict(c)
@@ -542,7 +549,7 @@ def build_holders(mans, part=None):
     out = []
     pkgs = packages()
     for m in mans:
-        c = resolve(package_claims(m, pkgs), m["id"])
+        c = resolve(package_claims(m, pkgs), own_scope(m))
         out.append((m["id"], c, beyond_shortcuts(c, m, part) if part else c, False))
     if part:
         c = part_claims(part)
@@ -594,7 +601,7 @@ def tweak_claims():
     part = parts().get("shortcuts")
     for pid, m in pkgs.items():
         if pid in ids:
-            c = resolve(package_claims(m, pkgs), pid)
+            c = resolve(package_claims(m, pkgs), own_scope(m))
             if part and any(u["point"] == "shortcut" for u in m["uses"]):
                 c = merge(c, part_claims(part))
             if c:

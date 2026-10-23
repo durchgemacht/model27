@@ -72,6 +72,9 @@ BASE = mcb.BASE
 DEV = ROOT / "tweaks" / "model-cycles_OS1.13"
 MACHINES = HERE / "machines"
 BUILD = ROOT / "build"
+# The stock machines a package may extend ("machine.stock", notes/66 §3), by number: CHORD only for now, the one next
+# to the added machines, so that the tables by machine (the shortcut layer's, the dispatchers') start at 5 with it.
+STOCK_EXTENDED = {"CHORD": 5}
 REGISTRAR = MACHINES / "registrar" / "registrar.json"
 LINK = """SECTIONS
 {{
@@ -99,9 +102,33 @@ def load_manifest(mid):
         sys.exit(f"!! {path}: id {m['id']!r} is not the folder's name")
     m["_dir"] = MACHINES / mid
     m["_machine"] = next((u for u in m["uses"] if u["point"] == "machine"), None)
-    if not m["_machine"]:
+    m["_stock"] = next((u for u in m["uses"] if u["point"] == "machine.stock"), None)
+    if m["_machine"] and m["_stock"]:
+        sys.exit(f"!! {mid}: a 'machine' and a 'machine.stock' entry in uses: an added machine or an extension of a "
+                 "stock machine, not both")
+    if not m["_machine"] and not m["_stock"]:
         sys.exit(f"!! {mid}: no 'machine' entry in uses: not an added machine")
+    if m["_stock"]:                          # an extension of a stock machine (notes/66 §3)
+        name = m["_stock"].get("machine")
+        if name not in STOCK_EXTENDED:
+            sys.exit(f"!! {mid}: machine.stock {name!r}: only {', '.join(STOCK_EXTENDED)} can be extended, next to the "
+                     "added machines (notes/66 §3)")
+        m["_index"] = STOCK_EXTENDED[name]
+        if not m["build"].get("roots"):
+            sys.exit(f"!! {mid}: an extension names its entry points in build.roots (it has no update and render)")
+        if any(pp["kind"] in ("machine_index", "descriptor_base") for pp in m["build"].get("patch_points", [])):
+            sys.exit(f"!! {mid}: an extension has no machine index and no descriptors of its own")
     return m
+
+
+def roots_of(m):
+    """The entry points a package's object is laid out from: an added machine's update and render, then its kept
+    symbols; an extension's build.roots (its first two in the places of update and render)."""
+    b = m["build"]
+    if m.get("_stock"):
+        r = b["roots"]
+        return r[0], r[1] if len(r) > 1 else r[0], list(dict.fromkeys(r[2:] + b.get("keep", [])))
+    return b["symbols"]["update"], b["symbols"]["render"], b.get("keep", [])
 
 
 def load_part(pid):
@@ -182,10 +209,10 @@ def compile_package(m, tmp, code_at, bss_at, code_end, values):
     b = m["build"]
     defines, symbols = patch_values(m, values)
     objs = compile_objects(m, tmp, defines)
-    upd, rnd = b["symbols"]["update"], b["symbols"]["render"]
+    upd, rnd, kept = roots_of(m)
     ld, elf, out = tmp / f"{m['id']}.ld", tmp / f"{m['id']}.elf", tmp / f"{m['id']}.bin"
     ld.write_text(LINK.format(update=upd, render=rnd, code=code_at, bss=bss_at))
-    keep = [a for s_ in b.get("keep", []) for a in ("-u", s_)]
+    keep = [a for s_ in kept for a in ("-u", s_)]
     defsym = [a for k, v in symbols.items() for a in ("--defsym", f"{k}={v}")]
     gx.run([gx.CROSS + "ld", "-T", str(ld), "--gc-sections", "--no-warn-rwx-segments", "-e", upd, "-u", rnd, *keep,
             *defsym, "-o", str(elf), *map(str, objs)])
@@ -200,7 +227,7 @@ def compile_package(m, tmp, code_at, bss_at, code_end, values):
     blob = out.read_bytes()
     syms = {p[2]: int(p[0], 16) for p in (l.split() for l in gx.run([gx.CROSS + "nm", str(elf)]).splitlines())
             if len(p) == 3}
-    for s_ in (upd, rnd, *b.get("keep", [])):
+    for s_ in (upd, rnd, *kept):
         if s_ not in syms:
             sys.exit(f"!! {m['id']}: symbol {s_} not in the linked object")
     if code_at + len(blob) > code_end:
@@ -214,7 +241,6 @@ def compile_package(m, tmp, code_at, bss_at, code_end, values):
 def place_package(m, code_at, bss_at, code_end, values, obj=None):
     """The B2 path, no toolchain: places the package's committed object (or obj, bytes) at code_at and bss_at with
     tools/relocate.py, the patch points resolved to the build's values. Same result as compile_package."""
-    b = m["build"]
     defines, symbols = patch_values(m, values)
     if defines:
         sys.exit(f"!! {m['id']}: patch points as defines cannot be applied to a committed object: use symbols")
@@ -223,8 +249,21 @@ def place_package(m, code_at, bss_at, code_end, values, obj=None):
         if not path.is_file():
             sys.exit(f"!! {m['id']}: {path} is missing: run the package's generator (it writes the object)")
         obj = path.read_bytes()
-    return relocate.place(obj, b["symbols"]["update"], b["symbols"]["render"], b.get("keep", []), code_at, bss_at,
-                          code_end, symbols, m["id"])
+    upd, rnd, kept = roots_of(m)
+    return relocate.place(obj, upd, rnd, kept, code_at, bss_at, code_end, symbols, m["id"])
+
+
+def exported(m):
+    """The symbols of a package a composed tweak lists: its entry points and kept symbols."""
+    a, b, keep = roots_of(m)
+    return {a, b, *keep}
+
+
+def placed(p):
+    """One package of a build in its tweak's description."""
+    if p.get("extends"):
+        return f"{p['id']} extending {p['extends']} (machine {p['index']})"
+    return f"{p['id']} as machine {p['index']}"
 
 
 def web_package(mid):
@@ -235,7 +274,7 @@ def web_package(mid):
     docs/flasher/composer.js composes from it what compose() composes from the manifest and the object."""
     m = load_manifest(mid)
     b = m["build"]
-    upd, rnd, keep = b["symbols"]["update"], b["symbols"]["render"], b.get("keep", [])
+    upd, rnd, keep = roots_of(m)
     pps = b.get("patch_points", [])
     if any("symbol" not in pp for pp in pps):
         sys.exit(f"!! {mid}: patch points as defines cannot be applied to a committed object: use symbols")
@@ -244,11 +283,12 @@ def web_package(mid):
         sys.exit(f"!! {mid}: {path} is missing: run the package's generator (it writes the object)")
     lay = relocate.layout(path.read_bytes(), upd, rnd, keep, mid)
     uses = [{k: v for k, v in u.items() if k != "why"} for u in m["uses"]
-            if u["point"] in ("machine", "memory.ram", "shortcut") or "hook" in u or "vtable" in u]
+            if u["point"] in ("machine", "machine.stock", "memory.ram", "shortcut") or "hook" in u or "vtable" in u]
+    names = [upd, rnd, *keep] if m["_machine"] else list(dict.fromkeys([upd, rnd, *keep]))
     return {"id": mid, "name": m["name"], "order": m["order"], "version": m["version"],
             "symbols": {"update": upd, "render": rnd}, "keep": keep, "patch_points": pps, "uses": uses,
             "conflicts_declared": [c["with"] for c in m.get("compat", {}).get("conflicts_declared", [])],
-            "claims": cl.package_claims(m), "bundle": relocate.bundle(lay, [upd, rnd, *keep])}
+            "claims": cl.package_claims(m), "bundle": relocate.bundle(lay, names)}
 
 
 def web_part(pid):
@@ -445,6 +485,53 @@ def frame(img, reg, n):
             "writes": writes, "reloc": reloc}
 
 
+def frame_alone(img, reg):
+    """The frame of a build without an added machine (notes/66 §3): only extensions of stock machines, so nothing is
+    registered; the boot hook and the stub copy the payload as in every build. Its writes are the freed sprite mask
+    the stub lives in and the boot hook, as frame() writes them; the layout and the stub template are frame()'s."""
+    pay, first = gs.PAY_ALONE, 6
+    writes = []
+
+    def w(va, old, new_):
+        if img[va - BASE:va - BASE + len(old)] != old:
+            sys.exit(f"!! {va:#x}: {old.hex()} expected, {img[va - BASE:va - BASE + len(old)].hex()} found")
+        writes.append({"off": va - BASE, "old": old.hex(), "new": new_.hex()})
+
+    red = sprites.redirect_write(gx.CAVE)
+    w(BASE + red["off"], bytes.fromhex(red["old"]), bytes.fromhex(red["new"]))
+    w(gx.HOOK, bytes.fromhex(gx.HOOK_OLD), bytes.fromhex("4ef9") + g7.be32(gx.CAVE) + bytes.fromhex("4e71"))
+    writes.sort(key=lambda x: x["off"])
+    return {"n": 0,
+            "layout": {"pay": pay, "bss_off": gm.BSS_OFF, "first": first, "stubs": gs.STUBS, "data": gs.DATA,
+                       "descn": gs.DESCN, "recs": gs.RECS, "end_limit": gs.END_LIMIT, "image_end": BASE + gx.IMAGE_LEN,
+                       "cave": gx.CAVE, "stub_room": sprites.zone(gx.CAVE)[1], "ndesc": g7.NDESC, "dstride": g7.DSTRIDE},
+            "stub": reg["stub"], "writes": writes, "reloc": []}
+
+
+def fill_alone(fr, img, blobs, bss_end):
+    """The rest of a build without an added machine: the payload parts (the packages and the parts of the builder,
+    nothing of the registrar's), the segments and the boot stub. Returns (writes, append) as fill() does."""
+    lay = fr["layout"]
+    parts = [{"dest": f"{at_:#x}", "hex": b_.hex()} for at_, b_ in sorted(blobs)]
+    size = bss_end - lay["pay"]
+    segs = gs.segments(parts, size)
+    at = lay["image_end"]
+    if at + sum(n_ for _, n_ in segs) > lay["end_limit"]:
+        sys.exit(f"!! {sum(n_ for _, n_ in segs)} bytes added: the image would pass {lay['end_limit']:#x}")
+    stub = boot_stub(fr, at, lay["pay"], size // 4, segs)
+    if len(stub) > lay["stub_room"]:
+        sys.exit("!! boot stub too big for its mask")
+    if img[lay["cave"] - BASE:lay["cave"] - BASE + len(stub)] != b"\xff" * len(stub):
+        sys.exit("!! the boot stub's place is taken")
+    writes = [dict(w) for w in fr["writes"]] + [{"off": lay["cave"] - BASE, "old": "ff" * len(stub), "new": stub.hex()}]
+    writes.sort(key=lambda x: x["off"])
+    for a_, b_ in zip(writes, writes[1:]):
+        if a_["off"] + len(a_["new"]) // 2 > b_["off"]:
+            sys.exit(f"!! writes overlap at {BASE + b_['off']:#x}")
+    return writes, {"at": f"{at:#x}", "dest": f"{lay['pay']:#x}", "size": size, "parts": parts, "reloc": [],
+                    "pack": [[f"{a_:#x}", n_] for a_, n_ in segs]}
+
+
 def frames(img, reg):
     """frame.json: the frames of n = 1 to the runtime's maximum, the writes they share listed once (B3b)."""
     per = {n: frame(img, reg, n) for n in range(1, reg["runtime"]["max_machines"] + 1)}
@@ -458,7 +545,8 @@ def frames(img, reg):
                "6, the writes (moved tables, bounds, the jumps and the call into the runtime, the marks), the reloc of the",
                "Algorithm parameter's maximum; once, the layout, the runtime, the boot stub template and the stock",
                "addresses whose values fill() reads in the user's own MAIN OS. Written by tools/gen_registrar.py --cycles",
-               "from compose.frame(); docs/flasher/composer.js fills it like compose.fill()."],
+               "from compose.frame(); docs/flasher/composer.js fills it like compose.fill(). \"alone\": the writes of a",
+               "build without an added machine, extensions of a stock machine only (compose.frame_alone(), notes/66 §3)."],
            "layout": per[1]["layout"], "stock": per[1]["stock"], "runtime": per[1]["runtime"], "stub": per[1]["stub"],
            "writes": common,
            "by_n": {str(n): {"writes": [w for w in f["writes"] if w not in common], "reloc": f["reloc"]}
@@ -467,11 +555,22 @@ def frames(img, reg):
         back = frame_of(out, n)
         if back["writes"] != f["writes"] or back["reloc"] != f["reloc"]:
             sys.exit(f"!! frame.json would not give back the frame of {n} machines")
+    alone = frame_alone(img, reg)             # notes/66 §3: extensions only, nothing registered
+    if alone["layout"] != per[1]["layout"] or alone["stub"] != per[1]["stub"]:
+        sys.exit("!! the frame without an added machine differs from the others beyond its writes")
+    out["alone"] = {"writes": alone["writes"]}
+    if frame_of(out, 0)["writes"] != alone["writes"]:
+        sys.exit("!! frame.json would not give back the frame without an added machine")
     return out
 
 
 def frame_of(frs, n):
-    """One n's frame out of frame.json (the composer.js way of reading it)."""
+    """One n's frame out of frame.json (the composer.js way of reading it); n = 0: extensions only (notes/66 §3)."""
+    if n == 0:
+        if "alone" not in frs:
+            sys.exit("!! frame.json has no frame without an added machine: run tools/gen_registrar.py --cycles")
+        return {"layout": frs["layout"], "stub": frs["stub"], "n": 0, "writes": list(frs["alone"]["writes"]),
+                "reloc": []}
     if str(n) not in frs["by_n"]:
         sys.exit(f"!! no frame for {n} machines")
     fr = {k: frs[k] for k in ("layout", "stock", "runtime", "stub")}
@@ -562,6 +661,12 @@ def fill(fr, img, machines, blobs, bss_end):
                     "reloc": [list(r) for r in fr["reloc"]], "pack": [[f"{a_:#x}", n_] for a_, n_ in segs]}
 
 
+def payload_writes(img, blobs, bss_end, reg):
+    """A build of extensions only (notes/66 §3): frame_alone() then fill_alone(), the split the web flasher follows
+    with frame.json's "alone"."""
+    return fill_alone(frame_alone(img, reg), img, blobs, bss_end)
+
+
 def registrar_writes(img, machines, blobs, bss_end, reg):
     """B2c: the registrar's writes and payload for the alone layout, without the toolchain: frame() then fill()
     (B3b: the split the web flasher follows). Returns (writes, append)."""
@@ -627,11 +732,13 @@ def shortcut_uses(mans, part):
     return out
 
 
-def shortcut_layer(img, part, mans, syms_of, uses, at, code_end, first):
+def shortcut_layer(img, part, mans, syms_of, uses, at, code_end, first, descn=None):
     """The shortcut layer of this build (notes/63 §3, B4b): the part's committed object placed at at, its data block
     right after its code, the knob lookup's vtable entry and the three sound record functions jumping into it. A
     package's own hook on a record function, a wrapper over the same 8 bytes (SAMPLE's), becomes the next of the
-    chain and its write is left out. Returns (blob, symbols, writes, the sites left out, info)."""
+    chain and its write is left out. descn: the descriptor table the OS uses, the registrar's moved copy by default,
+    the stock table in a build without an added machine (notes/66 §3). Returns (blob, symbols, writes, the sites
+    left out, info)."""
     b, d, sc, sites = part["build"], part["data"], part["shortcut"], part["sites"]
     path = object_path(part)
     if not path.is_file():
@@ -675,7 +782,7 @@ def shortcut_layer(img, part, mans, syms_of, uses, at, code_end, first):
     head = bytearray(d["entries"])
     for j, nxt in enumerate(nexts):
         struct.pack_into(">I", head, d["next"] + 4 * j, nxt)
-    struct.pack_into(">I", head, d["descn"], gs.DESCN)
+    struct.pack_into(">I", head, d["descn"], gs.DESCN if descn is None else descn)
     head[d["first"]], head[d["count"]] = first, len(mans)
     data = bytes(head + entries + strings)
     if data_at + len(data) > code_end:
@@ -858,16 +965,26 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     if len(ids) != len(set(ids)):
         sys.exit("!! a machine is named twice")
     mans = [load_manifest(i) for i in ids]
+    added = [m for m in mans if m["_machine"]]           # numbered 6, 7, ... in the order given
+    exts = [m for m in mans if m["_stock"]]              # extensions of a stock machine (notes/66 §3): CHORD
+    if len({m["_index"] for m in exts}) != len(exts):
+        sys.exit(f"!! {', '.join(m['id'] for m in exts)}: two packages extend the same stock machine")
     pay = gs.PAY_ALONE
     gs.set_base(pay)
     first = 6
+    # the tables by machine (the shortcut layer's, the dispatchers'): from the extended stock machine when there is
+    # one (CHORD, 5, right before the added machines), else from the first added machine; entry i is machine
+    # tab_first + i. Without an extension this is the packages in the order given, as before.
+    table = exts + added
+    tab_first = exts[0]["_index"] if exts else first
     machines, blobs, syms_of, info_pkgs = [], [], {}, []
     with tempfile.TemporaryDirectory() as d:
         tmp = pathlib.Path(d)
         code_cursor, bss_cursor = pay, pay + gm.BSS_OFF
-        for i, m in enumerate(mans):
+        for m in mans:
             code_at, bss_at = align4(code_cursor), align4(bss_cursor)
-            values = {"machine_index": first + i, "descriptor_base": 76 + 5 * i}
+            i = added.index(m) if m["_machine"] else None
+            values = {"machine_index": first + i, "descriptor_base": 76 + 5 * i} if m["_machine"] else {}
             if relocator == "ld":
                 blob, syms, bss_end = compile_package(m, tmp, code_at, bss_at, gs.STUBS, values)
             else:
@@ -885,27 +1002,30 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                     bad = {k: (f"{v:#x}", f"{s2[k]:#x}") for k, v in syms.items() if k in s2 and s2[k] != v}
                     sys.exit(f"!! {m['id']}: relocator and ld differ, first byte at +{i_:#x}; symbols {bad}")
             mc = m["_machine"]
-            knobs = tuple((k["long"], k["short"], k["default"]) + ((k["min"], k["max"]) if "min" in k else ())
-                          for k in mc["knobs"])
-            machines.append(dict(name=mc["name"], image=mc["image"], decay=mc["decay_default"], knobs=knobs,
-                                 update=syms[m["build"]["symbols"]["update"]],
-                                 render=syms[m["build"]["symbols"]["render"]]))
+            if mc:
+                knobs = tuple((k["long"], k["short"], k["default"]) + ((k["min"], k["max"]) if "min" in k else ())
+                              for k in mc["knobs"])
+                machines.append(dict(name=mc["name"], image=mc["image"], decay=mc["decay_default"], knobs=knobs,
+                                     update=syms[m["build"]["symbols"]["update"]],
+                                     render=syms[m["build"]["symbols"]["render"]]))
             blobs.append((code_at, blob))
             syms_of[m["id"]] = syms
-            info_pkgs.append(dict(id=m["id"], index=first + i, desc=76 + 5 * i, code_at=code_at, code=len(blob),
+            info_pkgs.append(dict(id=m["id"], index=first + i if mc else m["_index"], desc=76 + 5 * i if mc else None,
+                                  extends=None if mc else m["_stock"]["machine"], code_at=code_at, code=len(blob),
                                   bss_at=bss_at, bss=bss_end - bss_at))
             code_cursor, bss_cursor = code_at + len(blob), bss_end
         layer, part = None, None             # the shortcut layer, in the builds whose machines declare a shortcut
         if any(u["point"] == "shortcut" for m in mans for u in m["uses"]):
             part = load_part("shortcuts")
             at = align4(code_cursor)
-            layer = shortcut_layer(img, part, mans, syms_of, shortcut_uses(mans, part), at, gs.STUBS, first)
+            layer = shortcut_layer(img, part, table, syms_of, shortcut_uses(table, part), at, gs.STUBS, tab_first,
+                                   gs.DESCN if added else g7.DESC)
             blobs.append((at, layer[0]))
             code_cursor = at + len(layer[0])
         dispatch = None                      # the dispatchers, in the builds where two packages take one point
-        if len(mans) > 1:
+        if len(table) > 1:
             at = align4(code_cursor)
-            dispatch = dispatch_layer(img, load_part("dispatch"), mans, syms_of, at, gs.STUBS, first)
+            dispatch = dispatch_layer(img, load_part("dispatch"), table, syms_of, at, gs.STUBS, tab_first)
             if dispatch:
                 blobs.append((at, dispatch[0]))
                 code_cursor = at + len(dispatch[0])
@@ -915,15 +1035,20 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                     sys.exit(f"!! {m['id']}: the payload ({pay:#x}..{bss_cursor:#x}) runs into its RAM claim {lo:#x}..{hi:#x}")
         check_ram_claims(mans)
         reg = load_registrar()
-        if registrar == "b1" or compare_b1:
-            writes1, append1 = gm.added_machine(img, None, machines, tmp, blobs, bss_cursor)
-            check_boot_stub(reg, writes1, append1)              # B2b: the template gives the same stub
-        if registrar == "runtime":
-            writes, append = registrar_writes(img, machines, blobs, bss_cursor, reg)
-            if compare_b1:
-                compare_b1_(reg, writes, append, writes1, append1)
+        if not machines:                     # extensions only: their payload copied at boot, nothing registered
+            if registrar == "b1" or compare_b1:
+                sys.exit("!! --registrar b1 and --compare-b1 need an added machine")
+            writes, append = payload_writes(img, blobs, bss_cursor, reg)
         else:
-            writes, append = writes1, append1
+            if registrar == "b1" or compare_b1:
+                writes1, append1 = gm.added_machine(img, None, machines, tmp, blobs, bss_cursor)
+                check_boot_stub(reg, writes1, append1)          # B2b: the template gives the same stub
+            if registrar == "runtime":
+                writes, append = registrar_writes(img, machines, blobs, bss_cursor, reg)
+                if compare_b1:
+                    compare_b1_(reg, writes, append, writes1, append1)
+            else:
+                writes, append = writes1, append1
     skip = (layer[3] if layer else set()) | (dispatch[3] if dispatch else set())
     for m in mans:
         writes += package_writes(m, img, syms_of[m["id"]], skip)
@@ -954,9 +1079,14 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
         "order": min(m["order"] for m in mans),
         "name": " + ".join(m["name"] for m in mans) if len(mans) > 1 else mans[0]["name"],
         "description": [
-            f"Composed by tools/compose.py (notes/59): {', '.join(f'{p['id']} as machine {p['index']}' for p in info_pkgs)},",
+            f"Composed by tools/compose.py (notes/59): {', '.join(placed(p) for p in info_pkgs)},",
+        ] + ([
             "registered together through the registrar runtime (registrar.S, a parameter block per build) or, with",
             "--registrar b1, gen_macro.added_machine; each machine's code from tools/machines/<id>/",
+        ] if machines else [
+            "nothing registered: no added machine, the boot stub only copies the payload (notes/66 §3);",
+            "each package's code from tools/machines/<id>/",
+        ]) + [
             "(manifest.json), compiled and linked at build time at its place in the payload (%#x..%#x)." % (pay, bss_cursor),
             "Conflicts computed from the other tweaks: other bytes at the same address, a payload in this build's",
             "payload or in a claimed RAM range, or declared claims that clash (tools/claims.py, notes/65).",
@@ -968,8 +1098,7 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
         "conflicts": sorted(conflicts),
         "writes": writes,
         "append": append,
-        "symbols": {k: f"{v:#x}" for m in mans for k, v in syms_of[m["id"]].items()
-                    if k in (m["build"]["symbols"]["update"], m["build"]["symbols"]["render"], *m["build"].get("keep", []))},
+        "symbols": {k: f"{v:#x}" for m in mans for k, v in syms_of[m["id"]].items() if k in exported(m)},
     }
     if layer:
         li = layer[4]
@@ -1078,8 +1207,10 @@ def main():
     ids = [i.strip() for i in args.machines.split(",") if i.strip()]
     tweak, info = compose(img, ids, args.relocator, args.compare_ld, args.registrar, args.compare_b1)
     for p in info["packages"]:
-        print(f"  {p['id']:12s} machine {p['index']}, descriptors {p['desc']}..{p['desc'] + 4}, code {p['code']} bytes at "
-              f"{p['code_at']:#x}, variables {p['bss']} bytes at {p['bss_at']:#x}")
+        what = (f"extends {p['extends']} (machine {p['index']})" if p.get("extends")
+                else f"machine {p['index']}, descriptors {p['desc']}..{p['desc'] + 4}")
+        print(f"  {p['id']:12s} {what}, code {p['code']} bytes at {p['code_at']:#x}, variables {p['bss']} bytes at "
+              f"{p['bss_at']:#x}")
     if info["part"]:
         p = info["part"]
         print(f"  {p['id']:12s} {p['shortcuts']} shortcut(s), code {p['code']} bytes at {p['code_at']:#x}, data {p['data']} "

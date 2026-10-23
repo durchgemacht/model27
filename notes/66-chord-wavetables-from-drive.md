@@ -4,7 +4,9 @@
 prepared the same day (§11): three facts read in the code and one measured; the probe of the trig block,
 `tools/emu/probe_chord_tables.py`, run by the maintainer: the sites and the event loop ok, the voice loop corrected
 (§11.6: a note starts in the block with `v + 0x38` set, k 30 comes from the sound object); the second run ALL OK
-(§11.7). W1 done. Nothing built.**
+(§11.7). W1 done. W2 built the same day (§12): the builder takes a package that extends CHORD, proven by REFC, the
+reference extension; the builds that existed are unchanged, byte for byte; `tools/emu/test_refchord.py` ALL OK in the
+maintainer's run (§12.4). W2 done. CHORD Tables itself is not built yet.**
 
 The maintainer asked on 2026-10-23 whether a mod could let the stock CHORD machine load wavetables from the +Drive
 and pick them with RETRIG + CONTOUR ("the exact knob does not matter"), or with FUNC + MACHINES as SAMPLE does. Two
@@ -434,3 +436,132 @@ The corrected probe, same command: **ALL OK** `[FAIT en émulation]`.
 
 W1 is done. `cw_setup` latches in the block with `v + 0x38` set and reads k 30 from `CUR_SNDS[t] + 80`, or from the
 targets when `CUR_SNDS[t]` is 0 (§2.1). Next: W2 (§7).
+
+## 12. W2 built (2026-10-23)
+
+### 12.1 What was built
+
+- **`tools/compose.py`:**
+  - `STOCK_EXTENDED = {"CHORD": 5}`.
+  - `load_manifest()` takes a package with `{"point": "machine.stock", "machine": "CHORD"}` in place of `machine`. It
+    refuses both or neither, another stock machine, an extension without `build.roots`, and the patch points
+    `machine_index` and `descriptor_base`.
+  - `roots_of()` gives the entry points an object is laid out from: update and render, or `build.roots`.
+- **`compose()`:**
+  - added machines are numbered 6, 7, … by their place among the added machines, in the order given;
+  - the tables by machine (the shortcut layer's data, the dispatchers') are the extension, then the added
+    machines, from `first` = 5. Without an extension they are the packages in the order given and `first` = 6, as
+    before. `shortcuts.o` and `dispatch.o` keep their bytes; a CHORD entry with no method goes to the stock code, as
+    any empty entry did;
+  - the shortcut layer is told the descriptor table the OS uses: the registrar's copy (`0x43034000`) with an
+    added machine, the stock table (`0x4010dce0`) without one;
+  - without an added machine nothing is registered: `frame_alone()` and `fill_alone()` (`payload_writes()`) write
+    the freed mask the stub lives in, the boot hook and the stub, and the payload is the packages and the parts.
+- **`frame.json`** gains `"alone"`, those two writes. `frames()` checks that the layout and the stub are the others',
+  and `frame_of(…, 0)` gives the frame back. The frames of 1 to 6 machines do not change.
+- **`tools/claims.py`:** `own_scope()`: an extension's scope `machine` is the stock machine (`machine:CHORD`), in
+  `build_holders()` and `tweak_claims()`. `tools/registry.py` does the same.
+- **`docs/flasher/composer.js`:** the same changes:
+  - `STOCK_EXTENDED`;
+  - the kind of each package;
+  - the table and its `first`;
+  - `frameOf(…, 0)` and `fillAlone()`;
+  - `ownScope()`;
+  - the stock descriptor table without an added machine.
+
+  `tools/webcompose_synth.py` reads `build.roots` and composes five selections with REFC.
+- **REFC**, the reference extension (`tools/machines/refchord/`, MIT, order 34), never offered:
+  - RETRIG + SWEEP = Wavetable, 0 to 64, on CHORD's tracks through the shortcut layer (k 30);
+  - `rc_setup` on the call at `0x400ab15e` and `rc_hook_tick` on the tick: each counts, then calls the stock
+    function;
+  - 24 bytes of code and 8 of variables;
+  - `tools/gen_refmachine.py` writes `34-refchord.json`, whose description ends on this note, so that the registry
+    names it.
+- **`tools/emu/test_refchord.py`**, the proof, in seven parts:
+  - the start-up;
+  - the sites;
+  - the knob;
+  - descriptor 3;
+  - save and load of a CHORD sound;
+  - the tick;
+  - the voice loop: CHORD identical to the stock OS, every setup through `rc_setup`.
+- **Regenerated:**
+  - `27-sampler.json`, `28-refmachine.json` and `29-refmachine2.json`, which gain the computed conflict `refchord`;
+  - `REGISTRY.md` and `docs/flasher/tweaks.js` (which embeds `frame.json`);
+  - the pages' stamp, `2026-10-23-03`;
+  - a `PROVENANCE.md` row and the repository map in `AGENTS.md`.
+- **A bug found while building.** The first build of REFC alone pointed the layer at `0x43034000`, the registrar's
+  copy of the descriptors, which a build with nothing registered does not have. It was found by decoding the layer's
+  data block, before any run. Hence the `descn` argument.
+
+### 12.2 Measured
+
+| Build | Writes | Added to the image | Tables by machine | MAIN OS |
+|---|---|---|---|---|
+| refchord | 9 | 624 | from 5, 1 machine, descriptors at `0x4010dce0` | `a2925916…` |
+| refchord + sampler | 125 | 37 336 | from 5, 2 machines; tick: REFC, SAMPLE | `1bc8c715…` |
+| sampler + refchord | 125 | 37 336 | the same | `66f5dac7…` |
+| refchord + refmachine2 | 125 | 10 020 | from 5; WAVE on 5, OCT on 6 | `5c7a3227…` |
+| sampler + refchord + refmachine2 | 125 | 41 004 | from 5; WAVE on 5, OCT on 7; tick: REFC, SAMPLE, REF2 | `864f27e2…` |
+
+REFC alone writes exactly:
+- the boot hook, the stub's mask and its room;
+- the knob lookup's entry and the three record functions;
+- the tick and CHORD's call.
+
+Nothing of the registrar's: CHORD's pointer table and the references to the descriptor table stay stock.
+
+### 12.3 Checks
+
+- **The builds that existed are unchanged, byte for byte.** HEAD's `compose.py` and the new one give the same MAIN OS
+  for sampler, refmachine, refmachine2 and the five combinations of them. `compose.py --machines sampler --compare
+  27-sampler.json` is identical too.
+- **`webcompose_check.sh` with the official file:**
+  - the 14 selections (9 before, 5 with REFC) are identical to `compose.py`: tweak and MAIN OS;
+  - the 6 synthetic fills are identical;
+  - every object's 23 placements are identical.
+- **Green:**
+  - `gen_refmachine.py`, `gen_sampler.py`, `gen_registrar.py --cycles` and `gen_parts.py` with `--check`;
+  - `check_overlaps.py`, `registry.py --check`, `claims.py --check --self-test`;
+  - `gen_flasher_tweaks.py --check`, `ref_mainos.py --check`;
+  - `webbuild_check.sh`, `webflash_check.sh` and `webflash_smoke.sh` (ALL OK);
+  - `py_compile`.
+- **Not green:** `relocate_6ch.py --check` says `11-6ch-usbup.json` is not up to date. It says the same on HEAD,
+  untouched here.
+- **Emulation:** `test_refchord.py` compiles and finds every helper it uses; Unicorn does not run in the sandbox.
+  The maintainer's run:
+
+```sh
+../.venv-emu/bin/python3 tools/emu/test_refchord.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx
+```
+
+Then: W3, the package `chordtables`, on these extensions. The standard's section on extensions comes with W7.
+
+### 12.4 Proven in emulation (the maintainer, 2026-10-23)
+
+`test_refchord.py`, the command above: **ALL OK** for the four selections `[FAIT en émulation]`: refchord, refchord +
+sampler, sampler + refchord, and sampler + refchord + refmachine2.
+- **Start-up.** The bootstrap's depacker reads the grown OS back, from 1 744 816 bytes (REFC alone) to 1 785 196.
+  The boot hook copies the payload intact and clears the BSS.
+- **The sites:**
+  - CHORD's call goes to `rc_setup`;
+  - the tick goes to `rc_hook_tick` alone and to `dp_tick` with SAMPLE;
+  - the layer's chain ends in SAMPLE's wrappers when SAMPLE is in the build;
+  - the tables start at machine 5, on `0x4010dce0` alone and on `0x43034000` with an added machine;
+  - REFC alone has 9 writes, CHORD's pointer table and the descriptor references stay stock.
+- **The knob:** descriptor 3 only for RETRIG + SWEEP on CHORD, and descriptor 1 for REF2's RETRIG + COLOR on machine
+  7. Every other case gets the stock answer: 2 016 to 2 464 cases per build, the stack back each time.
+- **Descriptor 3:**
+  - k 30, 0..64, no CC, no NRPN, "Wavetable" / "WAVE", machine −1, the other 75 to 85 descriptors untouched;
+  - the range getter reads (0, 16 384, 0);
+  - the setter clamps to 0..16 384;
+  - interface object 3 shows "0" to "64".
+- **Save and load:** a CHORD sound's record differs from the stock one at byte 88 only, record slot 30, in versions 2
+  and 1. Version 2 loads k 30 back with the rest as the stock load, version 1 is refused as before, and a record of
+  the official OS loads 0.
+- **The tick:** REFC's tick counts once and returns the getter's answer. With SAMPLE: getter, `smp_hook_tick`, getter.
+  With REF2 too: getter, `smp_hook_tick`, `ref2_hook_tick`, getter. That is machine order, then the stock getter once.
+- **The voice loop:** CHORD on tracks 1 and 4 with SWEEP moving plays as on the stock OS, sample for sample (peak
+  1,63e8). There are 156 setups in the stock OS and 156 in every build, all through `rc_setup`.
+
+W2 is done. Next: W3, the package `chordtables`.

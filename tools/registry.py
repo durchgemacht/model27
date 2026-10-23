@@ -102,7 +102,7 @@ def claim_holders(by_id):
         if ids:
             out.append((names(ids, by_id), cl.checked(e["claims"], "tweak", ", ".join(e["ids"]), pkgs), e["source"]))
     for pid, m in pkgs.items():
-        c = cl.resolve(cl.package_claims(m, pkgs), pid) if pid in by_id else None
+        c = cl.resolve(cl.package_claims(m, pkgs), cl.own_scope(m)) if pid in by_id else None
         if c:                                            # a package that claims something
             out.append((pid, c, f"tools/machines/{pid}/manifest.json"))
     part = cl.parts().get("shortcuts")

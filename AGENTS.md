@@ -100,7 +100,8 @@ tools/relocate.py             Level B, increment B2a: places a package's committ
 tools/machines/<id>/<id>.o    the package's committed object (ld -r of its sources), written and checked by its generator
 tools/gen_registrar.py        Level B, increments B2b and B2c: assembles the boot stub (a template with the offsets of its
                               immediates) and the registrar runtime (registrar.S) once, and commits both (notes/60 §4, §5);
-                              with --cycles, also the registrar's frame for 1 to 6 machines (B3b, notes/61 §3)
+                              with --cycles, also the registrar's frame for 1 to 6 machines (B3b, notes/61 §3) and for
+                              none ("alone": extensions of a stock machine only, notes/66 §3)
 tools/machines/registrar/     registrar.S, the runtime: the detours of the added machines reading a parameter block the
                               composer fills per build; registrar.json, its committed code, entries and the stub template;
                               frame.json, what every build of n machines writes, filled per build by composer.js
@@ -118,6 +119,10 @@ tools/machines/refmachine2/   the second reference machine (notes/63): grows int
                               machine may use (its shortcut, Octave on RETRIG + COLOR, since B4b; its main screen label
                               and knob view, since B4c; a tick that blinks the label's dot and a browser hook that shows
                               the opened file's name, since B4d; through the dispatchers next to SAMPLE); never offered
+tools/machines/refchord/      the reference extension of a stock machine (notes/66 §3, W2): "machine.stock" CHORD instead
+                              of an added machine, RETRIG + SWEEP on CHORD's tracks and two hooks that count; proves the
+                              builder's extensions (the tables by machine from 5, a build with nothing registered);
+                              never offered
 tools/emu/                    Unicorn emulation of the OS: test_<mod>.py proofs, mcengine.py, emac.py, syntakt.py
 tools/gen_flasher_tweaks.py   FEATURES list -> docs/flasher/tweaks.js (generated); a machine card embeds its package and
                               the registrar's frame, composed in the page (notes/61)
@@ -205,6 +210,7 @@ With the official files (download them from elektron.se into `firmware/`, which 
 python3 tools/gen_<mod>.py --cycles firmware/model-cycles_OS1.13.syx --check
 python3 tools/emu/test_<mod>.py --cycles firmware/model-cycles_OS1.13.syx
 python3 tools/emu/test_compose.py --cycles firmware/model-cycles_OS1.13.syx   # Level B: the composed machines
+python3 tools/emu/test_refchord.py --cycles firmware/model-cycles_OS1.13.syx   # an extension of CHORD (notes/66 §3)
 python3 tools/gen_registrar.py --cycles firmware/model-cycles_OS1.13.syx --check   # registrar.json and frame.json
 tools/webcompose_check.sh firmware/model-cycles_OS1.13.syx    # composer.js composes as compose.py: tweaks, MAIN OS
 python3 tools/ref_mainos.py --cycles firmware/model-cycles_OS1.13.syx --syntakt firmware/Syntakt_OS1.42.syx --check

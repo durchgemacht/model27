@@ -1095,7 +1095,8 @@ window.MC_TWEAKS = {
    "6, the writes (moved tables, bounds, the jumps and the call into the runtime, the marks), the reloc of the",
    "Algorithm parameter's maximum; once, the layout, the runtime, the boot stub template and the stock",
    "addresses whose values fill() reads in the user's own MAIN OS. Written by tools/gen_registrar.py --cycles",
-   "from compose.frame(); docs/flasher/composer.js fills it like compose.fill()."
+   "from compose.frame(); docs/flasher/composer.js fills it like compose.fill(). \"alone\": the writes of a",
+   "build without an added machine, extensions of a stock machine only (compose.frame_alone(), notes/66 §3)."
   ],
   "layout": {
    "pay": 1124073472,
@@ -3131,6 +3132,20 @@ window.MC_TWEAKS = {
      ]
     ]
    }
+  },
+  "alone": {
+   "writes": [
+    {
+     "off": 178,
+     "old": "4feffff048d700f0",
+     "new": "4ef94016cae84e71"
+    },
+    {
+     "off": 724230,
+     "old": "4016cae8",
+     "new": "40154ae4"
+    }
+   ]
   }
  },
  "parts": {

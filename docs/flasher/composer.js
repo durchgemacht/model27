@@ -32,6 +32,7 @@
 "use strict";
 
 const BASE = 0x40000400;                          // where the MAIN OS runs (builder.js, tools/build.py)
+const STOCK_EXTENDED = { CHORD: 5 };              // compose.STOCK_EXTENDED: the stock machines a package may extend
 
 function fromHex(s) {
   // two hexadecimal digits per byte, as everywhere in the page (builder.js); anything else is refused
@@ -91,6 +92,10 @@ function place(bundle, codeAt, bssAt, values = {}) {
 // compose.frame_of(): the frame of n machines out of frame.json, its writes in address order
 function frameOf(frames, n) {
   if (frames.schema !== "model27-registrar-frame/0.1") throw new Error(`registrar frame: schema ${frames.schema}`);
+  if (n === 0) {                                  // extensions only (notes/66 §3): nothing registered
+    if (!frames.alone) throw new Error("no registrar frame without an added machine");
+    return { n: 0, layout: frames.layout, stub: frames.stub, writes: frames.alone.writes.slice(), reloc: [] };
+  }
   if (!has(frames.by_n, String(n))) throw new Error(`no registrar frame for ${n} machines`);
   const own = frames.by_n[String(n)];
   return { n, layout: frames.layout, stock: frames.stock, runtime: frames.runtime, stub: frames.stub,
@@ -228,6 +233,26 @@ function fill(fr, mainOs, machines, blobs, bssEnd) {
   writes.sort((a, b) => a.off - b.off);
   checkOverlaps(writes);
   return { writes, append: { at: hx(end), dest: hx(lay.pay), size, parts, reloc: fr.reloc.map((r) => [...r]),
+                             pack: segs.map(([a, k]) => [hx(a), k]) } };
+}
+
+// compose.fill_alone(): a build without an added machine (notes/66 §3), the payload parts (the packages and the parts
+// of the builder, nothing of the registrar's), the segments and the boot stub
+function fillAlone(fr, mainOs, blobs, bssEnd) {
+  const lay = fr.layout;
+  const parts = blobs.slice().sort(([a], [b]) => a - b).map(([a, b]) => ({ dest: hx(a), hex: hex(b) }));
+  const size = bssEnd - lay.pay;
+  const segs = segments(parts, size, lay.pay);
+  const end = lay.image_end, added = segs.reduce((s, [, k]) => s + k, 0);
+  if (end + added > lay.end_limit) throw new Error(`${added} bytes added: the image would pass ${hx(lay.end_limit)}`);
+  const stub = bootStub(fr, end, lay.pay, Math.floor(size / 4), segs);
+  if (stub.length > lay.stub_room) throw new Error("boot stub too big for its mask");
+  const cave = lay.cave - BASE, free = mainOs.subarray(cave, cave + stub.length);
+  if (free.length !== stub.length || !free.every((b) => b === 0xff)) throw new Error("the boot stub's place is taken");
+  const writes = fr.writes.map((w) => ({ ...w })).concat([{ off: cave, old: "ff".repeat(stub.length), new: hex(stub) }]);
+  writes.sort((a, b) => a.off - b.off);
+  checkOverlaps(writes);
+  return { writes, append: { at: hx(end), dest: hx(lay.pay), size, parts, reloc: [],
                              pack: segs.map(([a, k]) => [hx(a), k]) } };
 }
 
@@ -504,9 +529,12 @@ function beyondShortcuts(c, p, part) {
 
 // claims.build_holders(): [name, claims, claims to compare with the parts, is a part] for each package, its machine
 // named, then the shortcut layer when the build carries it
+// claims.own_scope(): the machine a package's scope "machine" names, its id or the stock machine it extends
+const ownScope = (p) => { const s = p.uses.find((u) => u.point === "machine.stock"); return s ? s.machine : p.id; };
+
 function buildHolders(packages, layerPart) {
   const out = packages.map((p) => {
-    const c = resolveClaims(p.claims || {}, p.id);
+    const c = resolveClaims(p.claims || {}, ownScope(p));
     return [p.id, c, layerPart ? beyondShortcuts(c, p, layerPart) : c, false];
   });
   if (layerPart) out.push([layerPart.id, layerPart.claims || {}, layerPart.claims || {}, true]);
@@ -562,22 +590,39 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
   const ids = packages.map((p) => p.id);
   if (new Set(ids).size !== ids.length) throw new Error("a machine is named twice");
   const lay = frames.layout, pay = lay.pay, first = lay.first;
+  // added machines are numbered 6, 7, ... in the order given; an extension of a stock machine (notes/66 §3) has the
+  // stock machine's number: CHORD, 5, right before them. The tables by machine (the shortcut layer's, the
+  // dispatchers') start at the extension when there is one; without one, they are the packages in the order given.
+  const kindOf = (p) => {
+    const mc = p.uses.find((u) => u.point === "machine"), st = p.uses.find((u) => u.point === "machine.stock");
+    if (mc && st) throw new Error(`${p.id}: an added machine or an extension of a stock machine, not both`);
+    if (!mc && !st) throw new Error(`${p.id}: no 'machine' entry in uses: not an added machine`);
+    if (st && !has(STOCK_EXTENDED, st.machine))
+      throw new Error(`${p.id}: machine.stock ${st.machine}: only ${Object.keys(STOCK_EXTENDED).join(", ")} can be extended`);
+    return { mc, st };
+  };
+  const added = packages.filter((p) => kindOf(p).mc), exts = packages.filter((p) => kindOf(p).st);
+  if (new Set(exts.map((p) => kindOf(p).st.machine)).size !== exts.length)
+    throw new Error(`${exts.map((p) => p.id).join(", ")}: two packages extend the same stock machine`);
+  const table = exts.concat(added);
+  const tabFirst = exts.length ? STOCK_EXTENDED[kindOf(exts[0]).st.machine] : first;
   const machines = [], blobs = [], symsOf = {}, info = [];
   let codeCursor = pay, bssCursor = pay + lay.bss_off;
-  packages.forEach((p, i) => {
+  packages.forEach((p) => {
     const codeAt = align4(codeCursor), bssAt = align4(bssCursor);
-    const values = patchValues(p, { machine_index: first + i, descriptor_base: 76 + 5 * i });
+    const { mc, st } = kindOf(p), i = added.indexOf(p);
+    const values = patchValues(p, mc ? { machine_index: first + i, descriptor_base: 76 + 5 * i } : {});
     const { blob, symbols: syms, bssEnd } = place(p.bundle, codeAt, bssAt, values);
     if (codeAt + blob.length > lay.stubs)
       throw new Error(`${p.id}: code and tables end at ${hx(codeAt + blob.length)}, past ${hx(lay.stubs)}`);
-    const mc = p.uses.find((u) => u.point === "machine");
-    if (!mc) throw new Error(`${p.id}: no 'machine' entry in uses: not an added machine`);
-    machines.push({ name: mc.name, image: mc.image, decay: mc.decay_default,
-                    knobs: mc.knobs.map((k) => [k.long, k.short, k.default].concat("min" in k ? [k.min, k.max] : [])),
-                    update: syms[p.symbols.update], render: syms[p.symbols.render] });
+    if (mc)
+      machines.push({ name: mc.name, image: mc.image, decay: mc.decay_default,
+                      knobs: mc.knobs.map((k) => [k.long, k.short, k.default].concat("min" in k ? [k.min, k.max] : [])),
+                      update: syms[p.symbols.update], render: syms[p.symbols.render] });
     blobs.push([codeAt, blob]);
     symsOf[p.id] = syms;
-    info.push({ id: p.id, index: first + i, desc: 76 + 5 * i, code_at: codeAt, code: blob.length, bss_at: bssAt,
+    info.push({ id: p.id, index: mc ? first + i : STOCK_EXTENDED[st.machine], desc: mc ? 76 + 5 * i : null,
+                extends: mc ? null : st.machine, code_at: codeAt, code: blob.length, bss_at: bssAt,
                 bss: bssEnd - bssAt });
     codeCursor = codeAt + blob.length;
     bssCursor = bssEnd;
@@ -586,14 +631,14 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
   if (packages.some((p) => p.uses.some((u) => u.point === "shortcut"))) {
     if (!parts.shortcuts) throw new Error("a machine declares a shortcut, and the page lacks the shortcut layer");
     const at = align4(codeCursor);
-    layer = shortcutLayer(mainOs, parts.shortcuts, packages, symsOf, shortcutUses(packages, parts.shortcuts), at,
-                          lay.stubs, first, lay.descn);
+    layer = shortcutLayer(mainOs, parts.shortcuts, table, symsOf, shortcutUses(table, parts.shortcuts), at,
+                          lay.stubs, tabFirst, added.length ? lay.descn : frames.stock.desc);
     blobs.push([at, layer.blob]);
     codeCursor = at + layer.blob.length;
   }
-  if (packages.length > 1) {
+  if (table.length > 1) {
     const at = align4(codeCursor);
-    if (parts.dispatch) dispatch = dispatchLayer(mainOs, parts.dispatch, packages, symsOf, at, lay.stubs, first);
+    if (parts.dispatch) dispatch = dispatchLayer(mainOs, parts.dispatch, table, symsOf, at, lay.stubs, tabFirst);
     else {
       const sites = packages.flatMap((p) => p.uses.filter((u) => "hook" in u || "vtable" in u)
         .map((u) => ("hook" in u ? u.hook : u.vtable).at));
@@ -609,7 +654,8 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
       if (lo < bssCursor && pay < hi)
         throw new Error(`${p.id}: the payload (${hx(pay)}..${hx(bssCursor)}) runs into its RAM claim ${hx(lo)}..${hx(hi)}`);
   checkRamClaims(packages);
-  const { writes, append } = fill(frameOf(frames, packages.length), mainOs, machines, blobs, bssCursor);
+  const { writes, append } = machines.length ? fill(frameOf(frames, machines.length), mainOs, machines, blobs, bssCursor)
+    : fillAlone(frameOf(frames, 0), mainOs, blobs, bssCursor);
   const skip = new Set([...(layer ? layer.skip : []), ...(dispatch ? dispatch.skip : [])]);
   for (const p of packages) writes.push(...packageWrites(p, mainOs, symsOf[p.id], skip));
   for (const x of [layer, dispatch]) if (x) writes.push(...x.writes);
@@ -636,8 +682,10 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
     id: tid,
     order: Math.min(...packages.map((p) => p.order)),
     name: packages.length > 1 ? packages.map((p) => p.name).join(" + ") : packages[0].name,
-    description: [`Composed in the browser by composer.js (notes/61): ${info.map((x) => `${x.id} as machine ${x.index}`)
-      .join(", ")}, registered together through the registrar runtime, as tools/compose.py composes them.`],
+    description: [`Composed in the browser by composer.js (notes/61): ${info.map((x) => (x.extends
+      ? `${x.id} extending ${x.extends} (machine ${x.index})` : `${x.id} as machine ${x.index}`)).join(", ")}, `
+      + (machines.length ? "registered together through the registrar runtime"
+        : "nothing registered (no added machine, notes/66 §3)") + ", as tools/compose.py composes them."],
     device: "Model:Cycles",
     os: "1.13",
     section: 3,
@@ -651,7 +699,7 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
                           part: layer && layer.info, dispatch: dispatch && dispatch.info, byClaims } };
 }
 
-const API = { place, frameOf, fill, segments, bootStub, parameterBlock, packageWrites, shortcutUses, shortcutLayer,
+const API = { place, frameOf, fill, fillAlone, segments, bootStub, parameterBlock, packageWrites, shortcutUses, shortcutLayer,
               dispatchLayer, computedConflicts, resolveClaims, claimClashes, buildHolders, checkBuildClaims,
               claimConflicts, compose, fromHex };
 if (typeof module !== "undefined" && module.exports) module.exports = API;

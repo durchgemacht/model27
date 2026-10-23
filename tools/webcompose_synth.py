@@ -39,7 +39,11 @@ MACHINES = HERE / "machines"
 CODE_END = 0x48000000                       # no limit here: the composer checks the room, not this comparison
 SELECTIONS = ((["sampler"], []), (["refmachine"], []), (["sampler", "refmachine"], []), (["refmachine", "sampler"], []),
               (["sampler", "refmachine"], ["arp", "trig-hold"]), (["refmachine2"], []), (["sampler", "refmachine2"], []),
-              (["refmachine2", "sampler"], []), (["sampler", "refmachine", "refmachine2"], []))
+              (["refmachine2", "sampler"], []), (["sampler", "refmachine", "refmachine2"], []),
+              # notes/66 §3: REFC, the reference extension of CHORD, alone (nothing registered), with SAMPLE before
+              # and after it, with REF2 (two shortcuts, machines 5 and 6), and all three
+              (["refchord"], []), (["refchord", "sampler"], []), (["sampler", "refchord"], []),
+              (["refchord", "refmachine2"], []), (["sampler", "refchord", "refmachine2"], []))
 PARTS = ("shortcuts", "dispatch")
 COMPARED = ("id", "order", "name", "version", "conflicts", "writes", "append", "symbols")
 
@@ -55,8 +59,12 @@ def packages():
         b = m.get("build", {})
         objs = b.get("objects", [])
         if len(objs) == 1 and (d / objs[0]).is_file():
-            yield (m["id"], [b["symbols"]["update"], b["symbols"]["render"], *b.get("keep", [])],
-                   b.get("patch_points", []), (d / objs[0]).read_bytes())
+            if "roots" in b:                 # an extension of a stock machine: compose.roots_of()
+                r = b["roots"]
+                names = [r[0], r[1] if len(r) > 1 else r[0], *dict.fromkeys(r[2:] + b.get("keep", []))]
+            else:
+                names = [b["symbols"]["update"], b["symbols"]["render"], *b.get("keep", [])]
+            yield m["id"], names, b.get("patch_points", []), (d / objs[0]).read_bytes()
     for pid in PARTS:
         b = json.loads((MACHINES / pid / "part.json").read_text(encoding="utf-8"))["build"]
         yield pid, b["roots"], b["patch_points"], (MACHINES / pid / b["objects"][0]).read_bytes()
