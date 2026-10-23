@@ -123,6 +123,9 @@ tools/machines/refchord/      the reference extension of a stock machine (notes/
                               of an added machine, RETRIG + SWEEP on CHORD's tracks and two hooks that count; proves the
                               builder's extensions (the tables by machine from 5, a build with nothing registered);
                               never offered
+tools/machines/chordtables/   CHORD Tables (notes/66): an extension of CHORD, RETRIG + SWEEP picks a wavetable from
+                              /Wavetables/01..64 on the +Drive (loader on the tick, RAM claim 0x43400000..0x43700000);
+                              tools/gen_chordtables.py builds it into 36-chordtables.json
 tools/emu/                    Unicorn emulation of the OS: test_<mod>.py proofs, mcengine.py, emac.py, syntakt.py
 tools/gen_flasher_tweaks.py   FEATURES list -> docs/flasher/tweaks.js (generated); a machine card embeds its package and
                               the registrar's frame, composed in the page (notes/61)
@@ -211,6 +214,7 @@ python3 tools/gen_<mod>.py --cycles firmware/model-cycles_OS1.13.syx --check
 python3 tools/emu/test_<mod>.py --cycles firmware/model-cycles_OS1.13.syx
 python3 tools/emu/test_compose.py --cycles firmware/model-cycles_OS1.13.syx   # Level B: the composed machines
 python3 tools/emu/test_refchord.py --cycles firmware/model-cycles_OS1.13.syx   # an extension of CHORD (notes/66 §3)
+python3 tools/emu/test_chordtables.py --cycles firmware/model-cycles_OS1.13.syx   # CHORD Tables (notes/66 §14)
 python3 tools/gen_registrar.py --cycles firmware/model-cycles_OS1.13.syx --check   # registrar.json and frame.json
 tools/webcompose_check.sh firmware/model-cycles_OS1.13.syx    # composer.js composes as compose.py: tweaks, MAIN OS
 python3 tools/ref_mainos.py --cycles firmware/model-cycles_OS1.13.syx --syntakt firmware/Syntakt_OS1.42.syx --check

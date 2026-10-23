@@ -26,6 +26,7 @@
  "conflicts": [
   "acid",
   "acid-tg",
+  "chordtables",
   "macro",
   "macro-acid",
   "macro-acid-tg",

@@ -43,7 +43,9 @@ SELECTIONS = ((["sampler"], []), (["refmachine"], []), (["sampler", "refmachine"
               # notes/66 §3: REFC, the reference extension of CHORD, alone (nothing registered), with SAMPLE before
               # and after it, with REF2 (two shortcuts, machines 5 and 6), and all three
               (["refchord"], []), (["refchord", "sampler"], []), (["sampler", "refchord"], []),
-              (["refchord", "refmachine2"], []), (["sampler", "refchord", "refmachine2"], []))
+              (["refchord", "refmachine2"], []), (["sampler", "refchord", "refmachine2"], []),
+              # notes/66 W3: CHORD Tables, alone, and with SAMPLE before and after it (two RAM claims)
+              (["chordtables"], []), (["chordtables", "sampler"], []), (["sampler", "chordtables"], []))
 PARTS = ("shortcuts", "dispatch")
 COMPARED = ("id", "order", "name", "version", "conflicts", "writes", "append", "symbols")
 

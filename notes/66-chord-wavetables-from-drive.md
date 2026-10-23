@@ -6,7 +6,10 @@ prepared the same day (§11): three facts read in the code and one measured; the
 (§11.6: a note starts in the block with `v + 0x38` set, k 30 comes from the sound object); the second run ALL OK
 (§11.7). W1 done. W2 built the same day (§12): the builder takes a package that extends CHORD, proven by REFC, the
 reference extension; the builds that existed are unchanged, byte for byte; `tools/emu/test_refchord.py` ALL OK in the
-maintainer's run (§12.4). W2 done. CHORD Tables itself is not built yet.**
+maintainer's run (§12.4). W2 done. W3 built the same day (§13): the package `chordtables` and
+`tools/gen_chordtables.py`, `36-chordtables.json`, composed alone and with SAMPLE. W4 prepared (§14):
+`tools/emu/test_chordtables.py`, P1 `cw_setup` and P2 the loader, ALL OK in the maintainer's second run (§14.2):
+W4 done. Next: W5, the converter; W6, digiemu and the device.**
 
 The maintainer asked on 2026-10-23 whether a mod could let the stock CHORD machine load wavetables from the +Drive
 and pick them with RETRIG + CONTOUR ("the exact knob does not matter"), or with FUNC + MACHINES as SAMPLE does. Two
@@ -565,3 +568,182 @@ sampler, sampler + refchord, and sampler + refchord + refmachine2.
   1,63e8). There are 156 setups in the stock OS and 156 in every build, all through `rc_setup`.
 
 W2 is done. Next: W3, the package `chordtables`.
+
+## 13. W3 built (2026-10-23)
+
+### 13.1 What was built
+
+- **The package** `tools/machines/chordtables/` (MIT, order 36): `chordtables.c`, the manifest and the committed
+  object. Its uses:
+  - `machine.stock` CHORD;
+  - the shortcut RETRIG + SWEEP = Wavetable, 0 to 64;
+  - `cw_setup` on the call at `0x400ab15e`;
+  - `ct_hook_tick` on the tick;
+  - `memory.ram` `0x43400000`–`0x43700000`.
+
+  Its claims: k 30, record slot 30, the RAM range and the combination.
+- **The generator** `tools/gen_chordtables.py` writes the object and `36-chordtables.json`, CHORD Tables alone.
+  It has 9 writes, the same sites as REFC's, and adds 2 068 bytes to the image.
+- **`cw_setup`, as §2.1 and §11.6 say:**
+  - in the block with `v + 0x38` set, it latches the table named by k 30. k 30 comes from `CUR_SNDS[t] + 80`, or
+    from the targets when that is 0;
+  - without a table it jumps to the stock function with its own arguments;
+  - with one it writes the stock function's five fields in the four sub-voices.
+- **The loader, as §2.3 says:**
+  - the tick takes its own `tas` lock, and drives the file system only when it is mounted and its lock is not the
+    running task's;
+  - the index's signature is its count and the sum of its ids, read over 8 192 pairs at most. A new signature
+    starts a scan of `/Wavetables/01` to `64`, one file per tick;
+  - for each file: open by path, take the inode and close; read the id and the size (`0x4007de78`); a slot that
+    holds the same id is kept; then the header, the frames, the table built and published.
+
+  The layout:
+
+  | Part | Size |
+  |---|---|
+  | One file as read | 16 384 bytes from `0x43400000` |
+  | 72 buffers of 33 040 bytes | 33 pointers and 32 × 257 Q31 samples each |
+  | End | `0x43648c80`, inside the claim |
+
+- **Decisions taken while writing it**, for the maintainer to know:
+  - a negative SWEEP (an LFO under 0) plays the first frame; the stock function would take the sine;
+  - a file that is stereo, empty, not a multiple of 512 bytes, over 16 384 bytes of audio or shorter than its
+    header says empties its slot;
+  - with no free buffer, the scan waits on that file until one is free;
+  - a track that leaves CHORD keeps its latch, and so a buffer, until it plays CHORD again. The 8 spare buffers
+    cover the six tracks.
+- **Regenerated:**
+  - `27-sampler.json`, `28-refmachine.json`, `29-refmachine2.json` and `34-refchord.json` gain the computed conflict
+    `chordtables`;
+  - `REGISTRY.md`;
+  - `webcompose_synth.py` composes CHORD Tables alone and with SAMPLE before and after it.
+
+  Also a `PROVENANCE.md` row and the repository map. `tweaks.js` does not change: the package is not offered.
+
+### 13.2 Measured
+
+| Build | Writes | Added to the image | Code and tables | Variables | MAIN OS |
+|---|---|---|---|---|---|
+| chordtables | 9 | 2 068 | 1 465 | 624 | `f796d93e…` |
+| chordtables + sampler | 125 | 38 780 | 1 465 + SAMPLE | 624 + SAMPLE | `96eeffbf…` |
+| sampler + chordtables | 125 | 38 780 | | | `be21c9a0…` |
+
+- **Conflicts:** CHORD Tables alone computes 269 of them, among them `model-tg` and `model-tg-st`, whose sample
+  zone covers the RAM claim. `refchord` and `chordtables` cannot be built together: two packages extend CHORD.
+- **The code read back:** `cw_setup` checks the voice's range, latches on `v + 0x38`, computes the crossfade as
+  `(SWEEP << 21) & 0x7fe00000`, and tail-jumps to `0x400a8080` with its arguments in place.
+
+### 13.3 Checks
+
+- **Green:**
+  - `gen_chordtables.py`, `gen_refmachine.py` and `gen_sampler.py` with `--check`;
+  - `claims.py --check --self-test`;
+  - `check_overlaps.py` (288 tweaks), `registry.py --check`;
+  - `gen_flasher_tweaks.py --check`, `ref_mainos.py --check`;
+  - `webcompose_check.sh` with the official file: every selection identical to `compose.py`, the three new ones
+    included;
+  - `py_compile`.
+- **Nothing ran on the OS's code yet.** That is W4:
+  - P1: Unicorn, `cw_setup` in the voice loop, with a table built from the stock frames that must play like the
+    stock OS;
+  - P2: the loader in Unicorn, with the file system's four calls answered by the proof.
+
+## 14. W4 prepared (2026-10-23)
+
+`tools/emu/test_chordtables.py`, for chordtables alone and with SAMPLE before and after it.
+
+**0. Start-up and sites:**
+- the bootstrap's depacker and the boot hook;
+- CHORD's call goes to `cw_setup`, the tick to `ct_hook_tick` or the dispatcher;
+- the layer's tables from 5, the payload below the RAM claim;
+- the knob, descriptor 3, save and load, through `test_refchord.py`'s checks: the same shortcut.
+
+**P1, `cw_setup` in the voice loop.** Two CHORD tracks with SWEEP moving. k 30 comes from the sound object on
+track 1 and from the targets on track 4.
+- **a.** Wavetable 0 is identical to the stock OS, every setup through the stock function.
+- **b.** A table made of the stock frames (the sine, frames 1 to 31, the last repeated), copied into the RAM claim,
+  is identical to the stock OS sample for sample, and the stock function is never called. This shows the frame
+  arithmetic is the stock function's.
+- **c.** With the stock frames in reverse, the four sub-voices hold that table's frames, crossfade and index in every
+  block, and the sound differs from the stock OS.
+- **d.** k 30 changed during a note changes nothing until the next note.
+- **e.** An empty slot, 65 and −1 play the stock table. A negative SWEEP plays frame 0 with no crossfade.
+- **Read beforehand in the OS:** in CHORD's code only `0x400a8080` writes the fields `+156`, `+168`, `+172`,
+  `+184` and `+188` of a sub-voice. The other writes of `+168` and `+172` (`0x400aa342`, `0x400aa9da`) are other
+  machines' code. So what the proof reads after a block is what `cw_setup` wrote.
+
+**P2, the loader.** It runs in the UI harness with the drive emulated by the proof: files by path, inodes, ids,
+the index in memory, and the four calls `0x4007bc5e`, `0x4007bc1c`, `0x4007de78` and `0x4007baaa`.
+- **a. The scan after the mount:**
+  - 01 to 64 are opened in order, one per tick, in read mode, and each found one is closed;
+  - the tables of 32, 1, 4 and 2 frames are built exactly as the proof computes them (C's integer division, Q31,
+    the 257th sample, 33 pointers);
+  - a stereo file, 300 samples, 33 frames and a missing file leave their slot empty;
+  - each tick returns the getter's answer.
+- **b.** Nothing changes: no file call.
+- **c.** A file added starts a new scan. The kept files are not read again; only the rejected ones get their
+  header read.
+- **d.** A file replaced: a new buffer, and the old one is held while a latch points at it, then freed.
+- **e.** A file deleted: its slot is emptied.
+- **f.** Not mounted, or the lock held by the running task: no call. Free again: a new scan.
+- **g.** No free buffer: the scan waits on the file, then goes on.
+
+It compiles, and every helper it takes from the other proofs exists. Unicorn does not run in the sandbox. The
+maintainer's run:
+
+```sh
+../.venv-emu/bin/python3 tools/emu/test_chordtables.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx
+```
+
+### 14.1 The first run (the maintainer, 2026-10-23)
+
+- **Result:** everything green but one check in each of the three selections: P2a, "a stereo file (05), 300 samples
+  (06), 33 frames (07) and the missing files: empty slots".
+- **Why: the proof, not the loader.** File 06 was cut from `frames_of(1, …)`, which gives 256 samples, so `[:300]`
+  left 256. The file was a valid one-frame table, and the loader rightly loaded it.
+- The loader's checks read back as written:
+  - `tstb` of the header's `+1` (stereo);
+  - bytes − 1 > 16 383 (0 or over 32 frames);
+  - bytes & 511 (not k × 256 samples);
+  - bytes + 64 above the file's size.
+
+  Each goes to the path that empties the slot.
+- File 06 now has 300 samples. The run is to be repeated.
+
+### 14.2 The second run (the maintainer, 2026-10-23)
+
+**ALL OK** for chordtables, chordtables + sampler and sampler + chordtables `[FAIT en émulation]`.
+
+- **Start-up and sites.** The depacker reads the grown OS back (1 746 260 bytes alone, 1 782 972 with SAMPLE), and
+  the boot hook copies the payload intact.
+- **The sites:**
+  - CHORD's call goes to `cw_setup`;
+  - the tick goes to `ct_hook_tick` alone and to `dp_tick` with SAMPLE;
+  - the layer's tables start at 5;
+  - the payload ends at `0x43036270` alone and at `0x430482a8` with SAMPLE, below the claim.
+- **The shortcut:** descriptor 3 only for RETRIG + SWEEP on CHORD (2 016 or 2 240 cases). Its fields, range,
+  setter and display are right, and k 30 lands in record slot 30, as for REFC.
+- **P1:**
+  - Wavetable 0 is identical to the stock OS, with 156 setups through the stock function, as in the stock OS;
+  - the stock frames as table 7, at `0x43404000`, are identical to the stock OS sample for sample; the stock
+    function is never called, and both tracks latched, the sound object's and the targets';
+  - the reversed table: the sub-voices hold its frames, crossfade and index in every block, 32 frames reached, and
+    the sound differs;
+  - k 30 changed during a note keeps table 1 at `0x4340589c` until the next note, which plays table 2 at
+    `0x4340d9ac`;
+  - an empty slot, 65 and −1 play the stock table, identical to the stock OS;
+  - a negative SWEEP gives frames 0 and 1, no crossfade, index 0.
+- **P2:**
+  - the scan opens 01 to 64 in order, one per tick, in read mode;
+  - the tables of 32, 1, 4 and 2 frames are exactly as computed here;
+  - stereo, 300 samples, 33 frames and missing files leave their slots empty;
+  - each table is read as its header, then its frames;
+  - with nothing changed, no call;
+  - added, replaced (the old buffer held by a latch, then free), deleted, not mounted, the lock held, no free
+    buffer: each as §14 says.
+
+W4 is done. Still to do:
+- W5, the converter `tools/wavetable.py`;
+- W6, the maintainer's digiemu and device: open by path from the tick (§11.2), the index on a real upload (§11.3),
+  the sound;
+- W7, the card and the standard.
