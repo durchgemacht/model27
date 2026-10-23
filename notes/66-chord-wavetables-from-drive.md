@@ -1,7 +1,10 @@
 # 66 — CHORD plays wavetables from the +Drive, chosen with RETRIG + a knob (plan)
 
-**Status: plan, 2026-10-23; the maintainer's decisions the same day: the six recommendations of §8 (§10). Nothing
-built.**
+**Status: plan, 2026-10-23; the maintainer's decisions the same day: the six recommendations of §8 (§10). W1
+prepared the same day (§11): three facts read in the code and one measured; the probe of the trig block,
+`tools/emu/probe_chord_tables.py`, run by the maintainer: the sites and the event loop ok, the voice loop corrected
+(§11.6: a note starts in the block with `v + 0x38` set, k 30 comes from the sound object); the second run ALL OK
+(§11.7). W1 done. Nothing built.**
 
 The maintainer asked on 2026-10-23 whether a mod could let the stock CHORD machine load wavetables from the +Drive
 and pick them with RETRIG + CONTOUR ("the exact knob does not matter"), or with FUNC + MACHINES as SAMPLE does. Two
@@ -77,6 +80,8 @@ Addresses: VA of OS 1.13.
   trig.
 - `v + 0x34` is set in the block of a trig, before update runs. `v + 0x00..0x3c` is cleared when the track changes
   machine (`0x400a7ab8`).
+- The voice loop looks at the machine only in a block with `v + 0x38` set: the first note after a machine change
+  starts one block late, and its trig flag is cleared by the reset. Measured on 2026-10-23, §11.6.
 
 ### 1.3 The shortcut layer, for machine 5
 
@@ -114,8 +119,10 @@ Addresses: VA of OS 1.13.
 The call at `0x400ab15e` becomes `jsr cw_setup` (6 bytes, `old` = `4eb9400a8080`). `cw_setup(v, p)`:
 
 1. t = (v − `0x42308828`) / `0x31c`.
-2. In the block of a trig (`v + 0x34` ≠ 0):
-   - n = the shortcut's value, k 30 (RETRIG + SWEEP, §10), read from the copy at `0x800015ae + 66 · t + 60`, >> 8;
+2. In the block a note starts (`v + 0x38` ≠ 0: the block after the trig, or the machine change, §11.6):
+   - n = the shortcut's value, k 30 (RETRIG + SWEEP, §10), >> 8. It is read from the sound object
+     `CUR_SNDS[t] + 80`, or from the targets `0x800015ae + 66 · t + 60` when `CUR_SNDS[t]` is 0 (a preview note).
+     The targets alone go stale when the value changes on a sound that keeps playing (§11.6);
    - `latch[t]` = the pointer list of table n, or 0 if n = 0, if n is out of range or if table n is not loaded.
 3. `latch[t]` = 0: `jmp 0x400a8080`, the stock function with its own arguments.
 4. Otherwise the stock function's body with `latch[t]` in place of the selector: frames index and index + 1 from a
@@ -125,8 +132,8 @@ The call at `0x400ab15e` becomes `jsr cw_setup` (6 bytes, `old` = `4eb9400a8080`
   cannot. Taking it from the unsmoothed copy at the trig, as One-Shot takes its key, avoids both the click and the
   question of how the OS smooths k 30.
 - **Size.** About 120 bytes of assembly, plus `latch[6]` in the package's variables.
-- `[HYP]` v + 0x34 behaves for CHORD as for SAMPLE, and the copy at `0x800015ae` already holds the new sound in the
-  trig block. One-Shot relies on both on the device. Proven for CHORD in W1.
+- The flags and the sources were checked by W1's probe (§11.6). The first version of this plan latched on
+  `v + 0x34` and read the targets only; both were wrong.
 
 ### 2.2 The tables in RAM
 
@@ -191,7 +198,7 @@ shows the number (notes/63 §11.2 point 4).
   - in phase with its neighbours, otherwise the SWEEP crossfade dips in level.
 - **Upload.** One-Shot's uploader writes the file under the typed name, without extension (One-Shot §12,
   `uploader/app.js`).
-  `[HYP]` A 48 kHz WAV keeps its exact length through the browser's decode at 48 kHz; W1 checks it.
+  A 48 kHz WAV keeps its length through the browser's decode at 48 kHz, its values within one step (§11.4).
 - **Converter** (§10, decision 5): `tools/wavetable.py`.
   - In: WAV frames of 256 or 2 048 samples (2 048 is the common wavetable size).
   - Out: the 48 kHz WAV for the uploader, or the device file for digiemu (`ekfsadd`).
@@ -288,3 +295,142 @@ The maintainer took the six recommendations of §8.
 6. **The name:** package `chordtables`, card "CHORD Tables".
 
 Next: W1 (§7).
+
+## 11. W1 prepared (2026-10-23)
+
+### 11.1 The trig block: a probe, and a design question it settles
+
+- **Read in the code** `[FAIT]`: `0x40058a0a(sound, t)` sets `CUR_SNDS[t]` (`0x800015a0 + (147 + t) · 4`) and copies
+  the sound's 66 bytes from `+20` to `0x800015ae + 66 t`. It runs only when the note's sound is not `CUR_SNDS[t]`
+  (`0x400590d6`, notes/46 §2).
+- **The question.** After RETRIG + SWEEP is turned on a sound that keeps playing, do the targets get the new k 30?
+  - The stock edit path may notify them. That passage was never emulated end to end (notes/56 §3.9).
+  - If it does not, `cw_setup` must read the sound object: `CUR_SNDS[t] + 80`. After a preview note
+    `CUR_SNDS[t]` is 0 (`0x4005910e`), and then it must read the targets, which hold the previewed sound.
+- **The probe** `tools/emu/probe_chord_tables.py`. Unicorn, the stock OS only, nothing patched:
+  - **the sites:** the call at `0x400ab15e` and no other, the selector's table, the copy's addresses. They pass
+    here, replayed on the stock MAIN OS without Unicorn;
+  - **the voice loop:** three CHORD tracks next to KICK, SNARE and TONE, trigs in chosen blocks, including two
+    blocks in a row. At the setup's entry it checks:
+    - one call per block for each CHORD track, from `0x400ab164`;
+    - v and p as in §1.1;
+    - `v + 0x34` exactly in the trig blocks, `v + 0x38` in the block after;
+    - `p + 0x3c` = k 30;
+  - **the event loop** (`test_arp.Audio`):
+    - a new sound: the targets and `CUR_SNDS[t]`;
+    - the same sound after k 30 changed in the sound object: the targets' k 30, reported as a finding;
+    - a preview note (the event's `+52`): `CUR_SNDS[t]` = 0, the targets = the preview sound;
+    - a normal note after it: copied again.
+- The probe answers for the event loop only; the notification itself comes from the interface. The answer, and
+  why `cw_setup` reads the sound object, are in §11.6.
+
+### 11.2 Opening a file by path `[FAIT]` (code reading)
+
+`0x4007bc5e(path, mode, handle[16])`:
+- returns −1, without the lock, when the drive is not mounted (`0x40f07cf4`), the path is null or longer than 255
+  (`0x400cbde4`), or the mode or the handle is null;
+- takes the FS lock `0x40fe6df0` (`0x40001cc4`). A mode containing `w` (`0x400cb7d4(mode, 'w')`) opens for writing;
+- resolves the path (`0x4007d454`);
+- **a file found:** the handle becomes {inode, position 0, write flag, open = 1}, the inode is marked open
+  (`0x4007ed54`), the lock is given back and it returns 0;
+- **in read mode, no file:** the lock is given back and it returns −1.
+
+`0x4007bc1c(handle)` closes only a handle whose `+12` is set, under the same lock. The stock OS calls the open from
+the FileWriter (`0x4007c4ba`) and the preset save (`0x400a2b72`), both in the UI task. The handle is the one
+`0x4007baaa` reads (One-Shot §7).
+
+The loader may call it from the tick under One-Shot's rules (§1.4). That it runs there in practice is checked with
+the first build (P3).
+
+### 11.3 When the file index changes `[FAIT]` (code reading)
+
+- `0x4007e042` rebuilds the index only at mount (its one caller, `0x4007d644`).
+- **A finished file:** `0x4007e2f6` hashes it and enters it in the index, which changes the count. It is called
+  from the FileWriter's close (`0x4007c03e`) and the preset save (`0x400a2bfc`): an upload over USB is a FileWriter
+  (One-Shot §12).
+- **A deleted file:** `0x4007dfde` clears the inode's id, and `0x4007df92` takes the pair out of the index,
+  count − 1.
+- **Replacing a file** is a delete and an upload: the uploader refuses a name that exists. Both steps take seconds,
+  so a 30 Hz tick sees both changes.
+- **A rename** changes neither the count nor an id. Watching the count and a sum of the ids catches uploads,
+  deletions and replacements, not a rename `[HYP]`: a renamed table is seen at the next start.
+
+### 11.4 The uploader at 48 kHz `[FAIT]` (measured)
+
+Measured in the desktop app's built-in browser (Chromium 152), with the uploader's own conversion
+(`OfflineAudioContext` at 48 kHz, `mixDown`, `toInt16`):
+
+| WAV | Length | Values |
+|---|---|---|
+| mono, 48 kHz, 8 192 samples | 8 192 | 6 098 of 8 192 exact: every sample from 16 368 up comes back one step high |
+| stereo, 48 kHz, both channels the same | 8 192 | as mono |
+| mono, 44,1 kHz, 8 192 samples | 8 916 | resampled: no longer k × 256 |
+| mono, 48 kHz, every value −32 768 … 32 767 | 65 536 | negative values exact; positive values from 16 368 up are 1 step high (16 400 values) |
+
+- **Why.** Chromium decodes 16-bit asymmetrically: negative values / 32 768, positive values / 32 767 (32 767 gives
+  1,0). The uploader multiplies both by 32 768.
+- **For tables** the error is at most 1 step (about −90 dB): harmless. A table must come at 48 kHz, so the
+  converter writes 48 kHz (§4).
+
+### 11.5 What the maintainer runs
+
+```sh
+../.venv-emu/bin/python3 tools/emu/probe_chord_tables.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx
+```
+
+Then:
+- the result goes into this section;
+- `cw_setup`'s source of k 30 follows from 11.1;
+- W2 starts.
+
+No separate digiemu probe was written. Items 11.2 and 11.3 are read in the code, and running them takes the loader
+itself, so they are checked with the first build in digiemu (P3).
+
+### 11.6 The first run (the maintainer, 2026-10-23)
+
+The probe ran in `.venv-emu` with Unicorn 2.1.4, against the official file. Result: the sites and the event loop ok,
+3 FAIL in the voice loop.
+
+- **The FAILs.**
+  - 93 calls instead of 102 (34 blocks × 3 tracks);
+  - no `v + 0x34` in the first trig block;
+  - no `v + 0x38` after track 2's second trig, which came in the block right after its first.
+- **Why** `[FAIT]`, read in `0x400a7d4a`. Per track the voice loop:
+  1. writes the trig bit to `v + 0x34` and the release bit to `v + 0x3c`;
+  2. only if `v + 0x38` is set, compares the parameters' machine (`p + 18`, through `0x40118640`) with `v + 4`;
+     when they differ it resets the voice (`0x400a7ab8`, which clears `v + 0x00..0x3c`), sets `v + 0x38` = 1 and
+     writes the machine to `v` and `v + 4`;
+  3. calls update and render of the machine at `v` when it is 0–5;
+  4. copies `v + 0x34` to `v + 0x38`.
+- **So the first note after a machine change:**
+  - its trig block still runs the old machine;
+  - CHORD's update starts in the next block, with `v + 0x34` clear and `v + 0x38` set;
+  - a trig in that block is lost to the reset.
+
+  The probe expected otherwise. The OS is right, the probe was wrong.
+- **The event loop** `[FAIT en émulation]`: after k 30 changed in the sound object without a new sound, the targets
+  keep the old value (0x0300 against 0x0500). A preview note leaves `CUR_SNDS[t]` at 0 and the targets holding the
+  preview sound. The next normal note copies the kit sound again.
+- **What changes in the design (§2.1):**
+  - `cw_setup` latches in the block with `v + 0x38` set, which is the block a note starts in on every machine
+    (One-Shot §5);
+  - it reads k 30 from `CUR_SNDS[t] + 80`, and from the targets only when `CUR_SNDS[t]` is 0.
+  - Whether the interface's edit path also writes the targets no longer matters.
+- **The probe** now expects the machine change: no call in block 0, the change in block 1 (and track 2's trig there
+  lost), then the flags exactly as before, with a pair of consecutive trigs on track 5. To run again:
+
+```sh
+../.venv-emu/bin/python3 tools/emu/probe_chord_tables.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx
+```
+
+### 11.7 The second run (the maintainer, 2026-10-23)
+
+The corrected probe, same command: **ALL OK** `[FAIT en émulation]`.
+- **Sites, voice loop, event loop:** all green.
+- **The voice loop:**
+  - no call in the first trig block, then the machine change in the next;
+  - one call per block for each CHORD track and no other;
+  - `v + 0x34` and `v + 0x38` exactly as §11.6 says, with two trigs in consecutive blocks too.
+
+W1 is done. `cw_setup` latches in the block with `v + 0x38` set and reads k 30 from `CUR_SNDS[t] + 80`, or from the
+targets when `CUR_SNDS[t]` is 0 (§2.1). Next: W2 (§7).
