@@ -28,10 +28,10 @@ sequencer, interface), 35 (USB audio driver), 38 (tempo and the musical clock).
 
 ## Hardware results
 
-Only Maxime tests on the machine. Record his result in a section `## N. Testé sur la machine (JJ/MM/AAAA)`: what he
-flashed (which mods, which method), what he reported (quote him when useful), what was fixed after. Update the index
-row ("**testé sur la machine le JJ/MM/AAAA**"). A problem he reports gets its own section with the diagnosis and the
-fix, in the same note.
+Only the maintainer tests on the machine. Record their result in a section `## N. Testé sur la machine (JJ/MM/AAAA)`:
+what they flashed (which mods, which method), what they reported (quote them when useful), what was fixed after.
+Update the index row ("**testé sur la machine le JJ/MM/AAAA**"). A problem they report gets its own section with the
+diagnosis and the fix, in the same note.
 
 ## Style
 

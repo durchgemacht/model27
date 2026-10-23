@@ -39,17 +39,29 @@ rules (only the MAIN OS section is touched, every mod is proven in emulation, re
      sources' `LICENSE`;
    - `tools/gen_<id>.py`: writes the object and the machine's tweak alone,
      `tweaks/model-cycles_OS1.13/<order>-<id>.json`; `--check` compares both with the committed files;
-   - the proofs of section 12.6 under `tools/emu/`, pointed at your machine;
+   - `tweaks/model-cycles_OS1.13/REGISTRY.md`, regenerated with `python3 tools/registry.py` (no firmware needed);
+   - the proofs of section 12.6 under `tools/emu/`, pointed at your machine, and its selections (alone, before and
+     after `sampler`) in `SELECTIONS` of `tools/webcompose_synth.py`, which `tools/webcompose_check.sh` composes;
+   - optionally, a note `notes/NN-<slug>.md` in English, with its row in `notes/README.md` (the next free number; the
+     maintainer renumbers it if two pull requests take the same one);
    - in its description, the result of each check section 12 names, and "not run" with the reason for a check you
      could not run.
 3. **Another mod** (not a machine, or a machine that is not a package yet) starts with the inventory of the porting
-   guide's sections 1 to 11, without changing its code. The maintainer then decides with you whether it is ported,
-   offered as a card, or stays a command-line build; [`AGENTS.md`](AGENTS.md) describes the path of a tweak.
+   guide's sections 1 to 11, without changing its code. The maintainer then decides with you whether it is ported to
+   a package, becomes a tweak, or stays a command-line build. A tweak's pull request follows steps 1 to 3 of
+   [`AGENTS.md`](AGENTS.md#adding-a-feature-for-users-the-usual-pr) (note, generator, proofs, `REGISTRY.md`); its
+   card, guide section, release notes and credit come as in step 4, not in the pull request.
 4. **The maintainer takes it from there.** They run the checks again with the official files, the emulation proofs,
-   digiemu and their own Model:Cycles. The flasher card, the guide section, the release notes and the credit come in
-   a commit of their own after the merge: they need the official files, and which cards the page offers is the
-   maintainer's call. A new mod ships as *Experimental*; it becomes *Tested* only after the maintainer has tried it on
-   their own Model:Cycles.
+   digiemu and their own Model:Cycles. The flasher card, the guide section, the release notes and the credit
+   (`PROVENANCE.md`, `THIRD-PARTY-NOTICES.md`) come in a commit of their own after the merge, with the generated
+   files of the page: which cards the page offers is the maintainer's call. A new mod ships as *Experimental*; it
+   becomes *Tested* only after the maintainer has tried it on their own Model:Cycles.
 
-A fix to the site, the guide or a mod already offered is one pull request with its note, proof and release entry, as
-[`AGENTS.md`](AGENTS.md) describes.
+**Generated files.** Apart from `REGISTRY.md` and the mod's own object and tweak, a pull request leaves the generated
+files as they are: `docs/flasher/tweaks.js` and the `REF_MAINOS` and `REF_MODS` blocks of `docs/flasher/app.js`, even
+when `gen_flasher_tweaks.py --check` or `ref_mainos.py --check` then fails. The maintainer regenerates them after the
+merge, so that two pull requests never clash over them.
+
+A fix to the site, the guide or a mod already offered is one pull request with its note section and proof, as
+[`AGENTS.md`](AGENTS.md) describes; its release entry and the generated files come with the maintainer's commit after
+the merge, as in step 4.

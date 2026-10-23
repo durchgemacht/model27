@@ -1,4 +1,8 @@
-<!-- See CONTRIBUTING.md. A new machine or mod starts with an issue; link it below. Do not attach firmware (.syx). -->
+<!-- See CONTRIBUTING.md. A new machine or mod starts with an issue; link it below. Do not attach firmware (.syx).
+Leave docs/flasher/tweaks.js and the REF_MAINOS / REF_MODS blocks of app.js as they are: the maintainer regenerates
+them after the merge, with the card, the guide, the release notes and the credit. -->
+
+Note (optional): `notes/…`
 
 ## What it does
 
@@ -20,14 +24,14 @@ Other changes: the checks AGENTS.md names for them. -->
 
 - `python3 tools/claims.py --check --self-test`:
 - `python3 tools/check_overlaps.py`:
-- `python3 tools/registry.py --check`:
+- `python3 tools/registry.py --check` (after `python3 tools/registry.py`, with `REGISTRY.md` in the pull request):
 - `python3 tools/relocate.py tools/machines/<id>/<id>.o`:
 - `python3 tools/gen_<id>.py --cycles <official file> --check`:
 - `python3 tools/compose.py --cycles <official file> --machines <id> --compare-ld`:
 - the same with `--machines sampler,<id>` and `--machines <id>,sampler`:
 - `python3 tools/emu/test_compose.py --cycles <official file> --machines <id>`:
 - `test_shortcuts.py` (with a shortcut), `test_views.py` (with a view, the tick or the browser):
-- `tools/webcompose_check.sh <official file>`:
+- `tools/webcompose_check.sh <official file>` (with your selections in `SELECTIONS` of `tools/webcompose_synth.py`):
 
 ## Tried on
 
