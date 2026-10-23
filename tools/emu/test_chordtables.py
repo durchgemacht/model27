@@ -18,7 +18,7 @@ For each selection (by default: chordtables; chordtables,sampler; sampler,chordt
   P2. the loader (ct_hook_tick in the UI harness), with the four file system calls answered by this proof (open by
      path, close, the inode's id and size, a read at a position) and the file index in memory:
      a. a scan after the mount: /Wavetables/01 to /64 opened in order, one per tick, each closed; mono files of
-        k x 256 samples (k = 32, 1, 4, 2) built exactly as the proof computes them (the spread, Q31, the 257th sample,
+        k x 256 samples (k = 32, 1, 4, 2, and 4 in a file made by tools/wavetable.py) built exactly as the proof computes them (the spread, Q31, the 257th sample,
         33 pointers); a stereo file, one of 300 samples, one of 33 frames and a missing one leave their slot empty;
         the tick returns the stock getter's answer;
      b. nothing changes: no file call;
@@ -26,7 +26,10 @@ For each selection (by default: chordtables; chordtables,sampler; sampler,chordt
      d. a file replaced: its slot gets a new buffer, the old one waits while a track's latch holds it, then is free;
      e. a file deleted: its slot empty;
      f. the drive not mounted, or its lock held by the running task: no file call; mounted again: a new scan;
-     g. no free buffer: the scan waits on the file, and goes on once a buffer is free.
+     g. no free buffer: the scan waits on the file, and goes on once a buffer is free;
+  C. the cost by the standard's method (STANDARD.md §6): instructions per block per voice in the real voice loop,
+     CHORD alone on track 1, the first block of the note then the mean and maximum of the next 21, for stock CHORD,
+     Wavetable 0 and a table; printed as findings, and the extension's share checked to stay small.
 
 Needs Unicorn and numpy (pip install unicorn numpy) and m68k-elf-objdump; Unicorn's JIT does not run inside a
 sandbox that forbids it: run it in a normal terminal (model27's .venv-emu has both). About two minutes.
@@ -34,6 +37,7 @@ sandbox that forbids it: run it in a normal terminal (model27's .venv-emu has bo
     python3 tools/emu/test_chordtables.py --cycles model-cycles_OS1.13.syx [--machines chordtables,sampler]
 """
 import argparse
+import math
 import pathlib
 import struct
 import sys
@@ -54,6 +58,7 @@ import test_sdvintage as T          # noqa: E402
 import test_sdvintage_exact as X    # noqa: E402
 import test_sdvintage_7th as t7     # noqa: E402
 import test_shortcuts as S          # noqa: E402
+import wavetable as W               # noqa: E402  (tools/wavetable.py, the converter of notes/66 §4)
 from test_sdvintage_7th import check  # noqa: E402
 
 SELECTIONS = [["chordtables"], ["chordtables", "sampler"], ["sampler", "chordtables"]]
@@ -393,6 +398,12 @@ def loader_tests(key, img, runtime, syms):
     d.put("/Wavetables/05", sample_file(frames_of(2, 15), stereo=True))
     d.put("/Wavetables/06", sample_file(frames_of(2, 16)[:300]))     # 300 samples: not k x 256
     d.put("/Wavetables/07", sample_file(frames_of(33, 17)))
+    # 08: what tools/wavetable.py makes of a 4-frame saw table at 2048 samples a frame
+    saw = [sum(math.sin(h * (2 * math.pi * m / 2048 + 0.5 * j)) / h for h in range(1, 120)) * 0.5
+           for j in range(4) for m in range(2048)]
+    data[8], _rep = W.convert(saw)
+    files[8] = (4, None)
+    d.put("/Wavetables/08", W.device_bytes(data[8]))
     # a. the scan after the mount
     log = []
     rets, opens = [], []
@@ -404,13 +415,13 @@ def loader_tests(key, img, runtime, syms):
     paths = [c[1] for calls in log for c in calls if c[0] == "open"]
     closes = sum(1 for calls in log for c in calls if c[0] == "close")
     check(paths == [f"/Wavetables/{n:02d}" for n in range(1, 65)] and opens == [1] * 64 and r32(syms["ct_scan"]) == 0
-          and all(c[2] == "r" for calls in log for c in calls if c[0] == "open") and closes == 7 and not u.bad,
+          and all(c[2] == "r" for calls in log for c in calls if c[0] == "open") and closes == 8 and not u.bad,
           f"{key}: P2a the scan: /Wavetables/01 to /64 opened in order, one per tick, read mode, each found one closed; "
           "the scan ends")
     check(set(rets) == {0x5a}, f"{key}: P2a every tick returns the stock getter's answer")
     check(all(table_ok(n, data[n], k) for n, (k, _s) in files.items()),
-          f"{key}: P2a files 01 (32 frames), 02 (1), 03 (4), 64 (2): their tables built exactly as computed here "
-          "(spread, Q31, the 257th sample, 33 pointers)")
+          f"{key}: P2a files 01 (32 frames), 02 (1), 03 (4), 64 (2) and 08 (4, made by tools/wavetable.py): their tables "
+          "built exactly as computed here (spread, Q31, the 257th sample, 33 pointers)")
     check(all(slot(n) == 0 for n in range(1, 65) if n not in files),
           f"{key}: P2a a stereo file (05), 300 samples (06), 33 frames (07) and the missing files: empty slots")
     reads = [c for calls in log for c in calls if c[0] == "read"]
@@ -479,6 +490,53 @@ def loader_tests(key, img, runtime, syms):
           f"{key}: P2g no free buffer: the scan waits on file 09; once a buffer is free, 09 is loaded and the scan ends")
 
 
+# --- C. the cost, by the standard's method (STANDARD.md §6) -----------------------------------------------------------
+COST_BLOCKS = 21
+
+
+def cost_run(img, runtime=None, tweak=None, syms=None, frames=None, n=0, trig=True):
+    """Instructions per block in the real voice loop, track 1 alone on CHORD (machine defaults, note 60, SWEEP 24),
+    trig in block 1: [block 0, block 1, ...]; the other five voices muted."""
+    v = Voice(img, runtime, tweak, syms)
+    v.e.set(3, machine=0x7f)
+    if frames is not None:
+        v.table(0, 0, frames)
+    v.k30(n, track=0)
+    v.e.count_instructions()
+    counts = []
+    for b in range(3 + COST_BLOCKS):
+        before = v.e.instructions
+        v.e.block(1 if trig and b == 1 else 0)
+        counts.append(v.e.instructions - before)
+    return counts
+
+
+def cost_tests(key, stock, tweak, img, runtime, syms):
+    idle = cost_run(stock, trig=False)
+    per_voice = lambda c: [x - y for x, y in zip(c, idle)]
+    stock_frames = [Voice(stock).frame(SINE)]
+    ref = Voice(stock)
+    stock_frames += [ref.frame(struct.unpack(">I", ref.e.uc.mem_read(CHORD_TABLE + 4 * i, 4))[0]) for i in range(31)]
+    out = {}
+    for name, args in (("stock CHORD", (stock,)), ("Wavetable 0", (img, runtime, tweak, syms)),
+                       ("a table", (img, runtime, tweak, syms, stock_frames[::-1], 1))):
+        c = per_voice(cost_run(*args))
+        first, rest = c[2], c[3:3 + COST_BLOCKS]       # block 2: the note starts (the machine change, §11.6)
+        out[name] = (first, sum(rest) / len(rest), max(rest))
+        finding(f"{key}: cost, {name}: first block {first}, then mean {out[name][1]:.0f}, max {out[name][2]} "
+                f"instructions per block per voice (over {COST_BLOCKS} blocks)")
+    d0 = out["Wavetable 0"][1] - out["stock CHORD"][1]
+    d1 = out["a table"][1] - out["stock CHORD"][1]
+    check(0 <= d0 < 100 and -100 < d1 < 200,
+          f"{key}: the extension adds {d0:+.0f} instructions per block per voice at Wavetable 0 and {d1:+.0f} with a "
+          "table, against stock CHORD; the emulator does not time memory, and a table's frames are read in SDRAM "
+          "instead of SRAM (notes/66 §0)")
+
+
+def finding(msg):
+    print("finding  " + msg)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cycles", required=True, help="official model-cycles_OS1.13.syx")
@@ -506,6 +564,8 @@ def main():
         voice_tests(key, stock, tweak, img, runtime, syms, args.blocks)
         print("P2. the loader")
         loader_tests(key, img, runtime, syms)
+        print("C. the cost (STANDARD.md §6)")
+        cost_tests(key, stock, tweak, img, runtime, syms)
     print("\nALL OK" if not t7.FAIL else f"\n{len(t7.FAIL)} FAILED: " + "; ".join(t7.FAIL[:6]))
     return 1 if t7.FAIL else 0
 

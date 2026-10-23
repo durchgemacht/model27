@@ -9,7 +9,9 @@ reference extension; the builds that existed are unchanged, byte for byte; `tool
 maintainer's run (§12.4). W2 done. W3 built the same day (§13): the package `chordtables` and
 `tools/gen_chordtables.py`, `36-chordtables.json`, composed alone and with SAMPLE. W4 prepared (§14):
 `tools/emu/test_chordtables.py`, P1 `cw_setup` and P2 the loader, ALL OK in the maintainer's second run (§14.2):
-W4 done. Next: W5, the converter; W6, digiemu and the device.**
+W4 done. W5 built and W6 prepared the same day (§15): `tools/wavetable.py` (self-test ALL OK), the proof's cost part
+and a converter-made file; the maintainer's third run ALL OK (§15.4), the cost in the manifest; the device test is
+open.**
 
 The maintainer asked on 2026-10-23 whether a mod could let the stock CHORD machine load wavetables from the +Drive
 and pick them with RETRIG + CONTOUR ("the exact knob does not matter"), or with FUNC + MACHINES as SAMPLE does. Two
@@ -747,3 +749,122 @@ W4 is done. Still to do:
 - W6, the maintainer's digiemu and device: open by path from the tick (§11.2), the index on a real upload (§11.3),
   the sound;
 - W7, the card and the standard.
+
+## 15. W5 built, W6 prepared (2026-10-23)
+
+The maintainer: "bau es wie geplant". So the cost measurement that §6 asked of P1 was added first, then W5 was built
+and W6 prepared. W7 waits for the device, as §7 orders it.
+
+### 15.1 The cost, added to the proof
+
+`test_chordtables.py` part C follows STANDARD.md §6:
+- instructions per block per voice in the real voice loop;
+- CHORD alone on track 1, minus a run with every voice muted;
+- the note's first block, then the mean and the maximum of the next 21;
+- for stock CHORD, Wavetable 0 and a table.
+
+The numbers are printed as findings, and the extension's share is checked: under 100 instructions at Wavetable 0,
+between −100 and +200 with a table. The emulator does not time memory: what a table's frames cost in SDRAM instead
+of SRAM only the device shows. The numbers go into the manifest's `cost.emulation` after the maintainer's run.
+
+### 15.2 The converter `tools/wavetable.py` (W5)
+
+Plain Python, no extra package, MIT. The steps:
+1. **Reads a WAV:** 8, 16, 24 or 32-bit PCM or 32-bit float, mixed to mono.
+2. **Cuts it into frames** of `--frame` samples: 2 048 when the length is a multiple of it, else 256. A table that
+   is both, 8 × 256 = 2 048 for one, needs `--frame`.
+3. **Keeps 32 frames at most**, evenly picked (`--frames`).
+4. **For each frame:**
+   - takes harmonics 1 to 40 (`--harmonics`) by a DFT and synthesises 256 samples: no DC, nothing above;
+   - turns the frame so that its fundamental starts in sine phase, the same for all of them (`--no-align`);
+   - scales it to full level (`--keep-levels`: one gain for the table).
+5. **Writes** the 48 kHz mono 16-bit WAV for the uploader (`-o`) and/or the +Drive's sample file (`--device`),
+   refused if the loader would refuse it.
+
+`--self-test`: **ALL OK** here, 13 checks.
+
+| What | Checked |
+|---|---|
+| A saw table of 4 frames of 2 048 samples, harmonics to 199 | 4 × 256 samples |
+| What it keeps | nothing above harmonic 40 but rounding, no DC, each frame at full level |
+| The phase | every fundamental in sine phase; each frame starts on a rising zero crossing |
+| The device file | its header fields; the loader's rules take it (4 frames) and refuse a stereo file, 300 samples and 33 frames |
+| 256-sample frames under 40 harmonics | the same samples, scaled once |
+| 64 frames | 32 kept, evenly |
+| WAV formats | 16-bit stereo at 44,1 kHz, 24-bit and float read as the 16-bit WAV |
+
+`test_chordtables.py` P2a now also loads a file the converter made, as `/Wavetables/08`: a 4-frame saw table at
+2 048 samples a frame. Its table must come out exactly as computed.
+
+```sh
+python3 tools/wavetable.py my-table.wav -o 01.wav
+python3 tools/wavetable.py --self-test
+```
+
+### 15.3 What the maintainer runs and tests (W6)
+
+1. **The proof again**, for part C and the converter's file:
+
+   ```sh
+   ../.venv-emu/bin/python3 tools/emu/test_chordtables.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx
+   ```
+
+2. **The firmware.** CHORD Tables alone, or with SAMPLE:
+
+   ```sh
+   python3 tools/compose.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx --machines chordtables --out build/
+   python3 tools/compose.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx --machines sampler,chordtables --out build/
+   ```
+
+   These give `build/model-cycles_OS1.13-chordtables.syx` and `…-sampler+chordtables.syx`. They are flashed the way
+   the pair SAMPLE + REF was (notes/60 §12): the web flasher does not offer the package.
+3. **The tables:**
+   - `tools/wavetable.py` for each one;
+   - in One-Shot's uploader, a folder `Wavetables` at the drive's root;
+   - the files uploaded under the names `01`, `02`, … (the uploader drops the extension).
+4. **digiemu.** `ekfsadd.py` writes only into a folder that exists. model27 carries no tool that makes one:
+   digiemu's file system code is GPL-2.0, and copying or paraphrasing it here is not allowed. If the emulated
+   Cycles cannot make the folder, the test goes to the device.
+5. **On the device:**
+   1. on a CHORD track, RETRIG held + SWEEP shows Wavetable 0 to 64, and 0 sounds as before;
+   2. Wavetable 1 plays file 01 from the next note, and SWEEP moves through its frames without a click;
+   3. the Wavetable changed while a note holds takes effect at the next note;
+   4. a file uploaded while the Cycles runs plays about 2 s later (the scan, one file per tick);
+   5. the project saved, the Cycles off and on: the tables come back;
+   6. sound locks with different Wavetables (the copy of a sound beyond k 22 is open, notes/63 §3.2);
+   7. the other tracks, and SAMPLE in the build with it, as before;
+   8. the load with six CHORD tracks on tables;
+   9. back on the official OS 1.13: CHORD sounds play the stock table.
+
+   Only the device shows three things: the open by path from the tick (§11.2), the file index on a real upload
+   (§11.3), and the cost of the frames in SDRAM.
+
+### 15.4 The third run (the maintainer, 2026-10-23)
+
+**ALL OK** for the three selections `[FAIT en émulation]`. Everything of §14.2 holds again, and two things are new:
+
+- **P2a, the converter's file:** `/Wavetables/08`, made by `tools/wavetable.py`, loads as a table of 4 frames
+  exactly as computed.
+- **C, the cost** by STANDARD.md §6, in instructions per block per voice:
+
+  | | First block | Mean | Max |
+  |---|---|---|---|
+  | Stock CHORD | 8 737 | 8 292 | 8 300 |
+  | CHORD Tables at Wavetable 0 | 8 778 | 8 314 | 8 322 |
+  | CHORD Tables on a table | 8 755 | 8 291 | 8 299 |
+
+  The extension adds +22 at Wavetable 0. On a table it adds −1: its loop takes the stock function's place. The
+  numbers are the same in the three selections.
+- **In the manifest:** `cost.emulation` holds the Wavetable 0 line as `mean` / `max`, and the other two lines and
+  the pattern with it. `cost.device` stays "not measured".
+- **What the emulator does not time:** a table's frames read in SDRAM instead of SRAM. By notes/27 and 28's
+  estimates that is about +0,6 to +1,2 points of a block per CHORD voice on a table; the device measures it (§15.3,
+  point 5.8).
+
+### 15.5 Still open
+
+- **W7 after the device:** the card (texts in English and French, guide, release) and the standard's section on
+  extensions (draft 0.5). That section fixes the deviations: `machine.stock`, `build.roots` under the schema name
+  `cycles-mod/0.1`, the unknown point `chord.waves`.
+- **The order numbers** 34 (REFC) and 36 (CHORD Tables) were picked by Claude in the standard's range for machines.
+  APPLYING.md §11 leaves them to the maintainer, who confirms them or gives others.
