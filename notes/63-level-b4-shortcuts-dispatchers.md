@@ -1,7 +1,7 @@
 # 63 — Level B, step 4: machine shortcuts and dispatchers, proven by a second reference machine (plan)
 
 **Status: plan, 2026-10-22; the maintainer's decisions (§9); B4a built and proven in emulation (§10); B4b built and proven
-in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK); B4d built and proven in emulation (§13: the same three proofs, ALL OK); B4e built (§14): the web flasher composes them, the standard's draft 0.3.** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
+in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK); B4d built and proven in emulation (§13: the same three proofs, ALL OK); B4e built (§14): the web flasher composes them, the standard's draft 0.3; RETRIG + PUNCH / GATE is free in the stock OS, a candidate for the list (§15, 2026-10-23).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
 ids were dropped ([notes/62](62-level-b4-stable-machine-ids.md) §9). It covers two pieces:
 
 - the dispatcher tables for the hooks two packages share;
@@ -55,10 +55,11 @@ is at `0x40f95744`).
 | 4 | RETRIG | notes/32 (the arpeggiator) |
 | 5 | MACHINES | notes/47 (the track filter's `KEY_MACHINES`) |
 | 6 | PUNCH | its press handler switches parameter 44, PUNCH (below) |
+| 7 | GATE | its press handler switches parameter 45, GATE (§15, 2026-10-23) |
 | 8 | LFO | held + knob calls `ParameterPageView::setLFO` (below) |
 | 9, 10, 11 | RECORD, PLAY, STOP | TRACK + these copy, clear, paste (notes/58 §2) |
 | 16–31 | TRIG 1–16 | notes/58 §2 |
-| 3, 7, 12–15, 32 | not traced | — |
+| 3, 12–15, 32 | not traced | — |
 
 ### 1.2 Who reads a held key while a knob turns
 
@@ -83,7 +84,7 @@ RETRIG, PUNCH, GATE and MACHINES are not read there. Then:
 - **MainScreenView's key handler** `0x4001c0d2` (entry `+8` of its vtable `0x400ffe20`, RTTI `14MainScreenView`)
   switches on codes 1 to 32 (a jump table at `0x4001c100`).
   - PUNCH (6), on a press without FUNC, switches parameter 44 through `0x4001ac4a`; FUNC + PUNCH opens a view.
-  - GATE switches parameter 45 through the same function (`0x4001ca9c`); its code was not traced.
+  - GATE (7) switches parameter 45 through the same function (`0x4001ca9c`), on a press without FUNC (§15).
   - RETRIG (4) is handled only with FUNC: FUNC + RETRIG opens the retrig menu. A press alone goes on to the views
     below, where `KeyboardView` uses RETRIG held for the trig keys (retrigs, notes/32).
   - LFO (8) opens a view on a press.
@@ -107,6 +108,9 @@ RETRIG, PUNCH, GATE and MACHINES are not read there. Then:
 
 The list stays a property of the builder. A package that declares another combination is refused, and the standard's
 gesture registry records the four as machine-scoped.
+
+A key held + another key is not in this table: RETRIG + PUNCH / GATE is free in the stock OS and a candidate for the
+list's next entries (§15, 2026-10-23).
 
 ## 2. The second reference machine, REF2
 
@@ -728,3 +732,48 @@ the page changes only in B4e, without new cards.
   only two plain cards are offered). The pages load with the stamp `2026-10-22-06`; SAMPLE composed in the page
   still gives `REF_MAINOS["sampler"]`, MAIN OS `ccdadb37…`.
 - **Device:** nothing new to test for users. The B4b to B4d tests of §11.4, §12.4 and §13.4 still apply to REF2.
+
+## 15. RETRIG + PUNCH / GATE: free in the stock OS, a candidate for the list (2026-10-23) `[FAIT]` (code reading)
+
+The maintainer asked whether the stock OS uses RETRIG held + PUNCH or GATE, and expects to add it soon as a further
+standard shortcut. Nothing is decided or built yet; this section keeps what the code says.
+
+### 15.1 What the stock OS does
+
+- **MainScreenView's key handler** `0x4001c0d2` reads the jump table at `0x4001c100` at index code − 1:
+  - **PUNCH (6)** → `0x4001c2ae`. A fresh press (`0x400724a0`: flag bit 0, not bit 3) without FUNC (`0x40072490`,
+    bit 1) calls `0x4001ac4a(view, 44)` at `0x4001c2d2`; with FUNC it opens a view (`new 0x258`, `0x40028990`).
+  - **GATE (7)** → `0x4001c326`. A click (`0x40072434`, bit 4) with FUNC opens a view (`new 0x250`, `0x4002784a`);
+    otherwise `0x4001c846`: a fresh press without FUNC goes to `0x4001ca8c` and calls `0x4001ac4a(view, 45)` at
+    `0x4001ca9c`. FUNC + GATE goes on to `0x4001c856` (not traced further).
+  - Neither case reads RETRIG. `0x4001ac4a` reads only TRACK (`isKeyHeld(2)` at `0x4001ac68`: Control All, the loop
+    over six tracks through `0x4001abe2`).
+- **`isKeyHeld(4)`, RETRIG held, is read at three sites only**, none of them for PUNCH or GATE:
+  - `0x4001a188`, in the trig keys' handler `0x4001a0d2` (codes 16 to 31 only: the retrigs, notes/32);
+  - `0x4001d482`, LED 27 while RETRIG is held (§1.2);
+  - `0x4001d56a`, in `0x4001d506`, which handles codes 2 and 4 only and passes every event on to `0x40075f3c`.
+  - The calls of `isKeyHeld` through a register (`lea 0x4007faf4,%aN`) never pass 4.
+- **A key event's flags** at `+16` carry no held RETRIG: bit 0 pressed, bit 1 FUNC, bit 3 repeat, bit 4 click
+  (notes/34, notes/56, the Model-TG notes).
+
+So RETRIG held + PUNCH or GATE does exactly what PUNCH or GATE does alone: the press switches PUNCH or GATE on the
+selected track (on all six with TRACK held). No tweak of the folder hooks the two cases or `0x4001ac4a`'s start
+(`REGISTRY.md`; control-all-config takes `0x4001ac7a`, the loop's head), and no claim uses the combination
+(`claims/claims.json`, the manifests, the parts).
+
+### 15.2 What adding it would take (open)
+
+- **Another kind of shortcut.** It is a key held + a key, not a key held + a knob: the shortcut layer (§3, §11) only
+  takes the knob → descriptor lookup. A new entry point is needed, in the two cases of the key handler or at the start
+  of `0x4001ac4a` (6 bytes, `lea -12(sp),sp; moveq #1,d1`; no byte shared with control-all-config's `0x4001ac7a`).
+- **The stock switch must be swallowed.** With RETRIG held on a track whose machine declares the shortcut, the hook
+  must return without calling `0x4001ac4a`; otherwise PUNCH or GATE switches as well. Which other held keys turn it off
+  (FUNC, TRACK, as for the knob shortcuts) is to decide.
+- **Its value.** A press gives a toggle or a step, not a range. k 28–31 and record slots 28–31 are the four knob
+  shortcuts', so it needs other slots (§3.2, STANDARD.md §5.2 and §5.3); where to show it is open.
+- **The LEDs** of PUNCH and GATE keep showing the stock state; the claims have no LED type yet (notes/65 §10).
+- **The claims' vocabulary**: `KEYS["GATE"]` is `None` in `tools/claims.py` and becomes 7 (`composer.js` reads the
+  atoms `claims.py` computes and holds no vocabulary of its own). The stock list (`STOCK`) has no entry yet for a PUNCH
+  or GATE press, nor for FUNC + PUNCH / GATE.
+- **The list itself**: this note's §0 and §1.3, STANDARD.md (the shortcut list), APPLYING.md and the README's
+  "Shortcuts are predefined" grow by the new entries.

@@ -335,7 +335,8 @@ computed reasons (§9, decision 5).
 
 - Model-TG's slots and their scope (notes/31, notes/47 §11), and whether it re-numbers the p-lock rows of k 23–27.
 - The stock meaning of TRACK held + FUNC (latching-mute), and of the TRIG keys in Keys mode (chord-keys, notes/42).
-- The keys not traced (codes 3, 7, 12–15, 32) and the knobs beyond the six, before a mod claims them.
+- The keys not traced (codes 3, 12–15, 32; code 7 is GATE, notes/63 §15) and the knobs beyond the six, before a mod
+  claims them.
 - The stock CC and NRPN map (STANDARD.md §5.5).
 - Machine gestures through the registrar's `knob_hook` ([notes/59](59-level-b-builder.md) §3) are not connected:
   `compose.py` and `composer.js` write 0. A package's gesture stays a claim until they are.
