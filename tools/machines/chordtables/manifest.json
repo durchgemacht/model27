@@ -56,6 +56,6 @@
  "tests": {"emulation": {"0.1": {"tool": "tools/emu/test_chordtables.py (Unicorn, the OS's own code, notes/66 §14, 2026-10-23); digiemu (the maintainer, notes/66 §15.7)", "date": "2026-10-24", "build": "Unicorn: alone, with sampler before and after it; digiemu: alone (.syx e4dafb31, four tables in /Wavetables)"},
                          "0.2": {"tool": "tools/emu/test_chordtables.py (Unicorn: P1 to P2, P1m, P5, P2h, P2i, notes/66 §21)", "date": "2026-10-24", "by": "maintainer", "result": "ALL OK on the code of notes/66 §21, §22 (§22.3), §22.4 (§22.5) and the cure of §24 (§24.4) and §24.5 (§24.6)", "build": "alone, with sampler before and after it"}},
            "hardware": {"0.1": {"date": "2026-10-24", "by": "maintainer", "build": "a compose build of notes/66 §15.3 (CHORD Tables alone, .syx e4dafb31, or with SAMPLE, 77a10a97; which one not said); \"getestet, funktioniert\" (notes/66 §17); the interface lags with tables on several CHORD tracks (§18)"},
-                        "0.2": {"status": "not yet run"}},
+                        "0.2": {"date": "2026-10-24", "by": "maintainer", "build": "both compose builds of notes/66 §25.1 (alone 44d7695b, with SAMPLE 9066396a)", "result": "\"besser, aber immer noch laggy. vor allem wenn man control all benutzt und chord mit custom wavetables auf allen spuren\" (notes/66 §25.3)"}},
            "status": "experimental"}
 }

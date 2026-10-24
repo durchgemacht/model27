@@ -1756,3 +1756,226 @@ The maintainer, after §24.3: keep the stock frames' slots only while a CHORD tr
 
   The shared table is back at §23.1's level, and Wavetable 0 keeps the cure's: neither case pays for the other now.
 
+## 25. S4 prepared: 0.2 on the device (2026-10-24)
+
+### 25.1 The builds
+
+Built with `tools/compose.py` from the official file, into their own folder (git-ignored). 0.1's builds stay in
+`build/` (`e4dafb31…`, `77a10a97…`) for a comparison.
+
+| File | .syx SHA-256 | MAIN OS SHA-256 |
+|---|---|---|
+| `build/chordtables-0.2/model-cycles_OS1.13-chordtables.syx` (897 184 bytes) | `44d7695b…` | `86fd59e4…` |
+| `build/chordtables-0.2/model-cycles_OS1.13-sampler+chordtables.syx` (941 088 bytes) | `9066396a…` | `4c25070e…` |
+
+The MAIN OS hashes are those `webcompose_check` gave for `composer.js` (§24.5).
+
+```sh
+python3 tools/compose.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx --machines chordtables --out build/chordtables-0.2/
+python3 tools/compose.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx --machines sampler,chordtables --out build/chordtables-0.2/
+```
+
+### 25.2 What the maintainer tests
+
+Flashed as 0.1 was (§15.3, §17). The tables stay in `/Wavetables`.
+1. **The lag** (§18), on the project or setup where 0.1 lagged:
+   1. several CHORD tracks on tables, SWEEP still: the interface should react as on the official OS;
+   2. the same with an LFO on SWEEP: less lag than 0.1; some may remain (§21.2, §24.6);
+   3. every CHORD track at Wavetable 0 with an LFO on SWEEP: no slower than the official OS.
+2. **The sound:**
+   - tables as with 0.1, Wavetable 0 as the official OS (emulation: sample for sample);
+   - SWEEP moving through a table without clicks.
+3. **The start:** right after power-on, play CHORD at once. The move happens at the screen's first redraw and
+   should not be heard.
+4. **The loader:**
+   - a table uploaded while the Cycles runs plays from the next note;
+   - a table replaced while a track plays it, no glitch.
+5. **With SAMPLE** (the second build): SAMPLE as before, next to CHORD tracks on tables.
+6. **For comparison, if wanted:** 0.1's build (`build/model-cycles_OS1.13-chordtables.syx`) on the same project.
+7. **Back on the official OS 1.13:** CHORD sounds play the stock table, as with 0.1.
+
+Only the device shows the time of a line in SDRAM, so only the device says whether the lag is gone.
+
+### 25.3 On the device (the maintainer, 2026-10-24)
+
+- **The maintainer:** "besser, aber immer noch laggy. vor allem wenn man control all benutzt und chord mit custom
+  wavetables auf allen spuren. habe beide builds ausprobiert". So 0.2 is better than 0.1; the interface still lags,
+  most of all with Control All and CHORD on custom tables on every track; both builds of §25.1.
+- **Not said:**
+  - which knob was turned with Control All;
+  - whether the six tracks shared one table;
+  - whether an LFO moved SWEEP;
+  - whether the same use lags on the official OS, or with every track at Wavetable 0.
+- **Why Control All is the worst case for 0.2**, by the code:
+  - TRACK held + SWEEP moves SWEEP on all six tracks at once, so every track reaches a new frame in the same
+    blocks;
+  - each new frame of a table is a copy, 65 lines of SDRAM and about 1 000 to 1 100 instructions (§22.5, §24.6), six
+    of them in one block;
+  - with six different tables nothing is shared. With one table and the same SWEEP on every track, one copy serves
+    all six (rule 2).
+  - Turning another knob with Control All changes no frame, and costs 0.2 nothing beyond 0.1.
+  - The interface's own work grows with Control All too: six tracks' parameters per knob step.
+- **Status:** 0.2 stays `experimental`.
+- **The maintainer, asked:** "mit Wavetable 0 hakt es nicht, nur mit eigenen Tabellen". So the lag left is CHORD
+  Tables' own, not the stock OS's load.
+- **What in 0.2 costs more with a table than at Wavetable 0** (code and §24.6):
+  - SWEEP still: nothing that counts. The same fast path, +6 SDRAM lines a block either way (the pointer list), the
+    frames in SRAM.
+  - A new frame: a copy for a table, none at Wavetable 0. Its frames sit in their own slots.
+
+  So the lag left should come with frames that change: SWEEP turned with Control All, or an LFO on SWEEP.
+- **The time of a copy on the device is not known.** 65 lines of DDR2 on 8 bits and about 1 000 instructions. With
+  Control All, the six tracks cross a frame in the same blocks, so up to six copies fall into one block.
+- **The maintainer, asked which knob:** "sweep und andere, problem überall". It lags with SWEEP and with other knobs
+  turned through Control All, as long as the tracks play tables.
+  - Another knob changes no frame, so the copies cannot be the whole cause. Nothing in 0.2's audio path that the
+    emulation covers costs a table more than Wavetable 0 with SWEEP still (§24.6: the same lines, +38 against +41
+    instructions).
+  - The cause is outside what the probe and the proofs run: the interface task, the loader on the tick, or the audio
+    path under the interface's edits (Control All, six tracks' parameters a step).
+  - Next split, cheap: does it lag with the sequencer stopped, no note playing? Yes points at the interface's side
+    (the tick, the loader), no at the audio's.
+- **The maintainer:** "der lag läuft noch einige sekunden aus (display aktualisiert sich obwohl nicht mehr gedreht
+  wird)". The screen keeps catching up for seconds after the knob stops.
+  - That is the interface task working off a backlog of knob steps: it gets less time than the steps need. It does
+    not say whether the time goes to the audio interrupt or to the interface's own work.
+  - What runs on the interface's side is the same with tables and at Wavetable 0: the tick, the loader, the shortcut
+    layer's knob hook. So the difference is most likely in the audio's load.
+  - The audio costs a table more than Wavetable 0 only when its frames change (a copy each, none at Wavetable 0).
+  - Something moving SWEEP all the time, an LFO on SWEEP or another modulation, would make the copies continuous on
+    every such track, whichever knob is turned. That fits "problem überall", and only with tables.
+  - Test: the same project with the CHORD tracks' LFOs off (or their depth 0). If the lag goes, the copies are the
+    cause.
+- **The maintainer:** an LFO on SWEEP "auf 2 kanälen, ja". So two tracks change frames all the time, and copy at
+  every change.
+  - **What a copy costs against 0.1's way** (§23.1, §24.6, by the counts): 65 SDRAM lines and about 1 000
+    instructions per new frame, against 110 to 121 lines a block that 0.1 read for the same track. 0.2 reads fewer
+    lines as long as a track needs fewer than about 1,5 new frames a block. The instructions come on top. A fast LFO
+    at full depth crosses more frames than that (a full sweep of 32 frames in less than about 20 blocks, at 1 500
+    blocks a second).
+  - **The pool picks the next free slot after the last taken.** With two tables swept by LFOs, 64 frames compete for
+    30 slots, so most frames are copied again at every pass. One track sweeping one table, 32 frames in 30 slots, would
+    copy only a few frames a cycle.
+  - **To know before building anything:**
+    - does the lag go with those two LFOs off;
+    - the LFOs' speed and depth;
+    - whether the two tracks share a table.
+  - **What could follow** (not built):
+    - keep the frames near each track's position when a slot is taken, instead of the next one after the last
+      taken;
+    - read a frame where it is instead of copying it, for a track whose frames change faster than a copy pays
+      for. That needs the render's frame comparison checked first (§19.1).
+- **A measurement on the device** would tell instead of guessing: the load meter of notes/23 §5 (a probe around the
+  audio function at `0x40059382`, the DMA timer `0xfc07000c`, "peak/mean" shown as the machines' names). It is part
+  of `gen_syntakt_engines.py` today, not a part the composer can add.
+
+## 26. Paused (2026-10-24): where CHORD Tables stands, and how to go on
+
+The maintainer: "egal, lass den stand wie er ist. notiere noch infos falls wir daran weitermachen wollen." The work
+stops here. This section is the way back in.
+
+### 26.1 The state
+
+- **The code:** CHORD Tables 0.2, committed in `5e58fa6` (the pool) and `45f0163` (Wavetable 0's cure and the
+  refinement), status `experimental`.
+- **The builds:** `build/chordtables-0.2/` (git-ignored; §25.1). Alone: `.syx` `44d7695b…`, MAIN OS `86fd59e4…`.
+  With SAMPLE: `9066396a…`, `4c25070e…`. 0.1's builds are in `build/`, for comparison: `e4dafb31…` and `77a10a97…`.
+- **Proven in emulation** (§24.4, §24.6):
+  - Wavetable 0 identical to the stock OS, the tables to 0.1, sample for sample;
+  - no slot in use ever written;
+  - Wavetable 0 alone copies nothing.
+- **On the device** (§25.3, the maintainer, both builds):
+  - better than 0.1, still laggy with tables, most of all with Control All;
+  - not at Wavetable 0;
+  - every knob, and the screen catches up for seconds after the knob stops;
+  - an LFO on SWEEP on two of the CHORD tracks.
+- **Not asked or not answered:**
+  - does the lag go with those two LFOs off;
+  - the LFOs' speed and depth;
+  - whether the two tracks share a table;
+  - does it lag with the sequencer stopped.
+
+### 26.2 What the lag most likely is
+
+1. **Copies under the LFOs** (the leading guess, §25.3).
+   - A track whose SWEEP moves needs new frames, and 0.2 copies each one into the pool: 65 SDRAM lines and about
+     1 000 instructions.
+   - Two tables swept at once are 64 frames for 30 slots. With the pick "the next free slot after the last taken",
+     most frames are copied again at every pass.
+   - The copies load the audio all the time, so the interface falls behind whichever knob turns.
+2. **The time of a line on the device** (DDR2 on 8 bits) is not known. The emulator counts lines and instructions,
+   not time. A copy may cost much more than its count says.
+3. **Something the probe and the proofs do not run:** the interface task, the tick, Control All's edits. Nothing in
+   the code reading says so: everything on the interface's side is the same at Wavetable 0, which does not lag.
+
+### 26.3 How to go on
+
+In this order, each step deciding whether the next is needed:
+1. **On the device, two minutes:**
+   - the same project with the two LFOs off: does the lag go?
+   - the LFOs' speed, multiplier and depth;
+   - the tables on those tracks;
+   - the sequencer stopped.
+2. **The same case in emulation:** a scenario with two tracks on different tables, SWEEP moved like an LFO (a
+   triangle of the measured speed), the four others on tables with SWEEP still. In `test_chordtables.py` (the copies
+   per block, and the sound still identical) and `probe_chord_lines.py` (lines and misses, against 0.1's way).
+3. **A slot pick that keeps the frames near each track's position:**
+   - when a frame is placed, store its table and frame number in the slot (`slot_buf`, `slot_frame`; the move sets
+     them for the stock frames);
+   - the pick then takes, among the free slots, the one whose frame is farthest from every track's frame on that
+     table, a slot of a table no track plays first;
+   - about 30 × 6 comparisons per copy, against copies that would mostly no longer happen for a swept table;
+   - the sound stays the same whatever slot a frame takes (§19.3), so P1m and P5 prove it unchanged.
+4. **Reading a fast frame where it is**, for a track whose frames change faster than a copy pays for (above about
+   1,5 new frames a block):
+   - first in emulation: does the render give the same samples when a frame keeps its content but changes its
+     address between two blocks at the same index? That is case C of §19.1 in place of case D;
+   - if not identical, a frame must keep its address while a voice points at it (as now), and this way is closed.
+5. **A load meter on the device**, if the counts and the device still disagree: the probe of notes/23 §5 (around
+   the audio function's call at `0x40059382`, the DMA timer at `0xfc07000c`, 90 112 ticks a block, "peak/mean" as
+   the machines' names). It lives today in `gen_syntakt_engines.py` (`--meter`) and would become a part the composer
+   adds, proven as `tools/emu/test_meter.py` proves it.
+6. **Fewer distinct frames** (only for tables of fewer than 32 frames): keep a file's k frames and crossfade across
+   them, instead of the 32 spread frames. Fewer frame changes per sweep. The sound would no longer be 0.1's sample
+   for sample (rounding), so the proofs would compare against a computed table.
+
+Unrelated and left as is: the loader's sum of the whole file index on every tick (§18), the same at Wavetable 0.
+
+### 26.4 W7, paused
+
+Three files stay uncommitted in the working tree since W7 was stopped (§17 onwards):
+- `tools/gen_flasher_tweaks.py`: the CHORD Tables card (`cat` sound, `status` experimental, credit durchgemacht /
+  `durchgemacht/model27`, `license` LICENSE-CHORD-Tables, `package` chordtables) and `OFFERED` with chordtables. Its
+  comment still speaks of 0.1's device test.
+- `tools/gen_chordtables.py`: copies the package's LICENSE next to the tweaks.
+- `tweaks/model-cycles_OS1.13/LICENSE-CHORD-Tables`.
+
+`docs/flasher/tweaks.js` is not regenerated, so `gen_flasher_tweaks.py --check` fails while the card is in
+`OFFERED`. The checks of §20 to §24 were run with the card set aside (`git stash push -- tools/gen_flasher_tweaks.py`,
+then `git stash pop`).
+
+Still to do for W7:
+- the card's texts in `app.js` (en, fr) and `GUIDE_OF`;
+- the smoke test's lists;
+- the guide section (en, fr);
+- the release entry;
+- the stamp;
+- the README row;
+- `ref_mainos.py`;
+- the standard's draft 0.5 (extensions of a stock machine, `memory.sram`).
+
+The card offers 0.2 once its lag is settled.
+
+### 26.5 Commands
+
+```sh
+../.venv-emu/bin/python3 tools/emu/test_chordtables.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx
+../.venv-emu/bin/python3 tools/emu/probe_chord_lines.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx
+python3 tools/gen_chordtables.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx --check
+tools/webcompose_check.sh ../model-cycles_OS1/model-cycles_OS1.13.syx
+python3 tools/compose.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx --machines chordtables --out build/chordtables-0.2/
+```
+
+The two Unicorn runs are the maintainer's: Unicorn stops with SIGILL inside the agent's sandbox. They can run side
+by side.
+
