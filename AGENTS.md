@@ -124,7 +124,8 @@ tools/machines/refchord/      the reference extension of a stock machine (notes/
                               builder's extensions (the tables by machine from 5, a build with nothing registered);
                               never offered
 tools/machines/chordtables/   CHORD Tables (notes/66): an extension of CHORD, RETRIG + SWEEP picks a wavetable from
-                              /Wavetables/01..64 on the +Drive (loader on the tick, RAM claim 0x43400000..0x43700000);
+                              /Wavetables/01..64 on the +Drive (loader on the tick, RAM claim 0x43400000..0x43700000;
+                              since 0.2 the frames CHORD plays come from a pool in the stock table's SRAM, notes/66 §19);
                               tools/gen_chordtables.py builds it into 36-chordtables.json; tools/wavetable.py turns a
                               wavetable WAV into its files (32 frames of 256, harmonics 1-40), --self-test
 tools/emu/                    Unicorn emulation of the OS: test_<mod>.py proofs, mcengine.py, emac.py, syntakt.py

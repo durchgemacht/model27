@@ -1,9 +1,9 @@
 {
  "schema": "cycles-mod/0.1",
  "id": "chordtables",
- "version": "0.1",
+ "version": "0.2",
  "name": "CHORD Tables: the stock CHORD machine plays wavetables from the +Drive, RETRIG + SWEEP picks one",
- "description": "An extension of the stock CHORD machine (notes/66): on CHORD's tracks, RETRIG + SWEEP = Wavetable, 0 to 64, saved with the sound; 0 is the stock table, 1 to 64 the files /Wavetables/01 to /Wavetables/64 on the +Drive (mono sample files of k x 256 samples, k single-cycle frames, k = 1 to 32), loaded on the screen's tick. A note takes its table when it starts; SWEEP moves through the table's frames as on the stock machine. CHORD at 0, and every other track, plays as on the stock OS.",
+ "description": "An extension of the stock CHORD machine (notes/66): on CHORD's tracks, RETRIG + SWEEP = Wavetable, 0 to 64, saved with the sound; 0 is the stock table, 1 to 64 the files /Wavetables/01 to /Wavetables/64 on the +Drive (mono sample files of k x 256 samples, k single-cycle frames, k = 1 to 32), loaded on the screen's tick. A note takes its table when it starts; SWEEP moves through the table's frames as on the stock machine. CHORD at 0, and every other track, plays as on the stock OS. Since 0.2 the frames a CHORD track plays are read in the stock table's SRAM, a pool of 30 slots (notes/66 §19): the stock frames are copied into the RAM claim once, on the tick, and each frame a track plays is copied into a slot no voice points at.",
  "license": "MIT",
  "credit": {"kind": "own", "who": "durchgemacht and Claude", "repo": "durchgemacht/model27"},
  "device": "Model:Cycles",
@@ -18,7 +18,8 @@
   "defines": {},
   "objects": ["chordtables.o"],
   "patch_points": [],
-  "roots": ["cw_setup", "ct_hook_tick", "ct_slot", "ct_slot_id", "ct_latch", "ct_owner", "ct_scan"]
+  "roots": ["cw_setup", "ct_hook_tick", "ct_slot", "ct_slot_id", "ct_latch", "ct_owner", "ct_scan", "ct_moved",
+            "ct_pool_addr", "ct_pool_tag", "ct_pool_n", "ct_fallback", "ct_tick"]
  },
  "uses": [
   {"point": "machine.stock", "machine": "CHORD",
@@ -31,20 +32,30 @@
   {"point": "screen.tick", "hook": {"at": "0x400075f0", "stock": "4eb940076be4", "op": "jsr", "symbol": "ct_hook_tick"},
    "why": "the screen's redraw, about 30 Hz, UI task: the loader reads one file per tick; with SAMPLE, through the tick dispatcher"},
   {"point": "memory.ram", "range": ["0x43400000", "0x43700000"],
-   "why": "one file as read and 72 table buffers (64 slots, 8 spare), 2.4 MB (notes/66 §2.2)"}
+   "why": "one file as read, 72 table buffers (64 slots, 8 spare) and the stock frames' copy, 2.4 MB (notes/66 §2.2, §19.3)"},
+  {"point": "memory.sram", "range": ["0x80001c5c", "0x800074b4"], "takes": "CHORD's frames",
+   "why": "22 of the stock table's 30 frames in SRAM, read by CHORD alone (notes/27 §3.3): slots of the pool, once copied into the RAM claim (notes/66 §19)"},
+  {"point": "memory.sram", "range": ["0x8000cac0", "0x8000eae0"], "takes": "CHORD's frames",
+   "why": "the other 8 frames of the stock table in SRAM, slots of the pool (notes/66 §19)"}
  ],
- "claims": {"sound_slots": [30], "record_slots": [30], "ram": [["0x43400000", "0x43700000"]],
+ "claims": {"sound_slots": [30], "record_slots": [30], "ram": [["0x43400000", "0x43700000"], ["0x80001c5c", "0x800074b4"], ["0x8000cac0", "0x8000eae0"]],
             "gestures": [{"combo": "RETRIG + SWEEP", "situation": "params", "meaning": "Wavetable"}]},
  "cost": {"emulation": {"mean": 8314, "max": 8322, "first": 8778,
                        "pattern": "STANDARD.md §6 in tools/emu/test_chordtables.py part C: instructions per block per voice in the real voice loop, CHORD alone on track 1 (machine defaults, note 60, SWEEP 24), trig in block 1, the note's first block then the mean and maximum of the next 21, minus the loop with every voice muted; this line at Wavetable 0",
                        "stock_chord": {"mean": 8292, "max": 8300, "first": 8737},
                        "with_table": {"mean": 8291, "max": 8299, "first": 8755},
-                       "date": "2026-10-23", "note": "+22 per block per voice at Wavetable 0, -1 with a table; the emulator does not time memory: a table's frames are read in SDRAM instead of SRAM, about +0.6 to +1.2 points of a block per CHORD voice on a table by notes/27 and 28's estimates"},
+                       "date": "2026-10-23", "note": "0.1: +22 per block per voice at Wavetable 0, -1 with a table; the emulator does not time memory: a table's frames are read in SDRAM instead of SRAM, about +0.6 to +1.2 points of a block per CHORD voice on a table by notes/27 and 28's estimates"},
+          "emulation_0.2": {"mean": 8330, "max": 8338, "first": 10427, "wavetable_0": {"mean": 8333, "max": 8341, "first": 9532},
+                            "sweep_creeping": {"a table": {"before_move": 8289, "after_move": 9024, "max": 9249}, "Wavetable 0": {"before_move": 8312, "after_move": 8692, "max": 8850}},
+                            "date": "2026-10-24", "pattern": "as above, after the move (notes/66 §22.5); sweep_creeping: SWEEP 24 + 3 a block, a new frame about every 1.3 blocks",
+                            "note": "the frames read in SRAM; SWEEP still: +38 a table, +41 Wavetable 0 against stock CHORD; SWEEP creeping: +735 a table (a copy per new frame), +380 Wavetable 0 (the remap), against 0.1's way (notes/66 §22.5)"},
           "device": {"status": "not measured"}},
- "stock_behaviour": {"changes": ["CHORD's tracks: RETRIG + SWEEP edits the Wavetable instead of SWEEP"], "fixes": [],
+ "stock_behaviour": {"changes": ["CHORD's tracks: RETRIG + SWEEP edits the Wavetable instead of SWEEP", "CHORD's frames are played from a pool in the stock table's SRAM (0.2), the same samples"], "fixes": [],
                      "unchanged": ["CHORD at Wavetable 0, and every other track"]},
  "compat": {"built_against": ["model27"], "requires": [], "conflicts_declared": []},
- "tests": {"emulation": {"tool": "tools/emu/test_chordtables.py (Unicorn, the OS's own code, notes/66 §14, 2026-10-23); digiemu (the maintainer, notes/66 §15.7)", "date": "2026-10-24", "build": "Unicorn: alone, with sampler before and after it; digiemu: alone (.syx e4dafb31, four tables in /Wavetables)"},
-           "hardware": {"date": "2026-10-24", "by": "maintainer", "build": "a compose build of notes/66 §15.3 (CHORD Tables alone, .syx e4dafb31, or with SAMPLE, 77a10a97; which one not said); \"getestet, funktioniert\" (notes/66 §17)"},
-           "status": "tested"}
+ "tests": {"emulation": {"0.1": {"tool": "tools/emu/test_chordtables.py (Unicorn, the OS's own code, notes/66 §14, 2026-10-23); digiemu (the maintainer, notes/66 §15.7)", "date": "2026-10-24", "build": "Unicorn: alone, with sampler before and after it; digiemu: alone (.syx e4dafb31, four tables in /Wavetables)"},
+                         "0.2": {"tool": "tools/emu/test_chordtables.py (Unicorn: P1 to P2, P1m, P5, P2h, P2i, notes/66 §21)", "date": "2026-10-24", "by": "maintainer", "result": "ALL OK on the code of notes/66 §21, §22 (§22.3) and §22.4 (§22.5)", "build": "alone, with sampler before and after it"}},
+           "hardware": {"0.1": {"date": "2026-10-24", "by": "maintainer", "build": "a compose build of notes/66 §15.3 (CHORD Tables alone, .syx e4dafb31, or with SAMPLE, 77a10a97; which one not said); \"getestet, funktioniert\" (notes/66 §17); the interface lags with tables on several CHORD tracks (§18)"},
+                        "0.2": {"status": "not yet run"}},
+           "status": "experimental"}
 }

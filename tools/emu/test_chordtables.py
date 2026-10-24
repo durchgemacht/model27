@@ -29,7 +29,28 @@ For each selection (by default: chordtables; chordtables,sampler; sampler,chordt
      g. no free buffer: the scan waits on the file, and goes on once a buffer is free;
   C. the cost by the standard's method (STANDARD.md §6): instructions per block per voice in the real voice loop,
      CHORD alone on track 1, the first block of the note then the mean and maximum of the next 21, for stock CHORD,
-     Wavetable 0 and a table; printed as findings, and the extension's share checked to stay small.
+     Wavetable 0 and a table, before and after the move; printed as findings, and the extension's share checked to
+     stay small;
+  0.2, the frames in SRAM (notes/66 §19, §20), the move made by the package's own ct_tick:
+  P1m. (the move: the tick copies and sets ct_moved to 2, ready; the audio's next setup adopts it, 1)
+     six CHORD tracks, a scenario of 120 blocks the same for every OS: notes now and then (high ones on tracks 5
+     and 6, so that sub-voices switch off), SWEEP creeping, jumping, negative, fast, still and anywhere, the chord
+     shape changed at each note, track 3 to TONE and back:
+     a. Wavetable 0, the move before the first note: identical to the stock OS, sample for sample;
+     b. tables on tracks 1 to 4 (3 and 4 sharing one, track 2 changing table during a note), Wavetable 0 on 5 and
+        6, the move before the first note: identical to the same build without the move (0.1's way, P1a to e), and
+        tracks 5 and 6 to the stock OS;
+     c. and d. the same with the move in block 40, while notes play;
+     e. the move: the 30 stock frames in SRAM as the pool's slots, in the stock table's order, each tagged with its
+        copy, the copies equal to the frames, the copy's 33 pointers as the stock selector's (the sine at 0, frame 1
+        where the OS has it);
+  P5. the pool, in each P1m run: no slot a voice points at (+168..+180 of any sub-voice of the six) is ever written;
+     nothing but the package writes the pool, and the stock OS never writes the stock frames; with the move before
+     the first note, every CHORD voice reads its frames in SRAM after every block, and no frame is read where it is
+     for want of a slot (ct_fallback 0);
+  P2h. the loader's first tick makes the move, ready for the audio (the UI harness with the SRAM of the boot);
+  P2i. a retired buffer a voice still points into stays retired without its latch, and the tags of the slots
+     holding its frames survive; once no voice points into it, it is free and those tags are cleared.
 
 Needs Unicorn and numpy (pip install unicorn numpy) and m68k-elf-objdump; Unicorn's JIT does not run inside a
 sandbox that forbids it: run it in a normal terminal (model27's .venv-emu has both). About two minutes.
@@ -39,11 +60,12 @@ sandbox that forbids it: run it in a normal terminal (model27's .venv-emu has bo
 import argparse
 import math
 import pathlib
+import random
 import struct
 import sys
 
 import numpy as np
-from unicorn import UC_HOOK_CODE
+from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE
 from unicorn import m68k_const as mk
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -71,10 +93,40 @@ SOUNDS = 0x407c0000                             # the proof's sounds in the voic
 OPEN, CLOSE, ENTRY, READ = 0x4007bc5e, 0x4007bc1c, 0x4007de78, 0x4007baaa
 MOUNTED, FS_LOCK, RUNNING, INDEX_COUNT, INDEX = 0x40f07cf4, 0x40fe6df0, 0x422fef30, 0x401fb8a0, 0x401fb8a4
 TASK = 0x93f80000                               # the running task, as the proof names it
+FRAME1 = 0x40118648                             # the stock table's frame 1, in the OS's data (SDRAM)
+SRAM_LO, SRAM_HI = 0x80000000, 0x80010000
+FS_PAGE = (0x40f00000, 0x00100000)              # the file system's flags: 0, the drive not mounted, for the move
 
 
 def buf(b):
     return RAM + STAGE_BYTES + b * BUF_BYTES
+
+
+STOCK = buf(72)                                 # 0.2: the stock frames' copy, the buffer after the 72
+
+
+def sram_boot(uc, img):
+    """The internal SRAM as the bootstrap leaves it, its two boot images (as mcengine.Engine writes them)."""
+    uc.mem_map(SRAM_LO, 0x20000)
+    uc.mem_write(SRAM_LO, img[0x4019b590 - E.BASE:0x401a2a50 - E.BASE])
+    uc.mem_write(0x80008000, img[0x401a2a50 - E.BASE:0x401aa140 - E.BASE])
+
+
+def stock_sram_frames(img):
+    """The stock table's frames in SRAM, distinct, in its order: the 30 slots of 0.2's pool (notes/66 §19.1)."""
+    out = []
+    for i in range(32):
+        a = struct.unpack_from(">I", img, CHORD_TABLE + 4 * i - E.BASE)[0]
+        if SRAM_LO <= a < SRAM_HI and a != SINE and a not in out:
+            out.append(a)
+    return out
+
+
+def frame_pointers(uc):
+    """The six voices' frame pointers: +168, +172, +176 and +180 of their four sub-voices."""
+    raw = bytes(uc.mem_read(E.VOICE0, 6 * E.VSTRIDE))
+    return [struct.unpack_from(">I", raw, t * E.VSTRIDE + 120 * j + 168 + 4 * i)[0]
+            for t in range(6) for j in range(4) for i in range(4)]
 
 
 def be32s(words):
@@ -131,6 +183,18 @@ class Voice:
 
     def frame(self, va):
         return bytes(self.e.uc.mem_read(va, 4 * FRAME_LEN))
+
+    def r32(self, a):
+        return struct.unpack(">I", self.e.uc.mem_read(a, 4))[0]
+
+    def move(self):
+        """0.2's move (notes/66 §19.3), made by the package's own tick: ct_tick with the drive not mounted, so that it
+        does nothing else. Returns ct_moved: 2, ready, until the audio's next setup adopts it (1)."""
+        if not getattr(self, "fs_page", False):
+            self.e.uc.mem_map(*FS_PAGE)
+            self.fs_page = True
+        self.e.call(self.syms["ct_tick"])
+        return self.r32(self.syms["ct_moved"])
 
     def run(self, blocks, trigs=(1,), sweep=None, at_block=None):
         out = []
@@ -243,6 +307,193 @@ def voice_tests(key, stock, tweak, img, runtime, syms, blocks):
     v.run(4, trigs=(1,), sweep=lambda b, t: -10)
     check(all(s == (t0[0], t0[1], 0, 0) for t in v.TRACKS for s in v.sub(t)),
           f"{key}: P1e a negative SWEEP: frame 0 and frame 1, no crossfade, index 0")
+
+
+# --- P1m and P5. 0.2: the frames in SRAM (notes/66 §19) --------------------------------------------------------------
+class Six(Voice):
+    """The voice loop with the six tracks on CHORD, k 30 from the sound object on track 1 and from the targets on the
+    others (CUR_SNDS[t] = 0)."""
+
+    TRACKS = tuple(range(6))
+
+    def __init__(self, img, runtime=None, tweak=None, syms=None):
+        super().__init__(img, runtime, tweak, syms)
+        for t in range(6):
+            self.e.set(t, machine=CHORD, note=60, pitch=64, finetune=64, color=3, shape=43, sweep=24, contour=64,
+                       punch=0, gate=0, decay=64)
+            if t:
+                self.e.uc.mem_write(CUR_SNDS + 4 * t, struct.pack(">I", 0))
+            self.k30(0, track=t)
+
+
+class Watch:
+    """P5: every write into the stock frames' SRAM, checked against the six voices' frame pointers when it starts a
+    frame or goes to another one; and, after each block, where the CHORD voices read their frames."""
+
+    def __init__(self, v, slots):
+        self.v, self.writes, self.foreign, self.hits, self.last, self.sdram = v, 0, [], [], None, []
+        self.off = 0                                # CHORD voice-blocks with a sub-voice switched off
+        runs = []                                   # the slots' runs, 1 028 bytes apart: one hook each
+        for a in sorted(slots):
+            if runs and a == runs[-1][1]:
+                runs[-1][1] = a + 4 * FRAME_LEN
+            else:
+                runs.append([a, a + 4 * FRAME_LEN])
+        self.runs = runs
+        for lo, hi in runs:
+            v.e.uc.hook_add(UC_HOOK_MEM_WRITE, self._hook, begin=lo, end=hi - 1)
+
+    def _hook(self, uc, access, addr, size, value, ud):
+        lo = next((lo for lo, hi in self.runs if lo <= addr < hi), None)
+        if lo is None:
+            return
+        base = lo + (addr - lo) // (4 * FRAME_LEN) * 4 * FRAME_LEN
+        self.writes += 1
+        pc = uc.reg_read(mk.UC_M68K_REG_PC)
+        if not E.PAYLOAD_DST <= pc < RAM:
+            self.foreign.append((pc, addr))
+        if addr == base or base != self.last:
+            self.last = base
+            if base in frame_pointers(uc):
+                self.hits.append((pc, base))
+
+    def after_block(self, b):
+        self.last = None
+        raw = bytes(self.v.e.uc.mem_read(E.VOICE0, 6 * E.VSTRIDE))
+        for t in range(6):
+            if struct.unpack_from(">I", raw, t * E.VSTRIDE)[0] != CHORD:
+                continue
+            # sub-voices 2 to 4: the word 0x400ab20c clears when their pitch is too high (notes/66 §19.1)
+            self.off += any(struct.unpack_from(">I", raw, t * E.VSTRIDE + 8 + 4 * j)[0] == 0 for j in (1, 2, 3))
+            for j in range(4):
+                for i in range(4):
+                    a = struct.unpack_from(">I", raw, t * E.VSTRIDE + 120 * j + 168 + 4 * i)[0]
+                    if not SRAM_LO <= a < SRAM_HI:
+                        self.sdram.append((b, t, j, a))
+
+
+def scenario(blocks, seed, tables):
+    """Per block: the trigs, the knobs and the Wavetables to set, the same for every OS (P1m)."""
+    rng = random.Random(seed)
+    sweep, out = [24, 40, 64, 0, 100, 10], []
+    for b in range(blocks):
+        ev = {"trig": 0, "set": [], "k30": []}
+        for t in range(6):
+            if b == 1 + 3 * t or (b > 8 and rng.random() < 0.06):
+                ev["trig"] |= 1 << t
+                high = t >= 4 and rng.random() < 0.8
+                ev["set"].append((t, {"note": rng.randrange(96, 121) if high else rng.randrange(36, 73),
+                                      "shape": rng.randrange(128)}))
+        sweep[0] = (sweep[0] + 3) % 128                 # creeping
+        if b % 5 == 0:
+            sweep[1] = rng.randrange(128)               # jumping
+        if b % 7 == 0:
+            sweep[2] = rng.randrange(-40, 128)          # negative now and then
+        sweep[3] = (sweep[3] + 17) % 128                # fast
+        sweep[5] = rng.randrange(-8, 128)               # anywhere, every block; track 5 stays still
+        ev["set"] += [(t, {"sweep": sweep[t]}) for t in range(6)]
+        if b == 60:
+            ev["set"].append((2, {"machine": 4}))       # track 3 to TONE and back
+        if b == 70:
+            ev["set"].append((2, {"machine": CHORD}))
+        if tables and b == 0:
+            ev["k30"] = [(0, 1), (1, 2), (2, 3), (3, 3), (4, 0), (5, 0)]
+        if tables and b == 50:
+            ev["k30"] = [(1, 5)]                        # during a note: from track 2's next one
+        out.append(ev)
+    return out
+
+
+def play(v, plan, move_at=None, watch=None):
+    out = []
+    for b, ev in enumerate(plan):
+        if move_at == b:
+            v.move()
+        for t, kw in ev["set"]:
+            v.e.set(t, **kw)
+        for t, n in ev["k30"]:
+            v.k30(n, track=t)
+        out.append(v.e.block(ev["trig"]))
+        if watch:
+            watch.after_block(b)
+    return np.array(out)
+
+
+MOVED_BLOCKS = 120
+
+
+def moved_tests(key, stock, tweak, img, runtime, syms):
+    slots = stock_sram_frames(img)
+    ref = Voice(stock)
+    stock_frames = [ref.frame(SINE)] + [ref.frame(struct.unpack(">I", ref.e.uc.mem_read(CHORD_TABLE + 4 * i, 4))[0])
+                                         for i in range(31)]
+    tables = [stock_frames[::-1]] + [stock_frames[i:] + stock_frames[:i] for i in (5, 11, 17, 23)]
+
+    def build(with_tables):
+        v = Six(img, runtime, tweak, syms)
+        if with_tables:
+            for n, f in enumerate(tables):
+                v.table(n, n, f)
+        return v
+
+    w0, mixed = scenario(MOVED_BLOCKS, 66, False), scenario(MOVED_BLOCKS, 66, True)
+    s = Six(stock)
+    sw = Watch(s, slots)
+    x = play(s, w0)
+    check(sw.writes == 0 and np.max(np.abs(x)) > 1e6 and not s.e.unmapped,
+          f"{key}: P5 the stock OS never writes the stock frames' SRAM over the scenario ({MOVED_BLOCKS} blocks, six "
+          "CHORD tracks)")
+    # e. the move itself, before the first block
+    v = build(False)
+    before = {a: v.frame(a) for a in slots}
+    moved = v.move()
+    n = v.r32(syms["ct_pool_n"])
+    addrs = [v.r32(syms["ct_pool_addr"] + 4 * k) for k in range(n)]
+    tags = [v.r32(syms["ct_pool_tag"] + 4 * k) for k in range(n)]
+    ptrs = [v.r32(STOCK + 4 * i) for i in range(POINTERS)]
+    entries = [v.r32(CHORD_TABLE + 4 * i) for i in range(32)]
+    want = [SINE] + [tags[addrs.index(a)] if a in addrs else a for a in entries]
+    for trig in (0, 1, 0):                      # a note, so that CHORD's update runs
+        v.e.block(trig)
+    adopted = v.r32(syms["ct_moved"])
+    check(moved == 2 and adopted == 1 and n == 30 and addrs == slots and len(set(tags)) == 30
+          and all(STOCK + 4 * POINTERS <= t_ < STOCK + BUF_BYTES for t_ in tags)
+          and all(v.frame(t_) == before[a] for a, t_ in zip(addrs, tags)) and ptrs == want and ptrs[1] == FRAME1
+          and ptrs[31] == ptrs[32],
+          f"{key}: P1m e the move: ct_moved 2 (ready) after the tick, 1 once the audio's next setup adopted it; the 30 "
+          "stock frames in SRAM are the pool's slots in the stock table's "
+          f"order, each tagged with its copy in {STOCK:#x}.., equal to it; the copy's 33 pointers are the selector's "
+          "(the sine at 0, frame 1 at 0x40118648 where the OS has it, frame 32 = frame 31)")
+
+    def run(with_tables, move_at, against, what, tracks=range(6)):
+        v = build(with_tables)
+        w = Watch(v, slots)
+        y = play(v, mixed if with_tables else w0, move_at, w)
+        fallback = v.r32(syms["ct_fallback"])
+        same = np.array_equal(y[:, list(tracks)], against[:, list(tracks)])
+        clean = not w.hits and not w.foreign and not v.e.unmapped
+        check(same and clean and v.r32(syms["ct_moved"]) == 1,
+              f"{key}: P1m {what}: identical, sample for sample, over {MOVED_BLOCKS} blocks; P5 no slot written while a "
+              f"voice points at it ({len(w.hits)}), nothing but the package writes the pool ({len(w.foreign)})")
+        if move_at == 0:
+            check(not w.sdram and fallback == 0,
+                  f"{key}: P5 {what}: every CHORD voice reads its frames in SRAM after every block "
+                  f"({len(w.sdram)} pointers in SDRAM), ct_fallback {fallback}")
+        finding(f"{key}: {what}: {w.writes // FRAME_LEN} frames copied into the pool over {MOVED_BLOCKS} blocks "
+                f"({w.writes / FRAME_LEN / MOVED_BLOCKS:.2f} a block, six tracks), ct_fallback {fallback}; "
+                f"{w.off} CHORD voice-blocks with a sub-voice's word +8 + 4j cleared")
+        return y
+
+    run(False, 0, x, "a. Wavetable 0 on six tracks, the move before the first note, against the stock OS")
+    unmoved = play(build(True), mixed)
+    check(not np.array_equal(unmoved, x) and np.array_equal(unmoved[:, 4:], x[:, 4:]),
+          f"{key}: P1m the tables' scenario without the move (0.1's way) sounds other than the stock OS on tracks 1 to "
+          "4, the same on 5 and 6 (Wavetable 0)")
+    run(True, 0, unmoved, "b. tables on tracks 1 to 4, Wavetable 0 on 5 and 6, the move before the first note, "
+        "against the same build without the move")
+    run(True, 0, x, "b. its tracks 5 and 6 (Wavetable 0) against the stock OS", tracks=(4, 5))
+    run(False, 40, x, "c. Wavetable 0, the move in block 40 while notes play, against the stock OS")
+    run(True, 40, unmoved, "d. the tables' scenario, the move in block 40, against the same build without the move")
 
 
 # --- P2. the loader ----------------------------------------------------------------------------------------------------
@@ -363,6 +614,7 @@ class Drive:
 
 def loader_tests(key, img, runtime, syms):
     u = S.UI(img, runtime)
+    sram_boot(u.uc, img)                       # 0.2's first tick moves the stock frames out of it
     d = Drive(u)
     u.hooks = {GETTER: ("getter", 0x5a)}
     for s in ("smp_hook_tick",):              # SAMPLE's own tick, with the dispatcher: not this proof's
@@ -419,6 +671,10 @@ def loader_tests(key, img, runtime, syms):
           f"{key}: P2a the scan: /Wavetables/01 to /64 opened in order, one per tick, read mode, each found one closed; "
           "the scan ends")
     check(set(rets) == {0x5a}, f"{key}: P2a every tick returns the stock getter's answer")
+    check(r32(syms["ct_moved"]) == 2 and r32(syms["ct_pool_n"]) == 30
+          and [r32(syms["ct_pool_addr"] + 4 * k) for k in range(30)] == stock_sram_frames(img),
+          f"{key}: P2h the first tick made the move: ct_moved 2 (ready for the audio, which this harness has not), the "
+          "pool's 30 slots")
     check(all(table_ok(n, data[n], k) for n, (k, _s) in files.items()),
           f"{key}: P2a files 01 (32 frames), 02 (1), 03 (4), 64 (2) and 08 (5, made by tools/wavetable.py, its first frame "
           "the sine): their tables "
@@ -459,9 +715,22 @@ def loader_tests(key, img, runtime, syms):
     check(slot(2) not in (0, old) and table_ok(2, data[2], 2) and owner(old_b) == 0xff,
           f"{key}: P2d a file replaced: slot 2 in a new buffer, built from the new file; the old buffer waits "
           "(a track's latch holds it)")
+    # i. a voice still points into it (+176 of track 3's second sub-voice), a slot holds one of its frames
+    ptr_at = E.VOICE0 + 2 * E.VSTRIDE + 120 + 176
+    tag_at = syms["ct_pool_tag"] + 4 * 7
+    tag0 = r32(tag_at)
+    u.uc.mem_write(ptr_at, struct.pack(">I", old + 4 * POINTERS + 4 * FRAME_LEN * 3))
+    u.uc.mem_write(tag_at, struct.pack(">I", old + 4 * POINTERS))
     u.uc.mem_write(syms["ct_latch"], struct.pack(">I", 0))
+    ticks(2)
+    held = owner(old_b) == 0xff and r32(tag_at) == old + 4 * POINTERS
+    u.uc.mem_write(ptr_at, struct.pack(">I", 0))
     ticks(1)
-    check(owner(old_b) == 0, f"{key}: P2d the latch let go: the old buffer is free at the next tick")
+    check(held and owner(old_b) == 0 and r32(tag_at) == 0,
+          f"{key}: P2i the latch let go while a voice still points into the old buffer: it stays retired and the slot "
+          "holding one of its frames keeps its tag; once no voice points into it, it is free at the next tick and that "
+          "tag is cleared")
+    u.uc.mem_write(tag_at, struct.pack(">I", tag0))
     # e. a file deleted
     d.drop("/Wavetables/03")
     ticks(64)
@@ -495,17 +764,21 @@ def loader_tests(key, img, runtime, syms):
 COST_BLOCKS = 21
 
 
-def cost_run(img, runtime=None, tweak=None, syms=None, frames=None, n=0, trig=True):
-    """Instructions per block in the real voice loop, track 1 alone on CHORD (machine defaults, note 60, SWEEP 24),
-    trig in block 1: [block 0, block 1, ...]; the other five voices muted."""
+def cost_run(img, runtime=None, tweak=None, syms=None, frames=None, n=0, trig=True, moved=False, sweep=None):
+    """Instructions per block in the real voice loop, track 1 alone on CHORD (machine defaults, note 60, SWEEP 24 or
+    sweep(b)), trig in block 1: [block 0, block 1, ...]; the other five voices muted; 0.2's move first if moved."""
     v = Voice(img, runtime, tweak, syms)
     v.e.set(3, machine=0x7f)
     if frames is not None:
         v.table(0, 0, frames)
     v.k30(n, track=0)
+    if moved:
+        v.move()
     v.e.count_instructions()
     counts = []
     for b in range(3 + COST_BLOCKS):
+        if sweep:
+            v.e.set(0, sweep=sweep(b))
         before = v.e.instructions
         v.e.block(1 if trig and b == 1 else 0)
         counts.append(v.e.instructions - before)
@@ -519,9 +792,12 @@ def cost_tests(key, stock, tweak, img, runtime, syms):
     ref = Voice(stock)
     stock_frames += [ref.frame(struct.unpack(">I", ref.e.uc.mem_read(CHORD_TABLE + 4 * i, 4))[0]) for i in range(31)]
     out = {}
-    for name, args in (("stock CHORD", (stock,)), ("Wavetable 0", (img, runtime, tweak, syms)),
-                       ("a table", (img, runtime, tweak, syms, stock_frames[::-1], 1))):
-        c = per_voice(cost_run(*args))
+    built = (img, runtime, tweak, syms)
+    for name, args, kw in (("stock CHORD", (stock,), {}), ("Wavetable 0", built, {}),
+                           ("a table", built + (stock_frames[::-1], 1), {}),
+                           ("Wavetable 0, moved", built, {"moved": True}),
+                           ("a table, moved", built + (stock_frames[::-1], 1), {"moved": True})):
+        c = per_voice(cost_run(*args, **kw))
         first, rest = c[2], c[3:3 + COST_BLOCKS]       # block 2: the note starts (the machine change, §11.6)
         out[name] = (first, sum(rest) / len(rest), max(rest))
         finding(f"{key}: cost, {name}: first block {first}, then mean {out[name][1]:.0f}, max {out[name][2]} "
@@ -532,6 +808,18 @@ def cost_tests(key, stock, tweak, img, runtime, syms):
           f"{key}: the extension adds {d0:+.0f} instructions per block per voice at Wavetable 0 and {d1:+.0f} with a "
           "table, against stock CHORD; the emulator does not time memory, and a table's frames are read in SDRAM "
           "instead of SRAM (notes/66 §0)")
+    m0 = out["Wavetable 0, moved"][1] - out["stock CHORD"][1]
+    m1 = out["a table, moved"][1] - out["stock CHORD"][1]
+    check(0 <= m0 < 200 and -100 < m1 < 300,
+          f"{key}: after the move (0.2), {m0:+.0f} instructions per block per voice at Wavetable 0 and {m1:+.0f} with a "
+          "table, SWEEP still: the fast path; the frames are now read in SRAM (notes/66 §19)")
+    creep = lambda b: (24 + 3 * b) % 128
+    for name, args in (("a table, SWEEP creeping", built + (stock_frames[::-1], 1)), ("Wavetable 0, SWEEP creeping", built)):
+        before = [x - y for x, y in zip(cost_run(*args, sweep=creep), idle)][3:3 + COST_BLOCKS]
+        after = [x - y for x, y in zip(cost_run(*args, moved=True, sweep=creep), idle)][3:3 + COST_BLOCKS]
+        finding(f"{key}: cost, {name} (3 a block, a frame about every 1.3 blocks): mean {sum(before) / len(before):.0f} "
+                f"before the move, {sum(after) / len(after):.0f} after it (max {max(after)}): the copies and the scan "
+                "of 0.2, in instructions, for the lines of SDRAM no longer read")
 
 
 def finding(msg):
@@ -563,6 +851,8 @@ def main():
         R.save_tests(key, stock, img, runtime)
         print("P1. cw_setup in the voice loop")
         voice_tests(key, stock, tweak, img, runtime, syms, args.blocks)
+        print("P1m and P5. 0.2, the frames in SRAM")
+        moved_tests(key, stock, tweak, img, runtime, syms)
         print("P2. the loader")
         loader_tests(key, img, runtime, syms)
         print("C. the cost (STANDARD.md §6)")

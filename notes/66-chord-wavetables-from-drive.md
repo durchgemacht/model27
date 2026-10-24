@@ -1273,3 +1273,303 @@ The maintainer takes the three recommendations of §19.7:
 
 Next: S1, the code (§19.6).
 
+## 20. S1 built: CHORD Tables 0.2 (2026-10-24)
+
+### 20.1 What was built
+
+- **`chordtables.c`** (§19.3):
+  - `move()`, called by the first tick before anything else:
+    - the stock table `0x40118590` read at run time; each of its frames in SRAM copied once into `STOCK`, the
+      buffer after the 72 (`0x43648c80`, 33 pointers then the copies), frames in SDRAM kept where they are
+      (`0x40118648`, frame 1), the sine at index 0;
+    - each SRAM frame becomes slot k of the pool (`ct_pool_addr`), tagged with its copy (`ct_pool_tag`), and the
+      KB of SRAM it starts in is noted (`kb_slot`, 64 bytes): an address finds its slot in one look;
+    - a frame starting in another's KB, or more than 32, refuses the move for good (`ct_moved` = `0xff`, 0.1's
+      way). Otherwise a compiler barrier, then `ct_moved` = 1.
+  - `cw_setup`:
+    - before the move as in 0.1;
+    - after it, Wavetable 0 takes the stock function's work on the copy: `i = SWEEP >> 10` signed, the crossfade,
+      `f0 = sel(i)`, `f1 = sel(i + 1)`, with the selector's rule (0 to 32 the copy's pointer, the sine outside), and
+      `+184` = i, negative SWEEP included. A table as in 0.1;
+    - both sources go through `map()`. Its fast path keeps the last block's two pointers when the sources are the
+      same and sub-voice 0 still holds them (`+168`, `+172`); else `remap()`, out of line.
+  - `remap()`:
+    - rules 1 and 2 by `held()`;
+    - one scan of the six voices' 96 pointers (`pinned()`) gives the slots in use and whether a voice points at
+      either source;
+    - `place()` takes the slot mapped longest ago outside those, copies the 257 longs, tags it. With no such slot
+      it reads the source where it is and counts it (`ct_fallback`).
+  - `reclaim()`: a retired buffer becomes free only once no latch and no voice pointer reaches into it
+    (`pointed_into()`, always, also before the move). Then the tags of the slots holding its frames are cleared.
+- **The manifest:**
+  - version 0.2;
+  - the roots `ct_moved`, `ct_pool_addr`, `ct_pool_tag`, `ct_pool_n`, `ct_fallback` and `ct_tick`, for the proofs
+    (`ct_tick` since S2: the voice harness makes the move with it);
+  - two `memory.sram` uses (`0x80001c5c..0x800074b4`, `0x8000cac0..0x8000eae0`, "CHORD's frames"), and the same two
+    ranges in the claims' `ram`;
+  - `tests.emulation` and `tests.hardware` by version: 0.1 as recorded, 0.2 not yet run;
+  - status `experimental` (§19.8).
+- **The builder:**
+  - `compose.load_manifest` refuses `memory.sram` in a package that extends no stock machine;
+  - `claims.check_package` counts `memory.sram` with `memory.ram`;
+  - `web_package` leaves the point out, as it leaves every use the page does not place. `composer.js` needs no
+    change: the claims carry the ranges.
+- **Outputs:** `chordtables.o` and `36-chordtables.json` (9 writes, 4 696 bytes added to the image, 269 conflicts
+  computed, as in 0.1), `REGISTRY.md` (its size, the two SRAM ranges).
+
+### 20.2 Measured
+
+| | 0.1 | 0.2 |
+|---|---|---|
+| code | 1 465 bytes | 4 093 bytes |
+| variables | 624 bytes | 1 184 bytes |
+| added to the image | 2 068 bytes | 4 696 bytes |
+| `cw_setup` (the audio's path every block) | — | 666 bytes |
+| `remap` (only when a frame changes) | — | 1 542 bytes |
+
+The scan of `remap` is unrolled by GCC (6 × 4 × 4 pointers). It runs only on a frame change and stays out of the
+blocks whose frames stay.
+
+### 20.3 Checks (here, no emulation)
+
+- `gen_chordtables.py --check`: up to date.
+- `claims.py --check --self-test`, `check_overlaps.py`, `registry.py --check` (regenerated), and
+  `gen_flasher_tweaks.py --check` (on the committed card list, the paused W7 card set aside): all OK.
+- `webcompose_check.sh` with the official file: `composer.js` places and composes chordtables, chordtables +
+  sampler and sampler + chordtables as `compose.py` does, byte for byte (MAIN OS `ddffb376…`, `a9957615…`,
+  `a908937b…`, with `ct_tick` exported), and every other build as before.
+- `py_compile`: OK.
+
+### 20.4 Not yet proven: S2
+
+`test_chordtables.py` as it is does not prove 0.2, and P2 will stop. Its UI harness maps no SRAM, and the first
+tick's move reads the stock frames there. S2 is to:
+- map the SRAM in the UI harness, with its boot content as `mcengine.Engine` writes it;
+- run the move before P1's cases (the tick, or `move` through its effect: `ct_moved`, `STOCK`, the slots);
+- add §19.4's cases: Wavetable 0 against the stock OS and tables against 0.1, sample for sample, on six tracks
+  with SWEEP moving, jumping and negative, high notes, retrigs and a machine change, the move while notes play;
+- P5, with a hook on SRAM writes;
+- P2 again, with the reclaim waiting for the voices' pointers.
+
+## 21. S2 prepared: the proofs of 0.2 (2026-10-24)
+
+`tools/emu/test_chordtables.py` grows the cases of §19.4. The run is the maintainer's (Unicorn stops with SIGILL in
+this sandbox). Run here: the pure Python parts. They give the pool's 30 slots from the stock table, in two runs
+equal to the manifest's `memory.sram` ranges, and the scenario: 36 notes, 33 negative SWEEP values.
+
+- **The harnesses:**
+  - `sram_boot()` maps the SRAM in the UI harness with its two boot images, as `mcengine.Engine` writes them. The
+    loader's first tick makes the move there;
+  - `Voice.move()` calls the package's own `ct_tick` with the file system's page mapped and zero (not mounted), so
+    that the tick does the move and nothing else. `ct_tick` is a root for that (§20.1).
+- **P1m:** six CHORD tracks (`Six`), one scenario of 120 blocks the same for every OS (`scenario()`, seed 66):
+  - notes now and then, high ones (96 to 120) on tracks 5 and 6;
+  - SWEEP creeping, jumping, negative now and then, fast, still and anywhere;
+  - the chord shape changed at each note, track 3 to TONE in block 60 and back in 70;
+  - with tables: tables 1 to 3 on tracks 1 to 3, track 4 sharing table 3, Wavetable 0 on tracks 5 and 6, and
+    track 2 changing to table 5 during a note.
+
+  The cases:
+  - a: Wavetable 0, moved before the first note, against the stock OS;
+  - b: the tables, moved before the first note, against the same build without the move (0.1's way, which P1a to
+    P1e hold to the stock OS and the computed frames), and tracks 5 and 6 against the stock OS;
+  - c and d: the same with the move in block 40, while notes play;
+  - e: the move itself. The slots in the stock table's order, their tags in the copy and equal to the frames, the
+    copy's 33 pointers as the selector's (the sine, frame 1 at `0x40118648`, frame 32 = frame 31).
+- **P5,** in each P1m run (`Watch`): a hook on writes into the pool's two runs of SRAM.
+  - No slot a voice points at is written, checked at each copy's first word against the six voices' 96 pointers.
+  - No write from outside the package.
+  - The stock OS never writes there over the scenario.
+  - With the move before the first note, after every block every CHORD voice's 16 pointers are in SRAM, and
+    `ct_fallback` is 0.
+  - Findings: the frames copied per block, and the voice-blocks with a sub-voice switched off.
+- **P2h:** the loader's first tick made the move (`ct_moved` 1, the 30 slots).
+- **P2i,** in place of P2d's last check:
+  - the latch let go while a voice still points into the old buffer (track 3, second sub-voice, `+176`), and a
+    slot tagged with one of its frames: the buffer stays retired and the tag stays;
+  - the pointer cleared: free at the next tick, the tag cleared.
+- **C:** the cost after the move, SWEEP still (the fast path, checked under +200 / +300 instructions against stock
+  CHORD). As findings: SWEEP creeping (a frame about every 1,3 blocks), before and after the move, the copies' and
+  the scan's price in instructions.
+
+What the maintainer runs:
+
+```sh
+../.venv-emu/bin/python3 tools/emu/test_chordtables.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx
+```
+
+### 21.1 The run (the maintainer, 2026-10-24)
+
+`test_chordtables.py`: **ALL OK** for chordtables, chordtables + sampler and sampler + chordtables
+`[FAIT en émulation]`. Every check of P1 to P2 as before; P1m a to e, P5, P2h and P2i new and OK in all three.
+
+- **Identical, sample for sample, over 120 blocks of six CHORD tracks:**
+  - Wavetable 0 against the stock OS, with the move before the first note and in block 40;
+  - the tables against the same build without the move, both ways;
+  - the tables' tracks 5 and 6 (Wavetable 0) against the stock OS.
+
+  The scenario switched sub-voices off in 627 CHORD voice-blocks. The case of §19.1 is covered.
+- **P5:**
+  - no slot written while a voice pointed at it;
+  - no write into the pool but the package's;
+  - the stock OS never writes the stock frames;
+  - after every block, every CHORD voice's 16 pointers in SRAM;
+  - `ct_fallback` 0.
+- **Frames copied into the pool over the 120 blocks** (six tracks):
+
+  | Case | Frames copied | per block |
+  |---|---|---|
+  | a. Wavetable 0 | 37 | 0,31 |
+  | b. tables | 497 | 4,14 |
+  | c. Wavetable 0, moved in block 40 | 26 | 0,22 |
+  | d. tables, moved in block 40 | 357 | 2,98 |
+
+  Wavetable 0 copies little: its frames are in slots tagged since the move. Only frame 1 (in SDRAM in the OS) and
+  frames whose slots tables took are copied.
+- **The cost** (instructions per block per voice, CHORD alone, minus the loop with no note):
+
+  | | first block | mean | max |
+  |---|---|---|---|
+  | stock CHORD | 8 737 | 8 292 | 8 300 |
+  | Wavetable 0, before the move | 8 782 | 8 318 | 8 326 |
+  | a table, before the move | 8 758 | 8 294 | 8 302 |
+  | Wavetable 0, moved | 8 885 | 8 333 | 8 341 |
+  | a table, moved | 14 906 | 8 327 | 8 335 |
+
+  With SWEEP still, the fast path costs +41 (Wavetable 0) and +35 (a table) against stock CHORD. The note's
+  first block costs +6 100 with a table: the two frames copied in, and the scan.
+- **SWEEP creeping** (3 a block, a frame about every 1,3 blocks):
+  - **a table: 8 285 before the move, 11 902 after it (max 13 065), +3 617 instructions a block;**
+  - Wavetable 0: 8 309 → 8 463, since its frames are tagged since the move.
+
+### 21.2 What the run says for the device
+
+- **SWEEP still**, the usual case on a held chord: the frames are read in SRAM (P5) for +35 to +41 instructions a
+  block. That is what §18.1's 110 to 121 SDRAM lines a block were.
+- **SWEEP moving on a table:** each new frame costs a copy, 65 lines of SDRAM read once, plus about 2 700
+  instructions (the scan of 96 pointers, the search of the tags, the copy), +3 617 a block in the probe's
+  creeping case. It reads about half the lines 0.1 reads, but adds 44 % to a CHORD voice's instructions.
+  - Whether that is a gain depends on the time of a line in SDRAM (DDR2 on 8 bits, notes/26 §1), which no
+    emulator here gives.
+  - With six tables the cache thrashes (§18.1, 941 misses a block), so lines may cost more than their count. Only
+    the device can tell.
+- **What could cut that price**, not built:
+  - the scan reads only the voice's own 16 pointers and keeps a mask per voice of the slots it may point at;
+  - the copy in long moves of 8.
+
+  To weigh after S3 (the lines with 0.2) and the device's word on a table with an LFO on SWEEP.
+
+## 22. The price of a moving SWEEP lowered (2026-10-24)
+
+The maintainer, after §21.2: not committed yet; first lower the price of a moving SWEEP (a mask per voice, a faster
+copy).
+
+### 22.1 What changed in `chordtables.c`
+
+- **A mask per voice instead of the scan of 96 pointers.**
+  - `pin[t]` holds the slots voice t may point at, and `far[t]` whether it may point at a frame outside SRAM.
+  - In its remap a voice reads only its own 16 pointers (`own()`) and adds its two new ones. The other voices' slots
+    come from their masks.
+  - This holds because a voice's pointers change only in its own setup, in its render (`+168` → `+176`, `+172` →
+    `+180`, §19.1) and at the reset (the sine). So a mask taken at a voice's remap covers it until its next one, also
+    for an idle voice or a sub-voice switched off.
+- **Rule 3 looks only at voices with `far` set.** A frame is read where it is only before the move or for want of a
+  slot, so the 96-pointer search is gone from the usual case.
+- **The move is handed to the audio.** The tick copies and sets `ct_moved` to 2, ready. The audio's next setup
+  (`adopt()`, out of line, once) takes every voice's mask from its pointers and sets 1.
+  - Reading the pointers in the audio itself means none can change under the reading. The UI task could be
+    interrupted between two voices.
+- **Rule 2 looks first where the track had its two sources.** When SWEEP creeps, the new f0 is the old f1, and its
+  slot is found at once, its tag checked.
+- **The slot taken:** the next free one after the last taken, by `ff1` on the free mask, in place of the
+  oldest-used search over 30. `pool_used` and the setup count are gone.
+- **The copy:** `copy_frame()`, 32 `movem.l` of 8 longs and the last long, in place of 257 single moves.
+
+### 22.2 Measured here
+
+- **Outputs:** `chordtables.o`, `36-chordtables.json` (9 writes, 5 268 bytes added to the image), `REGISTRY.md`.
+- **Sizes:** code 4 665 bytes (4 093 before), variables 1 104 bytes (1 184), `cw_setup` 716 bytes (666),
+  `remap` 1 584, `place` 260.
+- **The object:** no library call (`nm -u` empty); `__builtin_clz` is the `ff1` instruction.
+- **Checks:** `claims`, `check_overlaps`, `registry`, `gen_flasher_tweaks --check` (the W7 card set aside) and
+  `webcompose_check` with the official file all OK. `composer.js` is identical to `compose.py`: MAIN OS
+  `dd7a94bd…` alone, `37f13bce…` with SAMPLE after, `c814a39d…` with SAMPLE before.
+- **The proofs:** P1m e and P2h now expect the hand-over: 2 after the tick, 1 after the audio's first setup with a
+  note.
+- **Estimate**, to be measured by part C: a remap that copies one frame costs about 500 to 700 instructions instead
+  of about 2 700:
+  - its own 16 pointers;
+  - six masks;
+  - the tag search, short when SWEEP creeps;
+  - `ff1`;
+  - a copy of about 200 instructions.
+
+§21.1's run was on the code before this change: P1m, P5, P2 and the cost are to be run again.
+
+### 22.3 The run of §22's code (the maintainer, 2026-10-24)
+
+`test_chordtables.py`: **ALL OK** in the three builds `[FAIT en émulation]`:
+- P1m a to e identical, sample for sample;
+- P5: no slot written while in use, every frame in SRAM, `ct_fallback` 0;
+- P2a to P2i;
+- the hand-over: 2 after the tick, 1 after the audio's first setup.
+
+| Instructions per block per voice | §21.1 | §22 |
+|---|---|---|
+| a table, moved, SWEEP still (mean) | 8 327 | 8 330 |
+| a table, moved, first block | 14 906 | 12 352 |
+| Wavetable 0, moved, first block (with the adoption) | 8 885 | 11 472 |
+| **a table, SWEEP creeping, after the move** | **11 902** | **9 153** |
+| Wavetable 0, SWEEP creeping, after the move | 8 463 | 8 833 |
+
+- **A table with SWEEP creeping:** +864 instructions a block against 0.1's way (8 289), where §21.1 had +3 617.
+  The price of a moving SWEEP is cut by three quarters. At about 0,75 copies a block that is about 1 150
+  instructions a copied frame, not the 500 to 700 estimated in §22.2.
+- **Wavetable 0 with SWEEP creeping got dearer:** +521 against +154.
+  - Its frames are found in their slots, so it copies nothing. Each remap now reads the voice's 16 pointers
+    (`own()`), which §21's code did only when it placed a frame.
+  - The adoption (six voices' 16 pointers, once) is in Wavetable 0's first block.
+- Frames copied over the 120 blocks: a 31, b 486, c 19, d 346 (37, 497, 26, 357 before). The slot after the last
+  taken keeps a few more frames.
+
+### 22.4 Two more cuts (2026-10-24)
+
+- **`own()` looks up only what differs.** Sub-voices 2 to 4 hold sub-voice 1's four pointers unless one was
+  switched off for its pitch, so only their pointers that differ are looked up: 4 lookups and 12 compares in the
+  usual case, in place of 16 lookups.
+- **Only CHORD voices count** (`chord_voice()`, the machine at `+0`), in the busy slots, in rule 3 and in the
+  adoption.
+  - Another machine's voice is never read by CHORD's render. It comes back to CHORD only through the reset, its
+    pointers the sine (§19.1).
+  - Its words at `+168`..`+180` are that machine's own, and are no longer counted as pins or as frames outside SRAM.
+- **Outputs:** code 4 835 bytes, 5 436 bytes added to the image, `own` 266 bytes, `cw_setup` 716.
+- **Checks:** all OK. `webcompose_check` gives MAIN OS `1abd04c2…`, `d9cc564c…` and `c4af0e27…`.
+- **Not run yet:** the proofs.
+
+### 22.5 The run of §22.4's code (the maintainer, 2026-10-24)
+
+`test_chordtables.py`: **ALL OK** in the three builds `[FAIT en émulation]`, every check as in §22.3.
+
+| Instructions per block per voice | §21.1 | §22.3 | §22.5 |
+|---|---|---|---|
+| a table, moved, SWEEP still (mean) | 8 327 | 8 330 | 8 330 |
+| Wavetable 0, moved, SWEEP still (mean) | 8 333 | 8 333 | 8 333 |
+| a table, moved, first block | 14 906 | 12 352 | 10 427 |
+| Wavetable 0, moved, first block | 8 885 | 11 472 | 9 532 |
+| **a table, SWEEP creeping** | **11 902** | 9 153 | **9 024** |
+| **Wavetable 0, SWEEP creeping** | **8 463** | 8 833 | **8 692** |
+
+Before the move (0.1's way): a table 8 289 and Wavetable 0 8 312 with SWEEP creeping; stock CHORD 8 292 with SWEEP
+still.
+
+- **A table with SWEEP creeping:** +735 instructions a block against 0.1's way, where §21.1 had +3 617. That is
+  about 980 a copied frame. In exchange the frames are read in SRAM, and about half the SDRAM lines are no longer
+  read (§21.2).
+- **Wavetable 0 with SWEEP creeping:** +380 a block, against +154 in §21.1 and +521 in §22.3. It copies nothing,
+  since its frames sit in their own slots. What it pays is the remap: its 16 pointers, the tag search for the new
+  frame.
+  - That is a price stock CHORD users pay for nothing in memory: the stock frames are in SRAM already, frame 1 aside.
+  - Left: a direct look-up of a stock frame's own slot (its copy's index is its slot's), not built.
+- **SWEEP still:** +38 (a table) and +41 (Wavetable 0) against stock CHORD, as before.
+- **Frames copied over the 120 blocks:** a 31, b 490, c 19, d 350.
+

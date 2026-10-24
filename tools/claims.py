@@ -640,13 +640,15 @@ def check_file(data, ids, pkgs):
 
 
 def check_package(m, claims, shortcut_part):
-    """A manifest's claims against its uses: the RAM of memory.ram, the views of view.*, and for each shortcut its
-    key combination, sound slot and record slot (the part's list gives the slot of each knob)."""
+    """A manifest's claims against its uses: the RAM of memory.ram and memory.sram (the OS's SRAM a stock machine's
+    extension takes from it, notes/66 §19.5), the views of view.*, and for each shortcut its key combination, sound
+    slot and record slot (the part's list gives the slot of each knob)."""
     errors = []
     uses = m.get("uses", [])
-    ram = sorted((int(a, 16), int(b, 16)) for u in uses if u.get("point") == "memory.ram" for a, b in [u["range"]])
+    ram = sorted((int(a, 16), int(b, 16)) for u in uses if u.get("point") in ("memory.ram", "memory.sram")
+                 for a, b in [u["range"]])
     if ram != sorted(claims.get("ram", [])):
-        errors.append("claims.ram is not the RAM of its uses (memory.ram)")
+        errors.append("claims.ram is not the RAM of its uses (memory.ram, memory.sram)")
     views = sorted(u["point"][5:] for u in uses if u.get("point") in ("view.main", "view.knob"))
     if views != sorted(v for v, _s, _h in claims.get("views", [])):
         errors.append("claims.views are not the views of its uses (view.main, view.knob)")

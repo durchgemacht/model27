@@ -118,6 +118,9 @@ def load_manifest(mid):
             sys.exit(f"!! {mid}: an extension names its entry points in build.roots (it has no update and render)")
         if any(pp["kind"] in ("machine_index", "descriptor_base") for pp in m["build"].get("patch_points", [])):
             sys.exit(f"!! {mid}: an extension has no machine index and no descriptors of its own")
+    if any(u["point"] == "memory.sram" for u in m["uses"]) and not m["_stock"]:
+        sys.exit(f"!! {mid}: memory.sram is the SRAM the OS gives a stock machine: only an extension of that machine "
+                 "may take it (notes/66 §19.5)")
     return m
 
 
