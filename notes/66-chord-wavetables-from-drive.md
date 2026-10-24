@@ -936,7 +936,9 @@ The maintainer tests the build in digiemu before the device.
   extensions (draft 0.5). That section fixes the deviations: `machine.stock`, `build.roots` under the schema name
   `cycles-mod/0.1`, the unknown point `chord.waves`.
 - **The order numbers** 34 (REFC) and 36 (CHORD Tables) were picked by Claude in the standard's range for machines.
-  APPLYING.md §11 leaves them to the maintainer, who confirms them or gives others.
+  APPLYING.md §11 leaves them to the maintainer, who confirms them or gives others. **Confirmed by the maintainer
+  on 2026-10-24** ("so lassen"). The tweaks model27 inherited from Modded-Cycles and does not offer (MACRO, ACID,
+  Model-TG, the Syntakt engines…) stay in the folder, and the numbers stay clear of them.
 
 ## 16. SWEEP 0 is a sine on every table (2026-10-24)
 
@@ -1035,3 +1037,17 @@ sampler + chordtables `[FAIT en émulation]`.
 - Everything else is as in §15.4: P1, P2 and the cost, +22 instructions per block per voice at Wavetable 0 and −1
   on a table.
 
+## 17. Tested on the Model:Cycles (2026-10-24)
+
+- **The maintainer**, once the steps of §15.3 were handed over: "getestet, funktioniert".
+- **What was ready for the test:**
+  - the compose builds `build/model-cycles_OS1.13-chordtables.syx` (`e4dafb31…`, MAIN OS `f796d93e…`) and
+    `…-sampler+chordtables.syx` (`77a10a97…`, MAIN OS `be21c9a0…`), rebuilt the same day byte for byte;
+  - the test tables of §16, the sine in front, and One-Shot's uploader (`d78c8a0`) for `/Wavetables`.
+- **Not said:**
+  - which of the two builds was flashed;
+  - which points of §15.3's list were tried one by one;
+  - how the tables got onto the +Drive, and whether the uploader's refusal was tried.
+- **From this date** the package's `tests.hardware` holds the test and its status is `tested` (model27's rule 3).
+- **Next: W7**, the card in the flasher, the guide and the release in English and French, then the standard's
+  section on extensions (draft 0.5).
