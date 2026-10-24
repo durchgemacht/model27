@@ -10,8 +10,8 @@ maintainer's run (§12.4). W2 done. W3 built the same day (§13): the package `c
 `tools/gen_chordtables.py`, `36-chordtables.json`, composed alone and with SAMPLE. W4 prepared (§14):
 `tools/emu/test_chordtables.py`, P1 `cw_setup` and P2 the loader, ALL OK in the maintainer's second run (§14.2):
 W4 done. W5 built and W6 prepared the same day (§15): `tools/wavetable.py` (self-test ALL OK), the proof's cost part
-and a converter-made file; the maintainer's third run ALL OK (§15.4), the cost in the manifest; the device test is
-open.**
+and a converter-made file; the maintainer's third run ALL OK (§15.4), the cost in the manifest. Tested in digiemu by
+the maintainer on 2026-10-24 (§15.7): "getestet, funktioniert". The device test is open.**
 
 The maintainer asked on 2026-10-23 whether a mod could let the stock CHORD machine load wavetables from the +Drive
 and pick them with RETRIG + CONTOUR ("the exact knob does not matter"), or with FUNC + MACHINES as SAMPLE does. Two
@@ -823,8 +823,8 @@ python3 tools/wavetable.py --self-test
    - in One-Shot's uploader, a folder `Wavetables` at the drive's root;
    - the files uploaded under the names `01`, `02`, … (the uploader drops the extension).
 4. **digiemu.** `ekfsadd.py` writes only into a folder that exists. model27 carries no tool that makes one:
-   digiemu's file system code is GPL-2.0, and copying or paraphrasing it here is not allowed. If the emulated
-   Cycles cannot make the folder, the test goes to the device.
+   digiemu's file system code is GPL-2.0, and copying or paraphrasing it here is not allowed. The Cycles makes the
+   folder itself (§15.6).
 5. **On the device:**
    1. on a CHORD track, RETRIG held + SWEEP shows Wavetable 0 to 64, and 0 sounds as before;
    2. Wavetable 1 plays file 01 from the next note, and SWEEP moves through its frames without a click;
@@ -860,6 +860,75 @@ python3 tools/wavetable.py --self-test
 - **What the emulator does not time:** a table's frames read in SDRAM instead of SRAM. By notes/27 and 28's
   estimates that is about +0,6 to +1,2 points of a block per CHORD voice on a table; the device measures it (§15.3,
   point 5.8).
+
+### 15.6 In digiemu first (2026-10-23)
+
+The maintainer tests the build in digiemu before the device.
+
+- **The folder.** The stock OS makes folders in the PRESET browser `[FAIT]` (read in the code after the maintainer
+  did not find the item: the first version of this step named no key):
+  - `0x400a6d5c` is the browser's key handler. For key code 1 (FUNC) it opens a popup of three items: "Save Preset",
+    "Save Kit" and "Create folder" (`0x400a6e08`–`0x400a6eb2`, the string at `0x40130323`);
+  - it does so only on a click, FUNC pressed and released alone (`0x40072434`: bit 4 of the event, notes/63 §15);
+  - the browser must show the drive's files, not the pool (`vt[152]`, `0x400a3308`: `+640 == +632`, notes/40);
+  - the folder must be writable: `0x4007cd30` → `0x4007ec78`, bit 0 of the inode's `+1` clear, so not inside
+    `factory`.
+
+  So the emulated Cycles makes `/Wavetables` itself: FUNC + MACHINES, then FUNC alone at the drive's root.
+  - `[HYP]` The name must be typed `Wavetables` exactly. Whether the naming screen offers lowercase, and whether the
+    path is compared without case, is not read.
+- **The builds:**
+
+  | File | `.syx` SHA-256 | MAIN OS |
+  |---|---|---|
+  | `build/model-cycles_OS1.13-chordtables.syx` | `e4dafb31…` | `f796d93e…` |
+  | `build/model-cycles_OS1.13-sampler+chordtables.syx` | `77a10a97…` | `be21c9a0…` |
+
+- **Four test tables**, made by `tools/wavetable.py` from synthetic 2 048-sample tables, in
+  `_scratch/chordtables-digiemu/` (not in the repository):
+
+  | File | Table |
+  |---|---|
+  | `01.wav` | saw → square, 32 frames |
+  | `02.wav` | sine → saw, 32 frames |
+  | `03.wav` | pulse width 6 % → 50 %, 32 frames |
+  | `04.wav` | an organ cycle, 1 frame |
+
+- **Checked here with digiemu's own conversion** (`wav_to_sample`, run locally, not copied): each file becomes a
+  sample file the loader takes, of 32, 32, 32 and 1 frames, within one step of the WAV. The card names are `01` to
+  `04`, since `ekfsadd` drops the extension.
+- **The steps:**
+  1. open the `.syx` in digiemu once, so that its folder `mc-1.13-<SHA8>` and `plusdrive.img` exist;
+  2. in the emulated Cycles, FUNC + MACHINES; at the browser's root, FUNC pressed and released alone; "Create
+     folder"; name `Wavetables`;
+  3. close digiemu;
+  4. `ekfsadd.py <plusdrive.img> 01.wav 02.wav 03.wav 04.wav --dir Wavetables`;
+  5. start digiemu again.
+- **What digiemu can show:**
+  - the boot;
+  - RETRIG + SWEEP on CHORD, 0 to 64;
+  - tables 1 to 4 and SWEEP through their frames;
+  - a change during a note;
+  - Wavetable 5 (no file) as stock;
+  - the project saved and digiemu restarted;
+  - the other tracks, and SAMPLE in the second build.
+- **What it cannot show:** a file uploaded while it runs, since `ekfsadd` writes only while digiemu is closed, and
+  the device's timing.
+
+### 15.7 Tested in digiemu (the maintainer, 2026-10-24)
+
+- **The folder.** It was made in the emulated Cycles with the stock menu of §15.6. The first one came out as
+  `Wavetabless`, which the loader does not read (it opens `/Wavetables/NN` only), so a second one, `Wavetables`, was
+  made next to it.
+- **The files:** the four test tables, written with `ekfsadd.py … --dir Wavetables`, digiemu closed.
+- **The build:** `build/model-cycles_OS1.13-chordtables.syx` (`.syx` `e4dafb31…`, MAIN OS `f796d93e…`).
+- **The maintainer:** "getestet, funktioniert".
+  - Which points of §15.6's list were tried one by one was not said.
+  - Not tried in digiemu: the build with SAMPLE (`77a10a97…`).
+- **Still for the device (§15.3):**
+  - a file uploaded while it runs;
+  - the cost of the frames in SDRAM;
+  - the official OS afterwards.
 
 ### 15.5 Still open
 

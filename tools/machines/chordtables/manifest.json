@@ -44,6 +44,6 @@
  "stock_behaviour": {"changes": ["CHORD's tracks: RETRIG + SWEEP edits the Wavetable instead of SWEEP"], "fixes": [],
                      "unchanged": ["CHORD at Wavetable 0, and every other track"]},
  "compat": {"built_against": ["model27"], "requires": [], "conflicts_declared": []},
- "tests": {"emulation": {"tool": "tools/emu/test_chordtables.py (Unicorn, the OS's own code, notes/66 §14)", "date": "2026-10-23", "build": "alone, with sampler before and after it"},
+ "tests": {"emulation": {"tool": "tools/emu/test_chordtables.py (Unicorn, the OS's own code, notes/66 §14, 2026-10-23); digiemu (the maintainer, notes/66 §15.7)", "date": "2026-10-24", "build": "Unicorn: alone, with sampler before and after it; digiemu: alone (.syx e4dafb31, four tables in /Wavetables)"},
            "hardware": {"status": "not yet run"}, "status": "experimental"}
 }
