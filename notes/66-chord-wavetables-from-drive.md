@@ -1131,3 +1131,145 @@ The maintainer's report and this measurement agree: the lag is the frames read i
 above (each track's two frames in SRAM), to be planned. With SWEEP moving as in the probe (about one frame a block),
 a copy of one frame (65 lines) a block would remain; with SWEEP still, one copy at the note's start.
 
+## 19. Plan: the frames CHORD plays, in SRAM (2026-10-24)
+
+The maintainer's request after §18.1: plan the fix with the frames in SRAM. Code reading of the stock MAIN OS 1.13
+(`[FAIT]` unless marked), then the design, its proofs, and the decisions for the maintainer.
+
+### 19.1 How CHORD reads its frames `[FAIT]` (code reading)
+
+- **The selector** `0x400a8060(n)`: `n − 1` unsigned above 31 gives the sine `0x8000eee4`; otherwise entry `n − 1` of
+  `0x40118590`. The setup `0x400a8080` takes `i = SWEEP >> 10` (arithmetic: negative for a negative SWEEP),
+  `f0 = sel(i)`, `f1 = sel(i + 1)`, the crossfade `(SWEEP & 1023) << 21`, and writes the four sub-voices: `+188` ←
+  `+184`, then `+168` f0, `+172` f1, `+156` crossfade, `+184` i.
+- **The stock table** `0x40118590`:
+  - entry 0 (frame 1) is `0x40118648`, in SDRAM, in the OS's data: stock CHORD already reads it between SWEEP 0
+    and 15;
+  - entries 1 to 30 are the 30 frames in SRAM, 1 028 bytes apart: 22 in `0x80001c5c..0x800074b4`, 8 in
+    `0x8000cac0..0x8000eae0`;
+  - entry 31 repeats entry 30 (`0x8000cac0`).
+- **The render reads the previous block's frames too.**
+  - Before its loop, it compares `+188` with `+184` and the new f0 with `+176`.
+  - Index up by one: the block fades from the previous f0 (`+176`) to the new f0. Down by one: from the previous f1
+    (`+180`) to the new f1. Another frame: the block plays the previous pair (`+176`, `+180`) while its gains
+    `+160`/`+164` move. Otherwise: the usual crossfade of f0 and f1.
+  - Then it saves `+168` → `+176` and `+172` → `+180` (`0x400a860c`; the same in the second render,
+    `0x400a88d8`).
+  - So **in a block where the frame changes, CHORD reads up to four frames**: the two of this block and the two of
+    the previous one.
+- **The reset** `0x400a7ab8` sets `+168`..`+180` to the sine and clears `+156`, `+160`, `+164`, `+184`, `+188`
+  (`0x400a7b52`..`0x400a7bbe`).
+- **CHORD's update** `0x400aae88` reaches the setup call at `0x400ab15e` on every path: `cw_setup` runs every
+  block, as part C of `test_chordtables.py` counts. After it, the update can switch off a sub-voice whose pitch is
+  too high (`clrl a2@(8, d0*4)`, `0x400ab20c`). Such a sub-voice keeps its `+176`/`+180` until it plays again.
+- **Other machines** write the same voice offsets with their own values: the sine at `0x400aa342`, `0x4012024c` at
+  `0x400aa9da`. They never point into the stock table's SRAM.
+- **Who else reads the 30 SRAM frames:** only the selector, through `0x40118590` (notes/27 §3.3). Modded-Cycles'
+  Syntakt engines put code and voice states there and CHORD played normally on the device (notes/28, 29 §1).
+- **Who else writes there in model27:** the sources of SAMPLE, the shortcut layer and the dispatchers, and the
+  registrar's, name no SRAM address but the sound pointers and the targets (`0x800015ae`, `0x800017e4`,
+  `0x800017ec`). What SAMPLE reaches through the stock voice chain are the OS's own buffers, outside the table. The
+  Syntakt engines' tweaks (not offered) put their SRAM banks there at boot, and the payload already excludes them.
+
+### 19.2 Why two slots per track are not enough
+
+The sketch of §18 gave each track two frames. With §19.1, a block that moves SWEEP to the next frame reads three
+frames (the previous f0, the frame shared by both pairs, the new f1), and a jump reads four. Copying the new f1 over
+the previous f0 would change what that block plays. A sub-voice switched off for its pitch keeps two more frames in
+use. A fixed number per track either wastes SRAM or breaks the identity with the stock OS.
+
+### 19.3 The design: a shared pool of 30 SRAM frames
+
+- **The pool** is the stock table's 30 SRAM frames, at their own addresses (read from `0x40118594..0x40118608` at
+  run time, not written into the package). Each slot has a tag: the address of the frame it holds a copy of.
+- **The move, once, on the tick** (UI task), before anything else:
+  - the 30 frames copied into the RAM claim, as a stock table of 33 pointers (`0x40118648` for frame 1, as in the
+    OS);
+  - each slot tagged with its own frame's copy, so that a track playing a stock frame keeps the same pointer;
+  - then a flag. Until it is set, `cw_setup` works as in 0.1.
+- **`cw_setup` after the move**, for every CHORD track and every Wavetable:
+  - the sources: for Wavetable 0 the stock selector's rule on the stock table copy, a negative SWEEP and its index
+    included (stock semantics, which 0.1 got from the stock function); for a table as in 0.1;
+  - each source is mapped to the address the render reads, in this order:
+    1. a source in SRAM (the sine): itself;
+    2. a slot tagged with it: that slot;
+    3. a source one of the six voices still points at (`+168`..`+180` of the four sub-voices): itself;
+    4. a slot no voice points at (the oldest used): the source copied in (1 028 bytes, 257 longs), the slot
+       tagged;
+    5. no such slot: the source itself, in SDRAM, as in 0.1;
+  - a fast path: the same two sources as in the previous block keep their two pointers.
+- **Why the sound stays the same, sample for sample.**
+  - The render reads only `+168`..`+180`, and a slot a voice points at is never written.
+  - A source maps to the same pointer as long as some voice points at it, and two sources never share a pointer.
+  - So every comparison of the render (`+176` with the new f0) comes out as with the sources' own addresses. That
+    is the stock OS at Wavetable 0, and 0.1 with a table.
+- **The loader:** a buffer becomes free again only once no latch and no voice pointer reaches into it. When it
+  does, the tags of slots holding its frames are cleared before it is built again. This also closes a case 0.1
+  leaves open: a sub-voice switched off for its pitch could still point into a reused buffer.
+- **Memory:**
+  - the stock table copy is one more buffer in the RAM claim (73 × 33 040 + 16 384 bytes, to `0x43650d90`, inside
+    `0x43700000`);
+  - the 30 tags and the voices' last sources take a few hundred bytes of the package's variables;
+  - the SRAM is declared (§19.5).
+- **Cost** (to measure with `probe_chord_lines.py`):
+  - SWEEP still: the frames are copied once, at the note's start, and then read in SRAM. That is about what the
+    stock OS reads, and frame 1 now too.
+  - SWEEP moving one frame a block (the probe's case): one frame copied a block, 65 lines, against 110 to 121 now.
+  - Shared frames are copied once for every track that plays them.
+  - The scan for free slots (96 pointers) runs only when a frame changes.
+
+### 19.4 Proofs and done criteria
+
+- **P1 again, with the move done**, on the OS's own code (`test_chordtables.py`):
+  - Wavetable 0 identical to the stock OS, sample for sample, on six CHORD tracks: SWEEP moving, jumping and
+    negative, high notes (sub-voices switched off), retrigs, a machine change;
+  - tables identical to 0.1, sample for sample, the same scenarios with six tables and one shared;
+  - the move while notes play: identical to the stock OS across it.
+- **P5, the pool:** a hook on SRAM writes. No slot a voice points at is ever written. After the move, no frame is
+  read in SDRAM except through rule 5, which is counted (0 in the proofs' scenarios).
+- **P2 again:** the loader, with the reclaim waiting for the voices' pointers and clearing tags.
+- **The probe** with 0.2: SDRAM lines per block, against §18.1.
+- **The cost** (part C): instructions per block per voice.
+- **The device (the maintainer):**
+  - six CHORD tracks on tables: does the lag go?
+  - Wavetable 0 against the official OS;
+  - SAMPLE next to it.
+
+### 19.5 The standard and the claims
+
+- **A use of the OS's own memory** that the stock OS gives a stock machine: new to the standard. A package that
+  extends that machine may take it, and must keep the machine's sound. It is to be written in draft 0.5's section on
+  extensions (W7), and declared in the manifest:
+  - a use `{"point": "memory.sram", "range": …, "takes": "CHORD's frames"}`;
+  - its two ranges in the claims' `ram`, which already take any range.
+- `compose.py` and `composer.js` must accept the point. `check_package` compares only `memory.ram` with the claims,
+  and has to learn `memory.sram` too.
+
+### 19.6 Steps
+
+1. **S1, the code:** CHORD Tables 0.2 (`chordtables.c`: the move, the pool, the stock rule for Wavetable 0, the
+   reclaim), the manifest (version, `memory.sram`, claims), the builder's acceptance of the point,
+   `gen_chordtables.py`, the committed object and tweak.
+2. **S2, the proofs:** P1, P2 and P5 in `test_chordtables.py`, run by the maintainer.
+3. **S3, the probe** with 0.2, run by the maintainer.
+4. **S4, the device:** the maintainer's load test.
+5. **Then W7**, with 0.2: the card, the guide, the release.
+
+### 19.7 Decisions for the maintainer
+
+1. **The pool in the stock table's SRAM** (recommended): only CHORD reads it, and CHORD played normally with it
+   taken by the Syntakt engines. The other way, finding 12 to 30 KB of SRAM the stock OS leaves free, needs a
+   survey of the whole SRAM first.
+2. **Wavetable 0 through the pool too:** the consequence of 1. The proof holds it to the stock OS, sample for
+   sample. Frame 1, in SDRAM in the stock OS, then gets an SRAM slot too.
+3. **Version 0.2, status back to `experimental`** until the device test (model27's rule 3); W7 offers 0.2.
+
+### 19.8 Decided (2026-10-24)
+
+The maintainer takes the three recommendations of §19.7:
+1. the pool is the stock table's 30 SRAM frames;
+2. Wavetable 0 goes through the pool too, held to the stock OS sample for sample;
+3. CHORD Tables 0.2, `experimental` until the device test; W7 offers 0.2.
+
+Next: S1, the code (§19.6).
+
