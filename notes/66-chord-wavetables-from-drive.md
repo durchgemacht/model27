@@ -1026,3 +1026,12 @@ The maintainer, the same day: a warning for files CHORD Tables cannot play at al
     uploaded: CHORD Tables cannot play it."
 - **Docs:** One-Shot's README and TECHNICAL §12. Not committed there.
 
+### 16.5 The fourth run (the maintainer, 2026-10-24)
+
+`test_chordtables.py`, with the converter's sine in front: **ALL OK** for chordtables, chordtables + sampler and
+sampler + chordtables `[FAIT en émulation]`.
+- P2a builds file 08, made by `tools/wavetable.py` from a 4-frame saw table, as the sine and 4 frames, exactly as
+  computed.
+- Everything else is as in §15.4: P1, P2 and the cost, +22 instructions per block per voice at Wavetable 0 and −1
+  on a table.
+
