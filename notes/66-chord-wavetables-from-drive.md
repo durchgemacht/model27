@@ -1051,3 +1051,83 @@ sampler + chordtables `[FAIT en émulation]`.
 - **From this date** the package's `tests.hardware` holds the test and its status is `tested` (model27's rule 3).
 - **Next: W7**, the card in the flasher, the guide and the release in English and French, then the standard's
   section on extensions (draft 0.5).
+
+## 18. The interface lags with tables (2026-10-24)
+
+- **The maintainer's report,** after the device test: now and then the Cycles gets laggy with custom wavetables.
+  Asked what: the screen and the knobs react late, the whole interface. The maintainer's reading: the audio load. It
+  gets worse with every CHORD track playing a table.
+- **Where a table costs more than the stock table** (code reading):
+  - the stock frames are in the internal SRAM (`0x80001c5c..`, `0x8000cac0..`): one cycle an access, not cached
+    (notes/26 §1, 27 §3.3);
+  - a table's frames are in SDRAM (`0x43400000..`). The OS makes `0x40000000..0x47ffffff` cacheable, copyback:
+    `movec ACR0` with `0x4007e020` at `0x40000552` `[FAIT]`;
+  - the MCF54415 has an 8 KB data cache (512 lines of 16 bytes), and its SDRAM is DDR2 on 8 bits (notes/26 §1).
+    With six voices, mixing, effects and the interface, almost every line is read again in every block (notes/26
+    §1);
+  - a CHORD voice reads two frames of 1 028 bytes a block, about 130 lines: about +0,6 to +1,2 points of the block
+    per voice (notes/27 §3.3, 28 §4). Estimated, never measured on a table;
+  - `test_chordtables.py` part C counts instructions, and the emulator does not time memory: −1 instruction with a
+    table says nothing about this.
+- **The loader** runs before the screen's redraw. Every tick it sums the drive's file index, and after any file is
+  written or deleted it opens `/Wavetables/01`–`64` again by path, one per tick. That would lag now and then, after a
+  save or an upload, not more with every CHORD track. It is not what the maintainer sees.
+- **The measurement** `tools/emu/probe_chord_lines.py`, in the real voice loop: the 16-byte lines of SDRAM read or
+  written per block (those of a table's frames apart), the same accesses through a model of the data cache (8 KB,
+  4 ways, LRU, write allocate, the voice loop alone), and the SRAM lines. Each case is minus the loop with no note:
+  - one CHORD track, note 60 and 84, SWEEP still or moving: the stock OS, Wavetable 0, a table;
+  - six CHORD tracks, SWEEP still or moving: the stock OS, Wavetable 0, six tables, one table on all six.
+
+  A MAC with a load is run by `emac.py` through `uc.mem_read`, which no Unicorn hook sees. The probe notes its
+  address itself.
+- **What it decides:** whether the frames read in SDRAM are what the extra lines are. If so, the fix sketched for
+  the maintainer: each CHORD track gets its two current frames in SRAM (6 × 2 × 1 028 = 12 336 bytes), copied when
+  SWEEP reaches another frame. The room is the stock table's SRAM, read by CHORD alone (notes/27 §3.3), with the stock
+  frames copied into the RAM claim at start. Modded-Cycles' Syntakt engines already moved them to SDRAM, and CHORD
+  ran as before on the device (notes/28, 29). Not built; to plan after the measurement.
+- W7 waits until then.
+
+### 18.1 The measurement (the maintainer, 2026-10-24)
+
+`probe_chord_lines.py`, 22 blocks after the note's first one, minus the loop with no note `[FAIT en émulation]`.
+Lines of 16 bytes per block (mean):
+
+| Case | SDRAM lines | of them a table's frames | Cache misses, voice loop alone (write backs) | SRAM lines |
+|---|---|---|---|---|
+| 1 track, note 60, SWEEP 24: stock OS | 53 | 0 | 0 (0) | 180 |
+| the same, Wavetable 0 | 54 | 0 | 0 (0) | 180 |
+| the same, a table | 163 | 110 | 6 (0) | 72 |
+| 1 track, note 60, SWEEP moving: a table | 163 | 110 | 51 (0) | 72 |
+| 1 track, note 84, SWEEP 24: stock OS | 53 | 0 | 0 (0) | 191 |
+| the same, a table | 174 | 121 | 6 (0) | 72 |
+| 6 tracks, note 60, SWEEP still: stock OS | 277 | 0 | 1 (1) | 722 |
+| the same, Wavetable 0 | 279 | 0 | 5 (4) | 722 |
+| the same, six tables | 931 | 658 | 941 (246) | 72 |
+| the same, one table on all six | 931 | 658 | 914 (228) | 72 |
+| 6 tracks, SWEEP moving: stock OS | 295 | 0 | 22 (12) | 692 |
+| the same, six tables | 920 | 646 | 929 (246) | 72 |
+
+What it shows:
+- **A CHORD track on a table reads 110 to 121 more lines of SDRAM a block** (note 60 to 84), all of them its two
+  frames. The stock OS reads the same frames in SRAM: 108 to 119 SRAM lines fewer with a table. A CHORD voice's own
+  SDRAM lines (its state, 53) are tripled.
+- **Wavetable 0 costs nothing that counts:** +1 or +2 lines (`cw_setup`'s own).
+- **Six CHORD tracks on tables:** 277 → 931 lines a block (×3,4). The cache model shows why it is worse than the sum:
+  six voices' frames, about 660 lines, are more than the cache's 512. Even with the voice loop alone, every block then
+  misses 941 times instead of once, and 246 dirty lines of the voices' state are written back. With mixing, effects
+  and the interface between two blocks, the cost lies between the distinct lines (+654) and that (+940 fills, +246
+  write backs).
+- **The frames are read by MACs with a load:** the same number in every case, per track (19 964 in a run of one
+  track, 6 × that with six tracks). `emac.py` runs them through `uc.mem_read`, so only the probe's own note of their
+  address shows a table's lines at all.
+- **One table shared by six tracks** reads as many lines as six tables, since each track's SWEEP is another frame.
+  The probe's check assumed fewer lines: that one FAIL was the probe's fault, not the firmware's. The check now
+  asks only that both read their frames in the RAM claim.
+- **In time:** the emulator does not time memory, and the time of a line in SDRAM (DDR2 on 8 bits) is not known
+  (notes/26 §6). By notes/27 §3.3's estimate, about 130 lines ≈ +0,6 to +1,2 points of the block: about the same per
+  CHORD track, and more with six for the cache's sake. It matches the maintainer's lag, growing with every track.
+
+The maintainer's report and this measurement agree: the lag is the frames read in SDRAM. The fix is the one sketched
+above (each track's two frames in SRAM), to be planned. With SWEEP moving as in the probe (about one frame a block),
+a copy of one frame (65 lines) a block would remain; with SWEEP still, one copy at the note's start.
+
