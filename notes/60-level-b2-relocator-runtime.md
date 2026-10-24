@@ -387,3 +387,24 @@ half-finished step never blocks a build.
 - **Where it runs**: Unicorn 2.1.4 has wheels for Python 3.14 now (`pip install unicorn numpy`), but its JIT stops
   with SIGILL in a sandbox that forbids generated code (`probe_chord_keys.py` says so too): the proof runs in a normal
   terminal. Without Unicorn, `--dry` builds every selection and prints its layout.
+
+## 15. One-Shot 0.9 pinned (2026-10-24)
+
+- **What changed upstream**: One-Shot 0.9 (`4f8c7b5`, tag `v0.9`) splits the bar above the waveform into two boxes in
+  the look of the browser's title: the current pattern's number in columns 0–20, read as MainScreenView reads it
+  (`0x4006a96c(0x400cfd0e())`, written `"%c%02d"`), and the sample's name in columns 23–127. Only `machine/view.c` and
+  `machine/os.h` differ from 0.8; sound, knobs, records and hooks are the same. One-Shot's own build was tested by the
+  maintainer in digiemu and on a Model:Cycles (2026-10-24).
+- **Here**: the two files copied as they are into `tools/machines/sampler/machine/`; `gen_sampler.py` pinned on `v0.9`;
+  `sampler.o` and `27-sampler.json` regenerated (123 writes as before, 30 883 bytes of code and tables, 380 more; the
+  writes differ only at the hook and view entries, whose targets moved; the same 270 conflicts); `tweaks.js`,
+  `REGISTRY.md` and `REF_MAINOS`/`REF_MODS` regenerated: SAMPLE alone `be01a3dd…` (was `ccdadb37…`), with Control All
+  Config `a831d408…` (was `3f4f079a…`).
+- **Checked**: `gen_sampler.py --check`, `gen_flasher_tweaks.py --check`, `registry.py --check`,
+  `claims.py --check --self-test`, `check_overlaps.py`, `ref_mainos.py --check`, `webcompose_check.sh` with the
+  official file (composer.js gives compose.py's tweaks and MAIN OS), `webbuild_check.sh`, `webflash_check.sh`.
+  `test_compose.py` stops with SIGILL in the sandbox (§14) and runs in a normal terminal; `webflash_smoke.sh` needs
+  jsdom from npm. `[À FAIRE]` both by the maintainer, then flashing SAMPLE from the page.
+- The card stays `tested`: the change is the view alone, tested on the device in One-Shot's own build, and the
+  composed build differs from that one where it always did (§9). Release 0.5 and the guide's Tested line say that the
+  page's build of 0.9 has not been flashed yet.

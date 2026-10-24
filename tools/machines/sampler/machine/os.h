@@ -97,6 +97,12 @@ static inline int32_t selected_track(void)
         return -1;
     return ((int32_t (*)(void *))0x40012412)(((void *(*)(void *))0x4000eb90)(project));
 }
+/* The current pattern, 0..95, the way MainScreenView reads it for its pattern number (0x4001b276):
+   0x4006a96c(0x400cfd0e()) reads the sequencer's current pattern (0x40054828) and clamps it. */
+static inline int32_t current_pattern(void)
+{
+    return ((int32_t (*)(void *))0x4006a96c)(((void *(*)(void))0x400cfd0e)());
+}
 /* A Bitmap (constructor 0x40070172): +4 width, +8 height, +12 32-bit words per column, +16 the
    words; pixel (x, y) is bit 31 - (y & 31) of word x * pitch + y / 32, y = 0 at the bottom. Text:
    0x40071a04(bitmap, font, x, y, flags, format, ...), flags 0 = from x on, 2 = centred on x. A font

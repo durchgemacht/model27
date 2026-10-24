@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.5", date: "2026-10-24", changes: [
+    { en: "SAMPLE now comes from Cycles One-Shot 0.9: above the waveform, the current pattern's number (A01 to F16) sits on the left and the sample's name on the right, each in a box of its own. Nothing else changes: sound, knobs and saved projects are as in 0.8" },
+    { en: "One-Shot 0.9 is tested in its own build in the emulator and on a Model:Cycles (2026-10-24); the build this page makes of it differs only in how the machine is registered, as before, and has not been flashed from here yet" },
+  ] },
   { version: "0.4", date: "2026-10-22", changes: [
     { en: "Control All Config is tested as this page builds it: flashed from this page and tried on a Model:Cycles, alone and with SAMPLE (2026-10-22). Its card now shows Tested" },
   ] },

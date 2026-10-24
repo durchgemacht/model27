@@ -1,12 +1,12 @@
 {
  "schema": "cycles-mod/0.1",
  "id": "sampler",
- "version": "0.8",
- "name": "SAMPLE machine: one-shot sampler for samples on the +Drive (Cycles One-Shot 0.8)",
- "description": "Plays a sample from the +Drive once per trig: 6-tap polyphase at 96 kHz, the stock decimator, the amp chain set up like TONE, then the Model:Samples' filter. The sample is chosen in the PRESET browser and saved with the sound; the main screen shows its waveform.",
+ "version": "0.9",
+ "name": "SAMPLE machine: one-shot sampler for samples on the +Drive (Cycles One-Shot 0.9)",
+ "description": "Plays a sample from the +Drive once per trig: 6-tap polyphase at 96 kHz, the stock decimator, the amp chain set up like TONE, then the Model:Samples' filter. The sample is chosen in the PRESET browser and saved with the sound; the main screen shows the pattern's number, the sample's name and its waveform.",
  "license": "MIT",
  "credit": {"kind": "own", "who": "durchgemacht and Claude", "repo": "durchgemacht/cycles-one-shot"},
- "source": "https://github.com/durchgemacht/cycles-one-shot/tree/f28ef2f81dd0a4872705c9fb6021462eb5f0bdbf",
+ "source": "https://github.com/durchgemacht/cycles-one-shot/tree/4f8c7b52908a9c67c8b9f02f4de05dccbf086f40",
  "device": "Model:Cycles",
  "os": "1.13",
  "order": 27,
@@ -73,7 +73,7 @@
   "conflicts_declared": [{"with": "sample-preview", "why": "plays sample files from the same browser and needs Model-TG"},
                          {"with": "sample-preview-st", "why": "the same, on Model-TG's base"}]
  },
- "tests": {"emulation": {"tool": "digiemu; tools/emu/test_compose.py (Unicorn, the OS's own code, notes/60 §14)", "date": "2026-10-22", "build": "the composed object registered by the registrar runtime, alone (as the web flasher builds it) and with refmachine"},
-           "hardware": {"date": "2026-10-22", "by": "maintainer", "build": "SAMPLE alone as the web flasher builds it (notes/60 §13) and as machine 6 next to refmachine (the pair, notes/60 §12); One-Shot's own build (0.7 = 0.8 without CM_SYMBOLS) on 2026-10-21 by the author"},
+ "tests": {"emulation": {"tool": "digiemu; tools/emu/test_compose.py (Unicorn, the OS's own code, notes/60 §14)", "date": "2026-10-22", "build": "the composed object registered by the registrar runtime, alone (as the web flasher builds it) and with refmachine; for 0.8 (notes/60 §15: 0.9 to run)"},
+           "hardware": {"date": "2026-10-24", "by": "maintainer", "build": "One-Shot 0.9's own build (the same code without CM_SYMBOLS), 2026-10-24; for 0.8, SAMPLE alone as the web flasher builds it (notes/60 §13) and as machine 6 next to refmachine (the pair, notes/60 §12), 2026-10-22; the composed 0.9 not yet flashed (notes/60 §15)"},
            "status": "tested"}
 }

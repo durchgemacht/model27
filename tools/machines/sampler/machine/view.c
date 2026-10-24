@@ -1,6 +1,7 @@
 /* SAMPLE's view on the main screen: the selected track's sample as a waveform across the whole
-   screen, the start and end of what a trig plays marked on it, and above it a bar with the sound's
-   name (the browser names the sound after the sample it opens).
+   screen, the start and end of what a trig plays marked on it, and above it two boxes: the current
+   pattern's number on the left, the sound's name on the right (the browser names the sound after
+   the sample it opens).
 
    It takes the place of MainScreenView while that shows the track, and of the knob view while that
    shows Start or Length (COLOR or SHAPE), so the markers follow those two knobs as they turn. Any
@@ -28,17 +29,21 @@ extern char cm_descriptor_base[];
 #define SOUND_SHAPE 44                  /* sound: k 12, SHAPE = Length, 8.8 */
 #define MACHINE_AT  38
 
-/* The screen, y counted from the bottom (a set pixel is lit): the title bar of the OS's own browser
-   (0x400a539c: its title in the small font at 2, 53, then 0x40070efc turns rows 51..63 over), so a
-   lit bar of 128 x 13 pixels along the top, its corners rounded off, the name in dark letters on
-   it; the waveform below. The OS's text is 9 rows high from the y it is given, capitals included,
-   so the name has 2 rows of bar above and below. */
-#define BAR_X       0
-#define BAR_W       128
-#define BAR_TOP     63                  /* the bar's highest row, the screen's top */
-#define BAR_Y       (BAR_TOP - 12)      /* its lowest, 13 rows down */
-#define NAME_X      (BAR_X + 2)
-#define NAME_Y      (BAR_Y + 2)         /* the name's text, small font */
+/* The screen, y counted from the bottom (a set pixel is lit): along the top two boxes in the look
+   of the OS's own browser title (0x400a539c: its title in the small font at 2, 53, then 0x40070efc
+   turns rows 51..63 over), each lit, 13 rows high, its corners rounded off, its text in dark letters
+   2 pixels in; the waveform below. The OS's text is 9 rows high from the y it is given, capitals
+   included, so a text has 2 rows of box above and below. The pattern's box fits its number: every
+   one of the 96, A01 to F16, is 17 pixels wide in the small font (3 characters of 5 and 2 gaps).
+   The name's box takes the rest, 2 dark columns on: 101 pixels for a name of 15 characters, 89 at
+   most. */
+#define BAR_TOP     63                  /* the boxes' highest row, the screen's top */
+#define BAR_Y       (BAR_TOP - 12)      /* their lowest, 13 rows down */
+#define PATTERN_X0  0
+#define PATTERN_X1  (PATTERN_X0 + 2 + 17 + 2 - 1)
+#define NAME_X0     (PATTERN_X1 + 3)
+#define NAME_X1     127
+#define NAME_Y      (BAR_Y + 2)         /* the texts, small font */
 #define WAVE_MID    25                  /* the waveform's zero line */
 #define WAVE_HALF   24                  /* rows above and below it: 1..49, a free row under the bar */
 #define TEXT_Y      (WAVE_MID - 4)      /* a message instead of the waveform, medium font, centred */
@@ -72,21 +77,33 @@ static void label(smp_bitmap *b, const void *glyphs, int x, int y, int flags, co
     FONT_DROP(font);
 }
 
-/* The bar: the name drawn lit on the blank screen, then every pixel of the bar's rows turned over,
-   so the bar is lit and the letters dark, then its four corner pixels dark again. */
-static void bar(smp_bitmap *b, const char *name)
+/* A box from column left to right: its text drawn lit on the blank screen, then every pixel of the
+   box turned over, so the box is lit and the letters dark, then its four corner pixels dark again. */
+static void box(smp_bitmap *b, int left, int right, const char *text)
 {
-    int x, y, right = BAR_X + BAR_W - 1;
+    int x, y;
 
-    if (name)
-        label(b, FONT_SMALL, NAME_X, NAME_Y, 0, name);
+    if (text)
+        label(b, FONT_SMALL, left + 2, NAME_Y, 0, text);
     for (y = BAR_Y; y <= BAR_TOP; y++)
-        for (x = BAR_X; x <= right; x++)
+        for (x = left; x <= right; x++)
             flip(b, x, y);
-    flip(b, BAR_X, BAR_Y);
+    flip(b, left, BAR_Y);
     flip(b, right, BAR_Y);
-    flip(b, BAR_X, BAR_TOP);
+    flip(b, left, BAR_TOP);
     flip(b, right, BAR_TOP);
+}
+
+/* The current pattern's number as MainScreenView writes it ("%c%02d", 0x4001b44c): its bank A to F,
+   then 01 to 16. */
+static void pattern_number(char *s)
+{
+    int32_t p = current_pattern();
+
+    s[0] = (char)('A' + p / 16);
+    s[1] = (char)('0' + (p % 16 + 1) / 10);
+    s[2] = (char)('0' + (p % 16 + 1) % 10);
+    s[3] = 0;
 }
 
 static int32_t sound_span(const char *sound, int at)  /* 8.8 word -> 0..SMP_SPAN, fraction kept */
@@ -146,14 +163,16 @@ void smp_view_draw(smp_bitmap *b, const char *sound)
 {
     const int16_t *lo = 0, *hi = 0;
     uint32_t id = smp_sound_id(sound);
-    char name[17];
+    char name[17], pattern[4];
     int i, state;
 
     blank(b);
     for (i = 0; i < 16 && sound[SOUND_NAME + i]; i++)
         name[i] = sound[SOUND_NAME + i];
     name[i] = 0;
-    bar(b, id ? name : 0);              /* without a sample, the name is still the sound's old one */
+    pattern_number(pattern);
+    box(b, PATTERN_X0, PATTERN_X1, pattern);
+    box(b, NAME_X0, NAME_X1, id ? name : 0);    /* without a sample, the name is still the sound's old one */
     state = smp_view_state(id, &lo, &hi);
     if (!id)
         label(b, FONT_MEDIUM, 64, TEXT_Y, 2, "NO SAMPLE");
