@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Measurement for notes/66 §18: the lines of SDRAM CHORD reads and writes per audio block, with the stock table and
-with a CHORD Tables table.
+"""Measurement for notes/66 §18 and §23: the lines of SDRAM CHORD reads and writes per audio block, with the stock
+table and with a CHORD Tables table, in 0.1's way and in 0.2's (the frames in SRAM, §19 to §22).
 
 The maintainer's report of 2026-10-24: the whole interface lags, more with every CHORD track playing a table. The
 stock frames are in the internal SRAM (one cycle an access, not cached), a table's frames in SDRAM, through the data
@@ -17,10 +17,14 @@ data cache of 16-byte lines, and its SDRAM is DDR2 on 8 bits (notes/26 §1). Thi
   - the first block of the note (block 2: the note starts a block after its trig, notes/66 §11.6), then the mean and
     the maximum of the next blocks, minus the voice loop with no note (the same tracks, no trig).
 
-Cases: one CHORD track (track 1, machine defaults, note 60 or 84, SWEEP still at 24 or moving) and six CHORD tracks
-(SWEEP still, 24 to 104, or moving: each track its own frames), for the stock OS, CHORD Tables at Wavetable 0, CHORD Tables with a table (six
-tables, one per track, or the same table on all six). A table's frames are the stock frames in another order: only
-their addresses matter here. The emulator does not time memory: lines are what it can count, not their cost in time.
+Cases: one CHORD track (track 1, machine defaults, note 60 or 84, SWEEP still at 24 or moving 3 a block) and six
+CHORD tracks (SWEEP still, 24 to 104, or moving: each track its own frames), for the stock OS, CHORD Tables at
+Wavetable 0, CHORD Tables with a table (six tables, one per track, or the same table on all six). Each CHORD Tables
+case twice: without the move, which is 0.1's way, and with it ("0.2"), made by the package's own tick before the
+first block (the audio adopts it at its first setup). In 0.2 the lines "in the RAM claim" are what the copies into
+the pool read (a table's frames, the stock frames' copy). A table's frames are the stock frames in another order:
+only their addresses matter here. The emulator does not time memory: lines are what it can count, not their cost in
+time.
 
 Needs Unicorn and numpy (pip install unicorn numpy) and m68k-elf-objdump; Unicorn's JIT does not run inside a
 sandbox that forbids it: run it in a normal terminal (model27's .venv-emu has both). About a minute.
@@ -156,7 +160,7 @@ def summary(run, idle, n):
 def report(key, name, s):
     first, mean, peak = s
     print(f"finding  {key}: {name}: SDRAM lines {mean[0]:.0f} a block (max {peak[0]}, first {first[0]}), "
-          f"{mean[1]:.0f} of them a table's frames; cache misses {mean[3]:.0f} (write backs {mean[4]:.0f}); "
+          f"{mean[1]:.0f} of them in the RAM claim; cache misses {mean[3]:.0f} (write backs {mean[4]:.0f}); "
           f"SRAM lines {mean[2]:.0f}")
 
 
@@ -175,18 +179,20 @@ def main():
     built = (img, runtime, tweak, syms)
     loads = {}
 
-    def case(key, name, args_, tracks, note=60, tables=0, sweep=None):
+    def case(key, name, args_, tracks, note=60, tables=0, sweep=None, moved=False):
         def make():
             p = Probe(*args_, tracks=tracks, note=note)
             if tables:
                 for i in range(len(tracks) if tables > 0 else 1):
                     p.table(i, i, frames[i:] + frames[:i] if i else frames[::-1])
             p.wavetables(1 if tables > 0 else -1 if tables < 0 else 0)
+            if moved:
+                p.move()                        # 0.2: the stock frames copied, the pool ready (notes/66 §19)
             return p
         p = make()
         run = p.measure(total, sweep=sweep)
         idle = make().measure(total, trig=False, sweep=sweep)
-        ok = not p.e.unmapped
+        ok = not p.e.unmapped and (not moved or p.r32(syms["ct_moved"]) == 1 and p.r32(syms["ct_fallback"]) == 0)
         loads[name] = loads.get(name, 0) + p.emac_loads
         s = summary(run, idle, n)
         report(key, name, s)
@@ -206,6 +212,19 @@ def main():
             print(f"finding  {key}: a table adds {c[1][0] - a[1][0]:+.0f} SDRAM lines a block against the stock OS "
                   f"({c[1][3] - a[1][3]:+.0f} misses with the voice loop alone); Wavetable 0 "
                   f"{b[1][0] - a[1][0]:+.0f}")
+            d, ok_d = case(key, "Wavetable 0, 0.2", built, (0,), note, sweep=sw, moved=True)
+            e, ok_e = case(key, "a table, 0.2", built, (0,), note, tables=1, sweep=sw, moved=True)
+            # with SWEEP still, one line a block is left in the RAM claim: the table's pointer list, which cw_setup
+            # reads for the two sources (ptrs[i], ptrs[i + 1]); the frames themselves come from SRAM
+            check(ok_d and ok_e and e[1][1] < c[1][1] and (not still or e[1][1] <= 1),
+                  f"{key}: 0.2 adopted, no frame read where it is for want of a slot; a table reads "
+                  f"{e[1][1]:.1f} lines a block in the RAM claim against {c[1][1]:.0f} in 0.1's way"
+                  + (" (SWEEP still: its pointer list only, after the note's first block)" if still
+                     else " (the copies of new frames)"))
+            print(f"finding  {key}: 0.2: a table adds {e[1][0] - a[1][0]:+.0f} SDRAM lines a block against the stock OS, "
+                  f"0.1's way {c[1][0] - a[1][0]:+.0f}; cache misses {e[1][3] - a[1][3]:+.0f} against "
+                  f"{c[1][3] - a[1][3]:+.0f}; Wavetable 0 {d[1][0] - a[1][0]:+.0f} lines, SRAM lines {e[1][2]:.0f} "
+                  f"with a table (the stock OS {a[1][2]:.0f})")
 
     print("Six CHORD tracks")
     for still in (True, False):
@@ -222,6 +241,17 @@ def main():
         print(f"finding  {key}: six tables add {c[1][0] - a[1][0]:+.0f} SDRAM lines a block against the stock OS "
               f"({c[1][3] - a[1][3]:+.0f} misses with the voice loop alone), one shared table "
               f"{d[1][0] - a[1][0]:+.0f} ({d[1][3] - a[1][3]:+.0f})")
+        b2, ok_b2 = case(key, "Wavetable 0, 0.2", built, tuple(range(6)), sweep=sw, moved=True)
+        c2, ok_c2 = case(key, "six tables, 0.2", built, tuple(range(6)), tables=1, sweep=sw, moved=True)
+        d2, ok_d2 = case(key, "one table on all six, 0.2", built, tuple(range(6)), tables=-1, sweep=sw, moved=True)
+        check(ok_b2 and ok_c2 and ok_d2 and c2[1][0] < c[1][0] and d2[1][0] < d[1][0],
+              f"{key}: 0.2 adopted, no frame read where it is for want of a slot; six tables read {c2[1][0]:.0f} SDRAM "
+              f"lines a block against {c[1][0]:.0f} in 0.1's way, one shared table {d2[1][0]:.0f} against "
+              f"{d[1][0]:.0f}")
+        print(f"finding  {key}: 0.2: six tables add {c2[1][0] - a[1][0]:+.0f} SDRAM lines a block against the stock "
+              f"OS ({c2[1][3] - a[1][3]:+.0f} misses, {c2[1][4] - a[1][4]:+.0f} write backs with the voice loop "
+              f"alone), one shared table {d2[1][0] - a[1][0]:+.0f} ({d2[1][3] - a[1][3]:+.0f} misses); Wavetable 0 "
+              f"{b2[1][0] - a[1][0]:+.0f} ({b2[1][3] - a[1][3]:+.0f} misses)")
     print("finding  MACs with a load (run by emac.py, noted from their address): "
           + ", ".join(f"{k} {v}" for k, v in loads.items()))
     print("\nALL OK" if not t7.FAIL else f"\n{len(t7.FAIL)} FAILED: " + "; ".join(t7.FAIL[:6]))

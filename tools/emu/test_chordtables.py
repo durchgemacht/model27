@@ -46,8 +46,9 @@ For each selection (by default: chordtables; chordtables,sampler; sampler,chordt
         where the OS has it);
   P5. the pool, in each P1m run: no slot a voice points at (+168..+180 of any sub-voice of the six) is ever written;
      nothing but the package writes the pool, and the stock OS never writes the stock frames; with the move before
-     the first note, every CHORD voice reads its frames in SRAM after every block, and no frame is read where it is
-     for want of a slot (ct_fallback 0);
+     the first note, every CHORD voice reads its frames in SRAM after every block (frame 1 where the OS has it,
+     notes/66 §24), and no frame is read where it is for want of a slot (ct_fallback 0); Wavetable 0 alone copies
+     nothing into the pool;
   P2h. the loader's first tick makes the move, ready for the audio (the UI harness with the SRAM of the boot);
   P2i. a retired buffer a voice still points into stays retired without its latch, and the tags of the slots
      holding its frames survive; once no voice points into it, it is free and those tags are cleared.
@@ -368,7 +369,7 @@ class Watch:
             for j in range(4):
                 for i in range(4):
                     a = struct.unpack_from(">I", raw, t * E.VSTRIDE + 120 * j + 168 + 4 * i)[0]
-                    if not SRAM_LO <= a < SRAM_HI:
+                    if not SRAM_LO <= a < SRAM_HI and a != FRAME1:      # frame 1 where the OS has it (§24)
                         self.sdram.append((b, t, j, a))
 
 
@@ -477,8 +478,11 @@ def moved_tests(key, stock, tweak, img, runtime, syms):
               f"voice points at it ({len(w.hits)}), nothing but the package writes the pool ({len(w.foreign)})")
         if move_at == 0:
             check(not w.sdram and fallback == 0,
-                  f"{key}: P5 {what}: every CHORD voice reads its frames in SRAM after every block "
-                  f"({len(w.sdram)} pointers in SDRAM), ct_fallback {fallback}")
+                  f"{key}: P5 {what}: every CHORD voice reads its frames in SRAM after every block, frame 1 where "
+                  f"the OS has it ({len(w.sdram)} other pointers outside SRAM), ct_fallback {fallback}")
+        if not with_tables:
+            check(w.writes == 0, f"{key}: P5 {what}: Wavetable 0 alone copies nothing into the pool "
+                  f"({w.writes // FRAME_LEN} frames): its frames stay in their own slots, frame 1 where the OS has it")
         finding(f"{key}: {what}: {w.writes // FRAME_LEN} frames copied into the pool over {MOVED_BLOCKS} blocks "
                 f"({w.writes / FRAME_LEN / MOVED_BLOCKS:.2f} a block, six tracks), ct_fallback {fallback}; "
                 f"{w.off} CHORD voice-blocks with a sub-voice's word +8 + 4j cleared")

@@ -30,6 +30,9 @@
      and a frame keeps its pointer while a voice points at it, so the render decides as it would on the frames' own
      addresses and the sound is the stock OS's at Wavetable 0 and 0.1's with a table, sample for sample. Which
      slots a voice may point at is kept per voice (pin), from its own 16 pointers when it remaps (notes/66 §22).
+     A stock frame outside SRAM (frame 1, in the OS's data) is read where it is, as the stock OS reads it; a stock
+     frame's copy goes back to its own slot, and, while a CHORD track plays the stock table, a table's frame takes
+     first a slot not holding its own stock frame (§24): Wavetable 0 alone copies nothing.
 
    The file system calls follow One-Shot's tick (tools/machines/sampler/machine/pool.c): the tick takes its own
    lock (the redraw also runs from another task) and leaves the drive alone while the running task holds the file
@@ -85,6 +88,8 @@ typedef uint8_t u8;
 #define HEADER          64
 #define BUFFERS         (TABLES + 8)
 #define RAM             0x43400000u                 /* the RAM claim, to 0x43700000 */
+#define CLAIM_END       0x43700000u
+#define IN_CLAIM(a)     ((u32)(a) - RAM < CLAIM_END - RAM)
 #define STAGE_BYTES     (FILE_MAX * CYCLE * 2)
 #define BUF_BYTES       ((POINTERS * 4 + FRAMES * FRAME_LEN * 4 + 15) & ~15u)
 #define STAGE           ((s16 *)RAM)
@@ -92,6 +97,7 @@ typedef uint8_t u8;
 #define FREE            0
 #define RETIRED         0xff                        /* replaced, until no latch and no voice points into it */
 #define STOCK           BUF(BUFFERS)                /* the stock frames' copy: 33 pointers, then the frames */
+#define COPY0           ((u32)(STOCK + POINTERS))   /* slot k's stock frame copied at COPY0 + 1 028 k */
 #define POOL_MAX        32
 #define KB_SHIFT        10                          /* frames are 1 028 bytes apart: one starts in a KB at most */
 #define KBS             ((SRAM_HI - SRAM_LO) >> KB_SHIFT)
@@ -114,7 +120,8 @@ static u8 kb_slot[KBS];                             /* 1 + the slot whose frame 
 static u32 cursor;                                  /* the slot taken last */
 static u32 last_src[6][2], last_ptr[6][2];          /* a track's two sources and pointers in its last block */
 static u32 pin[6];                                  /* the slots a voice may point at until its next remap */
-static u32 far[6];                                  /* 1: it may point at a frame outside SRAM */
+static u32 far[6];                                  /* 1: it may point into the RAM claim, a frame read there */
+static u32 home;                                    /* the slots holding their own stock frame's copy */
 static u32 sig_count, sig_sum;                      /* the file index when the scan started */
 static u8 seen;                                     /* a scan has started since the drive was mounted */
 static volatile unsigned char busy;
@@ -149,8 +156,9 @@ static u32 slot_bit(u32 a)
 }
 
 /* Voice t's 16 frame pointers (+168..+180 of its four sub-voices): the slots among them as bits; *out gets 1 when
-   one of them is outside SRAM (a frame read where it is). Sub-voices 2 to 4 hold sub-voice 1's pointers unless one
-   was switched off for its pitch (notes/66 §19.1): only theirs that differ are looked up. */
+   one of them points into the RAM claim (a frame of a table or of the stock copy read where it is). Sub-voices 2 to
+   4 hold sub-voice 1's pointers unless one was switched off for its pitch (notes/66 §19.1): only theirs that differ
+   are looked up. */
 static u32 own(u32 t, u32 *out)
 {
 	const u32 *q = (const u32 *)(VOICE0 + VSTRIDE * t + SUB_FRAMES);
@@ -158,13 +166,13 @@ static u32 own(u32 t, u32 *out)
 
 	for (i = 0; i < 4; i++) {
 		bits |= slot_bit(q[i]);
-		far |= !IN_SRAM(q[i]);
+		far |= IN_CLAIM(q[i]);
 	}
 	for (j = 1; j < 4; j++)
 		for (i = 0; i < 4; i++)
 			if ((a = q[SUB_STRIDE / 4 * j + i]) != q[i]) {
 				bits |= slot_bit(a);
-				far |= !IN_SRAM(a);
+				far |= IN_CLAIM(a);
 			}
 	*out = far;
 	return bits;
@@ -189,11 +197,23 @@ static void __attribute__((noinline)) adopt(void)
 	ct_moved = MOVED;
 }
 
-/* Rule 2: the slot holding a copy of s, or 0; first where track t had its two sources, then among all slots. */
+/* 1 + k when s is slot k's own stock frame's copy, else 0. */
+static u32 home_of(u32 s)
+{
+	u32 d = s - COPY0, k = d / (4 * FRAME_LEN);
+
+	return d < 4 * FRAME_LEN * ct_pool_n && d == k * 4 * FRAME_LEN ? k + 1 : 0;
+}
+
+/* Rule 2: the slot holding a copy of s, or 0; first a stock frame's own slot, then where track t had its two
+   sources, then among all slots. */
 static u32 held(u32 t, u32 s)
 {
 	u32 k, j;
 
+	k = home_of(s);
+	if (k && ct_pool_tag[k - 1] == s)
+		return ct_pool_addr[k - 1];
 	for (j = 0; j < 2; j++)
 		if (s == last_src[t][j]) {
 			k = slot_of(last_ptr[t][j]);
@@ -206,8 +226,8 @@ static u32 held(u32 t, u32 s)
 	return 0;
 }
 
-/* Rule 3: a voice points at s outside SRAM. Only the voices that may (far) are looked at, a frame read where it is
-   being rare: from before the move, or for want of a free slot. */
+/* Rule 3: a voice points at s, a frame in the RAM claim, where it is. Only the voices that may (far) are looked at,
+   such a frame being rare: from before the move, or for want of a free slot. */
 static int pointed(u32 s)
 {
 	const u32 *q;
@@ -240,11 +260,24 @@ static void copy_frame(s32 *dst, const s32 *src)
 			  : "d1", "d2", "d3", "d4", "d5", "d6", "d7", "a2", "cc", "memory");
 }
 
-/* Rules 3 to 5 for a source no slot holds: read where it is while a voice points at it; else copied into a slot
-   outside busy (the next one after the last taken); else, no such slot, read where it is. */
+/* A CHORD track plays the stock table (its latch 0): the stock frames' own slots are worth keeping. */
+static int stock_played(void)
+{
+	u32 t;
+
+	for (t = 0; t < 6; t++)
+		if (!ct_latch[t] && chord_voice(t))
+			return 1;
+	return 0;
+}
+
+/* Rules 3 to 5 for a source in the RAM claim no slot holds: read where it is while a voice points at it; else
+   copied into a slot outside busy: a stock frame into its own slot when that is free, a table's frame, while a CHORD
+   track plays the stock table, first into a slot not holding its own stock frame (the next one after the last
+   taken); else, no such slot, read where it is. */
 static u32 place(u32 s, u32 busy)
 {
-	u32 free, k;
+	u32 free, pick, k, h;
 
 	if (pointed(s))
 		return s;
@@ -253,12 +286,19 @@ static u32 place(u32 s, u32 busy)
 		ct_fallback++;
 		return s;
 	}
-	k = free & ~((2u << cursor) - 1) ? free & ~((2u << cursor) - 1) : free;
-	k = 31 - __builtin_clz(k & -k);                 /* its lowest bit */
-	cursor = k;
+	h = home_of(s);
+	if (h && free >> (h - 1) & 1)
+		k = h - 1;
+	else {
+		pick = free & ~home && stock_played() ? free & ~home : free;
+		k = pick & ~((2u << cursor) - 1) ? pick & ~((2u << cursor) - 1) : pick;
+		k = 31 - __builtin_clz(k & -k);         /* its lowest bit */
+		cursor = k;
+	}
 	ct_pool_tag[k] = 0;
 	copy_frame((s32 *)ct_pool_addr[k], (const s32 *)s);
 	ct_pool_tag[k] = s;
+	home = (home & ~(1u << k)) | (u32)(h == k + 1) << k;
 	return ct_pool_addr[k];
 }
 
@@ -271,8 +311,9 @@ static void __attribute__((noinline)) remap(u32 t, u32 s0, u32 s1)
 
 	mine = own(t, &outside);
 	far[t] = outside;
-	a = IN_SRAM(s0) ? s0 : held(t, s0);             /* rule 1, the sine; rule 2 */
-	b = s1 == s0 ? a : IN_SRAM(s1) ? s1 : held(t, s1);
+	/* rule 1: the sine, and the stock frames outside SRAM, where the OS has them; rule 2 */
+	a = IN_SRAM(s0) || !IN_CLAIM(s0) ? s0 : held(t, s0);
+	b = s1 == s0 ? a : IN_SRAM(s1) || !IN_CLAIM(s1) ? s1 : held(t, s1);
 	if (!a || !b) {
 		busy = mine | slot_bit(a) | slot_bit(b);
 		for (u = 0; u < 6; u++)
@@ -286,7 +327,7 @@ static void __attribute__((noinline)) remap(u32 t, u32 s0, u32 s1)
 			b = s1 == s0 ? a : place(s1, busy);
 	}
 	pin[t] = mine | slot_bit(a) | slot_bit(b);
-	far[t] = outside | !IN_SRAM(a) | !IN_SRAM(b);
+	far[t] = outside | IN_CLAIM(a) | IN_CLAIM(b);
 	last_src[t][0] = s0;
 	last_src[t][1] = s1;
 	last_ptr[t][0] = a;
@@ -472,6 +513,7 @@ static void move(void)
 		}
 		ptrs[n] = src;
 	}
+	home = ct_pool_n == 32 ? ~0u : (1u << ct_pool_n) - 1;
 	__asm__ volatile ("" : : : "memory");          /* the copies, pointers and slots before the flag */
 	ct_moved = READY;
 }

@@ -1573,3 +1573,186 @@ still.
 - **SWEEP still:** +38 (a table) and +41 (Wavetable 0) against stock CHORD, as before.
 - **Frames copied over the 120 blocks:** a 31, b 490, c 19, d 350.
 
+## 23. S3 prepared: the probe with 0.2 (2026-10-24)
+
+`tools/emu/probe_chord_lines.py` measures 0.2 next to 0.1's way, with §18's method: distinct SDRAM lines per block,
+the cache model of the voice loop alone, the SRAM lines, each minus the loop with no note.
+
+- **The 0.2 cases:**
+  - every CHORD Tables case again, with the move made by the package's own tick before the first block
+    (`Voice.move()`, §21);
+  - one track: Wavetable 0 and a table, notes 60 and 84, SWEEP at 24 and moving 3 a block;
+  - six tracks: Wavetable 0, six tables and one table on all six, SWEEP still and moving.
+- **"In the RAM claim"** is now what the copies into the pool read: a table's frames, or the stock frames' copy. In
+  0.1's way it is what the render reads.
+- **Checks:**
+  - 0.2 adopted (`ct_moved` 1), and no frame read where it is for want of a slot (`ct_fallback` 0);
+  - one track: fewer lines in the RAM claim than 0.1's way, and none after the note's first block with SWEEP
+    still;
+  - six tracks: fewer SDRAM lines than 0.1's way, with six tables and with one shared.
+- **Findings:** for each case, 0.2's lines and misses against the stock OS, next to 0.1's way's.
+
+The run is the maintainer's. Unicorn stops with SIGILL in this sandbox.
+
+```sh
+../.venv-emu/bin/python3 tools/emu/probe_chord_lines.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx
+```
+
+### 23.1 The run (the maintainer, 2026-10-24)
+
+`probe_chord_lines.py` `[FAIT en émulation]`: every 0.1 case as in §18.1. Two FAILs, both the probe's check: with
+SWEEP still a table in 0.2 reads 1,0 line a block in the RAM claim, where the check asked for less than one. That line
+is the table's pointer list, which `cw_setup` reads for its two sources every block (`ptrs[i]`, `ptrs[i + 1]`;
+Wavetable 0 reads the stock copy's the same way). The frames come from SRAM. The check now allows that one line. A
+new run would only turn those two lines to OK.
+
+Lines of 16 bytes a block, minus the loop with no note, against the stock OS:
+
+| Case | 0.1's way: SDRAM lines | 0.1: misses (write backs) | 0.2: SDRAM lines | 0.2: misses (write backs) |
+|---|---|---|---|---|
+| 1 track, note 60, SWEEP still, a table | +111 | +6 | **+6** | **0** |
+| 1 track, note 84, SWEEP still, a table | +122 | +6 | **+6** | **0** |
+| 1 track, note 60, SWEEP moving, a table | +110 | +51 | **+68** | +51 |
+| 1 track, SWEEP still, Wavetable 0 | +2 | 0 | +6 | 0 |
+| 1 track, SWEEP moving, Wavetable 0 | +2 | 0 | +13 | +1 |
+| 6 tracks, SWEEP still, six tables | +655 | +941 (+245) | **+10** | **+28 (+14)** |
+| 6 tracks, SWEEP still, one shared table | +655 | +915 | +10 | +38 |
+| 6 tracks, SWEEP still, Wavetable 0 | +3 | +3 | +10 | +15 |
+| 6 tracks, SWEEP moving, six tables | +626 | +909 (+234) | **+310** | **+468 (+136)** |
+| 6 tracks, SWEEP moving, one shared table | +623 | +890 | +86 | +157 |
+| 6 tracks, SWEEP moving, Wavetable 0 | +3 | +4 | **+43** | **+76 (+34)** |
+
+What it shows:
+- **SWEEP still, the held chord:** 0.2 does what §19 set out to do. Six tracks on tables read 287 lines a block
+  instead of 932, ten more than the stock OS. The cache model misses 29 times instead of 942. With one track, a
+  table costs six lines a block: its pointer list and the package's own variables.
+- **SWEEP moving on tables:** about half. Six tables 605 lines a block instead of 921, 490 misses instead of 931.
+  The copies of new frames read 51 lines a block per track in the RAM claim, about 65 for each new frame. One table
+  shared by six tracks gains most (381 lines), since a frame one track copied serves the others.
+- **Wavetable 0 with SWEEP moving got worse than the stock OS:** six tracks +43 lines and +76 misses a block, where
+  0.1's way had +3 and +4. 0.2 copies frames for it, 38 lines a block in the RAM claim:
+  - frame 1, which the stock OS reads where it is (`0x40118648`), gets a slot;
+  - that slot is a stock frame's own, so that frame, when SWEEP reaches it, is copied back from the stock copy
+    into another slot, and so on.
+
+  That is a price for CHORD users who play no table at all, on top of the +380 instructions a block of §22.5.
+- **The cure** (not built):
+  - frame 1 and any stock frame outside SRAM read where it is, as the stock OS reads it;
+  - a stock frame's copy going back to its own slot when that is free;
+  - a table's frame taking first a slot that does not hold its own stock frame.
+
+  Then Wavetable 0 alone copies nothing, and tables leave the stock frames in place while other slots are free.
+
+## 24. The cure for Wavetable 0 (2026-10-24)
+
+The maintainer, after §23.1: build the cure for Wavetable 0.
+
+### 24.1 What changed in `chordtables.c`
+
+1. **A stock frame outside SRAM is read where it is**, as the stock OS reads it (frame 1, `0x40118648`, in the OS's
+   data).
+   - Rule 1 now takes every source outside SRAM and outside the RAM claim (`IN_CLAIM`). A source maps to itself,
+     always: the render's comparisons stay as on the stock OS.
+   - `far` now means "may point into the RAM claim" (a table's frame, or the stock copy, read where it is). That is
+     the only kind of frame rule 3 has to look for.
+2. **A stock frame's copy goes back to its own slot.**
+   - `home_of(s)` tells a copy's slot from its address: slot k's copy is at `COPY0 + 1 028 k`, laid out in the
+     move's order.
+   - `held()` looks there first.
+   - `place()` puts a copy into its own slot when that slot is free.
+3. **A table's frame takes first a slot not holding its own stock frame.** `home` holds the slots that do: all 30
+   after the move, kept by `place()` at each copy. The tags the reclaim clears are a table's, never at home. The
+   next free slot after the last taken is used only among the others first.
+
+### 24.2 Measured here
+
+- **Outputs:** code 4 841 bytes, 5 444 bytes added to the image; `remap` 1 220 bytes (1 598), `place` 480, `held`
+  306, `cw_setup` 716.
+- **The object:** no library call (`nm -u` empty).
+- **Checks:** all OK. `webcompose_check` gives MAIN OS `57ac7df5…`, `8e647b9a…` and `0719c706…`.
+- **The proofs** (`test_chordtables.py`):
+  - P5 accepts frame 1 where the OS has it;
+  - P5 now asks that Wavetable 0 alone copies nothing (P1m a and c).
+- **Not run yet:** the proofs and the probe.
+
+### 24.3 The probe with the cure (the maintainer, 2026-10-24)
+
+`probe_chord_lines.py`: **ALL OK** `[FAIT en émulation]`. Both FAILs of §23.1 are now OK with the corrected check.
+Against the stock OS, per block:
+
+| Case | 0.1's way | 0.2 §23.1 | 0.2 with the cure |
+|---|---|---|---|
+| 6 tracks, SWEEP moving, Wavetable 0: lines (misses) | +4 (+5) | +43 (+76) | **+25 (+49)** |
+| the same: lines in the RAM claim | 0 | 38 | **5** |
+| 1 track, SWEEP moving, Wavetable 0: lines | +2 | +13 | +12 |
+| 6 tracks, SWEEP moving, six tables: lines (misses) | +627 (+910) | +310 (+468) | +311 (+471) |
+| **6 tracks, SWEEP moving, one shared table: lines (misses)** | +624 (+891) | **+86 (+157)** | **+158 (+266)** |
+| 6 tracks, SWEEP still, six tables: lines (misses) | +656 (+942) | +10 (+28) | +11 (+32) |
+| 1 track, SWEEP still / moving, a table: lines | +111 / +110 | +6 / +68 | +6 / +69 |
+
+- **Wavetable 0 copies nothing any more.** It still reads 5 lines a block in the RAM claim: the stock copy's
+  pointer list, one line per track. What is left against the stock OS, +25 lines and +49 misses with six tracks
+  moving, is the remap's own data in SDRAM:
+  - the tags, the slots' addresses, the KB index, the masks, the last sources;
+  - about 10 lines a remap, at 0,75 remaps a block per track.
+
+  The stock function reads only its pointer table.
+- **One table shared by six tracks got worse:** +158 lines instead of +86.
+  - The cure keeps the stock frames' slots for Wavetable 0 even when no track plays it, so a table's new frame takes
+    a slot another track's frame of the same table was in.
+  - That frame is copied again when that track gets to it: 156 lines a block in the RAM claim instead of 85.
+- **To weigh (not built):** keep the stock frames' slots only while a CHORD track is at Wavetable 0 (its latch 0).
+  With every CHORD track on a table, the 30 slots are all theirs again.
+
+### 24.4 The proofs with the cure (the maintainer, 2026-10-24)
+
+`test_chordtables.py`: **ALL OK** in the three builds `[FAIT en émulation]`.
+- P1m a to e identical, sample for sample, as before.
+- P5 with frame 1 where the OS has it: no other pointer outside SRAM, `ct_fallback` 0.
+- **Wavetable 0 alone copies nothing** (P1m a and c: 0 frames). The tables' scenario copies 453 frames over 120
+  blocks (b, 490 before) and 318 with the move in block 40 (d, 350).
+
+| Instructions per block per voice, SWEEP creeping | 0.1's way | §22.5 | with the cure |
+|---|---|---|---|
+| a table | 8 289 | 9 024 (+735) | 9 088 (+799) |
+| Wavetable 0 | 8 312 | 8 692 (+380) | 8 646 (+334) |
+
+SWEEP still, unchanged: +41 at Wavetable 0 and +38 with a table, against stock CHORD.
+
+### 24.5 The stock frames' slots kept only while the stock table plays (2026-10-24)
+
+The maintainer, after §24.3: keep the stock frames' slots only while a CHORD track is at Wavetable 0.
+
+- **`stock_played()`:** a CHORD voice (`chord_voice()`) whose latch is 0 plays the stock table. An idle CHORD track
+  at Wavetable 0 counts too, so the rule errs on the side of the stock frames.
+- **`place()`:** a table's frame takes first a slot not holding its own stock frame only while `stock_played()`.
+  Otherwise it takes the next free slot after the last taken, among all 30, as before §24. A stock frame's copy still
+  goes back to its own slot when that is free.
+- **The sound:** unchanged, whatever slot a frame takes (§19.3).
+- **Outputs:** code 4 887 bytes, 5 488 bytes added to the image, `place` 526 bytes.
+- **Checks:** all OK. `webcompose_check` gives MAIN OS `86fd59e4…`, `4462636f…` and `4c25070e…`.
+- **To run:** the proofs and the probe. The probe's case "one table on all six, SWEEP moving" should come back
+  towards §23.1's +86 lines, while P1m b keeps tracks 5 and 6 at Wavetable 0.
+
+### 24.6 The runs of §24.5 (the maintainer, 2026-10-24)
+
+- **The maintainer:** both runs ALL OK (`test_chordtables.py` and `probe_chord_lines.py`) `[FAIT en émulation]`.
+- **`test_chordtables.py`'s output** (pasted whole), every check as in §24.4:
+  - Wavetable 0 alone copies nothing (P1m a, c: 0 frames);
+  - the tables' scenario copies 454 frames (b) and 318 (d), with tracks 5 and 6 at Wavetable 0, so the stock frames'
+    slots are still kept there;
+  - SWEEP creeping, instructions per block per voice: a table 9 131 (+842 against 0.1's way; +799 with §24's cure,
+    the six-voice check of `stock_played()` at each copy), Wavetable 0 8 646 (+334, unchanged); SWEEP still +38 and
+    +41 against stock CHORD, unchanged.
+- **The probe** (pasted after), against the stock OS per block:
+
+  | Case | 0.1's way | §23.1 | §24.3 (the cure) | §24.6 |
+  |---|---|---|---|---|
+  | 6 tracks, SWEEP moving, one shared table: lines (misses) | +624 (+891) | +86 (+157) | +158 (+266) | **+88 (+158)** |
+  | 6 tracks, SWEEP moving, Wavetable 0: lines (misses) | +4 (+5) | +43 (+76) | +25 (+49) | **+25 (+49)** |
+  | 6 tracks, SWEEP moving, six tables: lines (misses) | +627 (+910) | +310 (+468) | +311 (+471) | +312 (+469) |
+  | 6 tracks, SWEEP still, six tables: lines (misses) | +656 (+942) | +10 (+28) | +11 (+32) | +11 (+32) |
+  | 1 track, SWEEP moving, a table: lines | +110 | +68 | +69 | +70 |
+
+  The shared table is back at §23.1's level, and Wavetable 0 keeps the cure's: neither case pays for the other now.
+
