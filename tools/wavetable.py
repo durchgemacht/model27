@@ -8,13 +8,15 @@ makes any wavetable WAV like that:
 
   1. reads a WAV (8, 16, 24 or 32-bit integer PCM or 32-bit float, any number of channels, mixed to mono) and cuts it
      into frames of --frame samples (2 048, the common wavetable size, when the length allows it, else 256);
-  2. keeps 32 frames at most (--frames), evenly picked;
+  2. keeps 31 frames at most (--frames), evenly picked;
   3. for each frame, takes harmonics 1 to --harmonics (40) by a discrete Fourier transform and synthesises 256
      samples from them: no DC, nothing above the last harmonic, whatever the input's frame size;
   4. turns each frame so that its fundamental starts in sine phase (0, rising), the same for every frame
      (--no-align leaves the phases);
   5. scales each frame to full level (--keep-levels scales the whole table once, keeping the frames' relative levels);
-  6. writes a 48 kHz mono 16-bit WAV of k x 256 samples (-o), for One-Shot's uploader, which keeps a 48 kHz WAV's length
+  6. puts a sine in front of them as the table's first frame, so that SWEEP 0 is a sine on every table, as on the stock
+     CHORD and in the CHORD Wave Bank, where frame 0 is the OS's own sine (notes/66 §16);
+  7. writes a 48 kHz mono 16-bit WAV of k x 256 samples (-o), for One-Shot's uploader, which keeps a 48 kHz WAV's length
      (notes/66 §11.4), and/or the +Drive's sample file (--device): the 64-byte header, the frames big-endian, 16 zero
      bytes, as the uploader writes it and the loader reads it.
 
@@ -35,6 +37,7 @@ import sys
 
 CYCLE = 256                 # samples of a frame on the +Drive
 MAX_FRAMES = 32             # frames the loader takes
+MAX_INPUT = MAX_FRAMES - 1  # frames taken from the input: the first frame of a table is the sine
 FULL = 32767
 RATE = 48000
 
@@ -147,15 +150,33 @@ def align(coef, prev_turn):
     return [c * cmath.exp(-1j * h * turn) for h, c in enumerate(coef, 1)], turn
 
 
+def sine_frame():
+    """The table's first frame: a sine, harmonic 1 only, in sine phase (0, rising), at full level."""
+    return [int(round(FULL * math.sin(2 * math.pi * m / CYCLE))) for m in range(CYCLE)]
+
+
+def starts_with_sine(table, tolerance=1e-3):
+    """Whether a table's first frame is a sine: harmonic 1 in sine phase, every other harmonic and DC under tolerance
+    of it (the check a web importer warns with, notes/66 §16)."""
+    if len(table) < CYCLE:
+        return False
+    f = [x / FULL for x in table[:CYCLE]]
+    coef = harmonics(f, CYCLE // 2 - 1)
+    h1 = abs(coef[0])
+    return (h1 > 0.5 and abs(cmath.phase(coef[0]) + math.pi / 2) < 0.05 and abs(sum(f)) / CYCLE < tolerance * h1
+            and max(abs(c) for c in coef[1:]) < tolerance * h1)
+
+
 def convert(samples, frame=None, frames=None, count=40, do_align=True, keep_levels=False):
-    """Mono samples (floats) -> (the table, k x 256 16-bit samples; a report)."""
+    """Mono samples (floats) -> (the table: the sine, then up to 31 frames of the input, k x 256 16-bit samples; a
+    report)."""
     n = len(samples)
     if frame is None:
         frame = 2048 if n >= 2048 and n % 2048 == 0 else CYCLE
     if n < frame or n % frame:
         raise ValueError(f"{n} samples are not whole frames of {frame}: give --frame")
     total = n // frame
-    k = min(total, frames or MAX_FRAMES, MAX_FRAMES)
+    k = min(total, frames or MAX_INPUT, MAX_INPUT)
     picks = [round(j * (total - 1) / (k - 1)) for j in range(k)] if k > 1 else [0]
     shapes, turn = [], 0.0
     for p in picks:
@@ -165,12 +186,13 @@ def convert(samples, frame=None, frames=None, count=40, do_align=True, keep_leve
         shapes.append(synth(coef))
     peaks = [max(abs(x) for x in s) or 1.0 for s in shapes]
     gains = [FULL / max(peaks)] * k if keep_levels else [FULL / p for p in peaks]
-    table = []
+    table = sine_frame()
     for s, g in zip(shapes, gains):
         table += [max(-32768, min(FULL, int(round(x * g)))) for x in s]
     report = (f"{n} samples, frames of {frame}: {total} frame(s), {k} kept"
               + (f" (frames {picks})" if k < total else "") + f"; harmonics 1 to {count}"
-              + ("; phases aligned" if do_align else "") + ("; levels kept" if keep_levels else "; each frame at full level"))
+              + ("; phases aligned" if do_align else "") + ("; levels kept" if keep_levels else "; each frame at full level")
+              + f"; a sine in front: {k + 1} frames, SWEEP 0 the sine")
     return table, report
 
 
@@ -191,8 +213,10 @@ def self_test():
     for j in range(4):
         src += saw(2048, 0.7 * j)
     table, rep = convert(src)
-    case(f"a 2048-sample table of 4 frames: 4 x 256 samples ({rep})", len(table) == 4 * CYCLE)
-    frames_ = [table[i * CYCLE:(i + 1) * CYCLE] for i in range(4)]
+    case(f"a 2048-sample table of 4 frames: the sine and 4 frames, 5 x 256 samples ({rep})", len(table) == 5 * CYCLE)
+    case("its first frame is the sine: harmonic 1 only, sine phase, full level", table[:CYCLE] == sine_frame()
+         and starts_with_sine(table) and max(table[:CYCLE]) == FULL)
+    frames_ = [table[i * CYCLE:(i + 1) * CYCLE] for i in range(1, 5)]
     spectra = [[abs(c) for c in harmonics([x / FULL for x in f], 127)] for f in frames_]
     case("nothing above harmonic 40 but rounding (under 3e-4 of full level), no DC",
          all(max(s[40:]) < 3e-4 for s in spectra) and all(abs(sum(f)) / CYCLE < 2 for f in frames_))
@@ -201,11 +225,16 @@ def self_test():
     case("every frame's fundamental in sine phase (neighbours in phase)", all(abs(p + math.pi / 2) < 1e-3 for p in fund))
     case("each frame starts on a rising zero crossing", all(abs(f[0]) < 0.02 * FULL and f[1] > f[0] for f in frames_))
     dev = device_bytes(table)
-    case("the device file: 64-byte header, mono, 2 048 bytes of audio, 48 kHz, last frame 1 023, no loop, 16 zeros",
-         len(dev) == 64 + 2048 + 16 and dev[1] == 0 and struct.unpack_from(">III", dev, 4) == (2048, RATE, 0)
-         and struct.unpack_from(">I", dev, 16)[0] == 1023 and dev[20] == 0x7f and dev[-16:] == bytes(16)
-         and struct.unpack_from(">h", dev, 64)[0] == table[0])
-    case("the loader takes it: 4 frames", loader_accepts(dev) == 4)
+    case("the device file: 64-byte header, mono, 2 560 bytes of audio, 48 kHz, last frame 1 279, no loop, 16 zeros",
+         len(dev) == 64 + 2560 + 16 and dev[1] == 0 and struct.unpack_from(">III", dev, 4) == (2560, RATE, 0)
+         and struct.unpack_from(">I", dev, 16)[0] == 1279 and dev[20] == 0x7f and dev[-16:] == bytes(16)
+         and struct.unpack_from(">h", dev, 64 + 2 * 64)[0] == FULL)
+    case("the loader takes it: 5 frames", loader_accepts(dev) == 5)
+    case("a table whose first frame is no sine is told: a saw, a sine at another phase, a sine with harmonic 2",
+         not starts_with_sine(table[CYCLE:]) and not starts_with_sine([int(FULL * math.cos(2 * math.pi * m / CYCLE))
+                                                                        for m in range(CYCLE)])
+         and not starts_with_sine([int(FULL * (0.9 * math.sin(2 * math.pi * m / CYCLE)
+                                                + 0.1 * math.sin(4 * math.pi * m / CYCLE))) for m in range(CYCLE)]))
     case("the loader refuses a stereo file, 300 samples and 33 frames",
          loader_accepts(dev[:1] + b"\x01" + dev[2:]) == 0 and loader_accepts(device_bytes([0] * 300)) == 0
          and loader_accepts(device_bytes([0] * 33 * CYCLE)) == 0)
@@ -216,16 +245,17 @@ def self_test():
                   for m in range(CYCLE)]
     out, _r = convert(small, do_align=False, keep_levels=True)
     g = FULL / max(abs(x) for x in small)
-    case("256-sample frames with 3 harmonics, phases and levels kept: the same samples, scaled once",
-         all(abs(o - x * g) <= 1 for o, x in zip(out, small)))
+    case("256-sample frames with 3 harmonics, phases and levels kept: the sine, then the same samples, scaled once",
+         out[:CYCLE] == sine_frame() and len(out) == 4 * CYCLE and all(abs(o - x * g) <= 1 for o, x in zip(out[CYCLE:], small)))
     # 64 frames: 32 kept, evenly
     many = []
     for j in range(64):
         many += [math.sin(2 * math.pi * m / CYCLE) * (1 + j) for m in range(CYCLE)]
     out, rep = convert(many, frame=CYCLE, keep_levels=True)        # 16 384 samples would read as 8 x 2048
-    lv = [max(abs(x) for x in out[i * CYCLE:(i + 1) * CYCLE]) for i in range(32)]
-    case(f"64 frames: 32 kept, the first and the last among them ({rep[:60]}...)",
-         len(out) == 32 * CYCLE and lv[-1] == FULL and abs(lv[0] - FULL / 64) <= 1 and lv == sorted(lv))
+    lv = [max(abs(x) for x in out[i * CYCLE:(i + 1) * CYCLE]) for i in range(1, 32)]
+    case(f"64 frames: 31 kept after the sine, the first and the last among them ({rep[:60]}...)",
+         len(out) == 32 * CYCLE and lv[-1] == FULL and abs(lv[0] - FULL / 64) <= 1 and lv == sorted(lv)
+         and loader_accepts(device_bytes(out)) == 32)
     # WAV in: 16-bit stereo, 24-bit, float; WAV out
     w16 = wav_bytes(table)
     rate, back = read_wav(w16)
@@ -256,7 +286,8 @@ def main():
     ap.add_argument("--device", help="the +Drive sample file to write (digiemu, or a check against the loader)")
     ap.add_argument("--frame", type=int, help="samples per frame in the input (default 2048 when the length allows, "
                                               "else 256)")
-    ap.add_argument("--frames", type=int, help=f"frames to keep, evenly picked (at most {MAX_FRAMES})")
+    ap.add_argument("--frames", type=int, help=f"frames to keep from the input, evenly picked (at most {MAX_INPUT}; "
+                                               "the sine in front makes the table's first frame)")
     ap.add_argument("--harmonics", type=int, default=40, help="the last harmonic kept (default 40, as the stock frames)")
     ap.add_argument("--no-align", action="store_true", help="leave each frame's phase as it is")
     ap.add_argument("--keep-levels", action="store_true", help="one gain for the table instead of each frame at full level")
@@ -266,8 +297,8 @@ def main():
         return self_test()
     if not a.wav or not (a.out or a.device):
         ap.error("give a WAV and -o and/or --device (or --self-test)")
-    if a.frames is not None and not 1 <= a.frames <= MAX_FRAMES:
-        ap.error(f"--frames: 1 to {MAX_FRAMES}")
+    if a.frames is not None and not 1 <= a.frames <= MAX_INPUT:
+        ap.error(f"--frames: 1 to {MAX_INPUT}")
     if not 1 <= a.harmonics < CYCLE // 2:
         ap.error("--harmonics: 1 to 127")
     _rate, samples = read_wav(pathlib.Path(a.wav).read_bytes())

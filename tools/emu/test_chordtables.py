@@ -18,7 +18,7 @@ For each selection (by default: chordtables; chordtables,sampler; sampler,chordt
   P2. the loader (ct_hook_tick in the UI harness), with the four file system calls answered by this proof (open by
      path, close, the inode's id and size, a read at a position) and the file index in memory:
      a. a scan after the mount: /Wavetables/01 to /64 opened in order, one per tick, each closed; mono files of
-        k x 256 samples (k = 32, 1, 4, 2, and 4 in a file made by tools/wavetable.py) built exactly as the proof computes them (the spread, Q31, the 257th sample,
+        k x 256 samples (k = 32, 1, 4, 2, and 5 in a file made by tools/wavetable.py, the sine first) built exactly as the proof computes them (the spread, Q31, the 257th sample,
         33 pointers); a stereo file, one of 300 samples, one of 33 frames and a missing one leave their slot empty;
         the tick returns the stock getter's answer;
      b. nothing changes: no file call;
@@ -398,11 +398,11 @@ def loader_tests(key, img, runtime, syms):
     d.put("/Wavetables/05", sample_file(frames_of(2, 15), stereo=True))
     d.put("/Wavetables/06", sample_file(frames_of(2, 16)[:300]))     # 300 samples: not k x 256
     d.put("/Wavetables/07", sample_file(frames_of(33, 17)))
-    # 08: what tools/wavetable.py makes of a 4-frame saw table at 2048 samples a frame
+    # 08: what tools/wavetable.py makes of a 4-frame saw table at 2048 samples a frame: the sine, then 4 frames
     saw = [sum(math.sin(h * (2 * math.pi * m / 2048 + 0.5 * j)) / h for h in range(1, 120)) * 0.5
            for j in range(4) for m in range(2048)]
     data[8], _rep = W.convert(saw)
-    files[8] = (4, None)
+    files[8] = (5, None)                       # the converter's sine, then the 4 frames
     d.put("/Wavetables/08", W.device_bytes(data[8]))
     # a. the scan after the mount
     log = []
@@ -420,7 +420,8 @@ def loader_tests(key, img, runtime, syms):
           "the scan ends")
     check(set(rets) == {0x5a}, f"{key}: P2a every tick returns the stock getter's answer")
     check(all(table_ok(n, data[n], k) for n, (k, _s) in files.items()),
-          f"{key}: P2a files 01 (32 frames), 02 (1), 03 (4), 64 (2) and 08 (4, made by tools/wavetable.py): their tables "
+          f"{key}: P2a files 01 (32 frames), 02 (1), 03 (4), 64 (2) and 08 (5, made by tools/wavetable.py, its first frame "
+          "the sine): their tables "
           "built exactly as computed here (spread, Q31, the 257th sample, 33 pointers)")
     check(all(slot(n) == 0 for n in range(1, 65) if n not in files),
           f"{key}: P2a a stereo file (05), 300 samples (06), 33 frames (07) and the missing files: empty slots")

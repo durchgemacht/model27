@@ -773,7 +773,7 @@ Plain Python, no extra package, MIT. The steps:
 1. **Reads a WAV:** 8, 16, 24 or 32-bit PCM or 32-bit float, mixed to mono.
 2. **Cuts it into frames** of `--frame` samples: 2 048 when the length is a multiple of it, else 256. A table that
    is both, 8 × 256 = 2 048 for one, needs `--frame`.
-3. **Keeps 32 frames at most**, evenly picked (`--frames`).
+3. **Keeps 32 frames at most**, evenly picked (`--frames`). Since §16: 31, after a sine as the first frame.
 4. **For each frame:**
    - takes harmonics 1 to 40 (`--harmonics`) by a DFT and synthesises 256 samples: no DC, nothing above;
    - turns the frame so that its fundamental starts in sine phase, the same for all of them (`--no-align`);
@@ -937,3 +937,92 @@ The maintainer tests the build in digiemu before the device.
   `cycles-mod/0.1`, the unknown point `chord.waves`.
 - **The order numbers** 34 (REFC) and 36 (CHORD Tables) were picked by Claude in the standard's range for machines.
   APPLYING.md §11 leaves them to the maintainer, who confirms them or gives others.
+
+## 16. SWEEP 0 is a sine on every table (2026-10-24)
+
+The maintainer asked whether the first waveform is always a sine. It was not: decision 2 (§10) gives SWEEP 0 the
+file's first frame. The maintainer's decision the same day: **the firmware stays as it is, and the converter gives
+every table a sine as its first frame; a web importer tests whether a table's first waveform is a sine and warns.**
+The reason should be in the CHORD Wave Bank's README.
+
+### 16.1 The reason, in the CHORD Wave Bank
+
+- **In its README:** "Frame 0, the sine, is shared with other parts of the OS and stays." Its TECHNICAL.md adds
+  that CHORD's selector gives any index outside 1–32 the sine at `0x8000eee4`, and that code outside CHORD reads the
+  same sine (`0x400a7b4e`, `0x400aa334`). The Wave Bank rewrites the OS's frames in place, so it cannot replace that
+  one, and SWEEP 0 is the sine in every set it builds.
+- **Its editor** builds on that. Its table has 31 slots on SWEEP 4 to 124 ("SWEEP 0 is a sine"). "Fill gaps"
+  starts from the sine. The phase check warns "The volume dips when sweeping into frame …", from the sine into
+  frame 1 too (`coherence(SINE_SPEC, …)`). It does not test whether frame 0 is a sine, since its user cannot change
+  frame 0.
+- **For CHORD Tables** that reason is not technical: its tables are its own buffers, and the OS's sine stays
+  untouched either way. What the rule keeps is musical: a sound at SWEEP 0 is the same sine on every table, as on
+  the stock CHORD and in every Wave Bank set.
+
+### 16.2 What changed
+
+- **The firmware:** nothing. The loader puts a file's first frame on SWEEP 0 (§2.2). A table from the converter
+  therefore starts with the sine, whatever its number of frames, since the spread always maps frame 0 to SWEEP 0.
+- **`tools/wavetable.py`:**
+  - `sine_frame()`, harmonic 1 in sine phase at full level, goes in front of the input's frames, of which 31 at most
+    are kept (`--frames` 1 to 31);
+  - a table of 31 frames from the input is then 32 frames, SWEEP 0 the sine and SWEEP 4·k frame k, the stock CHORD's
+    layout;
+  - `starts_with_sine(table)` is the test a web importer warns with: harmonic 1 in sine phase, DC and every other
+    harmonic under 1e-3 of it;
+  - `--self-test` ALL OK, 15 checks: the sine in front, the 5 frames of the saw table, a saw, a cosine and a sine
+    with harmonic 2 told apart, 31 of 64 frames kept after the sine.
+- **`tools/emu/test_chordtables.py`:** file 08, made by the converter, is now the sine and 4 frames, 5 in all. The
+  maintainer's run is to be repeated.
+- **The test tables for digiemu** (`_scratch/chordtables-digiemu/`, not in the repository), made again: 01 to 03 are
+  now the sine and 31 frames, 04 the sine and the organ cycle. Each starts with a sine (`starts_with_sine`). They are
+  to be written into `/Wavetables` again with `ekfsadd.py`, replacing the old ones.
+
+### 16.3 The warning, in One-Shot's uploader (2026-10-24)
+
+The maintainer's choice: One-Shot's uploader warns when a file in `Wavetables` does not start with a sine. It lives
+in the One-Shot repository (`cycles-one-shot`, `uploader/`), not in model27.
+
+- **`elektron.js`:** `startsWithSine(frames)`, the test of `tools/wavetable.py`:
+  - a DFT of the first 256 samples;
+  - harmonic 1 above half of full level, in sine phase (±0,05 rad);
+  - DC and every other harmonic under a thousandth of it;
+  - with `WAVETABLES = "/Wavetables"`.
+- **`app.js`:**
+  - the conversion now hands back the frames;
+  - in `/Wavetables` a file whose first frame fails is still written;
+  - its row ends "warning: its first frame is not a sine, so SWEEP 0 plays no sine with CHORD Tables", in a new
+    warning colour (light and dark);
+  - the status line counts the warnings.
+- **Tests,** both green (`make uploader-test`):
+  - `test.js`: a sine, a table starting with one, and a sine one step off here and there pass; a cosine, a sine with
+    harmonic 2, a saw, a sine with DC and fewer than 256 samples do not;
+  - `test-app.js`: `/Wavetables` is made and entered; a table that starts with a sine is written without a warning,
+    and the 440 Hz tone is written with one; the status line says "1 with a warning"; no warning outside
+    `/Wavetables`.
+- **Docs:** README and TECHNICAL §12 of One-Shot. Not committed there.
+- **Not done:** not tried in a real browser against the Cycles.
+
+### 16.4 Files CHORD Tables cannot play are not uploaded (2026-10-24)
+
+The maintainer, the same day: a warning for files CHORD Tables cannot play at all, and those are not imported.
+
+- **`elektron.js`:** `tableFrames(frames)`, the loader's rule of `load_one`:
+  - 1 to 32 frames of 256 samples, or 0;
+  - `TABLE_MAX = 32`;
+  - the loader's other rule, mono, the page always meets.
+- **`app.js`:**
+  - in `/Wavetables` the check runs after the conversion and before the file is opened for writing;
+  - a file that fails is not written, and its row reads "failed: CHORD Tables cannot play it: N samples are not 1
+    to 32 frames of 256 (a 48 kHz WAV of k × 256 samples, as model27's tools/wavetable.py makes it); not uploaded";
+  - the status line adds "N not uploaded: CHORD Tables cannot play it.";
+  - a table that passes and does not start with a sine is written with §16.3's warning, as before.
+  - A WAV at another rate than 48 kHz is resampled by the browser (§11.4) and usually fails here.
+- **Tests,** both green (`make uploader-test`):
+  - `test.js`: 1, 2 and 32 frames pass; nothing, 300, 33 frames, 48 000 and 255 samples do not;
+  - `test-app.js`: in `/Wavetables` a sine-first table is written without a warning, a saw-first one with it; a
+    second of tone (48 000 samples) is refused with its reason, is not on the drive and is never opened for
+    writing, while the table uploaded with it is; the status line reads "1 of 2 uploaded to /Wavetables. 1 not
+    uploaded: CHORD Tables cannot play it."
+- **Docs:** One-Shot's README and TECHNICAL §12. Not committed there.
+
