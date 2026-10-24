@@ -404,7 +404,17 @@ half-finished step never blocks a build.
   `claims.py --check --self-test`, `check_overlaps.py`, `ref_mainos.py --check`, `webcompose_check.sh` with the
   official file (composer.js gives compose.py's tweaks and MAIN OS), `webbuild_check.sh`, `webflash_check.sh`.
   `test_compose.py` stops with SIGILL in the sandbox (§14) and runs in a normal terminal; `webflash_smoke.sh` needs
-  jsdom from npm. `[À FAIRE]` both by the maintainer, then flashing SAMPLE from the page.
+  jsdom from npm. Both run by the maintainer on 2026-10-25:
+  - `test_compose.py`: **ALL OK** (SAMPLE alone, with REF, with REF2 and with both: start-up, the registrar's
+    mechanics, the runtime against B1, the voice loop).
+  - `webflash_smoke.sh` with both official files: 3 failures, all three values for SAMPLE pinned in
+    `tools/webflash_smoke.js` that the pin had not moved: the composer's log line (36 096 bytes added to the OS, now
+    36 452, the sum of the tweak's appended segments) and the two Model:Samples packings of `MFS` (now `6e8d2dcb…`
+    for `_smp-os` and `d3bf1129…` for `_cyc-os`). The new values were computed apart from the page, with
+    `build.py -t sampler --expect-mainos be01a3dd…` and `mods_for_samples.py` on its output, and they are the
+    page's. Everything else passed. With them, `webflash_smoke.sh` with both official files: **ALL OK** (2026-10-25,
+    jsdom from npm with its cache in a temporary folder). The manifest's emulation entry names the composed 0.9.
+    `[À FAIRE]` flashing SAMPLE from the page.
 - The card stays `tested`: the change is the view alone, tested on the device in One-Shot's own build, and the
   composed build differs from that one where it always did (§9). Release 0.5 and the guide's Tested line say that the
   page's build of 0.9 has not been flashed yet.
