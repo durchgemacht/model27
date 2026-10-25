@@ -7,6 +7,9 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.7", date: "2026-10-25", changes: [
+    { en: "SAMPLE from Cycles One-Shot 0.10 is tested as this page builds it: flashed from this page and played on a Model:Cycles (2026-10-25)" },
+  ] },
   { version: "0.6", date: "2026-10-25", changes: [
     { en: "SAMPLE now comes from Cycles One-Shot 0.10: a narrow column on the left of its screen shows the current pattern's number, TRAK with the track's number, and the track's level as a bar that moves while you turn LEVEL. The sample's name and the waveform sit to its right. Sound, knobs and saved projects are as in 0.9" },
     { en: "One-Shot 0.10 is tested in its own build in the emulator and on a Model:Cycles (2026-10-25); the build this page makes of it differs only in how the machine is registered, as before, and has not been flashed from here yet" },

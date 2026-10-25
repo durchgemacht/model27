@@ -435,4 +435,13 @@ half-finished step never blocks a build.
   line's 38 104 bytes, and the two Model:Samples packings `99b6c7e3…` (`_smp-os`) and `129fcb50…` (`_cyc-os`),
   computed apart from the page with `build.py -t sampler --expect-mainos 09dd1ee7…` and `mods_for_samples.py`.
 - **Checked**: listed in the commit; `test_compose.py` in a normal terminal (§14), run by the maintainer on
-  2026-10-25: **ALL OK**. `[À FAIRE]` flashing SAMPLE from the page. The card stays `tested`, as in §15.
+  2026-10-25: **ALL OK**. Then flashed from the page (§17). The card stays `tested`, as in §15.
+
+## 17. SAMPLE 0.10 tested from the page (2026-10-25)
+
+- **Flashed by the maintainer from the live web flasher** (stamp `2026-10-25-01`), SAMPLE as the page composes it:
+  "funktioniert" (works). The page builds SAMPLE alone only when its MAIN OS is `REF_MAINOS["sampler"]`
+  (`09dd1ee7…`), so what was flashed is §16's composed 0.10, byte for byte.
+- With it the card's `tested` holds for the page's own build again, as it did for 0.8 (§13). The page's build of 0.9
+  was never flashed; 0.10 replaces it.
+- The guide's Tested line, release 0.7, the sampler manifest's `tests.hardware` and the stamp `2026-10-25-02` say so.

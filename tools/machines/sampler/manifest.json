@@ -74,6 +74,6 @@
                          {"with": "sample-preview-st", "why": "the same, on Model-TG's base"}]
  },
  "tests": {"emulation": {"tool": "digiemu; tools/emu/test_compose.py (Unicorn, the OS's own code, notes/60 §14)", "date": "2026-10-25", "build": "the composed object registered by the registrar runtime, alone (as the web flasher builds it) and with refmachine and refmachine2: the composed 0.9, run by the maintainer, ALL OK (notes/60 §15); the composed 0.10, ALL OK on 2026-10-25 (§16)"},
-           "hardware": {"date": "2026-10-25", "by": "maintainer", "build": "One-Shot 0.10's own build (the same code without CM_SYMBOLS), 2026-10-25, as One-Shot 0.9's on 2026-10-24; for 0.8, SAMPLE alone as the web flasher builds it (notes/60 §13) and as machine 6 next to refmachine (the pair, notes/60 §12), 2026-10-22; the composed 0.9 and 0.10 not yet flashed (notes/60 §15, §16)"},
+           "hardware": {"date": "2026-10-25", "by": "maintainer", "build": "One-Shot 0.10's own build (the same code without CM_SYMBOLS), 2026-10-25, as One-Shot 0.9's on 2026-10-24; for 0.8, SAMPLE alone as the web flasher builds it (notes/60 §13) and as machine 6 next to refmachine (the pair, notes/60 §12), 2026-10-22; the composed 0.10 flashed from the web flasher, 2026-10-25 (notes/60 §17); the composed 0.9 never flashed (§15)"},
            "status": "tested"}
 }
