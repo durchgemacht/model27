@@ -27,7 +27,7 @@ extern char cm_machine_index[];
 /* Start (COLOR) and Length (SHAPE) as on the Model:Samples (0x400a62dc there): 8.8 words from 0 to
    120.0; a trig plays from Start / 120 of the sample to (Start + Length) / 120, at most to its end. */
 #define SMP_SPAN (120 << 8)
-#define SMP_COLUMNS 128                 /* the screen's width: stretches of a sample's waveform */
+#define SMP_COLUMNS 105                 /* the waveform's width on the screen: stretches of a sample */
 
 enum {
     SLOT_FREE,                          /* unused */

@@ -418,3 +418,21 @@ half-finished step never blocks a build.
 - The card stays `tested`: the change is the view alone, tested on the device in One-Shot's own build, and the
   composed build differs from that one where it always did (§9). Release 0.5 and the guide's Tested line say that the
   page's build of 0.9 has not been flashed yet.
+
+## 16. One-Shot 0.10 pinned (2026-10-25)
+
+- **What changed upstream**: One-Shot 0.10 (`3193c42`, tag `v0.10`) draws a column on the left after the maintainer's drawing:
+  the current pattern's number in a lit box, an outline with TRAK and the selected track's number, and the track's
+  level as a bar in a frame with ticks, read as MainScreenView reads it (`0x40009c5a(project + 116, t)`, 0–127). The
+  sample's name keeps its box, 2 columns to the right; the waveform is 105 columns wide from column 23
+  (`SMP_COLUMNS` in `pool.h`). `machine/view.c`, `machine/os.h` and `machine/pool.h` differ from 0.9; sound, knobs,
+  records and hooks are the same. One-Shot's own build was tested by the maintainer in digiemu and on a Model:Cycles
+  (2026-10-25), the image byte for byte the released one.
+- **Here**: the three files copied as they are; `gen_sampler.py` pinned on `v0.10`; `sampler.o` and `27-sampler.json`
+  regenerated (123 writes as before, 32 535 bytes of code and tables, 62 008 of variables, 38 104 bytes added to the
+  image; the same 270 conflicts); `tweaks.js`, `REGISTRY.md` and `REF_MAINOS`/`REF_MODS` regenerated: SAMPLE alone
+  `09dd1ee7…`, with Control All Config `eeb7b2bb…`. The smoke test's pins moved with them (§15's lesson): the log
+  line's 38 104 bytes, and the two Model:Samples packings `99b6c7e3…` (`_smp-os`) and `129fcb50…` (`_cyc-os`),
+  computed apart from the page with `build.py -t sampler --expect-mainos 09dd1ee7…` and `mods_for_samples.py`.
+- **Checked**: listed in the commit; `test_compose.py` in a normal terminal (§14), run by the maintainer on
+  2026-10-25: **ALL OK**. `[À FAIRE]` flashing SAMPLE from the page. The card stays `tested`, as in §15.

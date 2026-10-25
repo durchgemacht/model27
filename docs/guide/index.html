@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-10-24-01">
-<link rel="stylesheet" href="../assets/guide.css?v=2026-10-24-01">
+<link rel="stylesheet" href="../assets/site.css?v=2026-10-25-01">
+<link rel="stylesheet" href="../assets/guide.css?v=2026-10-25-01">
 <script>try{var l=localStorage.getItem("mc-lang"),t=localStorage.getItem("mc-theme")}catch(e){}document.documentElement.lang=l||(/^fr\b/i.test(navigator.language||"")?"fr":"en");if(t)document.documentElement.setAttribute("data-theme",t)</script>
 </head>
 <body data-page="guide">
@@ -92,7 +92,7 @@
           <li>Press <b>MACHINES</b> and pick <b>SAMPLE</b>, the 7th machine, after Chord. Its icon is Tone's.</li>
           <li>Open the PRESET browser (<b>FUNC</b> + <b>MACHINE</b>) on that track and open a sample file: the sound takes the sample's name and plays it. Hold a step while you open a sample and the step gets it as a sound lock.</li>
           <li>Shape the sound with the four knobs (table below). <b>DECAY</b> starts at 127 so a sample plays out; <b>GATE</b> is heard with a lower DECAY; <b>PUNCH</b> works as on Tone. <b>PITCH</b>, the keys and FINE set the pitch as on every machine: PITCH 0 at note 60 plays the sample as recorded, whatever its sample rate.</li>
-          <li>The main screen shows two boxes along the top, the current pattern's number on the left and the sample's name on the right, and the waveform across the screen below them; two lines mark where a trig starts and stops, and move as you turn <b>COLOR</b> and <b>SHAPE</b>.</li>
+          <li>The main screen shows a narrow column on the left: the current pattern's number, TRAK with the track's number, and the track's level as a bar that moves while you turn <b>LEVEL</b>. To its right the sample's name sits in a box, the waveform below it; two lines mark where a trig starts and stops, and move as you turn <b>COLOR</b> and <b>SHAPE</b>.</li>
         </ol>
         <div class="tbl">
           <table>
@@ -110,7 +110,7 @@
           <div><dt>Samples</dt><dd>the sample memory is 47 MB of RAM the Model:Cycles' OS leaves unused. Samples load in the background when a project, kit or sound names them, and unload when nothing does.</dd></div>
           <div><dt>Limits</dt><dd>no looping and no reverse yet. The filter runs before Volume + Dist, where the Model:Samples has it after: with DIST above 0, the distortion acts on the filtered signal.</dd></div>
           <div><dt>Other mods</dt><dd>goes with the sequencer, screen, MIDI and USB mods. Not with MACRO, ACID, the Syntakt engines, Model-TG, the per-track filter or sample preview for now: the other machines take the same place in the firmware and there is no combined build with SAMPLE yet; Model-TG and the per-track filter change the same sound record functions.</dd></div>
-          <div><dt>Tested</dt><dd>One-Shot 0.7 on a Model:Cycles (2026-10-21): samples open and play, pitch, Start and Length, the filter, several SAMPLE tracks, saved projects, sound locks, the waveform view; One-Shot 0.9, whose only change is the two boxes above the waveform, in its own build in the digiemu emulator and on a Model:Cycles (2026-10-24). This page builds One-Shot 0.9 composed from its compiled object by model27's registrar runtime, which differs from that firmware in how the machine is registered (a runtime reading a parameter block instead of detours assembled per build) and at three instructions (the machine's index read as a symbol). Flashed from this page, that build of 0.8 was tested in the digiemu emulator and on a Model:Cycles (2026-10-22); the same runtime also ran there with a second machine next to SAMPLE. The page's build of 0.9 has not been flashed yet.</dd></div>
+          <div><dt>Tested</dt><dd>One-Shot 0.7 on a Model:Cycles (2026-10-21): samples open and play, pitch, Start and Length, the filter, several SAMPLE tracks, saved projects, sound locks, the waveform view; One-Shot 0.9 (two boxes above the waveform, 2026-10-24) and 0.10 (the column on the left with the pattern, the track and its level, 2026-10-25), each in its own build in the digiemu emulator and on a Model:Cycles. This page builds One-Shot 0.10 composed from its compiled object by model27's registrar runtime, which differs from that firmware in how the machine is registered (a runtime reading a parameter block instead of detours assembled per build) and at three instructions (the machine's index read as a symbol). Flashed from this page, that build of 0.8 was tested in the digiemu emulator and on a Model:Cycles (2026-10-22); the same runtime also ran there with a second machine next to SAMPLE. The page's builds of 0.9 and 0.10 have not been flashed yet.</dd></div>
         </dl>
         <p class="note"><b>Before flashing another choice or the official firmware,</b> set your SAMPLE tracks back to an original machine (Kick to Chord): the official OS doesn't have SAMPLE, and a project that still names it can freeze its MACHINES page.</p>
       </section>
@@ -280,8 +280,8 @@
   </div>
 </footer>
 
-<script src="../assets/release.js?v=2026-10-24-01"></script>
-<script src="../assets/cycles.js?v=2026-10-24-01"></script>
-<script src="../assets/site.js?v=2026-10-24-01"></script>
+<script src="../assets/release.js?v=2026-10-25-01"></script>
+<script src="../assets/cycles.js?v=2026-10-25-01"></script>
+<script src="../assets/site.js?v=2026-10-25-01"></script>
 </body>
 </html>

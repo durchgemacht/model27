@@ -5,10 +5,11 @@ added machine of the Model:Cycles.
   - 27-sampler.json: 7th machine, after the 6 stock ones.
 
 The code is Cycles One-Shot's (durchgemacht, MIT: tools/machines/sampler/LICENSE, copied next to the tweaks as
-LICENSE-One-Shot), taken as is from https://github.com/durchgemacht/cycles-one-shot at tag v0.9 (UPSTREAM_COMMIT below; 0.8 made the
+LICENSE-One-Shot), taken as is from https://github.com/durchgemacht/cycles-one-shot at tag v0.10 (UPSTREAM_COMMIT below; 0.8 made the
 patch points SAMPLE_MACHINE and DESC_START symbols behind CM_SYMBOLS in pool.h and view.c, and gave each assembly
-file a section of its own, for builders like this one; 0.9 splits the bar above the waveform into the pattern's
-number and the sample's name), with the same paths as there: src/ the sound core
+file a section of its own, for builders like this one; 0.9 split the bar above the waveform into the pattern's
+number and the sample's name; 0.10 puts a column on the left with the pattern's number, the track's number and its
+level), with the same paths as there: src/ the sound core
 (6-tap polyphase interpolation at 96 kHz, the Model:Samples' filter), machine/ the bridge to the voice loop, the
 sample memory (loaded from the +Drive, chosen in the PRESET browser, saved with the sound), the waveform view and
 the hooks. The build recipe is tools/machines/sampler/manifest.json; the compiled object sampler.o is committed next
@@ -29,7 +30,7 @@ tweaks, Model-TG, the track filter), plus sample-preview by name (it plays sampl
 needs Model-TG). Rerun this generator when a tweak is added, so that the list stays current (--check says so).
 
 MACRO's and ACID's optional writes (usb_steady, voice_loop) are left out, as in One-Shot's own build. The MAIN OS
-differs from the one One-Shot's own build gives (0.9's, tested on a Model:Cycles on 2026-10-24) only where the patch
+differs from the one One-Shot's own build gives (0.10's, tested on a Model:Cycles on 2026-10-25) only where the patch
 points are read: move.l #symbol instead of moveq, three sites.
 
     python3 tools/gen_sampler.py --cycles model-cycles_OS1.13.syx [--check]
@@ -61,8 +62,8 @@ SRC = HERE / "machines" / "sampler"
 BASE = build.BASE
 
 UPSTREAM = "https://github.com/durchgemacht/cycles-one-shot"
-UPSTREAM_TAG, UPSTREAM_COMMIT = "v0.9", "4f8c7b52908a9c67c8b9f02f4de05dccbf086f40"
-VERSION = "0.9"
+UPSTREAM_TAG, UPSTREAM_COMMIT = "v0.10", "3193c429d6d71f59a2751f8836f1c27390c78390"
+VERSION = "0.10"
 
 # The machine, as One-Shot's machine/build.py declares it: knobs COLOR, SHAPE, SWEEP, CONTOUR = (long name, short
 # name, default[, min, max]); Start and Length run to 120 as on the Model:Samples; decay = default of its Amp Decay;
@@ -182,8 +183,9 @@ def build_tweak(img, check=False):
             "the PRESET browser (FUNC + MACHINE) and saved with the sound; stereo files play as mono, other rates at",
             "their pitch. COLOR = Start, SHAPE = Length (0..120 each, as on the Model:Samples; the trig ends at",
             "Start + Length), SWEEP = Cutoff (-64 .. 63: lowpass below 0, off at 0, highpass above), CONTOUR = Reso;",
-            "DECAY, GATE and PUNCH: the stock amp chain. On a SAMPLE track the main screen shows the pattern's number",
-            "and the sample's name in two boxes, and the waveform with the start and end marked.",
+            "DECAY, GATE and PUNCH: the stock amp chain. On a SAMPLE track the main screen shows a column with the",
+            "pattern's number, the track's number and its level, the sample's name, and the waveform with the start",
+            "and end marked.",
             "Code of Cycles One-Shot %s (durchgemacht, MIT, %s, tag %s), copied as is into tools/machines/sampler/,"
             % (VERSION, UPSTREAM, UPSTREAM_TAG),
             "compiled once with CM_SYMBOLS into sampler.o and placed by tools/relocate.py (notes/60).",

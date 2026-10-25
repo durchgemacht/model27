@@ -103,6 +103,16 @@ static inline int32_t current_pattern(void)
 {
     return ((int32_t (*)(void *))0x4006a96c)(((void *(*)(void))0x400cfd0e)());
 }
+/* A track's level, 0..127, the way MainScreenView reads it for its level bar (0x4001b774): the byte
+   0x40009c5a(project + 116, t) returns, sign-extended. */
+static inline int32_t track_level(int32_t t)
+{
+    char *project = ((char *(*)(void))0x400cf866)();
+
+    if (!project)
+        return 0;
+    return (int8_t)((int32_t (*)(void *, int32_t))0x40009c5a)(project + 116, t);
+}
 /* A Bitmap (constructor 0x40070172): +4 width, +8 height, +12 32-bit words per column, +16 the
    words; pixel (x, y) is bit 31 - (y & 31) of word x * pitch + y / 32, y = 0 at the bottom. Text:
    0x40071a04(bitmap, font, x, y, flags, format, ...), flags 0 = from x on, 2 = centred on x. A font

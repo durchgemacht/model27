@@ -31,13 +31,13 @@ const ELEKTRON_ST_DL = "https://www.elektron.se/support-downloads/syntakt";
 const REF_MAINOS = {
   // each card alone: each variant, each combination of real Syntakt engines
   "control-all-config": "eb70de0a330dc9c033db5c5fc5d8589c3356c94ad346a8d30840e03ecb90299d",
-  "sampler": "be01a3dd70e5f765b25db1af0fab940d381bf4c51407d4733885d1f2a0a52086",
+  "sampler": "09dd1ee749aaf298a7843b61507fa2bd2ed73f3d2abbdb542cbef5d07bf51595",
   // every pair of cards the page lets you tick together
-  "control-all-config+sampler": "a831d408243dd38468bc36e72a944a115399e4a0a1f4a16344c898fbfda65b6a",
+  "control-all-config+sampler": "eeb7b2bb6cd7db7506d48f19e6b29793abc7f32f1a67433caa6f85cda80a98fc",
 };
 const REF_MODS = {
   "control-all-config": {"w": "b47aa26f4f855c750735a03eae7453847356c376f47a4010cf4f1a5bf316be5e"},
-  "sampler": {"w": "e4c0a891c5e3b25dd6e0476951e1474c6c3e29bb8272a4a1eb442b205da42836", "p": "8dbc79fa50e08ba27e2461b032dc4e85d1cfe4e7c51feae462bf6d6266244849"},
+  "sampler": {"w": "f9798354a9fde0ccf5ae670ed9c0916ed463cf1287608c372d61b0bfa2aa1e98", "p": "746ca43c3d571175546d2b28d253d5330074065aa14deb3e83edf123a45f4009"},
 };
 
 // "Samples OS" tab: official Model:Samples OS 1.13 inside the official Model:Cycles container
