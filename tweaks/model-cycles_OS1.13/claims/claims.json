@@ -88,12 +88,18 @@
   },
   {
    "ids": ["chord-keys"],
-   "source": "notes/42",
+   "source": "notes/42 §4, §11, §12.4",
    "claims": {
+    "saved": [{"where": "pattern, header +32", "bytes": 4}, {"where": "pattern, header +40", "bytes": 24}],
     "gestures": [{"combo": "TRIG 1-16", "situation": "keys", "scope": "machine:CHORD",
-                  "meaning": "the chords of a scale, in the Keys mode of the retrig menu"}]
+                  "meaning": "the chords of a scale, in the Keys mode of the retrig menu",
+                  "replaces": "the chromatic notes of the stock KeyboardView (0x4001a0d2), on a CHORD track with Keys ON"},
+                 {"combo": "RETRIG + TRIG 1-16", "situation": "keys", "scope": "machine:CHORD",
+                  "meaning": "the same chords, never retrigged (the note helper 0x40019e7a gets retrig -1)",
+                  "replaces": "the retrig"}]
    },
-   "open": ["The stock meaning of the TRIG keys in this mode (notes/42)."]
+   "open": ["The SHAPE display on CHORD with Keys ON (BASE, CLS0-3, OPN0-3): the format and draw entries 0x400fd170 and 0x400fd174 of one of the four tables that share 0x4000a70e and 0x4000a66a, and the name call at 0x4001e4ca. Not an interface object's formatter (0x4000a70e calls that one), so no formatters claim (notes/42 §12.4).",
+            "The ten lines Keys, Root, Scale, I to VII appended to the FUNC + RETRIG menu (0x4001cb3e): no claim type for menu lines (notes/42 §2)."]
   },
   {
    "ids": ["midi-live-both"],

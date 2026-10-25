@@ -779,6 +779,8 @@ What the writes do not show: where each mod keeps its values, in a sound's param
 | mod | what | source |
 |---|---|---|
 | arp | pattern, track +512: 1 byte | notes/32 |
+| chord-keys | pattern, header +32: 4 bytes | notes/42 §4, §11, §12.4 |
+| chord-keys | pattern, header +40: 24 bytes | notes/42 §4, §11, §12.4 |
 | chordtables | RAM `0x43400000`..`0x43700000` | tools/machines/chordtables/manifest.json |
 | chordtables | RAM `0x80001c5c`..`0x800074b4` | tools/machines/chordtables/manifest.json |
 | chordtables | RAM `0x8000cac0`..`0x8000eae0` | tools/machines/chordtables/manifest.json |
@@ -853,9 +855,10 @@ The combinations each mod answers: the held keys, then one action, in the words 
 | RETRIG + NOTES | any | arp | an arpeggio of the held notes when Arp is not OFF | the retrig |
 | RETRIG + SWEEP | params | chordtables (CHORD's tracks) | Wavetable |  |
 | RETRIG + SWEEP | params | refchord (CHORD's tracks) | Wavetable |  |
+| RETRIG + TRIG 1-16 | keys | chord-keys (CHORD's tracks) | the same chords, never retrigged (the note helper 0x40019e7a gets retrig -1) | the retrig |
 | TRACK + FUNC | any | latching-mute | latches the mute mode |  |
 | TRACK + TRIG 1-6 | any | control-all-config | takes the track out of Control All, or back |  |
-| TRIG 1-16 | keys | chord-keys (CHORD's tracks) | the chords of a scale, in the Keys mode of the retrig menu |  |
+| TRIG 1-16 | keys | chord-keys (CHORD's tracks) | the chords of a scale, in the Keys mode of the retrig menu | the chromatic notes of the stock KeyboardView (0x4001a0d2), on a CHORD track with Keys ON |
 | TRIG 1-16 + PAGE | grid | trig-preview | the held step sounds, sequencer stopped or paused | PAGE turns the page |
 
 The stock combinations, as far as they are read:
