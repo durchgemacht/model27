@@ -21,6 +21,7 @@ on the official OS 1.13:
   3. REF2's main draw, as its entry or the dispatcher calls it: the stock draw once (a stub: the screen is filled
      beforehand as a stock picture, dark in the free band), then OCT and the Octave drawn by the OS's own text code in
      its small font, only in the right half's free band, x 64..127, rows 44..56, five different labels for -2..+2;
+     the switches of k 32 (notes/63 §16) as three different marks left of it, x 64..78, the label unchanged;
      nothing more while a value window is open or on another machine's track;
   4. REF2's knob draw, likewise: while the Octave (descriptor 1) is shown on a REF2 track and no trig is held, the
      screen blanked, OCTAVE above, and five boxes 16 x 16 at x 8 + 24 i, rows 20..35, the current one filled and the
@@ -116,9 +117,10 @@ class VUI(UI):
         return self.uc.reg_read(mk.UC_M68K_REG_D0)
 
 
-def world(u, machine, track=0, project=True, value=False, trig=False, k28=0x100):
+def world(u, machine, track=0, project=True, value=False, trig=False, k28=0x100, k32=0):
     """The selected track playing machine: the project singleton, the track's object, whose method +40 gives its sound,
-    the sound's machine (+38) and Octave (k 28, +76); the stock methods and the UI's state are stubs."""
+    the sound's machine (+38), Octave (k 28, +76) and switches (k 32, +84); the stock methods and the UI's state are
+    stubs."""
     u.hooks = {PROJECT: ("project", PROJ if project else 0), GROUP: ("group", 0x93a70000), SELECTED: ("track", track),
                UI_STATE: ("ui", 0x93a80000), VALUE_SHOWN: ("value", int(value)), TRIG_HELD: ("trig", int(trig)),
                MAIN_DRAW: ("main", 0), KNOB_DRAW: ("knob", 0), SOUND_FN: ("sound", SOUND), NEW: ("new", 0),
@@ -129,6 +131,7 @@ def world(u, machine, track=0, project=True, value=False, trig=False, k28=0x100)
     snd = bytearray(100)
     snd[38] = machine & 0xff
     struct.pack_into(">h", snd, 76, k28)
+    struct.pack_into(">H", snd, 84, k32)
     u.uc.mem_write(SOUND, bytes(snd))
 
 
@@ -301,6 +304,21 @@ def main_tests(key, img, runtime, syms, ref2, other, show):
           f"free band of the right half (x {min(x for x, _ in span)}..{max(x for x, _ in span)}, rows "
           f"{min(y for _, y in span)}..{max(y for _, y in span)}), five different labels for -2..+2 "
           f"({min(len(v) for v in labels.values())} to {max(len(v) for v in labels.values())} pixels)")
+    # the switches (notes/63 §16): S, O or SO left of the label, x 64..78, the label itself as at k 32 = 0
+    marks, ok = {}, True
+    for sw in (0x100, 0x200, 0x300):
+        world(u, ref2, k28=0, k32=sw)
+        u.uc.mem_write(FB, stock)
+        u.calls.clear()
+        u.call(fn, VIEW, BMP)
+        diff, inside = diff_in_band(screen(u), stock)
+        extra = frozenset(diff) - labels[0]
+        ok &= (inside and labels[0] <= frozenset(diff) and bool(extra) and all(64 <= x <= 78 for x, _ in extra)
+               and u.sp_ok and not u.bad)
+        marks[sw] = extra
+    check(ok and len(set(marks.values())) == 3,
+          f"{key}: REF2's switches on the main screen: Square, Tone open and both drawn as three different marks left "
+          f"of the label (x 64..78; {', '.join(str(len(v)) for v in marks.values())} pixels), the label as without")
     quiet = True
     for machine, value in ((ref2, True), (other, False), (0, False)):
         world(u, machine, value=value)

@@ -1,7 +1,7 @@
 # 63 — Level B, step 4: machine shortcuts and dispatchers, proven by a second reference machine (plan)
 
 **Status: plan, 2026-10-22; the maintainer's decisions (§9); B4a built and proven in emulation (§10); B4b built and proven
-in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK); B4d built and proven in emulation (§13: the same three proofs, ALL OK); B4e built (§14): the web flasher composes them, the standard's draft 0.3; RETRIG + PUNCH / GATE is free in the stock OS, a candidate for the list (§15, 2026-10-23); as two machine switches, planned and decided (§16, 2026-10-26); P1 built, the proofs in Unicorn next (§17).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
+in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK); B4d built and proven in emulation (§13: the same three proofs, ALL OK); B4e built (§14): the web flasher composes them, the standard's draft 0.3; RETRIG + PUNCH / GATE is free in the stock OS, a candidate for the list (§15, 2026-10-23); as two machine switches, planned and decided (§16, 2026-10-26); P1 built (§17); P2, the proofs in Unicorn, ALL OK (§18).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
 ids were dropped ([notes/62](62-level-b4-stable-machine-ids.md) §9). It covers two pieces:
 
 - the dispatcher tables for the hooks two packages share;
@@ -1043,7 +1043,8 @@ Next: P1 (§16.9).
 ### 17.4 Checks (2026-10-26)
 
 - Without firmware, all OK:
-  - `claims.py --check --self-test`;
+  - `claims.py --check --self-test`, but the self-test ran before REF2's claims changed, and one of its expectations
+    went stale (§18.5);
   - `check_overlaps.py` (288 tweaks; claims of 143, no clash between two installable together);
   - `registry.py --check` (two new hooks, k 32 and record slot 18 in §6, the combinations in §8);
   - `gen_parts.py --check`;
@@ -1067,3 +1068,83 @@ Next: P1 (§16.9).
 - P3 is now only the page's data (`tweaks.js` is done) and the release note, when a card uses a switch; P4 the
   standard (draft 0.5).
 - **The device** (§16.9, step 5), later: also whether a switch alone is kept by the project (§17.2).
+
+P1 committed as `514b6dc` (2026-10-26).
+
+## 18. P2 prepared: the proofs (2026-10-26)
+
+### 18.1 A fact for the record proofs `[FAIT]` (the image)
+
+- The stock save's table `0x4010ee4c` maps k 0..17 to slots 0..17 and k 18..22 to slots 19..23: no k is saved in
+  slot 18, which the save leaves at 0.
+- The load's table `0x4010eea8` maps slots 0..17 to k 0..17, slot 18 to k 0, slots 19..23 to k 18..22. Slot 18 comes
+  after slot 0, so the stock OS ends every load with k 0 = 0.
+- The layer's load clears k 0 after copying slot 18 into k 32, so k 0 is 0 as in the stock OS.
+
+### 18.2 What the proofs check
+
+- **`tools/emu/test_shortcuts.py`**, on REF2 alone, SAMPLE + REF2 both ways, and SAMPLE + REF + REF2:
+  1. the sites: `jmp sc_press` and `jsr sc_leds`, the byte of presses 3 for REF2 and 0 for the others; in a build
+     with no switch (REFC alone), both sites stock and every byte 0;
+  2. save and load: k 32 in slot 18 and back, k 0 at 0 as in the stock OS, a record from the official OS gives
+     k 32 = 0, SAMPLE's chain behind the layer;
+  3. the voice:
+     - off, Square, Tone open and both play four different sounds;
+     - k 32 is read in `CUR_SNDS[t]` + 84 before the copy at `0x800015ae` + 64;
+     - Square switched on in the sound at block 20 of a playing note changes the sound from block 20 on, not before;
+     - REF ignores k 32;
+  4. the press:
+     - `0x4001ac4a` called as the key handler calls it, under five sets of held keys, eight to ten machines, three tracks, four
+       values of k 32 and parameters 43 to 46, against the stock OS with the same stubs;
+     - acting: k 32 flipped, one LED frame asked, no stock switch, no question about a held trig;
+     - otherwise: the stock calls, k 32 left alone;
+     - registers d2..d7, a2..a6 and the stack kept;
+     - no project, or no sound: the stock press;
+  5. the LEDs:
+     - MainScreenView's LED method run from `0x4001cc80` to `0x4001ccc2`, against the stock OS: LED 19 and 20 show
+       the switches only with RETRIG held, TRACK not, on REF2's track;
+     - every other case as stock;
+     - d5 as the method then needs it.
+- **`tools/emu/test_views.py`**: REF2's marks `S`, `O`, `SO` left of the label, inside x 64..78, the label unchanged.
+- **`tools/emu/test_refchord.py`**: its save test now expects slot 18 too, since the layer 0.2 saves k 32 for every
+  sound.
+- Unchanged, to run again because the layer changed: `test_compose.py`, `test_chordtables.py`.
+
+### 18.3 To run (the maintainer, in a normal terminal: Unicorn stops with SIGILL in the agent's sandbox)
+
+```sh
+cd model27
+for t in test_shortcuts test_views test_refchord test_compose test_chordtables; do
+  ../.venv-emu/bin/python3 tools/emu/$t.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx > ../_scratch/p2-$t.log 2>&1
+  echo "$t: $(tail -1 ../_scratch/p2-$t.log)"
+done
+```
+
+Not covered in emulation (§17.5), left for the device:
+- that the sound the hook finds is `CUR_SNDS[t]`;
+- that a RETRIG press and release redraw the LEDs;
+- that the project keeps a switch alone.
+
+### 18.4 The run (the maintainer, 2026-10-26): ALL OK `[FAIT en émulation]`
+
+All five proofs ran in `.venv-emu` against the official file; every one ends with ALL OK, no FAIL.
+
+| Proof | Checks | What it shows for the switches |
+|---|---|---|
+| `test_shortcuts.py` | 109 | Both hooks in the four selections, REF2's byte of presses 3; REFC with no switch: both sites stock. Slot 18 ↔ k 32 for versions 2 and 1, k 0 at 0 as stock, with SAMPLE's chain too. Four different sounds, read in the note's sound, a switch acting from the block it flips at; REF deaf to k 32. The press: 48 acting cases, 1 920 to 2 400 cases as stock. The LEDs: 16 acting cases, 512 to 640 as stock, registers kept |
+| `test_views.py` | 45 | The marks `S`, `O`, `SO`: three different pictures (17, 20, 37 pixels) in x 64..78, the label unchanged |
+| `test_refchord.py` | 86 | REFC's save and load with slot 18, the rest as before |
+| `test_compose.py` | 183 | Every composed build as before |
+| `test_chordtables.py` | 165 | CHORD Tables as before; its cost unchanged (Wavetable 0 with SWEEP creeping +334 instructions a block after the move, as in notes/66 §24.6) |
+
+### 18.5 A stale expectation in P1 (2026-10-26)
+
+- **What happened:** after P1 changed REF2's claims (k 32), only `claims.py --check` ran, not `--self-test`. §17.4
+  and P1's commit message say otherwise.
+- **What failed:** the case "claim_conflicts names the tweak and its reasons" still expected lfo-plus to clash with
+  REF2's own tweak on "k 28".
+- **Why the new answer is right:** REF2 now claims k 28 and k 32, and lfo-plus holds k 28..32, so the answer is
+  "k 28, 32".
+- **Fixed** in P2's commit; `--self-test` ALL OK again. No build and no other check depended on it.
+
+Next: the P2 commit, then P4 (the standard's draft 0.5) or the device (§16.9, step 5), as the maintainer chooses.

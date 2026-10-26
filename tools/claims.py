@@ -928,7 +928,7 @@ def self_test():
          texts == ["TRACK + TRIG 2-4", "TRIG 1-16 + PAGE", "LFO"])
     case("claim_conflicts names the tweak and its reasons",
          claim_conflicts(build_holders([ref2], sc_part), {"lfo-plus": real["lfo-plus"], "arp": real["arp"]})
-         == {"lfo-plus": ["k 28", "k 28-32", "record slots 30-31"]})
+         == {"lfo-plus": ["k 28, 32", "k 28-32", "record slots 30-31"]})
     return fails
 
 

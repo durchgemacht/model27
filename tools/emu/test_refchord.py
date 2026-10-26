@@ -16,8 +16,9 @@ official OS 1.13:
      the stock lookup's answer;
   4. descriptor 3: k 30, 0..64 as 8.8, default 0, no CC and no NRPN, "Wavetable" / "WAVE", still machine -1, the rest
      of the table untouched; the OS's range getter and value setter; interface object 3 shows "0".."64";
-  5. a CHORD sound saved (versions 2 and 1) and loaded: the stock record plus k 30 in record slot 30, back at the load;
-     a record from the official OS loads k 30 at 0;
+  5. a CHORD sound saved (versions 2 and 1) and loaded: the stock record plus k 30 in record slot 30 and k 32 (the
+     shortcut layer's switches, notes/63 §17) in slot 18, back at the load; a record from the official OS loads k 30
+     at 0;
   6. the tick: REFC's counts once and returns the stock getter's answer; with SAMPLE, the dispatcher calls REFC's
      tick first (machine 5), then the others in machine order, then the getter once;
   7. the voice loop: CHORD on two tracks, SWEEP moving, plays as on the stock OS sample for sample, every setup through
@@ -186,11 +187,14 @@ def save_tests(key, stock, img, runtime):
         ra, reca, la, backa = S.save_load(a, snd, fn)
         rb, recb, lb, backb = S.save_load(b, snd, fn)
         diff = [i for i in range(100) if reca[i] != recb[i]]
-        check(ra == rb == 1 and set(diff) <= set(range(84, 92)) and recb[88:90] == snd[80:82] and b.sp_ok and not b.bad,
-              f"{key}: save version {ver} of a CHORD sound: the stock record plus k 30 in record slot 30 (bytes {diff})")
+        check(ra == rb == 1 and set(diff) <= set(range(84, 92)) | {64, 65} and recb[88:90] == snd[80:82]
+              and recb[64:66] == snd[84:86] and b.sp_ok and not b.bad,
+              f"{key}: save version {ver} of a CHORD sound: the stock record plus k 30 in record slot 30, and k 32 (the "
+              f"switches, saved for every sound since the layer's 0.2, notes/63 §17) in slot 18 (bytes {diff})")
         if ver == 2:
-            check(la == lb == 1 and backb[80:82] == snd[80:82] and backb[:76] == backa[:76]
-                  and backb[84:] == backa[84:], f"{key}: loaded: k 30 back (32), everything else as the stock load")
+            check(la == lb == 1 and backb[80:82] == snd[80:82] and backb[84:86] == snd[84:86]
+                  and backb[:76] == backa[:76] and backb[86:] == backa[86:],
+                  f"{key}: loaded: k 30 back (32) and k 32, everything else as the stock load")
         else:
             check(la == lb == 0 and backb == backa, f"{key}: a version 1 record: refused by the load as before")
     snd = S.sound_bytes(rng, CHORD, values)
