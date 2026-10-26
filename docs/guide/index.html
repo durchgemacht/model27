@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-10-25-02">
-<link rel="stylesheet" href="../assets/guide.css?v=2026-10-25-02">
+<link rel="stylesheet" href="../assets/site.css?v=2026-10-26-01">
+<link rel="stylesheet" href="../assets/guide.css?v=2026-10-26-01">
 <script>try{var l=localStorage.getItem("mc-lang"),t=localStorage.getItem("mc-theme")}catch(e){}document.documentElement.lang=l||(/^fr\b/i.test(navigator.language||"")?"fr":"en");if(t)document.documentElement.setAttribute("data-theme",t)</script>
 </head>
 <body data-page="guide">
@@ -86,13 +86,14 @@
       <section id="sampler">
         <h2><span class="n">3</span>SAMPLE machine (Cycles One-Shot)</h2>
         <p class="by">By <a href="https://github.com/durchgemacht/cycles-one-shot" target="_blank" rel="noopener">durchgemacht</a> · MIT license · this section is in English only for now</p>
-        <p class="lede">One extra machine, SAMPLE, plays a sample from the +Drive once per trig, the way the Model:Samples does: 6-tap interpolation at 96 kHz, then the Model:Cycles' own decimator and amp chain, and the Model:Samples' filter. The sample is chosen in the PRESET browser and saved with the sound, so projects, kits, presets and sound locks keep it. It is the Cycles One-Shot machine, built here from its own code at version 0.7.</p>
+        <p class="lede">One extra machine, SAMPLE, plays a sample from the +Drive once per trig or in a loop, forward or reverse, the way the Model:Samples does: 6-tap interpolation at 96 kHz, then the Model:Cycles' own decimator and amp chain, and the Model:Samples' filter. The sample is chosen in the PRESET browser and saved with the sound, so projects, kits, presets and sound locks keep it. It is the Cycles One-Shot machine, built here from its own code at version 0.11.</p>
         <ol>
           <li>Put samples on the +Drive first: with Elektron Transfer, or with One-Shot's <a href="https://durchgemacht.github.io/cycles-one-shot/uploader/" target="_blank" rel="noopener">upload page</a> in Chrome or Edge, which works with the official OS too. Samples left there by the Model:Samples OS work as they are.</li>
           <li>Press <b>MACHINES</b> and pick <b>SAMPLE</b>, the 7th machine, after Chord. Its icon is Tone's.</li>
           <li>Open the PRESET browser (<b>FUNC</b> + <b>MACHINE</b>) on that track and open a sample file: the sound takes the sample's name and plays it. Hold a step while you open a sample and the step gets it as a sound lock.</li>
           <li>Shape the sound with the four knobs (table below). <b>DECAY</b> starts at 127 so a sample plays out; <b>GATE</b> is heard with a lower DECAY; <b>PUNCH</b> works as on Tone. <b>PITCH</b>, the keys and FINE set the pitch as on every machine: PITCH 0 at note 60 plays the sample as recorded, whatever its sample rate.</li>
-          <li>The main screen shows a narrow column on the left: the current pattern's number, TRAK with the track's number, and the track's level as a bar that moves while you turn <b>LEVEL</b>. To its right the sample's name sits in a box, the waveform below it; two lines mark where a trig starts and stops, and move as you turn <b>COLOR</b> and <b>SHAPE</b>.</li>
+          <li>Hold <b>RETRIG</b> and press <b>PUNCH</b> to switch Loop on or off, <b>GATE</b> for Reverse. While RETRIG is held, PUNCH's and GATE's LEDs show the two switches instead of PUNCH and GATE. Loop plays from Start to the end again and again with a hard seam, as on the Model:Samples, so a single-cycle waveform loops without a step; the note then sounds until <b>DECAY</b> closes it (with GATE: until the note ends, then DECAY). Switched off while it plays, it runs to the end and fades out. Reverse plays from the end back to Start, from the next trig on; with both on it loops backwards. Both are saved with the sound.</li>
+          <li>The main screen shows a narrow column on the left: the current pattern's number, TRAK with the track's number, and the track's level as a bar that moves while you turn <b>LEVEL</b>. To its right the sample's name sits in a box, ending with L and R while Loop and Reverse are on, the waveform below it; two lines mark where a trig starts and stops, and move as you turn <b>COLOR</b> and <b>SHAPE</b>.</li>
         </ol>
         <div class="tbl">
           <table>
@@ -102,15 +103,17 @@
               <tr><th>SHAPE</th><td>Length (LEN)</td><td>how far it plays, 0 to 120: the trig ends at Start + Length, at most at the sample's end (120 plays to the end)</td></tr>
               <tr><th>SWEEP</th><td>Cutoff (FREQ)</td><td>the Model:Samples' filter: lowpass to the left (-64 closes it at 5 Hz), off at 0, highpass to the right (63 closes it at 19 kHz)</td></tr>
               <tr><th>CONTOUR</th><td>Reso (RESO)</td><td>the filter's resonance, 0 to 127, up to a +27 dB peak at the cutoff</td></tr>
+              <tr><th>RETRIG + PUNCH</th><td>L</td><td>Loop, on or off, at once</td></tr>
+              <tr><th>RETRIG + GATE</th><td>R</td><td>Reverse, on or off, from the next trig</td></tr>
             </tbody>
           </table>
         </div>
         <dl class="facts">
-          <div><dt>Sound</dt><dd>one voice per track, one shot per trig. No clicks at the edges: 4 ms fades at the end of what a trig plays, and at its start when Start lies inside the sample. The filter fades rather than switches across the centre, so a square LFO on Cutoff does not click; at Cutoff 0 the track is untouched, bit for bit. Stereo files play as mono; files at other rates keep their pitch.</dd></div>
+          <div><dt>Sound</dt><dd>one voice per track, once per trig or in a loop. No clicks at the edges: 4 ms fades at the end of what a trig plays, and at its start when Start lies inside the sample; a trig that cuts a sounding note brings the new one in over 0.67 ms, as on the Model:Samples. The filter fades rather than switches across the centre, so a square LFO on Cutoff does not click; at Cutoff 0 the track is untouched, bit for bit. Stereo files play as mono; files at other rates keep their pitch.</dd></div>
           <div><dt>Samples</dt><dd>the sample memory is 47 MB of RAM the Model:Cycles' OS leaves unused. Samples load in the background when a project, kit or sound names them, and unload when nothing does.</dd></div>
-          <div><dt>Limits</dt><dd>no looping and no reverse yet. The filter runs before Volume + Dist, where the Model:Samples has it after: with DIST above 0, the distortion acts on the filtered signal.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with the sequencer, screen, MIDI and USB mods. Not with MACRO, ACID, the Syntakt engines, Model-TG, the per-track filter or sample preview for now: the other machines take the same place in the firmware and there is no combined build with SAMPLE yet; Model-TG and the per-track filter change the same sound record functions.</dd></div>
-          <div><dt>Tested</dt><dd>One-Shot 0.7 on a Model:Cycles (2026-10-21): samples open and play, pitch, Start and Length, the filter, several SAMPLE tracks, saved projects, sound locks, the waveform view; One-Shot 0.9 (two boxes above the waveform, 2026-10-24) and 0.10 (the column on the left with the pattern, the track and its level, 2026-10-25), each in its own build in the digiemu emulator and on a Model:Cycles. This page builds One-Shot 0.10 composed from its compiled object by model27's registrar runtime, which differs from that firmware in how the machine is registered (a runtime reading a parameter block instead of detours assembled per build) and at three instructions (the machine's index read as a symbol). Flashed from this page, that build of 0.8 was tested in the digiemu emulator and on a Model:Cycles (2026-10-22); the same runtime also ran there with a second machine next to SAMPLE. Flashed from this page, its build of 0.10 was tested on a Model:Cycles (2026-10-25).</dd></div>
+          <div><dt>Limits</dt><dd>Loop and Reverse are switches, not parameters: no p-lock, no LFO. The filter runs before Volume + Dist, where the Model:Samples has it after: with DIST above 0, the distortion acts on the filtered signal.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with the sequencer, screen, MIDI and USB mods. Not with MACRO, ACID, the Syntakt engines, Model-TG, the per-track filter, sample preview or LFO 2, 3, 4 for now: the other machines take the same place in the firmware and there is no combined build with SAMPLE yet; Model-TG and the per-track filter change the same sound record functions; LFO 2, 3, 4 keeps LFO 2 where SAMPLE saves Loop and Reverse.</dd></div>
+          <div><dt>Tested</dt><dd>One-Shot 0.7 on a Model:Cycles (2026-10-21): samples open and play, pitch, Start and Length, the filter, several SAMPLE tracks, saved projects, sound locks, the waveform view; One-Shot 0.9 (two boxes above the waveform, 2026-10-24) and 0.10 (the column on the left with the pattern, the track and its level, 2026-10-25), each in its own build in the digiemu emulator and on a Model:Cycles. This page builds One-Shot 0.11 composed from its compiled object by model27's registrar runtime, which differs from that firmware in how the machine is registered (a runtime reading a parameter block instead of detours assembled per build), at three instructions (the machine's index read as a symbol), and by the builder's shortcut layer, which gives SAMPLE its two switches (One-Shot's own firmware plays one shot, forward). Flashed from this page, that build of 0.8 was tested in the digiemu emulator and on a Model:Cycles (2026-10-22); the same runtime also ran there with a second machine next to SAMPLE. Flashed from this page, its build of 0.10 was tested on a Model:Cycles (2026-10-25). Its build of 0.11 (Loop, Reverse, the fade-in after a cut) was tested in the digiemu emulator (2026-10-26), not yet on a Model:Cycles.</dd></div>
         </dl>
         <p class="note"><b>Before flashing another choice or the official firmware,</b> set your SAMPLE tracks back to an original machine (Kick to Chord): the official OS doesn't have SAMPLE, and a project that still names it can freeze its MACHINES page.</p>
       </section>
@@ -280,8 +283,8 @@
   </div>
 </footer>
 
-<script src="../assets/release.js?v=2026-10-25-02"></script>
-<script src="../assets/cycles.js?v=2026-10-25-02"></script>
-<script src="../assets/site.js?v=2026-10-25-02"></script>
+<script src="../assets/release.js?v=2026-10-26-01"></script>
+<script src="../assets/cycles.js?v=2026-10-26-01"></script>
+<script src="../assets/site.js?v=2026-10-26-01"></script>
 </body>
 </html>

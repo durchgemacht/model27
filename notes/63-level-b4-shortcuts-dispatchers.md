@@ -1,7 +1,7 @@
 # 63 — Level B, step 4: machine shortcuts and dispatchers, proven by a second reference machine (plan)
 
 **Status: plan, 2026-10-22; the maintainer's decisions (§9); B4a built and proven in emulation (§10); B4b built and proven
-in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK); B4d built and proven in emulation (§13: the same three proofs, ALL OK); B4e built (§14): the web flasher composes them, the standard's draft 0.3; RETRIG + PUNCH / GATE is free in the stock OS, a candidate for the list (§15, 2026-10-23); as two machine switches, planned and decided (§16, 2026-10-26); P1 built (§17); P2, the proofs in Unicorn, ALL OK (§18); P4, the standard's draft 0.5 (§19); on the Model:Cycles with SAMPLE: as expected (§20.4, 2026-10-26).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
+in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK); B4d built and proven in emulation (§13: the same three proofs, ALL OK); B4e built (§14): the web flasher composes them, the standard's draft 0.3; RETRIG + PUNCH / GATE is free in the stock OS, a candidate for the list (§15, 2026-10-23); as two machine switches, planned and decided (§16, 2026-10-26); P1 built (§17); P2, the proofs in Unicorn, ALL OK (§18); P4, the standard's draft 0.5 (§19); on the Model:Cycles with SAMPLE: as expected (§20.4, 2026-10-26); SAMPLE, the second user: Loop and Reverse (§21).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
 ids were dropped ([notes/62](62-level-b4-stable-machine-ids.md) §9). It covers two pieces:
 
 - the dispatcher tables for the hooks two packages share;
@@ -1250,3 +1250,13 @@ What the maintainer reports goes into a new section here, with the date.
   - REF2's browser hook (a file opened on a REF2 track shows its name), which §20.2 did not list.
 - REF2's manifest records the run (`tests.hardware`). REF2 is not offered, so no card changes; the switches reach
   users with the first card that declares one (P3).
+
+## 21. SAMPLE, the second user of the switches (2026-10-26)
+
+- One-Shot 0.11 declares both presses: **RETRIG + PUNCH = Loop**, **RETRIG + GATE = Reverse** (notes/60 §18). It reads
+  k 32 as REF2 does (§17.2): in the note's sound every block for Loop, at the trig for Reverse. Its own screen shows
+  the switches, L and R at the end of the name's box.
+- With it every SAMPLE build carries the shortcut layer, SAMPLE alone too, and SAMPLE clashes with lfo-plus by the
+  claims (k 32, and k 28–31 and record slots 30–31, which the layer saves for every sound). No byte is shared.
+- `test_shortcuts.py` counts SAMPLE among the machines whose presses and LEDs act. Run by the maintainer with the four
+  other proofs of §18.3 on 2026-10-26: **ALL OK** (notes/60 §18).

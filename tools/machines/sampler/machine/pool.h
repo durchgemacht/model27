@@ -28,6 +28,13 @@ extern char cm_machine_index[];
    120.0; a trig plays from Start / 120 of the sample to (Start + Length) / 120, at most to its end. */
 #define SMP_SPAN (120 << 8)
 #define SMP_COLUMNS 105                 /* the waveform's width on the screen: stretches of a sample */
+/* The switches, bits of the sound's k 32 (+84; model27's notes/63 §16): model27's shortcut layer
+   flips them on RETRIG + PUNCH and RETRIG + GATE and saves them with the sound. Only builds with that
+   layer read them (SMP_SWITCHES): elsewhere k 32 may belong to another mod (Modded-Cycles' lfo-plus
+   keeps k 28..32). */
+#define SW_LOOP     0x100               /* RETRIG + PUNCH: the window again and again */
+#define SW_REVERSE  0x200               /* RETRIG + GATE: from its end to its start */
+#define SOUND_K32   84
 
 enum {
     SLOT_FREE,                          /* unused */

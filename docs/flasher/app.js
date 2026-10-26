@@ -31,13 +31,13 @@ const ELEKTRON_ST_DL = "https://www.elektron.se/support-downloads/syntakt";
 const REF_MAINOS = {
   // each card alone: each variant, each combination of real Syntakt engines
   "control-all-config": "eb70de0a330dc9c033db5c5fc5d8589c3356c94ad346a8d30840e03ecb90299d",
-  "sampler": "09dd1ee749aaf298a7843b61507fa2bd2ed73f3d2abbdb542cbef5d07bf51595",
+  "sampler": "72b596dc5ce258dd1e5419c961310dd80a7e286b3ee86ec2ebf1bf4af8413f61",
   // every pair of cards the page lets you tick together
-  "control-all-config+sampler": "eeb7b2bb6cd7db7506d48f19e6b29793abc7f32f1a67433caa6f85cda80a98fc",
+  "control-all-config+sampler": "327cbd37f5b30d03b82b61ab3f20d28f688f47173f7251c1ee7a18782d3d9618",
 };
 const REF_MODS = {
   "control-all-config": {"w": "b47aa26f4f855c750735a03eae7453847356c376f47a4010cf4f1a5bf316be5e"},
-  "sampler": {"w": "f9798354a9fde0ccf5ae670ed9c0916ed463cf1287608c372d61b0bfa2aa1e98", "p": "746ca43c3d571175546d2b28d253d5330074065aa14deb3e83edf123a45f4009"},
+  "sampler": {"w": "28853ad2da8ee02d992848e217296dd8c8083a2fd7b7cf1887069dd27b4f2a5c", "p": "bc301051b49d96187027131eed93aaa8d26255a96364697e1f0a5a7a31daa34b"},
 };
 
 // "Samples OS" tab: official Model:Samples OS 1.13 inside the official Model:Cycles container
@@ -782,13 +782,13 @@ const FEAT = {
       desc: "An extra machine after Chord, always the last one (after the Sampler with Model-TG, then the Syntakt engines and MACRO if you tick them too): an acid bass in the style of the TB-303, from the open-source Open303 model by Robin Schmidt. COLOR is the cutoff, SHAPE the resonance, SWEEP the env mod, CONTOUR the drive (from clean to fuzz, at about the same volume) and DECAY the decay; PUNCH switches the wave from saw to square. A trig whose length (LEN) runs past the next trig slides into the next note instead of playing it again; a pad played while another is held slides too.",
       note: "About as heavy on the processor as Tone. Turn GATE on for notes that hold their whole length, as on the original. With the Syntakt engines, their load governor looks after ACID tracks too: a track it stopped plays its next note afresh, without sliding. A project using ACID needs a firmware with ACID at the same place: it is the last machine, so its number depends on Model-TG, the ticked Syntakt engines and MACRO." },
     sampler: { label: "SAMPLE machine (Cycles One-Shot)",
-      short: "One extra machine: a one-shot sampler for samples on the +Drive, picked in the PRESET browser.",
+      short: "One extra machine: a sampler for samples on the +Drive, once per trig or in a loop, forward or reverse, picked in the PRESET browser.",
       clash: "both add machines at the same place of the firmware, and there is no combined build with SAMPLE yet",
       "clash_model-tg": "both change the same sound record functions of the firmware",
       "clash_track-filter": "both change the same sound record functions of the firmware",
       "clash_sample-preview": "both read sample files from the same PRESET browser, and sample preview needs Model-TG",
-      desc: "An extra machine after Chord: SAMPLE plays one sample from the +Drive per trig, the way the Model:Samples does (6-tap interpolation at 96 kHz, then the Cycles' own decimator and amp chain). Open the PRESET browser (FUNC + MACHINE) on a SAMPLE track and open a sample file: the sound takes its name and keeps the choice in the project, the kit and the preset; hold a step while you open one and the step gets it as a sound lock. COLOR = Start and SHAPE = Length (0 to 120 each; the trig ends at Start + Length), SWEEP = the Model:Samples' filter (lowpass to the left, off in the centre, highpass to the right, shown as -64 to 63), CONTOUR = Reso; DECAY, GATE and PUNCH as on Tone. The main screen shows the sample's name and waveform with the start and end marked. Stereo files play as mono, other sample rates keep their pitch.",
-      note: "Needs samples on the +Drive in the Model:Samples' format, what Elektron Transfer and One-Shot's upload page write. No looping or reverse yet. A project using SAMPLE needs a firmware with SAMPLE: set SAMPLE tracks back to an original machine before flashing another choice or the official OS. English only for now." },
+      desc: "An extra machine after Chord: SAMPLE plays one sample from the +Drive per trig, the way the Model:Samples does (6-tap interpolation at 96 kHz, then the Cycles' own decimator and amp chain). Open the PRESET browser (FUNC + MACHINE) on a SAMPLE track and open a sample file: the sound takes its name and keeps the choice in the project, the kit and the preset; hold a step while you open one and the step gets it as a sound lock. COLOR = Start and SHAPE = Length (0 to 120 each; the trig ends at Start + Length), SWEEP = the Model:Samples' filter (lowpass to the left, off in the centre, highpass to the right, shown as -64 to 63), CONTOUR = Reso; DECAY, GATE and PUNCH as on Tone. Hold RETRIG and press PUNCH for Loop, GATE for Reverse: Loop plays Start to End again and again with a hard seam as on the Model:Samples (a single-cycle waveform loops without a step) until DECAY closes it, Reverse plays it backwards from the next trig; both are saved with the sound, and PUNCH's and GATE's LEDs show them while RETRIG is held. A trig that cuts a sounding note brings the new one in over 0.67 ms. The main screen shows the sample's name, with L and R while Loop and Reverse are on, and its waveform with the start and end marked. Stereo files play as mono, other sample rates keep their pitch.",
+      note: "Needs samples on the +Drive in the Model:Samples' format, what Elektron Transfer and One-Shot's upload page write. On a SAMPLE track, RETRIG + PUNCH and RETRIG + GATE flip Loop and Reverse instead of PUNCH and GATE; TRACK + PUNCH or GATE stays Control All. A project using SAMPLE needs a firmware with SAMPLE: set SAMPLE tracks back to an original machine before flashing another choice or the official OS. English only for now." },
     "chord-keys": { label: "Chord Keys",
       short: "On a CHORD track, TRIG 1–16 play the chords of your scale.",
       clash: "both change the notes of the TRIG keys (Model-TG has its own Scale Lock)",

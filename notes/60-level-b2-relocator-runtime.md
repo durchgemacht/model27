@@ -445,3 +445,41 @@ half-finished step never blocks a build.
 - With it the card's `tested` holds for the page's own build again, as it did for 0.8 (§13). The page's build of 0.9
   was never flashed; 0.10 replaces it.
 - The guide's Tested line, release 0.7, the sampler manifest's `tests.hardware` and the stamp `2026-10-25-02` say so.
+
+## 18. One-Shot 0.11 pinned: Loop and Reverse on the switches (2026-10-26)
+
+- **What changed upstream**: One-Shot 0.11 (`a874a1c`) loops and plays in reverse, as the Model:Samples does. The core
+  plays a window once or in a loop, forward or reverse; a loop goes round with a hard seam and its taps read across the
+  seam, so a single cycle loops without a step; switched off, a loop ends at the end of the first pass at least 4 ms
+  ahead. The machine reads the two switches, bits 8 and 9 of k 32, in the note's sound (`CUR_SNDS[t]` + 84, the copy
+  when that is 0), only when built with `SMP_SWITCHES`; the name's box ends with L and R. A trig that cuts a sounding
+  note brings the new one in over 0.67 ms, as the Model:Samples' level stage (`0x400a7266` there); a voice whose amp
+  envelope has closed lets go of its sample. `src/smp_core.c/.h`, `machine/pool.h`, `sampler.c` and `view.c` differ
+  from 0.10. One-Shot's own build has no shortcut layer and no `SMP_SWITCHES`: one shot, forward.
+- **Here**: the five files copied as they are. The manifest builds with `SMP_SWITCHES`, declares RETRIG + PUNCH (Loop)
+  and RETRIG + GATE (Reverse) as presses (notes/63 §16.5), and claims k 32, record slot 18 and the two combinations,
+  as REF2 does. So the builder's shortcut layer now comes with SAMPLE in every build, SAMPLE alone included: the press
+  at `0x4001ac4a`, the LEDs at `0x4001cc86`, the knob lookup's entry, and the record chain with SAMPLE's wrappers
+  behind the layer's (the chain `test_shortcuts.py` proves since §18 of notes/63).
+- **`gen_sampler.py` builds through `compose.py`**, as `gen_refmachine.py` does for REF2: its own pipeline (the
+  registrar's writes, SAMPLE's hooks, the conflicts from bytes and RAM) did not add the layer, so `27-sampler.json`
+  would no longer have been what the page composes. It still compiles and checks the object, then takes the writes,
+  the payload, the symbols and the conflicts from `compose.compose(img, ["sampler"])`. `compose.py --compare` on the
+  result: writes, payload and symbols identical. 126 writes (123 before: the layer's press, LEDs and knob entry),
+  33 993 bytes of code and tables, 62 112 of variables, 40 508 bytes added to the image; 271 conflicts, the new one
+  **lfo-plus**, by the claims: it keeps LFO 2 in k 28–32 and record slots 30–31, where the layer saves the switches
+  and the knob shortcuts (no byte is shared). lfo-plus is not offered on the page, so no card changes;
+  `check_overlaps.py` passes with the conflict declared by the tweak.
+- **Hashes**: SAMPLE alone `72b596dc…` (the build the maintainer played in digiemu, `.syx` `ba674fac…`, the same from
+  `build.py -t sampler`), with Control All Config `327cbd37…`; the smoke test's pins: 126 writes and 40 508 bytes in
+  the log line, the Model:Samples packings `46f9acdb…` (`_smp-os`) and `0fecd30e…` (`_cyc-os`), computed apart from
+  the page with `build.py -t sampler` and `mods_for_samples.py`.
+- **`test_shortcuts.py`**: SAMPLE is now a machine with switches, so its byte of presses is 3 and the press and the LEDs
+  act on its tracks as on REF2's (they were the stock press there).
+- **Tested**: host tests (One-Shot's `make test`, `make machine-test` with and without the switches); digiemu by the
+  maintainer on this build (2026-10-26): Loop, Reverse, single cycles, the fade-in after a cut, "passt". A first report
+  of regular clicks with Loop on came, as far as the maintainer can tell, from RETRIG left latched in digiemu. Unicorn,
+  run by the maintainer on this pin (2026-10-26, as notes/63 §18.3 runs them): `test_shortcuts.py` 109 checks (SAMPLE's
+  byte of presses 3, the press and the LEDs acting on its tracks next to REF2's), `test_views.py` 45, `test_refchord.py`
+  86, `test_compose.py` 183, `test_chordtables.py` 165, **ALL OK** `[FAIT en émulation]`. The device is next. The card
+  stays `tested`, as in §15–16.

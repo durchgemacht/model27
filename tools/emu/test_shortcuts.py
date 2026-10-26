@@ -2,14 +2,14 @@
 """Proof of the machine shortcuts (notes/63 §3, step B4b) and of the switches (notes/63 §16, §17) on the OS's own
 code: the shortcut layer that tools/compose.py adds to a build whose machines declare a shortcut
 (tools/machines/shortcuts/), with REF2's RETRIG + COLOR = Octave, -2 to +2, RETRIG + PUNCH = Square and RETRIG +
-GATE = Tone open.
+GATE = Tone open, and SAMPLE's RETRIG + PUNCH = Loop and RETRIG + GATE = Reverse (since One-Shot 0.11, notes/63 §21).
 
 For each selection (by default: refmachine2; sampler,refmachine2; refmachine2,sampler; sampler,refmachine,refmachine2),
 on the official OS 1.13:
   1. the sites: the knob lookup's entry in ParameterPageView's vtable (0x401005a8) and the three sound record
      functions jump into the layer; with SAMPLE in the build, its record wrappers are the next of the chain and their
-     own jumps are not written; jmp sc_press at 0x4001ac4a and jsr sc_leds at 0x4001cc86, REF2's byte of presses 3
-     (and in a build whose machines declare no switch, REFC's, both sites stock and every byte of presses 0);
+     own jumps are not written; jmp sc_press at 0x4001ac4a and jsr sc_leds at 0x4001cc86, REF2's and SAMPLE's bytes
+     of presses 3 (and in a build whose machines declare no switch, REFC's, both sites stock and every byte of presses 0);
   2. the knob, through the vtable entry and the OS's own key test: RETRIG held + COLOR on a REF2 track gives
      descriptor 1; every other knob, every other machine (stock, SAMPLE, REF, one the build does not have), RETRIG
      not held, or FUNC, TRACK, LFO or a trig held with it, give the stock lookup's answer; the stock lookup is called
@@ -31,13 +31,13 @@ on the official OS 1.13:
      are read in the note's sound (CUR_SNDS[t] + 84) before the copy of its 66 bytes (0x800015ae + 66 t + 64); a
      switch flipped while a note plays acts from the next block; REF ignores k 32;
   8. the press (0x4001ac4a, called with the view and parameter 44 PUNCH or 45 GATE, as MainScreenView's key handler
-     calls it): RETRIG held, TRACK not, on a REF2 track flips bit 8 or 9 of k 32 in the track's sound, asks once for
+     calls it): RETRIG held, TRACK not, on a REF2 or SAMPLE track flips bit 8 or 9 of k 32 in the track's sound, asks once for
      a new LED frame (0x400760ba with the view) and switches nothing (0x4001abe2 not called), without asking whether
      a trig is held (0x4006b736 not called);
      every other case (no key, TRACK, TRACK + RETRIG, another machine, no project, no sound, another parameter) calls
      what the stock OS calls with the same arguments and leaves k 32; d2..d7 and a2..a6 and the stack come back;
   9. the LEDs: MainScreenView's LED method from 0x4001cc80 to its second LED (0x4001ccc2), with PUNCH and GATE of
-     the selected track in d2 and d0: RETRIG held, TRACK not, on a REF2 track, LED 19 and 20 show the switches
+     the selected track in d2 and d0: RETRIG held, TRACK not, on a REF2 or SAMPLE track, LED 19 and 20 show the switches
      (state 2 on, 1 off); every other case lights them as the stock OS; d5 leaves as the stock code leaves it there,
      the other registers kept.
 Not covered here: that the sound found through the project's track is the one in CUR_SNDS[t], that a RETRIG press
@@ -382,7 +382,7 @@ def press(u, held, t, machine, k32, param, **kw):
     return calls, struct.unpack(">H", u.uc.mem_read(SOUND + K32, 2))[0], u.sp_ok and kept and not u.bad
 
 
-def press_tests(key, stock, img, runtime, ref2, machines):
+def press_tests(key, stock, img, runtime, ref2, machines, switchers):
     a, b = UI(stock), UI(img, runtime)
     cases, bad, acted = 0, [], 0
     helds = ((), (RETRIG,), (TRACK,), (RETRIG, TRACK), (RETRIG, FUNC))
@@ -394,7 +394,7 @@ def press_tests(key, stock, img, runtime, ref2, machines):
                         ca, ka, oka = press(a, held, t, m, k32, param)
                         cb, kb, okb = press(b, held, t, m, k32, param)
                         cases += 1
-                        act = RETRIG in held and TRACK not in held and m == ref2 and param in BIT
+                        act = RETRIG in held and TRACK not in held and m in switchers and param in BIT
                         if act:
                             acted += 1
                             good = cb == [("leds", (VIEW,))] and kb == k32 ^ BIT[param] and okb
@@ -402,7 +402,8 @@ def press_tests(key, stock, img, runtime, ref2, machines):
                             good = cb == ca and kb == ka == k32 and okb and oka
                         if not good:
                             bad.append((held, s32(m), t, hex(k32), param, cb, ca, hex(kb)))
-    check(not bad and acted, f"{key}: the press (0x4001ac4a): RETRIG held, TRACK not, on a REF2 track (machine {ref2}): "
+    check(not bad and acted, f"{key}: the press (0x4001ac4a): RETRIG held, TRACK not, on a track of a machine with "
+                             f"switches (machines {sorted(switchers)}): "
                              f"bit 8 (PUNCH) or 9 (GATE) of k 32 flipped, one LED frame asked with the view, no stock "
                              f"switch ({acted} cases); every other case calls what the stock OS calls ({cases} cases "
                              f"in all; keys, machines, tracks 0, 3, 5, k 32, parameters 43..46); registers and stack "
@@ -444,7 +445,7 @@ def leds(u, held, t, machine, k32, punch, gate):
     return got, regs, not u.bad and u.uc.reg_read(mk.UC_M68K_REG_PC) == LED_UNTIL
 
 
-def led_tests(key, stock, img, runtime, ref2, machines):
+def led_tests(key, stock, img, runtime, ref2, machines, switchers):
     a, b = UI(stock), UI(img, runtime)
     cases, bad, acted = 0, [], 0
     for held in ((), (RETRIG,), (TRACK,), (RETRIG, TRACK)):
@@ -455,7 +456,7 @@ def led_tests(key, stock, img, runtime, ref2, machines):
                         ga, ra, oka = leds(a, held, 3, m, k32, punch, gate)
                         gb, rb, okb = leds(b, held, 3, m, k32, punch, gate)
                         cases += 1
-                        if RETRIG in held and TRACK not in held and m == ref2:
+                        if RETRIG in held and TRACK not in held and m in switchers:
                             acted += 1
                             want = [(0x13, 2 if k32 & 0x100 else 1), (0x14, 2 if k32 & 0x200 else 1)]
                             # d5 holds what lit GATE's LED; every other register as the stock code leaves it
@@ -470,7 +471,8 @@ def led_tests(key, stock, img, runtime, ref2, machines):
     stock_ok = all(leds(a, (), 3, ref2, 0, p, g)[0] == [(0x13, 2 if p else 1), (0x14, 2 if g else 1)]
                    for p in (0, 0x100) for g in (0, 0x100))
     check(not bad and acted and stock_ok,
-          f"{key}: the LEDs (0x4001cbfe from 0x4001cc80): RETRIG held, TRACK not, on a REF2 track, LED 19 and 20 show "
+          f"{key}: the LEDs (0x4001cbfe from 0x4001cc80): RETRIG held, TRACK not, on a track of a machine with "
+          f"switches (machines {sorted(switchers)}), LED 19 and 20 show "
           f"the switches of k 32 ({acted} cases); every other case as the stock OS, which shows PUNCH and GATE "
           f"({cases} cases in all); the other registers kept" + (f"; DIFFERENT {bad[:3]}" if bad else ""))
 
@@ -588,12 +590,13 @@ def main():
               + ("chain: SAMPLE's wrappers, whose own jumps are not written" if smp is not None else "chain: the stock body"))
         first, count = u.uc.mem_read(syms["sc_data"] + 0x10, 2)
         presses = list(u.uc.mem_read(syms["sc_data"] + 0x14, 8))
-        want_p = [3 if first + i == ref2 else 0 for i in range(8)]
+        switchers = {ref2} | ({smp} if smp is not None else set())     # REF2's and SAMPLE's presses (notes/63 §21)
+        want_p = [3 if first + i in switchers else 0 for i in range(8)]
         check(bytes(u.uc.mem_read(PRESS, 6)).hex() == f"4ef9{syms['sc_press']:08x}"
               and bytes(u.uc.mem_read(LED_SITE, 6)).hex() == f"4eb9{syms['sc_leds']:08x}"
               and presses == want_p and count == len(added),
               f"{key}: 0x4001ac4a -> jmp sc_press, 0x4001cc86 -> jsr sc_leds; the bytes of presses {presses[:count]} "
-              f"for machines {first}..{first + count - 1} (REF2's 3: PUNCH and GATE)")
+              f"for machines {first}..{first + count - 1} (REF2's and SAMPLE's 3: PUNCH and GATE)")
         machines = [0, 1, 4, 5] + [m["index"] for m in added] + [TS.NM, 100, 0xffffffff]
         print("the knob")
         knob_tests(key, img, runtime, ref2, machines)
@@ -608,9 +611,9 @@ def main():
         print("the voice loop")
         voice_tests(key, tweak, img, runtime, added, args.blocks)
         print("the press")
-        press_tests(key, stock, img, runtime, ref2, machines)
+        press_tests(key, stock, img, runtime, ref2, machines, switchers)
         print("the LEDs")
-        led_tests(key, stock, img, runtime, ref2, machines)
+        led_tests(key, stock, img, runtime, ref2, machines, switchers)
     print("\na build with no switch")
     no_switch_tests(stock)
     print("\nALL OK" if not t7.FAIL else f"\n{len(t7.FAIL)} FAILED: " + "; ".join(t7.FAIL[:6]))

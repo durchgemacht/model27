@@ -6,7 +6,8 @@
    It takes the place of MainScreenView while that shows the track, and of the knob view while that
    shows Start or Length (COLOR or SHAPE), so the markers follow those two knobs as they turn. Any
    other knob shows its value as before, and so do Start and Length while a trig is held: the knob
-   view then shows the locked value. Tracks on other machines keep the stock views. */
+   view then shows the locked value. Tracks on other machines keep the stock views. In builds with
+   the switches (SMP_SWITCHES), the name's box ends with L while Loop is on and R while Reverse is. */
 #include "view.h"
 #include "pool.h"
 #include "os.h"
@@ -57,6 +58,9 @@ extern char cm_descriptor_base[];
 #define WAVE_HALF   24                  /* rows above and below it: 1..49, a free row under the bar */
 #define TEXT_X      (WAVE_X0 + SMP_COLUMNS / 2)
 #define TEXT_Y      (WAVE_MID - 4)      /* a message instead of the waveform, medium font, centred */
+#define SWITCH_X    119                 /* the switches' letters at the box's right end, 3 x 5 each: L at
+                                           119..121, R at 123..125, past the longest name (25..113) */
+#define SWITCH_TOP  (BAR_TOP - 4)       /* rows 55..59, the box's middle */
 
 static void pixel(smp_bitmap *b, int x, int y)
 {
@@ -188,6 +192,27 @@ static void box(smp_bitmap *b, int left, int right, const char *text)
     flip(b, right, BAR_TOP);
 }
 
+/* The switches that are on, their letters lit for box() to turn dark with the name: L for Loop, R for
+   Reverse, each in its own place. */
+static void switch_letters(smp_bitmap *b, const char *sound)
+{
+#ifdef SMP_SWITCHES
+    static const unsigned char LETTERS[2][5] = { {4, 4, 4, 4, 7}, {6, 5, 6, 5, 5} };   /* L, R, as TRAK */
+    uint32_t sw = *(const uint16_t *)(sound + SOUND_K32);
+    int i, r, c;
+
+    for (i = 0; i < 2; i++)
+        if (sw & (i ? SW_REVERSE : SW_LOOP))
+            for (r = 0; r < 5; r++)
+                for (c = 0; c < 3; c++)
+                    if (LETTERS[i][r] & (4 >> c))
+                        pixel(b, SWITCH_X + 4 * i + c, SWITCH_TOP - r);
+#else
+    (void)b;
+    (void)sound;
+#endif
+}
+
 /* The current pattern's number as MainScreenView writes it ("%c%02d", 0x4001b44c): its bank A to F,
    then 01 to 16. */
 static void pattern_number(char *s)
@@ -305,6 +330,7 @@ void smp_view_draw(smp_bitmap *b, const char *sound)
     for (i = 0; i < 16 && sound[SOUND_NAME + i]; i++)
         name[i] = sound[SOUND_NAME + i];
     name[i] = 0;
+    switch_letters(b, sound);
     box(b, NAME_X0, NAME_X1, id ? name : 0);    /* without a sample, the name is still the sound's old one */
     column(b, selected_track());
     state = smp_view_state(id, &lo, &hi);
