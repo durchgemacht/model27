@@ -1,7 +1,7 @@
 # 63 — Level B, step 4: machine shortcuts and dispatchers, proven by a second reference machine (plan)
 
 **Status: plan, 2026-10-22; the maintainer's decisions (§9); B4a built and proven in emulation (§10); B4b built and proven
-in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK); B4d built and proven in emulation (§13: the same three proofs, ALL OK); B4e built (§14): the web flasher composes them, the standard's draft 0.3; RETRIG + PUNCH / GATE is free in the stock OS, a candidate for the list (§15, 2026-10-23); as two machine switches, planned and decided (§16, 2026-10-26); P1 built (§17); P2, the proofs in Unicorn, ALL OK (§18); P4, the standard's draft 0.5 (§19).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
+in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK); B4d built and proven in emulation (§13: the same three proofs, ALL OK); B4e built (§14): the web flasher composes them, the standard's draft 0.3; RETRIG + PUNCH / GATE is free in the stock OS, a candidate for the list (§15, 2026-10-23); as two machine switches, planned and decided (§16, 2026-10-26); P1 built (§17); P2, the proofs in Unicorn, ALL OK (§18); P4, the standard's draft 0.5 (§19); on the Model:Cycles with SAMPLE: as expected (§20.4, 2026-10-26).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
 ids were dropped ([notes/62](62-level-b4-stable-machine-ids.md) §9). It covers two pieces:
 
 - the dispatcher tables for the hooks two packages share;
@@ -1172,3 +1172,81 @@ The maintainer chose P4 before the device. The
 
 Every address the new text names was checked against the OS 1.13's disassembly, or for `0x800015ae` against model27's
 code. Left: P3 (a release note when a card uses a switch) and the device (§16.9, step 5).
+
+P4 committed as `eb6e203` (the standard: `61c61e5`), 2026-10-26.
+
+## 20. The device test prepared (2026-10-26)
+
+### 20.1 The builds
+
+Built with `tools/compose.py` from the official file into their own folder (git-ignored), each checked by
+elektron-firmware-tool (checksums, HMAC, the same MAIN OS). The MAIN OS hashes are those of §17.3, the builds the
+proofs of §18 ran on. The builds of 2026-10-22 in `build/` (REF2 before the switches) stay for a comparison.
+
+| File | .syx SHA-256 | MAIN OS SHA-256 |
+|---|---|---|
+| `build/switches-0.2/model-cycles_OS1.13-refmachine2.syx` (901 152 bytes) | `c8d4f64a…` | `438dd61d…` |
+| `build/switches-0.2/model-cycles_OS1.13-sampler+refmachine2.syx` (942 112 bytes) | `8d75e346…` | `6ee148f3…` |
+
+```sh
+python3 tools/compose.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx --machines refmachine2 --out build/switches-0.2 --tool ../elektron-firmware-tool-main/elektron-firmware-tool
+python3 tools/compose.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx --machines sampler,refmachine2 --out build/switches-0.2 --tool ../elektron-firmware-tool-main/elektron-firmware-tool
+```
+
+### 20.2 What the maintainer tests
+
+Flashed as the CHORD Tables builds were (notes/66 §15.3). REF2 is machine 6 in the first build and machine 7 in
+the second; its picture is TONE's. On a REF2 track, COLOR (Tone) near 64 and SHAPE (Noise) at 0 make both switches
+easy to hear.
+
+1. **REF2 itself**, never played on the device so far (§6, §11.4, §12.4, §13.4): it plays a triangle; RETRIG +
+   COLOR changes the Octave, shown as five boxes; the main screen shows `OCT 0` and a blinking dot.
+2. **The switches**, on a REF2 track, a note playing:
+   1. RETRIG held + PUNCH: the sound becomes a square, `S` appears left of the label, PUNCH itself does not change;
+      again: back to the triangle;
+   2. RETRIG held + GATE: brighter (the lowpass left out), `O`; both on: `SO`;
+   3. switched while a long note sounds: the change is heard at once.
+3. **The LEDs** (`[HYP]` of §17.5): with RETRIG held, PUNCH's and GATE's LEDs show the switches; on release they show
+   PUNCH and GATE again. Whether they change at the moment RETRIG goes down and up, and right after a press.
+4. **What stays stock:**
+   1. PUNCH or GATE without RETRIG on the REF2 track: they switch as always, the switches stay;
+   2. TRACK + PUNCH or GATE, also with RETRIG held: Control All on all six tracks, the switches stay;
+   3. RETRIG + PUNCH or GATE on a track of a stock machine: PUNCH or GATE switch as on the official OS.
+5. **Saving** (`[HYP]` of §17.2 and §3.2):
+   1. only a switch changed, nothing else, then the Cycles off and on: is the switch kept?
+   2. the same with a knob changed too, and after saving the project by hand;
+   3. the sound saved to the pool or as a preset and loaded on another track; a sound copied and pasted: do the
+      switches (and the Octave) come along?
+6. **A machine change:** the REF2 track to another machine and back: the switches are still set (the happy accident of
+   notes/64); on the other machine, RETRIG + PUNCH switches PUNCH as on the official OS.
+7. **With SAMPLE** (the second build): SAMPLE as before; RETRIG + PUNCH on a SAMPLE track switches PUNCH; REF2's
+   switches as in the first build.
+8. **Back on the official OS 1.13,** if wanted: a project saved with switches loads and plays; the switches are gone.
+
+What the maintainer reports goes into a new section here, with the date.
+
+### 20.3 In digiemu (the maintainer, 2026-10-26)
+
+- **The maintainer:** "digiemu test erfolgreich".
+- **Advised:** the second build (SAMPLE + REF2): it starts, REF2 and SAMPLE on the MACHINES page, a REF2 note, if
+  quick RETRIG + PUNCH. Which build and which of these checks were run was not said.
+- **Next:** the device, with the list of §20.2. The second build is advised for all of it, and the first one, last,
+  for its start and RETRIG + PUNCH.
+
+### 20.4 On the Model:Cycles (the maintainer, 2026-10-26)
+
+- **The maintainer:** "build mit ref und sample getestet. alles wie erwartet". Flashed: the second build of §20.1,
+  SAMPLE + REF2 (.syx `8d75e346…`, MAIN OS `6ee148f3…`).
+- **Taken as the list of §20.2 passing.** The points were not reported one by one. The `[HYP]`s of §17.2 and §17.5,
+  settled by that report:
+  - the sound the press hook finds is the one the note plays: the switches are heard;
+  - PUNCH's and GATE's LEDs follow a press and a release of RETRIG;
+  - the project keeps a switch alone;
+  - the switches and the Octave come along when a sound is copied, saved or loaded (also §3.2's `[HYP]` for k 28).
+- **REF2 itself** (§6, §11.4, §12.4, §13.4, postponed since 2026-10-22) is thereby played on the device next to
+  SAMPLE: the Octave and its five boxes, the label and its dot, through the dispatchers.
+- **Not covered:**
+  - the first build, REF2 alone (§20.1);
+  - REF2's browser hook (a file opened on a REF2 track shows its name), which §20.2 did not list.
+- REF2's manifest records the run (`tests.hardware`). REF2 is not offered, so no card changes; the switches reach
+  users with the first card that declares one (P3).
