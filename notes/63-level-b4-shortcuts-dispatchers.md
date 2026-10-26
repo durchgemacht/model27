@@ -1,7 +1,7 @@
 # 63 — Level B, step 4: machine shortcuts and dispatchers, proven by a second reference machine (plan)
 
 **Status: plan, 2026-10-22; the maintainer's decisions (§9); B4a built and proven in emulation (§10); B4b built and proven
-in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK); B4d built and proven in emulation (§13: the same three proofs, ALL OK); B4e built (§14): the web flasher composes them, the standard's draft 0.3; RETRIG + PUNCH / GATE is free in the stock OS, a candidate for the list (§15, 2026-10-23); as two machine switches, planned and decided (§16, 2026-10-26); P1 built (§17); P2, the proofs in Unicorn, ALL OK (§18).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
+in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK); B4d built and proven in emulation (§13: the same three proofs, ALL OK); B4e built (§14): the web flasher composes them, the standard's draft 0.3; RETRIG + PUNCH / GATE is free in the stock OS, a candidate for the list (§15, 2026-10-23); as two machine switches, planned and decided (§16, 2026-10-26); P1 built (§17); P2, the proofs in Unicorn, ALL OK (§18); P4, the standard's draft 0.5 (§19).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
 ids were dropped ([notes/62](62-level-b4-stable-machine-ids.md) §9). It covers two pieces:
 
 - the dispatcher tables for the hooks two packages share;
@@ -17,7 +17,8 @@ or on the device yet.
 
 ## 0. In short
 
-- **The shortcut list, confirmed by the maintainer: RETRIG held + COLOR, SHAPE, SWEEP or CONTOUR.**
+- **The shortcut list, confirmed by the maintainer: RETRIG held + COLOR, SHAPE, SWEEP or CONTOUR.** Since 2026-10-26
+  also RETRIG held + PUNCH or GATE, as two switches (§16 to §18).
   - Four shortcuts; a machine opts in per knob.
   - In the stock OS, RETRIG held changes nothing when a knob turns, and RETRIG pressed without FUNC does nothing on
     the main screen.
@@ -109,8 +110,8 @@ RETRIG, PUNCH, GATE and MACHINES are not read there. Then:
 The list stays a property of the builder. A package that declares another combination is refused, and the standard's
 gesture registry records the four as machine-scoped.
 
-A key held + another key is not in this table: RETRIG + PUNCH / GATE is free in the stock OS and a candidate for the
-list's next entries (§15, 2026-10-23).
+A key held + another key is not in this table: RETRIG + PUNCH / GATE is free in the stock OS (§15, 2026-10-23) and
+joined the list as two switches on 2026-10-26 (§16 to §18; the standard's draft 0.5).
 
 ## 2. The second reference machine, REF2
 
@@ -1148,3 +1149,26 @@ All five proofs ran in `.venv-emu` against the official file; every one ends wit
 - **Fixed** in P2's commit; `--self-test` ALL OK again. No build and no other check depended on it.
 
 Next: the P2 commit, then P4 (the standard's draft 0.5) or the device (§16.9, step 5), as the maintainer chooses.
+
+P2 committed as `99d80b9` (2026-10-26).
+
+## 19. P4: the standard's draft 0.5 (2026-10-26)
+
+The maintainer chose P4 before the device. The
+[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard) becomes draft 0.5:
+- **STANDARD.md:**
+  - §2.3: the parameters a machine gets are smoothed; a value read exactly is read in the note's sound (§17.2);
+  - §3.1: the `shortcut` point with its two switches and their sites;
+  - §3.3: the layer's byte of presses;
+  - §4.2: the switch's `uses` entry;
+  - §4.5: GATE is key 7, and the stock presses;
+  - §5.2 to §5.4: k 32, record slot 18 (with the save and load tables of §18.1), the switches' rows;
+  - §7.4: REF2's manifest as after §18;
+  - §10: decided in 0.5 (§16.11); §11: the sources.
+- **APPLYING.md:** §12.4 "A shortcut or a switch" with the read of k 32 as REF2 does it, §12.6, §12.7, the AI prompt.
+- **The standard's README:** the `shortcut` row, built, decided.
+- **Here:** README ("It still plays like a Model:Cycles", Gen 1, "Shortcuts are predefined", draft 0.5), AGENTS.md
+  (draft 0.5), this note's §0 and §1.3.
+
+Every address the new text names was checked against the OS 1.13's disassembly, or for `0x800015ae` against model27's
+code. Left: P3 (a release note when a card uses a switch) and the device (§16.9, step 5).

@@ -7,8 +7,8 @@ official OS.**
   combination, put together when you build. Nothing is pre-built, and no machine rules out another.
 - **What goes together is checked.** Every mod declares what it touches; the builder checks each build and stops one
   that would write the same bytes or use the same memory, instead of making a firmware.
-- **It still plays like a Model:Cycles.** Extra values sit on one fixed set of shortcuts, RETRIG + a knob, the same on
-  every machine and saved with the sound.
+- **It still plays like a Model:Cycles.** Extra values sit on one fixed set of shortcuts, RETRIG + a knob, and
+  on/off switches on RETRIG + PUNCH or GATE, the same on every machine and saved with the sound.
 - **Tested means played on a real Model:Cycles.** Before a mod reaches the flasher, it runs in an emulator on the
   Model:Cycles' own code. Its card says Experimental until it has been played on the device, and Tested after.
 - **Your files stay yours.** The firmware is built in your browser from your own official OS file, nothing is
@@ -21,7 +21,7 @@ release 1.55, the last one with a mod picker, plus the Control All Config mod. I
 you want, the page builds the firmware from **your own copy** of the official OS in your browser and sends it to the
 Model:Cycles over USB. Modded-Cycles has since moved to a single OS with 2.0; model27 works on how mods are put
 together, so that a new machine fits next to the others. The rules a mod follows for that are the
-**[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.4), written alongside.
+**[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.5), written alongside.
 
 **Status: beta, release 0.4.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers two cards,
 both tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
@@ -49,7 +49,7 @@ machines get in. These are **Gen 1 machines**, as the
 
 - four knobs of their own, with DECAY, GATE and PUNCH working as on the stock machines;
 - up to four extra parameters, all on the same fixed shortcuts (RETRIG held + COLOR, SHAPE, SWEEP or CONTOUR),
-  identical on every machine and saved with the sound;
+  and up to two on/off switches (RETRIG held + PUNCH or GATE), identical on every machine and saved with the sound;
 - they only hook into the parts of the OS the builder already knows how to share.
 
 The result still plays like a Model:Cycles. This is all at an early stage, and it will keep evolving. If more
@@ -72,11 +72,14 @@ manifest that says what it touches, and the builder composes the packages you ti
 ## Shortcuts are predefined
 
 A machine does not choose its own key combinations. model27 gives a fixed list, today **RETRIG held + COLOR, SHAPE,
-SWEEP or CONTOUR**: up to four extra values on the machine's tracks. The machine declares each one's name, range
-and default in its manifest; the builder handles the keys, shows the value and saves it with the sound, and the
-machine only reads it. Each machine gives a shortcut its own meaning, so two machines can use the same one without
-meeting. The list will probably grow, most likely by FUNC + the same four knobs. For now shortcut values cannot be
-p-locked or used as LFO destinations, and no card on the page uses a shortcut yet.
+SWEEP or CONTOUR**: up to four extra values on the machine's tracks, and **RETRIG held + PUNCH or GATE**: up to two
+switches, on or off. For a value, the machine declares its name, range and default in its manifest; the builder
+handles the keys, shows the value and saves it with the sound, and the machine only reads it. A switch flips on the
+press, instead of PUNCH or GATE on that machine's tracks; while RETRIG is held, PUNCH's and GATE's lights show the
+switches, and the machine shows them on the screen if it wants. Each machine gives a shortcut its own meaning, so
+two machines can use the same one without meeting. The list will probably grow, most likely by FUNC + the same four
+knobs. For now shortcut values and switches cannot be p-locked or used as LFO destinations, and no card on the page
+uses a shortcut yet.
 
 ## The conditions, roughly
 
