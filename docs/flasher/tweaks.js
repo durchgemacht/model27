@@ -3261,12 +3261,14 @@ window.MC_TWEAKS = {
  "parts": {
   "shortcuts": {
    "id": "shortcuts",
-   "version": "0.1",
+   "version": "0.2",
    "roots": [
     "sc_knob",
     "sc_save2",
     "sc_save1",
-    "sc_load"
+    "sc_load",
+    "sc_press",
+    "sc_leds"
    ],
    "patch_points": [
     {
@@ -3296,6 +3298,20 @@ window.MC_TWEAKS = {
       "stock": "4feffff448d71c00",
       "symbol": "sc_load"
      }
+    ],
+    "press": [
+     {
+      "at": "0x4001ac4a",
+      "stock": "4feffff47201",
+      "op": "jmp",
+      "symbol": "sc_press"
+     },
+     {
+      "at": "0x4001cc86",
+      "stock": "2a004a8257c0",
+      "op": "jsr",
+      "symbol": "sc_leds"
+     }
     ]
    },
    "data": {
@@ -3303,11 +3319,13 @@ window.MC_TWEAKS = {
     "descn": 12,
     "first": 16,
     "count": 17,
-    "entries": 20,
-    "entry_size": 24
+    "presses": 20,
+    "entries": 28,
+    "entry_size": 24,
+    "max_machines": 8
    },
    "bundle": {
-    "code": "2f2f00102f2f00102f2f00102f2f00104eb94001e8144fef00104feffff048d7041c2800242f001859827003b082650000ec487800044eb94007faf4588f4a80670000da45fa00e2719a67122f004eb94007faf4588f4a8067ee600000c04eb9400cf9a82f004eb94006b736588f4a00660000aa2f2f00202f2f00184eb94001e318508f45f90000000073aa001090816b00008a73aa0011b08164000080e588d082c0fc001841f208144a906700006e7601d6822003c0fc0038226a000cd3c0701cd0822340000420280008234000082028000c2340000c202800102340001042a9001470ff234000182340001c42a9002020102340002c20280004234000342003c0fc006443f940a71754d3c0202800142340002042a9002c280320044cd7041c4fef00104e75010208002f2f00082f2f0008487a006020390000000066524feffff448d71c004ef94005afa82f2f00082f2f0008487a003e20390000000066304feffff448d71c004ef94005b05c2f2f00082f2f0008487a003a203900000000660e4feffff448d71c004ef94005aed420404ed04a0067162057226f00042229004c214100542229005021410058508f4e754a0067162257206f0004222800542341004c2228005823410050508f4e75",
+    "code": "2f2f00102f2f00102f2f00102f2f00104eb94001e8144fef00104feffff048d7041c2800242f001859827003b082650000ec487800044eb94007faf4588f4a80670000da45fa00e2719a67122f004eb94007faf4588f4a8067ee600000c04eb9400cf9a82f004eb94006b736588f4a00660000aa2f2f00202f2f00184eb94001e318508f45f90000000073aa001090816b00008a73aa0011b08164000080e588d082c0fc001841f2081c4a906700006e7601d6822003c0fc0038226a000cd3c0701cd0822340000420280008234000082028000c2340000c202800102340001042a9001470ff234000182340001c42a9002020102340002c20280004234000342003c0fc006443f940a71754d3c0202800142340002042a9002c280320044cd7041c4fef00104e75010208002f2f00082f2f0008487a006020390000000066524feffff448d71c004ef94005afa82f2f00082f2f0008487a003e20390000000066304feffff448d71c004ef94005b05c2f2f00082f2f0008487a0042203900000000660e4feffff448d71c004ef94005aed420404ed04a00671e2057226f00042229004c2141005422290050214100583229005431410040508f4e754a0067222257206f0004222800542341004c2228005823410050322800403341005442690014508f4e7500002f02242f000c04820000002c7001b08265000050487800044eb94007faf4588f4a806700003e487800024eb94007faf4588f4a806600002c6100008c610000aa05016700001e508273e800540541314100542f2f00084eb9400760ba588f241f4e75241f4feffff472014ef94001ac502a002f03487800044eb94007faf4588f4a80673a487800024eb94007faf4588f4a80662a2004610000502601672073e8005408030000670824010282000001000803000167082a01028500000200261f4a8257c04e754eb9400cf8664a8067142f004eb94000eb902e804eb940012412588f4e7570ff4e752f0224007205b28265544eb9400cf8664a80674ac4fc0044d4800682000000d4204220106738224020290028673022402f024e91588f4a806724204071a8002643f90000000073a9001090816b1073a90011b081640873b10814241f4e757200241f4e75",
     "relocs": [
      [
       134,
@@ -3328,6 +3346,11 @@ window.MC_TWEAKS = {
       382,
       "sc_data",
       8
+     ],
+     [
+      786,
+      "sc_data",
+      0
      ]
     ],
     "symbols": {
@@ -3346,6 +3369,14 @@ window.MC_TWEAKS = {
      "sc_load": [
       "code",
       368
+     ],
+     "sc_press": [
+      "code",
+      488
+     ],
+     "sc_leds": [
+      "code",
+      600
      ]
     },
     "bss": 0
@@ -3380,7 +3411,17 @@ window.MC_TWEAKS = {
      -128,
      127
     ],
-    "formatter": "0x400456c8"
+    "formatter": "0x400456c8",
+    "presses": [
+     "PUNCH",
+     "GATE"
+    ],
+    "press_bits": [
+     8,
+     9
+    ],
+    "press_sound_slot": 32,
+    "press_record_slot": 18
    },
    "claims": {
     "sound_slots": [
@@ -3399,9 +3440,17 @@ window.MC_TWEAKS = {
      [
       31,
       "all"
+     ],
+     [
+      32,
+      "all"
      ]
     ],
     "record_slots": [
+     [
+      18,
+      "all"
+     ],
      [
       28,
       "all"
@@ -3461,6 +3510,23 @@ window.MC_TWEAKS = {
       "situation": "params",
       "scope": "all",
       "meaning": "the shortcut of the track's machine",
+      "replaces": null
+     },
+     {
+      "combo": "RETRIG + PUNCH/GATE",
+      "atoms": [
+       [
+        "RETRIG",
+        "GATE"
+       ],
+       [
+        "RETRIG",
+        "PUNCH"
+       ]
+      ],
+      "situation": "any",
+      "scope": "all",
+      "meaning": "the switch of the track's machine",
       "replaces": null
      }
     ]

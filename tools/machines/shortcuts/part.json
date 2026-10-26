@@ -1,9 +1,9 @@
 {
  "schema": "model27-part/0.1",
  "id": "shortcuts",
- "version": "0.1",
- "name": "Machine shortcuts: RETRIG + COLOR, SHAPE, SWEEP or CONTOUR on an added machine's tracks, saved with the sound",
- "description": "A part of model27's builder, not a machine (notes/63 §3): assembled once into shortcuts.o by tools/gen_parts.py, added by tools/compose.py to a build in which a machine declares a shortcut. The knob lookup's vtable entry and the three sound record functions jump into it; the composer writes the data block (the machines' shortcuts, the next of the record chain) right after its code, and a package's own wrapper on a record function (SAMPLE's) becomes the next of the chain instead of a hook of its own.",
+ "version": "0.2",
+ "name": "Machine shortcuts: RETRIG + COLOR, SHAPE, SWEEP or CONTOUR, and RETRIG + PUNCH or GATE as switches, on an added machine's tracks, saved with the sound",
+ "description": "A part of model27's builder, not a machine (notes/63 §3, the switches §16): assembled once into shortcuts.o by tools/gen_parts.py, added by tools/compose.py to a build in which a machine declares a shortcut. The knob lookup's vtable entry and the three sound record functions jump into it, and when a machine declares a press, the function PUNCH's and GATE's presses call and MainScreenView's LED method too; the composer writes the data block (the machines' presses and shortcuts, the next of the record chain) right after its code, and a package's own wrapper on a record function (SAMPLE's) becomes the next of the chain instead of a hook of its own.",
  "license": "MIT",
  "build": {
   "sources": ["shortcuts.S"],
@@ -11,7 +11,7 @@
   "cflags": ["-mcpu=54418"],
   "defines": {},
   "objects": ["shortcuts.o"],
-  "roots": ["sc_knob", "sc_save2", "sc_save1", "sc_load"],
+  "roots": ["sc_knob", "sc_save2", "sc_save1", "sc_load", "sc_press", "sc_leds"],
   "patch_points": [{"symbol": "sc_data", "kind": "shortcut_data"}]
  },
  "shortcut": {
@@ -21,7 +21,11 @@
   "sound_slots": [28, 29, 30, 31],
   "record_slots": [28, 29, 30, 31],
   "range": [-128, 127],
-  "formatter": "0x400456c8"
+  "formatter": "0x400456c8",
+  "presses": ["PUNCH", "GATE"],
+  "press_bits": [8, 9],
+  "press_sound_slot": 32,
+  "press_record_slot": 18
  },
  "sites": {
   "knob": {"vtable": "0x401005a8", "stock_ptr": "0x4001e814", "symbol": "sc_knob"},
@@ -29,14 +33,20 @@
    {"at": "0x4005afa0", "stock": "4feffff448d71c00", "symbol": "sc_save2"},
    {"at": "0x4005b054", "stock": "4feffff448d71c00", "symbol": "sc_save1"},
    {"at": "0x4005aecc", "stock": "4feffff448d71c00", "symbol": "sc_load"}
+  ],
+  "press": [
+   {"at": "0x4001ac4a", "stock": "4feffff47201", "op": "jmp", "symbol": "sc_press"},
+   {"at": "0x4001cc86", "stock": "2a004a8257c0", "op": "jsr", "symbol": "sc_leds"}
   ]
  },
- "data": {"next": 0, "descn": 12, "first": 16, "count": 17, "entries": 20, "entry_size": 24},
+ "data": {"next": 0, "descn": 12, "first": 16, "count": 17, "presses": 20, "entries": 28, "entry_size": 24,
+          "max_machines": 8},
  "claims": {
-  "sound_slots": [28, 29, 30, 31],
-  "record_slots": [28, 29, 30, 31],
+  "sound_slots": [28, 29, 30, 31, 32],
+  "record_slots": [18, 28, 29, 30, 31],
   "descriptors": [1, 2, 3, 4],
   "gestures": [{"combo": "RETRIG + COLOR/SHAPE/SWEEP/CONTOUR", "situation": "params",
-                "meaning": "the shortcut of the track's machine"}]
+                "meaning": "the shortcut of the track's machine"},
+               {"combo": "RETRIG + PUNCH/GATE", "meaning": "the switch of the track's machine"}]
  }
 }

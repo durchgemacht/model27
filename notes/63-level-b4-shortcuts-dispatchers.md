@@ -1,7 +1,7 @@
 # 63 — Level B, step 4: machine shortcuts and dispatchers, proven by a second reference machine (plan)
 
 **Status: plan, 2026-10-22; the maintainer's decisions (§9); B4a built and proven in emulation (§10); B4b built and proven
-in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK); B4d built and proven in emulation (§13: the same three proofs, ALL OK); B4e built (§14): the web flasher composes them, the standard's draft 0.3; RETRIG + PUNCH / GATE is free in the stock OS, a candidate for the list (§15, 2026-10-23); as two machine switches, planned and decided (§16, 2026-10-26).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
+in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK); B4d built and proven in emulation (§13: the same three proofs, ALL OK); B4e built (§14): the web flasher composes them, the standard's draft 0.3; RETRIG + PUNCH / GATE is free in the stock OS, a candidate for the list (§15, 2026-10-23); as two machine switches, planned and decided (§16, 2026-10-26); P1 built, the proofs in Unicorn next (§17).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
 ids were dropped ([notes/62](62-level-b4-stable-machine-ids.md) §9). It covers two pieces:
 
 - the dispatcher tables for the hooks two packages share;
@@ -826,7 +826,8 @@ Facts marked `[FAIT]` come from the disassembly of OS 1.13 (`_scratch/control-al
     PUNCH or GATE does not switch.
   - In every other case it replays the 6 bytes and goes on with the stock body.
   - FUNC never reaches `0x4001ac4a`. TRACK + RETRIG + PUNCH stays Control All, as TRACK turns the knob shortcuts off.
-- **How the value reaches the voice** `[HYP]`, to settle in P1 by reading and in emulation:
+- **How the value reaches the voice** `[HYP]`, to settle in P1 by reading and in emulation (settled in §17.2: the
+  machine reads the note's sound, at once, and neither way below is needed):
   - The setter `0x4000b274` takes a parameter number that has a descriptor (44, 45). k 32 has none, and the knob
     shortcuts already lend descriptors 1–4, all four.
   - The fallback: write the sound's `+84` and clear the track's entry in `0x800017ec`, which makes the audio side
@@ -857,7 +858,7 @@ Facts marked `[FAIT]` come from the disassembly of OS 1.13 (`_scratch/control-al
 
 | | Where | Content |
 |---|---|---|
-| sound | k 32 (`+84`); the voice reads it at `params + 0x40` | `0x0100` RETRIG + PUNCH on, `0x0200` RETRIG + GATE on (as 8.8, the integer 0 to 3); every other bit 0 |
+| sound | k 32 (`+84`); the voice reads it in the sound its note plays, not at `params + 0x40`, which the OS smooths (§17.2) | `0x0100` RETRIG + PUNCH on, `0x0200` RETRIG + GATE on (as 8.8, the integer 0 to 3); every other bit 0 |
 | record | slot 18 (`+64`) | the same word |
 
 - **k 32** reaches the voice: the audio side copies the sound's k 0–32, 66 bytes (STANDARD.md §2.3). The stock OS
@@ -963,3 +964,106 @@ The maintainer took the recommendations:
 5. If the value cannot reach a note already playing, a switch takes effect at the next note.
 
 Next: P1 (§16.9).
+
+## 17. P1 built (2026-10-26)
+
+### 17.1 What was built
+
+- **The shortcut layer 0.2** (`tools/machines/shortcuts/`):
+  - `shortcuts.S` gains `sc_press` (the `jmp` at `0x4001ac4a`), `sc_leds` (the `jsr` at `0x4001cc86`) and two
+    helpers in the same section: `sc_selected` (the selected track, as `0x4001ac4a` finds it) and `sc_track` (a
+    track's sound and the presses its machine declared, found as `dispatch.c` finds it).
+  - `sc_post_save` copies k 32 into record slot 18; `sc_post_load` copies it back and clears k 0.
+  - The data block's header grows to 28 bytes: one byte per machine at `+0x14` (bit 0 PUNCH, bit 1 GATE, 8
+    machines at most); the knob entries move from `+0x14` to `+0x1c`.
+  - Code 466 → 820 bytes, still only `R_68K_32` relocations (5, all `sc_data`).
+  - `part.json` 0.2: the roots `sc_press`, `sc_leds`; `shortcut.presses`, `press_bits`, `press_sound_slot`,
+    `press_record_slot`; `sites.press` with both hooks; `data.presses`, `data.max_machines`; the claims k 32, record
+    slot 18 and `RETRIG + PUNCH/GATE`.
+- **The builder:**
+  - `compose.shortcut_presses` reads `{"point": "shortcut", "key": "RETRIG", "press": "PUNCH" | "GATE"}` and refuses
+    another key or press, a press twice, or a press with a knob or a param.
+  - `compose.shortcut_layer` fills the byte per machine and writes the two hooks only when a machine declares a press,
+    after checking their stock bytes and that no package hooks them.
+  - The description line says how many switches.
+  - The JavaScript twin is in the same step, not in P3 as §16.9 had it, because `tools/AGENTS.md` wants
+    `compose.py` and `composer.js` changed in one commit: `shortcutPresses`, `shortcutLayer`, `beyondShortcuts`.
+- **The claims** (`tools/claims.py`):
+  - `KEYS["GATE"] = 7`;
+  - stock entries `PUNCH/GATE` and `FUNC + PUNCH/GATE`;
+  - `beyond_shortcuts` and `check_package` handle a press (k 32, record slot 18, its combination);
+  - `check_shortcut_part` wants the presses' slots and combinations;
+  - seven new self-test cases. Two expectations change: lfo-plus against the layer is now "k 28-32", since the
+    layer holds k 32.
+- **REF2** (`tools/machines/refmachine2/`):
+  - the manifest declares both presses, claims k 32, record slot 18 and the two combinations, and says what changes on
+    its tracks (`stock_behaviour.changes`);
+  - `refmachine2.c` reads the switches every block (§17.2), Square makes the triangle a square, Tone open leaves the
+    lowpass out;
+  - `ref2_view.c` shows the switches that are on left of the label: `S`, `O` or `SO` (x 65..77). §16.6 said `SQ` and
+    `OP`, but the free band is 64 pixels wide, and "OCT +1" and the dot leave 15 of them.
+- **One more departure from §16.3:** `sc_leds` also leaves the stock LEDs while TRACK is held, so that the LEDs show
+  what a press would switch (TRACK + PUNCH is Control All).
+
+### 17.2 How a machine reads its switches `[FAIT]` (code reading)
+
+- **The parameters a machine gets are smoothed.**
+  - The voice loop `0x400a7d4a` is called at `0x4005981e` with the buffer `0x40058474` returns (`0x400597a8`), after
+    `0x40056e24` and the LFO (`0x40091ab2`) have changed it. Track t's `p` is that buffer + 14 + 66 · t.
+  - `0x40058474` runs a one-pole smoother over parameter words, coefficients `0x7c29` and `0x03d7` (Q15, 0.97 and
+    0.03, summing to 1). That k 32 is among them is `[HYP]`; the proof can measure it.
+  - Two bits in one gliding word cannot be read reliably: between `0x0100` and `0x0300` the word passes through
+    values where bit 8 reads 0.
+- **So a machine reads k 32 in the sound its note plays**, as CHORD Tables reads its k 30 (notes/66 §2.1):
+  `CUR_SNDS[t]` (`0x800017ec`) + 84, or the copy of the sound's 66 bytes (`0x800015ae + 66 · t` + 64) when
+  `CUR_SNDS[t]` is 0 (a preview note).
+  - Read every block, a switch acts at once, even on a note already playing.
+  - The press hook writes only the sound's `+84`. It needs no setter and no new copy, so decision 5 (§16.11) is not
+    needed.
+- `[HYP]`, for the proofs: that the sound the hook finds (the project's track, method `+40`) is the one in
+  `CUR_SNDS[t]` when the track plays its own sound. CHORD Tables relies on the same for k 30, and works on the device.
+- `[HYP]`, for the device: whether the project keeps a switch when nothing else changed. The hook marks nothing as
+  modified, as the stock setter may.
+
+### 17.3 Measured
+
+| Build (`compose.py`, OS 1.13) | Writes | MAIN OS (first 12 hex) |
+|---|---|---|
+| REF2 alone | 126 (124 before) | `438dd61d2fe5` |
+| SAMPLE + REF2 | 126 | `6ee148f3ba8c` |
+| REFC alone | 9 | `7bcfb11d4a3f` |
+| CHORD Tables alone | 9 | `877264553923` |
+| CHORD Tables + SAMPLE | 125 | `8c0c802c7d13` |
+
+- **Unchanged byte for byte:** SAMPLE alone (`27-sampler.json`), REF alone (`28-refmachine.json`), and the page's
+  `REF_MAINOS` and `REF_MODS` (SAMPLE, Control All Config).
+- **Changed because the layer's code changed:** REFC and CHORD Tables. They have no switch, so the hooks at
+  `0x4001ac4a` and `0x4001cc86` are not written.
+
+### 17.4 Checks (2026-10-26)
+
+- Without firmware, all OK:
+  - `claims.py --check --self-test`;
+  - `check_overlaps.py` (288 tweaks; claims of 143, no clash between two installable together);
+  - `registry.py --check` (two new hooks, k 32 and record slot 18 in §6, the combinations in §8);
+  - `gen_parts.py --check`;
+  - `py_compile`.
+- With the official file, all OK:
+  - `gen_refmachine.py --check` and `gen_sampler.py --check`;
+  - `webcompose_check.sh`: 22 selections, Python = JavaScript byte for byte, including REF2 alone and with SAMPLE,
+    REFC + REF2, CHORD Tables;
+  - `ref_mainos.py --check`.
+- `docs/flasher/tweaks.js` regenerated with the committed `gen_flasher_tweaks.py`, which leaves out the uncommitted
+  CHORD Tables card (W7, notes/66 §26). Only the shortcut part in it changes.
+- Not run: `webflash_smoke.sh` (jsdom, network; the page's cards and their builds did not change).
+
+### 17.5 What is left
+
+- **P2, the proofs in Unicorn** (§16.7), run by the maintainer. They also settle the `[HYP]`s:
+  - the press hook's registers and stack, against `0x4001ac4a`'s callers;
+  - the LED hook's registers, and that a RETRIG press and release redraw the LEDs;
+  - the sound found = `CUR_SNDS[t]`;
+  - the record copy (slot 18 ↔ k 32, k 0 cleared) with SAMPLE's wrapper chained behind the layer.
+- P3 is now only the page's data (`tweaks.js` is done) and the release note, when a card uses a switch; P4 the
+  standard (draft 0.5).
+- **The device** (§16.9, step 5), later: also whether a switch alone is kept by the project (§17.2).

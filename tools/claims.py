@@ -46,8 +46,8 @@ SCHEMA = "model27-claims/0.1"
 # --- the vocabulary -------------------------------------------------------------------------------------------------
 
 # Keys, by isKeyHeld's logical code (0x4007faf4, notes/63 §1.1); None for a key whose code is not traced yet.
-KEYS = {"FUNC": 1, "TRACK": 2, "RETRIG": 4, "MACHINES": 5, "PUNCH": 6, "LFO": 8, "RECORD": 9, "PLAY": 10, "STOP": 11,
-        "GATE": None, "PAGE": None, "PATTERN": None}
+KEYS = {"FUNC": 1, "TRACK": 2, "RETRIG": 4, "MACHINES": 5, "PUNCH": 6, "GATE": 7, "LFO": 8, "RECORD": 9, "PLAY": 10,
+        "STOP": 11, "PAGE": None, "PATTERN": None}
 TRIGS = 16                          # TRIG 1-16, codes 16 to 31
 # Knobs, by their number in the knob -> descriptor lookup 0x4001e814 (notes/63 §1.2); DATA is LEVEL/DATA, not traced.
 KNOBS = {"PITCH": 2, "DECAY": 3, "COLOR": 4, "SHAPE": 5, "SWEEP": 6, "CONTOUR": 7, "DATA": None}
@@ -71,6 +71,9 @@ STOCK = (
     {"combo": f"TRIG 1-16 + {KNOB_LIST}", "situation": "params", "meaning": "parameter lock",
      "source": "notes/63 §1.3"},
     {"combo": "TRACK + PUNCH/GATE", "meaning": "Control All of PUNCH and GATE", "source": "STANDARD.md §5.4"},
+    {"combo": "PUNCH/GATE", "meaning": "switches PUNCH or GATE on the selected track; a held RETRIG is not read",
+     "source": "notes/63 §15.1"},
+    {"combo": "FUNC + PUNCH/GATE", "meaning": "opens a view", "source": "notes/63 §15.1"},
     {"combo": "FUNC + TRACK", "meaning": "the Track Setup menu", "source": "STANDARD.md §5.4"},
     {"combo": "FUNC + MACHINES", "meaning": "the PRESET browser", "source": "STANDARD.md §5.4"},
     {"combo": "FUNC + RETRIG", "meaning": "the retrig menu", "source": "notes/63 §1.2"},
@@ -523,16 +526,20 @@ def part_claims(p):
 
 def beyond_shortcuts(c, m, part):
     """A package's claims without what its shortcuts take through the shortcut layer: the knob's slot k, its record
-    slot and its combination. Those are the layer's claims narrowed to the machine (notes/65 §5.5), so they are not
-    compared with the layer."""
+    slot and its combination; for a switch (notes/63 §16) k 32, record slot 18 and its combination. Those are the
+    layer's claims narrowed to the machine (notes/65 §5.5), so they are not compared with the layer."""
     sc = part["shortcut"]
     ks, rs, own = set(), set(), set()
     for u in m["uses"]:
-        if u["point"] == "shortcut" and u["knob"] in sc["knobs"]:
+        if u["point"] == "shortcut" and u.get("knob") in sc["knobs"]:
             i = sc["knobs"].index(u["knob"])
             ks.add(sc["sound_slots"][i])
             rs.add(sc["record_slots"][i])
             own.add((u["key"], u["knob"]))
+        elif u["point"] == "shortcut" and u.get("press") in sc.get("presses", ()):
+            ks.add(sc["press_sound_slot"])
+            rs.add(sc["press_record_slot"])
+            own.add((u["key"], u["press"]))
     out = dict(c)
     if "sound_slots" in c:
         out["sound_slots"] = [x for x in c["sound_slots"] if x[0] not in ks]
@@ -654,30 +661,40 @@ def check_package(m, claims, shortcut_part):
         errors.append("claims.views are not the views of its uses (view.main, view.knob)")
     sc = shortcut_part["shortcut"] if shortcut_part else None
     for u in (u for u in uses if u.get("point") == "shortcut"):
-        if not sc or u["knob"] not in sc["knobs"] or u["key"] != sc["key"]:
-            errors.append(f"shortcut {u.get('key')} + {u.get('knob')} is not on the builder's list")
+        what = u.get("press", u.get("knob"))
+        if "press" in u:                     # a switch (notes/63 §16): k 32 and record slot 18 for both presses
+            on_list = sc and u["press"] in sc.get("presses", ()) and "knob" not in u
+            slots = (sc["press_sound_slot"], sc["press_record_slot"]) if on_list else None
+        else:
+            on_list = sc and u.get("knob") in sc["knobs"]
+            slots = (sc["sound_slots"][sc["knobs"].index(u["knob"])],
+                     sc["record_slots"][sc["knobs"].index(u["knob"])]) if on_list else None
+        if not on_list or u.get("key") != sc["key"]:
+            errors.append(f"shortcut {u.get('key')} + {what} is not on the builder's list")
             continue
-        i = sc["knobs"].index(u["knob"])
-        want = set(atoms(f"{u['key']} + {u['knob']}"))
+        want = set(atoms(f"{u['key']} + {what}"))
         if not any(want <= set(g["atoms"]) for g in claims.get("gestures", [])):
-            errors.append(f"shortcut {u['key']} + {u['knob']}: no gesture claims it")
-        if sc["sound_slots"][i] not in {n for n, _s in claims.get("sound_slots", [])}:
-            errors.append(f"shortcut {u['key']} + {u['knob']}: k {sc['sound_slots'][i]} is not claimed")
-        if sc["record_slots"][i] not in {n for n, _s in claims.get("record_slots", [])}:
-            errors.append(f"shortcut {u['key']} + {u['knob']}: record slot {sc['record_slots'][i]} is not claimed")
+            errors.append(f"shortcut {u['key']} + {what}: no gesture claims it")
+        if slots[0] not in {n for n, _s in claims.get("sound_slots", [])}:
+            errors.append(f"shortcut {u['key']} + {what}: k {slots[0]} is not claimed")
+        if slots[1] not in {n for n, _s in claims.get("record_slots", [])}:
+            errors.append(f"shortcut {u['key']} + {what}: record slot {slots[1]} is not claimed")
     return errors
 
 
 def check_shortcut_part(p, claims):
-    """The shortcut layer's claims against its own list: its slots, descriptors and combinations."""
+    """The shortcut layer's claims against its own list: its slots, descriptors and combinations, the switches' too
+    (notes/63 §16)."""
     sc, errors = p["shortcut"], []
-    for key, want in (("sound_slots", sc["sound_slots"]), ("record_slots", sc["record_slots"]),
+    presses = sc.get("presses", [])
+    for key, want in (("sound_slots", sc["sound_slots"] + ([sc["press_sound_slot"]] if presses else [])),
+                      ("record_slots", sc["record_slots"] + ([sc["press_record_slot"]] if presses else [])),
                       ("descriptors", sc["descriptors"])):
         if sorted(n for n, _s in claims.get(key, [])) != sorted(want):
-            errors.append(f"claims.{key} are not the layer's {key} {want}")
-    want = {a for k in sc["knobs"] for a in atoms(f"{sc['key']} + {k}")}
+            errors.append(f"claims.{key} are not the layer's {key} {sorted(want)}")
+    want = {a for k in sc["knobs"] + presses for a in atoms(f"{sc['key']} + {k}")}
     if not want <= {a for g in claims.get("gestures", []) for a in g["atoms"]}:
-        errors.append(f"claims.gestures do not hold {sc['key']} + each of {', '.join(sc['knobs'])}")
+        errors.append(f"claims.gestures do not hold {sc['key']} + each of {', '.join(sc['knobs'] + presses)}")
     return errors
 
 
@@ -826,6 +843,22 @@ def self_test():
     case("a shortcut with its combination and slots passes", not check_package(m, c, sc))
     c2 = normalize({"sound_slots": [28], "record_slots": [29], "gestures": [], "views": []}, "package")[0]
     case("a shortcut without its combination, record slot and view is refused", len(check_package(m, c2, sc)) == 3)
+    sc["shortcut"].update(presses=["PUNCH", "GATE"], press_sound_slot=32, press_record_slot=18)
+    mp = {"uses": [{"point": "shortcut", "key": "RETRIG", "press": "GATE"}]}
+    cp = normalize({"sound_slots": [32], "record_slots": [18], "gestures": ["RETRIG + GATE"]}, "package")[0]
+    case("a switch with its combination, k 32 and record slot 18 passes", not check_package(mp, cp, sc))
+    case("a switch claiming RETRIG + PUNCH instead of GATE is refused",
+         len(check_package(mp, normalize({"sound_slots": [32], "record_slots": [18], "gestures": ["RETRIG + PUNCH"]},
+                                         "package")[0], sc)) == 1)
+    case("a press off the list (RETRIG + LFO) is refused",
+         check_package({"uses": [{"point": "shortcut", "key": "RETRIG", "press": "LFO"}]}, cp, sc)
+         == ["shortcut RETRIG + LFO is not on the builder's list"])
+    case("a press with a knob is refused",
+         len(check_package({"uses": [{"point": "shortcut", "key": "RETRIG", "press": "GATE", "knob": "COLOR"}]},
+                           cp, sc)) == 1)
+    case("GATE is key 7 (notes/63 §15.1), RETRIG + PUNCH/GATE two atoms held by RETRIG",
+         KEYS["GATE"] == 7 and atoms("RETRIG + PUNCH/GATE") == [(frozenset({"RETRIG"}), "GATE"),
+                                                                (frozenset({"RETRIG"}), "PUNCH")])
 
     # --- the rules (C2): the cases of notes/65 §2 and §7 on the folder's real claims, then synthetic ones
     def j(claims, kind="tweak"):
@@ -835,8 +868,10 @@ def self_test():
     case("lfo-plus × the track filter: k 28-31, record slots 30-31, the p-lock rows",
          clashes(real["lfo-plus"], real["track-filter"]) == ["k 28-31", "record slots 30-31",
                                                               "the p-lock rows of k >= 23"])
-    case("lfo-plus × the shortcut layer: k 28-31, record slots 30-31",
-         clashes(real["lfo-plus"], layer) == ["k 28-31", "record slots 30-31"])
+    case("lfo-plus × the shortcut layer: k 28-32 (k 32 since the switches), record slots 30-31",
+         clashes(real["lfo-plus"], layer) == ["k 28-32", "record slots 30-31"])
+    case("the track filter × the shortcut layer: record slot 18 too, since the switches",
+         "record slots 18, 30-31" in clashes(real["track-filter"], layer))
     case("lfo-plus × REF2's tweak, which carries the layer: a clash",
          bool(clashes(real["lfo-plus"], real["refmachine2"])))
     probe = j({"gestures": [{"combo": "TRACK + TRIG 3", "situation": "keys", "meaning": "a probe"}]})
@@ -893,7 +928,7 @@ def self_test():
          texts == ["TRACK + TRIG 2-4", "TRIG 1-16 + PAGE", "LFO"])
     case("claim_conflicts names the tweak and its reasons",
          claim_conflicts(build_holders([ref2], sc_part), {"lfo-plus": real["lfo-plus"], "arp": real["arp"]})
-         == {"lfo-plus": ["k 28", "k 28-31", "record slots 30-31"]})
+         == {"lfo-plus": ["k 28", "k 28-32", "record slots 30-31"]})
     return fails
 
 

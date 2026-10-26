@@ -326,7 +326,7 @@ function shortcutUses(packages, part) {
   packages.forEach((p, i) => {
     const seen = new Set();
     for (const u of p.uses) {
-      if (u.point !== "shortcut") continue;
+      if (u.point !== "shortcut" || "press" in u) continue;      // a switch: shortcutPresses()
       const where = `${p.id}: shortcut ${u.key} + ${u.knob}`;
       if (u.key !== sc.key || !sc.knobs.includes(u.knob))
         throw new Error(`${where}: not on the builder's list, ${sc.key} + ${sc.knobs.join(", ")} (notes/63 §1.3)`);
@@ -345,12 +345,35 @@ function shortcutUses(packages, part) {
   return out;
 }
 
+// compose.shortcut_presses(): the switches each machine declares (notes/63 §16), one byte per machine, bit 0
+// RETRIG + PUNCH, bit 1 RETRIG + GATE.
+function shortcutPresses(packages, part) {
+  const sc = part.shortcut;
+  return packages.map((p) => {
+    let bits = 0;
+    for (const u of p.uses) {
+      if (u.point !== "shortcut" || !("press" in u)) continue;
+      const where = `${p.id}: shortcut ${u.key} + ${u.press}`;
+      if (u.key !== sc.key || !sc.presses.includes(u.press) || "knob" in u || "param" in u)
+        throw new Error(`${where}: not on the builder's list, ${sc.key} + ${sc.presses.join(" or ")}, a press with no knob and no param (notes/63 §16)`);
+      const bit = 1 << sc.presses.indexOf(u.press);
+      if (bits & bit) throw new Error(`${where}: declared twice`);
+      bits |= bit;
+    }
+    return bits;
+  });
+}
+
 // compose.shortcut_layer(): the part placed at at, its data block after its code (the next of each record function's
-// chain, the descriptor table, the machines, their shortcuts per knob, the strings), the knob lookup's vtable entry
-// and the three sound record functions jumping into it; a package's wrapper over a record function becomes the next
+// chain, the descriptor table, the machines, their presses, their shortcuts per knob, the strings), the knob lookup's
+// vtable entry and the three sound record functions jumping into it, and with a switch the function PUNCH's and
+// GATE's presses call and MainScreenView's LED method; a package's wrapper over a record function becomes the next
 // of the chain and its write is left out. Returns { blob, symbols, writes, skip, info }.
 function shortcutLayer(mainOs, part, packages, symsOf, uses, at, codeEnd, first, descn) {
   const d = part.data, sc = part.shortcut, sites = part.sites;
+  if (packages.length > d.max_machines)
+    throw new Error(`${packages.length} machines: the shortcut layer's tables hold ${d.max_machines}`);
+  const presses = shortcutPresses(packages, part);
   const dataAt = align4(at + part.bundle.code.length / 2);
   const nexts = [], skip = new Set();
   for (const s of sites.record) {
@@ -389,6 +412,7 @@ function shortcutLayer(mainOs, part, packages, symsOf, uses, at, codeEnd, first,
   put32(head, d.descn, descn);
   head[d.first] = first;
   head[d.count] = packages.length;
+  presses.forEach((v, j) => { head[d.presses + j] = v; });
   const data = concat(head, entries, ...[...addr.keys()].map(asciiz));
   if (dataAt + data.length > codeEnd) throw new Error(`the shortcut layer ends at ${hx(dataAt + data.length)}, past ${hx(codeEnd)}`);
   const { code, symbols } = placePart(part, at, codeEnd, { shortcut_data: dataAt });
@@ -401,8 +425,20 @@ function shortcutLayer(mainOs, part, packages, symsOf, uses, at, codeEnd, first,
   for (const s of sites.record)
     writes.push({ off: parseInt(s.at, 16) - BASE, old: s.stock,
                   new: hex(concat(bytesOf(0x4e, 0xf9), be32(symbols[s.symbol]), bytesOf(0x4e, 0x71))) });
+  if (presses.some((v) => v))                     // the press and the LEDs, only in the builds with a switch
+    for (const s of sites.press) {
+      const va = parseInt(s.at, 16), here = hex(mainOs.subarray(va - BASE, va - BASE + 6));
+      if (here !== s.stock) throw new Error(`${hx(va)}: ${s.stock} expected, ${here} found`);
+      for (const p of packages)
+        if (p.uses.some((u) => "hook" in u && parseInt(u.hook.at, 16) === va))
+          throw new Error(`${p.id}: hooks ${hx(va)}, which the shortcut layer takes for the switches`);
+      const op = { jmp: bytesOf(0x4e, 0xf9), jsr: bytesOf(0x4e, 0xb9) }[s.op];
+      writes.push({ off: va - BASE, old: s.stock, new: hex(concat(op, be32(symbols[s.symbol]))) });
+    }
+  const switches = presses.reduce((n, v) => n + (v & 1) + ((v >> 1) & 1), 0);
   return { blob: concat(code, new Uint8Array(dataAt - at - code.length), data), symbols, writes, skip,
-           info: { id: part.id, code_at: at, code: code.length, data_at: dataAt, data: data.length, shortcuts: uses.length } };
+           info: { id: part.id, code_at: at, code: code.length, data_at: dataAt, data: data.length, shortcuts: uses.length,
+                   switches } };
 }
 
 // compose.dispatch_layer(): each point of the part that two or more packages take (their vtable entries, or their
@@ -510,7 +546,8 @@ function claimClashes(a, b) {
   return out;
 }
 
-// claims.beyond_shortcuts(): a package's claims without what its shortcuts take through the shortcut layer
+// claims.beyond_shortcuts(): a package's claims without what its shortcuts and switches take through the shortcut
+// layer
 function beyondShortcuts(c, p, part) {
   const sc = part.shortcut, ks = new Set(), rs = new Set(), own = new Set();
   for (const u of p.uses)
@@ -519,6 +556,10 @@ function beyondShortcuts(c, p, part) {
       ks.add(sc.sound_slots[i]);
       rs.add(sc.record_slots[i]);
       own.add(`${u.key}|${u.knob}`);
+    } else if (u.point === "shortcut" && (sc.presses || []).includes(u.press)) {
+      ks.add(sc.press_sound_slot);
+      rs.add(sc.press_record_slot);
+      own.add(`${u.key}|${u.press}`);
     }
   const out = Object.assign({}, c);
   if (c.sound_slots) out.sound_slots = c.sound_slots.filter(([n]) => !ks.has(n));
@@ -699,9 +740,9 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
                           part: layer && layer.info, dispatch: dispatch && dispatch.info, byClaims } };
 }
 
-const API = { place, frameOf, fill, fillAlone, segments, bootStub, parameterBlock, packageWrites, shortcutUses, shortcutLayer,
-              dispatchLayer, computedConflicts, resolveClaims, claimClashes, buildHolders, checkBuildClaims,
-              claimConflicts, compose, fromHex };
+const API = { place, frameOf, fill, fillAlone, segments, bootStub, parameterBlock, packageWrites, shortcutUses,
+              shortcutPresses, shortcutLayer, dispatchLayer, computedConflicts, resolveClaims, claimClashes,
+              buildHolders, checkBuildClaims, claimConflicts, compose, fromHex };
 if (typeof module !== "undefined" && module.exports) module.exports = API;
 if (typeof window !== "undefined") window.MCComposer = API;
 })();

@@ -1,7 +1,7 @@
-/* The machine shortcuts and the sound record chain of model27's builder (notes/63 §3, step B4b): a part the composer
- * adds to a build when one of its machines declares a shortcut. Assembled once by tools/gen_parts.py into
- * shortcuts.o and placed by tools/relocate.py like a package; the composer writes the data block right after it and
- * resolves sc_data, the block's address, as a patch point. Addresses are VAs of OS 1.13.
+/* The machine shortcuts and the sound record chain of model27's builder (notes/63 §3, step B4b; the switches, §16):
+ * a part the composer adds to a build when one of its machines declares a shortcut. Assembled once by
+ * tools/gen_parts.py into shortcuts.o and placed by tools/relocate.py like a package; the composer writes the data
+ * block right after it and resolves sc_data, the block's address, as a patch point. Addresses are VAs of OS 1.13.
  *
  *   sc_knob  entry +0x7c of ParameterPageView's vtable (0x401005a8; stock 0x4001e814, the knob -> descriptor lookup,
  *            which holds the registrar's knob_vec). The OS's three calls go through it: a knob turned (0x4001f6ee),
@@ -16,18 +16,31 @@
  *            Each runs the next of the chain as if it were the function (a package's own wrapper, SAMPLE's, or the
  *            stock body), then copies k 28..31 of the sound into record slots 28..31 (save) or back (load), when the
  *            function did its work. The stock save keeps only k 0..22 and the load clears k 0..32 and reads slots
- *            0..23 (notes/47 §4.1).
+ *            0..23 (notes/47 §4.1). The switches too: k 32 into record slot 18 (save), slot 18 back into k 32 and
+ *            k 0, where the stock load puts slot 18 and which nothing uses, cleared (load).
+ *   sc_press jmp from 0x4001ac4a, over its first 6 bytes (lea -12(sp),sp ; moveq #1,d1): the function PUNCH's and
+ *            GATE's presses call (0x4001c2d2, 0x4001caa2), (view, parameter 44 or 45), which switches PUNCH or GATE
+ *            on the selected track, or on all six with TRACK held (Control All). RETRIG held, TRACK not, on a track
+ *            whose machine declared that press: flips the machine's switch, asks for a new LED frame and returns to
+ *            the caller, PUNCH or GATE left as they were. Anything else: the 6 bytes, then the stock body.
+ *   sc_leds  jsr from 0x4001cc86, over 6 bytes (move.l d0,d5 ; tst.l d2 ; seq d0) of MainScreenView's LED method,
+ *            where d2 holds PUNCH and d0 GATE of the selected track (d4) and d0's byte then picks LED 19's state.
+ *            RETRIG held, TRACK not, on a track whose machine declared a press: that key's LED shows the machine's
+ *            switch instead. Returns with d5 and d0's byte as the 6 bytes leave them.
  *
  * The four values live in k 28..31 of the sound (+76..+83) and record slots 28..31 (+84..+91), for every sound: they
  * mean what the track's machine says (notes/63 §3.2). The descriptors 1 to 4 keep the machine -1 of the stock ones,
  * so that the tables built at boot (rows, CC, NRPN, LFO destinations) leave them out; a machine change resets only
- * the five parameters of the machine's record (0x40014072), so the values stay (notes/63 §9, notes/64 §3).
+ * the five parameters of the machine's record (0x40014072), so the values stay (notes/63 §9, notes/64 §3). The
+ * switches live in k 32 of the sound (+84): bit 8 RETRIG + PUNCH, bit 9 RETRIG + GATE, and in record slot 18 (+64)
+ * (notes/63 §16.4). A machine reads them in the sound its note plays, not in its parameters, which the OS smooths.
  *
  * sc_data, filled by the composer (part.json, "data"):
  *   +0x00 next of save2, +0x04 next of save1, +0x08 next of load (0 = the stock body)
  *   +0x0c the descriptor table the OS uses (the build's moved copy)
  *   +0x10 first machine (byte), +0x11 number of machines (byte)
- *   +0x14 per machine, per knob COLOR, SHAPE, SWEEP, CONTOUR, 24 bytes: long name, short name, minimum, maximum,
+ *   +0x14 per machine, one byte: the presses it declared, bit 0 PUNCH, bit 1 GATE (8 machines at most)
+ *   +0x1c per machine, per knob COLOR, SHAPE, SWEEP, CONTOUR, 24 bytes: long name, short name, minimum, maximum,
  *         default (8.8), formatter; a long name of 0: no shortcut on that knob
  *
  * License: MIT (LICENSE next to this file). */
@@ -44,8 +57,21 @@
 	.equ	UI_OBJ, 0x40a71754		/* the descriptors' interface objects, 100 bytes each */
 	.equ	DSTRIDE, 0x38			/* a descriptor */
 	.equ	ENTRY, 24			/* a shortcut in sc_data */
+	.equ	FIRST, 0x10			/* sc_data: first machine, number of machines, presses, shortcuts */
+	.equ	COUNT, 0x11
+	.equ	PRESSES, 0x14
+	.equ	ENTRIES, 0x1c
+	.equ	PROJECT, 0x400cf866		/* the project singleton */
+	.equ	PROJECT_TRACKS, 0x4000eb90	/* project -> its track selection */
+	.equ	ACTIVE_TRACK, 0x40012412	/* track selection -> the selected track, 0..5 */
+	.equ	TRACK_AT, 212			/* the project's track t at +212 + t * 68; its sound from method +40 */
+	.equ	TRACK_STRIDE, 68
+	.equ	MACHINE_AT, 38			/* sound: k 9's high byte, the machine */
+	.equ	SWITCHES_AT, 84			/* sound: k 32, the switches */
+	.equ	PRESS_BODY, 0x4001ac50		/* 0x4001ac4a after the 6 bytes sc_press takes */
+	.equ	VIEW_LEDS, 0x400760ba		/* (view): its LEDs changed, redo the LED frame (notes/58 §3) */
 
-	.globl	sc_knob, sc_save2, sc_save1, sc_load
+	.globl	sc_knob, sc_save2, sc_save1, sc_load, sc_press, sc_leds
 
 	.section .text.sc_knob, "ax"
 	.p2align 2
@@ -89,16 +115,16 @@ sc_knob:
 	jsr	TRACK_MACHINE
 	addq.l	#8, %sp
 	lea	sc_data, %a2
-	mvz.b	16(%a2), %d1			/* first machine */
+	mvz.b	FIRST(%a2), %d1			/* first machine */
 	sub.l	%d1, %d0
 	bmi.w	9f
-	mvz.b	17(%a2), %d1			/* machines */
+	mvz.b	COUNT(%a2), %d1			/* machines */
 	cmp.l	%d1, %d0
 	bcc.w	9f
 	lsl.l	#2, %d0
 	add.l	%d2, %d0			/* machine * 4 + knob */
 	mulu.w	#ENTRY, %d0
-	lea	20(%a2,%d0.l), %a0		/* its shortcut */
+	lea	ENTRIES(%a2,%d0.l), %a0		/* its shortcut */
 	tst.l	(%a0)
 	beq.w	9f
 	moveq	#1, %d3
@@ -177,8 +203,9 @@ sc_next:
 	movea.l	%d0, %a0
 	jmp	(%a0)
 
-/* (record, sound) on the stack: k 28..31 (+76) into record slots 28..31 (+84), when the save did its work (d0's
- * byte 1; 0 for a null record or sound, which the stock functions check). */
+/* (record, sound) on the stack: k 28..31 (+76) into record slots 28..31 (+84) and the switches, k 32 (+84), into
+ * record slot 18 (+64), when the save did its work (d0's byte 1; 0 for a null record or sound, which the stock
+ * functions check). */
 sc_post_save:
 	tst.b	%d0
 	beq.s	1f
@@ -188,11 +215,14 @@ sc_post_save:
 	move.l	%d1, 84(%a0)
 	move.l	80(%a1), %d1
 	move.l	%d1, 88(%a0)
+	move.w	SWITCHES_AT(%a1), %d1
+	move.w	%d1, 64(%a0)
 1:	addq.l	#8, %sp
 	rts
 
-/* (sound, record) on the stack: record slots 28..31 back into k 28..31, which the load cleared, when it loaded (d0's
- * byte 1; 0 for a null pointer or a record of another version than 2, and the sound is then left as it was). */
+/* (sound, record) on the stack: record slots 28..31 back into k 28..31, which the load cleared, and slot 18 into
+ * k 32, k 0 (where the stock load put slot 18) cleared, when it loaded (d0's byte 1; 0 for a null pointer or a record
+ * of another version than 2, and the sound is then left as it was). */
 sc_post_load:
 	tst.b	%d0
 	beq.s	1f
@@ -202,5 +232,140 @@ sc_post_load:
 	move.l	%d1, 76(%a1)
 	move.l	88(%a0), %d1
 	move.l	%d1, 80(%a1)
+	move.w	64(%a0), %d1
+	move.w	%d1, SWITCHES_AT(%a1)
+	clr.w	20(%a1)				/* k 0 */
 1:	addq.l	#8, %sp
+	rts
+
+/* The switches (notes/63 §16). The composer writes jmp sc_press over 0x4001ac4a's first 6 bytes; on entry the
+ * function's arguments are at 4(sp) (the view, MainScreenView) and 8(sp) (the parameter, 44 PUNCH or 45 GATE). */
+	.section .text.sc_press, "ax"
+	.p2align 2
+sc_press:
+	move.l	%d2, -(%sp)			/* now view at 8(sp), parameter at 12(sp) */
+	move.l	12(%sp), %d2
+	subi.l	#44, %d2			/* PUNCH 0, GATE 1 */
+	moveq	#1, %d0
+	cmp.l	%d2, %d0
+	bcs.w	8f
+	pea	K_RETRIG
+	jsr	KEY_HELD
+	addq.l	#4, %sp
+	tst.l	%d0
+	beq.w	8f
+	pea	K_TRACK				/* TRACK keeps Control All */
+	jsr	KEY_HELD
+	addq.l	#4, %sp
+	tst.l	%d0
+	bne.w	8f
+	bsr.w	sc_selected
+	bsr.w	sc_track
+	btst	%d2, %d1			/* the machine declared this press */
+	beq.w	8f
+	addq.l	#8, %d2				/* its switch: bit 8 or 9 of k 32 */
+	mvz.w	SWITCHES_AT(%a0), %d1
+	bchg	%d2, %d1
+	move.w	%d1, SWITCHES_AT(%a0)
+	move.l	8(%sp), -(%sp)			/* the view: PUNCH's or GATE's LED follows */
+	jsr	VIEW_LEDS
+	addq.l	#4, %sp
+	move.l	(%sp)+, %d2
+	rts					/* to the press's caller: PUNCH or GATE stays */
+8:	move.l	(%sp)+, %d2
+	lea	-12(%sp), %sp			/* the 6 bytes, then the stock body */
+	moveq	#1, %d1
+	jmp	PRESS_BODY
+
+/* The composer writes jsr sc_leds over 6 bytes of MainScreenView's LED method (0x4001cc86). On entry d0 is GATE, d2
+ * PUNCH, d4 the selected track; d5 must leave with GATE and d0's byte with seq of PUNCH, as the 6 bytes leave them.
+ * d2 is written right after (move.l fp,d2), the rest is kept. In sc_press's section, so that the bsr to the two
+ * helpers below stay inside one section (a part's object carries only R_68K_32 relocations). */
+	.p2align 2
+sc_leds:
+	move.l	%d0, %d5			/* GATE */
+	move.l	%d3, -(%sp)
+	pea	K_RETRIG
+	jsr	KEY_HELD
+	addq.l	#4, %sp
+	tst.l	%d0
+	beq.s	9f
+	pea	K_TRACK
+	jsr	KEY_HELD
+	addq.l	#4, %sp
+	tst.l	%d0
+	bne.s	9f
+	move.l	%d4, %d0
+	bsr.w	sc_track
+	move.l	%d1, %d3			/* the presses the machine declared */
+	beq.s	9f
+	mvz.w	SWITCHES_AT(%a0), %d1
+	btst	#0, %d3
+	beq.s	1f
+	move.l	%d1, %d2
+	andi.l	#0x100, %d2			/* PUNCH's LED: the machine's switch */
+1:	btst	#1, %d3
+	beq.s	9f
+	move.l	%d1, %d5
+	andi.l	#0x200, %d5			/* GATE's LED: the machine's switch */
+9:	move.l	(%sp)+, %d3
+	tst.l	%d2
+	seq	%d0
+	rts
+
+/* -> d0 the selected track, 0..5, or -1 without a project. */
+sc_selected:
+	jsr	PROJECT
+	tst.l	%d0
+	beq.s	1f
+	move.l	%d0, -(%sp)
+	jsr	PROJECT_TRACKS
+	move.l	%d0, (%sp)
+	jsr	ACTIVE_TRACK
+	addq.l	#4, %sp
+	rts
+1:	moveq	#-1, %d0
+	rts
+
+/* d0 a track -> a0 its sound and d1 the presses its machine declared (sc_data), or d1 0: no track 0..5, no sound,
+ * or a machine outside the table. Found as the dispatchers find it (dispatch.c): the project's track, the sound from
+ * the method at +40 of its vtable, the machine in the sound's byte +38. Keeps d2..d7, a2..a6. */
+sc_track:
+	move.l	%d2, -(%sp)
+	move.l	%d0, %d2
+	moveq	#5, %d1
+	cmp.l	%d2, %d1
+	bcs.s	8f
+	jsr	PROJECT
+	tst.l	%d0
+	beq.s	8f
+	mulu.w	#TRACK_STRIDE, %d2
+	add.l	%d0, %d2
+	addi.l	#TRACK_AT, %d2			/* the project's track */
+	movea.l	%d2, %a0
+	move.l	(%a0), %d0			/* its vtable */
+	beq.s	8f
+	movea.l	%d0, %a1
+	move.l	40(%a1), %d0
+	beq.s	8f
+	movea.l	%d0, %a1
+	move.l	%d2, -(%sp)
+	jsr	(%a1)				/* its sound */
+	addq.l	#4, %sp
+	tst.l	%d0
+	beq.s	8f
+	movea.l	%d0, %a0
+	mvz.b	MACHINE_AT(%a0), %d0
+	lea	sc_data, %a1
+	mvz.b	FIRST(%a1), %d1
+	sub.l	%d1, %d0
+	bmi.s	8f
+	mvz.b	COUNT(%a1), %d1
+	cmp.l	%d1, %d0
+	bcc.s	8f
+	mvz.b	PRESSES(%a1,%d0.l), %d1
+	move.l	(%sp)+, %d2
+	rts
+8:	moveq	#0, %d1
+	move.l	(%sp)+, %d2
 	rts

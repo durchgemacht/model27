@@ -4,8 +4,9 @@
 
    - ref2_main_draw takes the place of MainScreenView's draw (vtable entry 0x400ffe30, stock 0x4001b22a). On a
      REF2 track it draws the stock main screen, then the Octave as "OCT +1" in the free band of its right half, with a
-     dot that blinks with the tick; for a few redraws after the browser opened a file on that track, the file's name
-     instead.
+     dot that blinks with the tick, and left of it the switches that are on (notes/63 §16): "S" Square (RETRIG +
+     PUNCH), "O" Tone open (RETRIG + GATE), "SO" both; for a few redraws after the browser opened a file on that
+     track, the file's name instead.
    - ref2_knob_draw takes the place of the knob view's draw (vtable entry 0x4010053c, stock 0x4001e40a). While
      RETRIG + COLOR turns the Octave on a REF2 track, it draws the Octave as five boxes, -2 to +2, the current one
      filled; any other value shows as before.
@@ -23,7 +24,8 @@
    The screen is 128 x 64, y = 0 at the bottom. The stock main screen (0x4001b22a): the left half a lit panel with the
    track's lines; the right half dark, "TRn" centred at x 96 on rows 34..42, the pan bar on rows 21..29, the level bar
    on rows 8..16, and while 0x40a744c8 is set a sign at x 65, rows 58..; rows 44..56 of the right half are free, and
-   the label takes rows 46..54 (x 79..113 for "OCT +1"), the dot x 120..121, rows 49..50. Plain C99, no libc. */
+   the label takes rows 46..54 (x 79..113 for "OCT +1"), the switches x 65..77 on the same rows, the dot x 120..121,
+   rows 49..50. Plain C99, no libc. */
 #include <stdint.h>
 
 typedef int32_t s32;
@@ -35,6 +37,7 @@ extern char ref2_machine_index[];
 #define REF2_MACHINE    ((s32)(long)ref2_machine_index)
 #define OCT_DESCRIPTOR  1                   /* RETRIG + COLOR, the builder's first shortcut (notes/63 §3.2) */
 #define SOUND_OCT       76                  /* sound: k 28, the Octave, 8.8, signed */
+#define SOUND_SW        84                  /* sound: k 32, the switches: 0x100 Square, 0x200 Tone open */
 #define MACHINE_AT      38                  /* sound: k 9's high byte, the machine */
 
 /* The OS, as SAMPLE's machine/os.h reads it. */
@@ -63,6 +66,7 @@ struct bitmap {
 
 #define LABEL_X     96                      /* centred in the right half */
 #define LABEL_Y     46                      /* rows 46..54 */
+#define SW_X        71                      /* the switches, centred left of the label: x 65..77 */
 #define DOT_X       120                     /* the dot: x 120..121, rows 49..50 */
 #define DOT_Y       49
 #define DOT_TICKS   16                      /* the dot changes every 16 ticks, about half a second */
@@ -155,6 +159,14 @@ void ref2_main_draw(void *view, void *b)
 	label[3] = ' ';
 	signed_digit(label + 4, octave(s));
 	text(b, FONT_SMALL, LABEL_X, LABEL_Y, label);
+	i = 0;                                  /* the switches that are on, k 32 */
+	if (*(const s16 *)(s + SOUND_SW) & 0x100)
+		label[i++] = 'S';
+	if (*(const s16 *)(s + SOUND_SW) & 0x200)
+		label[i++] = 'O';
+	label[i] = 0;
+	if (i)
+		text(b, FONT_SMALL, SW_X, LABEL_Y, label);
 	if ((ticks / DOT_TICKS) & 1) {
 		pixel(b, DOT_X, DOT_Y);
 		pixel(b, DOT_X + 1, DOT_Y);

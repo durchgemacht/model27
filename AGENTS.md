@@ -108,8 +108,9 @@ tools/machines/registrar/     registrar.S, the runtime: the detours of the added
 tools/gen_parts.py            Level B, steps B4b and B4c: builds the builder's parts (tools/machines/<id>/part.json) into
                               their committed objects, --check compares (notes/63 §3 to §5)
 tools/machines/shortcuts/     the shortcut layer, a part (notes/63 §3): RETRIG + COLOR / SHAPE / SWEEP / CONTOUR on an
-                              added machine's tracks, saved with the sound; compose.py adds it only to the builds whose
-                              machines declare a shortcut, and chains a package's record wrapper (SAMPLE's) behind it
+                              added machine's tracks, saved with the sound, and since 0.2 RETRIG + PUNCH / GATE as two
+                              switches in k 32 (§16, §17); compose.py adds it only to the builds whose machines declare
+                              a shortcut, and chains a package's record wrapper (SAMPLE's) behind it
 tools/machines/dispatch/      the dispatchers, a part (notes/63 §4): a vtable entry or hook two packages take (the main
                               screen's and the knob view's draws, the screen's tick, the browser's open) goes to a
                               dispatcher that calls the right machine's method, or every machine's tick; compose.py adds
@@ -118,7 +119,8 @@ tools/machines/refmachine/    the reference machine: the smallest added machine,
 tools/machines/refmachine2/   the second reference machine (notes/63): grows into the template that uses every point a
                               machine may use (its shortcut, Octave on RETRIG + COLOR, since B4b; its main screen label
                               and knob view, since B4c; a tick that blinks the label's dot and a browser hook that shows
-                              the opened file's name, since B4d; through the dispatchers next to SAMPLE); never offered
+                              the opened file's name, since B4d; through the dispatchers next to SAMPLE; Square and Tone
+                              open on RETRIG + PUNCH / GATE, read in the note's sound, since §17); never offered
 tools/machines/refchord/      the reference extension of a stock machine (notes/66 §3, W2): "machine.stock" CHORD instead
                               of an added machine, RETRIG + SWEEP on CHORD's tracks and two hooks that count; proves the
                               builder's extensions (the tables by machine from 5, a build with nothing registered);

@@ -5,7 +5,10 @@
    triangle in place of REF's parabola so that the two are told apart by ear and in the proofs. Step B4b: a
    shortcut, RETRIG + COLOR = Octave (-2 to +2), declared in the manifest; the builder's shortcut layer shows and
    saves it in k 28, and this code only reads it. Step B4c: the main screen label and the knob view, in
-   ref2_view.c. Step B4d adds a handler on the tick and the browser. Never offered to users.
+   ref2_view.c. Step B4d adds a handler on the tick and the browser. The switches (notes/63 §16): RETRIG +
+   PUNCH = Square, RETRIG + GATE = Tone open, declared in the manifest; the shortcut layer flips them in k 32 of
+   the track's sound (bits 8 and 9) and saves them, and this code reads them in the sound the note plays, every
+   block, so that a switch acts at once. Never offered to users.
 
    Contract of the voice loop (One-Shot TECHNICAL §5, Modded-Cycles notes/14 and notes/43):
    ref2_update(pmod, v, p), then ref2_render(out, v), once per block of 32 frames at 48 kHz. pmod is
@@ -17,8 +20,9 @@
 
    Sound: a triangle (no table) mixed with white noise, through a one-pole lowpass. COLOR = Tone (the
    lowpass, 127 = open), SHAPE = Noise (0 = triangle only, 127 = noise only), SWEEP = Detune (-1 .. +1
-   semitone, 64 = none), CONTOUR = Level, RETRIG + COLOR = Octave (-2 .. +2, 0 = none). PITCH, FINE and the
-   trig's note set the pitch as on every machine: PITCH - 64 + note + FINE (+-2 semitones), then 12 semitones
+   semitone, 64 = none), CONTOUR = Level, RETRIG + COLOR = Octave (-2 .. +2, 0 = none), RETRIG + PUNCH =
+   Square (the triangle becomes a square), RETRIG + GATE = Tone open (the lowpass is left out). PITCH, FINE and
+   the trig's note set the pitch as on every machine: PITCH - 64 + note + FINE (+-2 semitones), then 12 semitones
    per octave. DECAY, GATE and PUNCH are the stock amp chain.
    Plain C99, no libc, no float, no 64-bit arithmetic. */
 #include <stdint.h>
@@ -38,6 +42,15 @@ typedef int16_t s16;
 #define PUNCH(o, v) ((void (*)(s32 *, char *))0x400a967a)(o, v)
 #define LUT_DECAY   ((const s32 *)0x4011d84c)       /* DECAY -> factor per block (TONE's) */
 
+/* The switches, k 32: read in the sound the note plays (CUR_SNDS[t], +20 + 2 * 32), or in the copy of its 66 bytes
+   when that is 0 (a preview note), not in p, which the OS smooths block by block (0x40058474, notes/63 §17). */
+#define CUR_SND(t)  (((const char *volatile *)0x800017ec)[t])
+#define TARGETS(t)  ((const char *)0x800015ae + 66 * (t))
+#define SOUND_K32   84
+#define TARGETS_K32 64
+#define SW_SQUARE   0x100                           /* RETRIG + PUNCH */
+#define SW_OPEN     0x200                           /* RETRIG + GATE */
+
 #define V32(o)      (*(s32 *)(v + (o)))
 #define P16(o)      (*(const s16 *)(p + (o)))
 
@@ -47,6 +60,7 @@ struct track {
 	s32 lp;                                         /* the lowpass's state */
 	s32 tone, mix, level;                           /* knobs, 0..32767 */
 	s32 pending;                                    /* a trig in this block: the phase restarts next block */
+	u32 sw;                                         /* the switches, SW_SQUARE and SW_OPEN */
 };
 
 static struct track trk[6];
@@ -89,7 +103,9 @@ static u32 phase_inc(s32 note)
 
 void ref2_update(s32 pmod, char *v, const char *p)
 {
-	struct track *tr = &trk[((u32)v - CYC_VOICE0) / CYC_VSTRIDE];
+	u32 t = ((u32)v - CYC_VOICE0) / CYC_VSTRIDE;
+	struct track *tr = &trk[t];
+	const char *snd = CUR_SND(t);
 	s32 dec, note, tune, oct;
 
 	if (V32(MARK_OFF) != MARK) {                    /* first block since the track changed machine */
@@ -126,6 +142,8 @@ void ref2_update(s32 pmod, char *v, const char *p)
 	tr->tone = knob(P16(0x16));
 	tr->mix = knob(P16(0x18));
 	tr->level = knob(P16(0x1c));
+	tr->sw = (uint16_t)(snd ? *(const volatile s16 *)(snd + SOUND_K32)
+	                        : *(const s16 *)(TARGETS(t) + TARGETS_K32));
 }
 
 void ref2_render(s32 *out, char *v)
@@ -147,13 +165,18 @@ void ref2_render(s32 *out, char *v)
 		s32 x = (s32)(ph & 0x7fff), s, n, y;
 
 		s = x < 16384 ? x << 1 : (32768 - x) << 1;  /* a triangle per half cycle: 0 .. 32768 */
+		if (tr->sw & SW_SQUARE)
+			s = 32767;                              /* Square: a full half cycle */
 		if (ph & 0x8000)
 			s = -s;
 		tr->phase += tr->inc;
 		tr->noise = tr->noise * 1664525u + 1013904223u;
 		n = (s32)tr->noise >> 16;                   /* -32768 .. 32767 */
 		y = (s * (32767 - tr->mix) + n * tr->mix) >> 15;
-		tr->lp += ((y - tr->lp) * coef) >> 15;
+		if (tr->sw & SW_OPEN)
+			tr->lp = y;                             /* Tone open: no lowpass */
+		else
+			tr->lp += ((y - tr->lp) * coef) >> 15;
 		out[i] = (tr->lp * tr->level) << 1;         /* Q15 * Q15 -> Q31 */
 	}
 	AMP_ENV(v);

@@ -713,7 +713,7 @@ def shortcut_uses(mans, part):
     for i, m in enumerate(mans):
         seen = set()
         for u in m["uses"]:
-            if u["point"] != "shortcut":
+            if u["point"] != "shortcut" or "press" in u:      # a switch: shortcut_presses()
                 continue
             where = f"{m['id']}: shortcut {u.get('key')} + {u.get('knob')}"
             if u.get("key") != sc["key"] or u.get("knob") not in sc["knobs"]:
@@ -735,14 +735,41 @@ def shortcut_uses(mans, part):
     return out
 
 
+def shortcut_presses(mans, part):
+    """The switches the machines declare ("shortcut" with "press" in their uses), checked against the builder's list
+    (notes/63 §16): one byte per machine, bit 0 RETRIG + PUNCH, bit 1 RETRIG + GATE. A switch has no name, range or
+    formatter: the machine shows it, if it wants, and reads it in k 32 of its note's sound."""
+    sc = part["shortcut"]
+    out = []
+    for m in mans:
+        bits = 0
+        for u in m["uses"]:
+            if u["point"] != "shortcut" or "press" not in u:
+                continue
+            where = f"{m['id']}: shortcut {u.get('key')} + {u['press']}"
+            if u.get("key") != sc["key"] or u["press"] not in sc["presses"] or "knob" in u or "param" in u:
+                sys.exit(f"!! {where}: not on the builder's list, {sc['key']} + {' or '.join(sc['presses'])}, a press "
+                         "with no knob and no param (notes/63 §16)")
+            bit = 1 << sc["presses"].index(u["press"])
+            if bits & bit:
+                sys.exit(f"!! {where}: declared twice")
+            bits |= bit
+        out.append(bits)
+    return out
+
+
 def shortcut_layer(img, part, mans, syms_of, uses, at, code_end, first, descn=None):
     """The shortcut layer of this build (notes/63 §3, B4b): the part's committed object placed at at, its data block
-    right after its code, the knob lookup's vtable entry and the three sound record functions jumping into it. A
-    package's own hook on a record function, a wrapper over the same 8 bytes (SAMPLE's), becomes the next of the
-    chain and its write is left out. descn: the descriptor table the OS uses, the registrar's moved copy by default,
-    the stock table in a build without an added machine (notes/66 §3). Returns (blob, symbols, writes, the sites
-    left out, info)."""
+    right after its code, the knob lookup's vtable entry and the three sound record functions jumping into it, and
+    when a machine declares a press (§16), the function PUNCH's and GATE's presses call and MainScreenView's LED
+    method. A package's own hook on a record function, a wrapper over the same 8 bytes (SAMPLE's), becomes the next of
+    the chain and its write is left out. descn: the descriptor table the OS uses, the registrar's moved copy by
+    default, the stock table in a build without an added machine (notes/66 §3). Returns (blob, symbols, writes, the
+    sites left out, info)."""
     b, d, sc, sites = part["build"], part["data"], part["shortcut"], part["sites"]
+    if len(mans) > d["max_machines"]:
+        sys.exit(f"!! {len(mans)} machines: the shortcut layer's tables hold {d['max_machines']}")
+    presses = shortcut_presses(mans, part)
     path = object_path(part)
     if not path.is_file():
         sys.exit(f"!! {path} is missing: run tools/gen_parts.py")
@@ -787,6 +814,7 @@ def shortcut_layer(img, part, mans, syms_of, uses, at, code_end, first, descn=No
         struct.pack_into(">I", head, d["next"] + 4 * j, nxt)
     struct.pack_into(">I", head, d["descn"], gs.DESCN if descn is None else descn)
     head[d["first"]], head[d["count"]] = first, len(mans)
+    head[d["presses"]:d["presses"] + len(presses)] = bytes(presses)
     data = bytes(head + entries + strings)
     if data_at + len(data) > code_end:
         sys.exit(f"!! the shortcut layer ends at {data_at + len(data):#x}, past {code_end:#x}")
@@ -805,10 +833,21 @@ def shortcut_layer(img, part, mans, syms_of, uses, at, code_end, first, descn=No
     for s in sites["record"]:
         writes.append({"off": int(s["at"], 16) - BASE, "old": s["stock"],
                        "new": (bytes.fromhex("4ef9") + g7.be32(syms[s["symbol"]]) + bytes.fromhex("4e71")).hex()})
+    if any(presses):                         # the press and the LEDs, only in the builds with a switch (notes/63 §16)
+        for s in sites["press"]:
+            va = int(s["at"], 16)
+            if img[va - BASE:va - BASE + 6] != bytes.fromhex(s["stock"]):
+                sys.exit(f"!! {va:#x}: {s['stock']} expected, {img[va - BASE:va - BASE + 6].hex()} found")
+            for m in mans:
+                if any("hook" in u and int(u["hook"]["at"], 16) == va for u in m["uses"]):
+                    sys.exit(f"!! {m['id']}: hooks {va:#x}, which the shortcut layer takes for the switches")
+            op = {"jmp": "4ef9", "jsr": "4eb9"}[s["op"]]
+            writes.append({"off": va - BASE, "old": s["stock"],
+                           "new": (bytes.fromhex(op) + g7.be32(syms[s["symbol"]])).hex()})
     out = {r: syms[r] for r in roots}
     out.update({pp["symbol"]: values[pp["kind"]] for pp in b["patch_points"]})
     info = dict(id=part["id"], code_at=at, code=len(code), data_at=data_at, data=len(data), shortcuts=len(uses),
-                chained=[f"{n:#x}" for n in nexts])
+                switches=sum(bin(x).count("1") for x in presses), chained=[f"{n:#x}" for n in nexts])
     return blob, out, writes, skip, info
 
 
@@ -1106,7 +1145,8 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     if layer:
         li = layer[4]
         tweak["description"].insert(6, f"With the shortcut layer (tools/machines/shortcuts/, notes/63 §3) at {li['code_at']:#x}, "
-                                       f"its data at {li['data_at']:#x}: {li['shortcuts']} shortcut(s).")
+                                       f"its data at {li['data_at']:#x}: {li['shortcuts']} shortcut(s)"
+                                       + (f", {li['switches']} switch(es) (§16)." if li["switches"] else "."))
         tweak["symbols"].update({k: f"{v:#x}" for k, v in layer[1].items()})
     if dispatch:
         di = dispatch[4]
@@ -1216,8 +1256,8 @@ def main():
               f"{p['bss_at']:#x}")
     if info["part"]:
         p = info["part"]
-        print(f"  {p['id']:12s} {p['shortcuts']} shortcut(s), code {p['code']} bytes at {p['code_at']:#x}, data {p['data']} "
-              f"bytes at {p['data_at']:#x}, record chain {', '.join(p['chained'])}")
+        print(f"  {p['id']:12s} {p['shortcuts']} shortcut(s), {p['switches']} switch(es), code {p['code']} bytes at "
+              f"{p['code_at']:#x}, data {p['data']} bytes at {p['data_at']:#x}, record chain {', '.join(p['chained'])}")
     if info["dispatch"]:
         p = info["dispatch"]
         print(f"  {p['id']:12s} code {p['code']} bytes at {p['code_at']:#x}, data {p['data']} bytes at {p['data_at']:#x}, "
