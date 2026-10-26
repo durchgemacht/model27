@@ -1260,3 +1260,5 @@ What the maintainer reports goes into a new section here, with the date.
   claims (k 32, and k 28–31 and record slots 30–31, which the layer saves for every sound). No byte is shared.
 - `test_shortcuts.py` counts SAMPLE among the machines whose presses and LEDs act. Run by the maintainer with the four
   other proofs of §18.3 on 2026-10-26: **ALL OK** (notes/60 §18).
+- On the Model:Cycles (2026-10-26), SAMPLE alone flashed from the page: "passt", Loop and Reverse, their LEDs and
+  letters, the stock presses and Control All as before, the switches kept by a saved project (notes/60 §19).

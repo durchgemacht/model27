@@ -483,3 +483,14 @@ half-finished step never blocks a build.
   byte of presses 3, the press and the LEDs acting on its tracks next to REF2's), `test_views.py` 45, `test_refchord.py`
   86, `test_compose.py` 183, `test_chordtables.py` 165, **ALL OK** `[FAIT en émulation]`. The device is next. The card
   stays `tested`, as in §15–16.
+
+## 19. SAMPLE 0.11 tested from the page (2026-10-26)
+
+- **Flashed by the maintainer from the live web flasher** (stamp `2026-10-26-01`), SAMPLE as the page composes it, and
+  played on a Model:Cycles: "passt" (fine), against the list Loop (L, PUNCH's LED while RETRIG is held, the note
+  looping until DECAY closes it), Reverse (R, from the next trig), both at once, a single cycle looped, a trig cutting
+  a sounding note, PUNCH and GATE without RETRIG and TRACK + PUNCH or GATE as before, a saved project keeping the
+  switches. The page builds SAMPLE alone only when its MAIN OS is `REF_MAINOS["sampler"]` (`72b596dc…`), so what was
+  flashed is §18's composed 0.11, byte for byte, the build played in digiemu.
+- With it the card's `tested` holds for the page's build of 0.11, as it did for 0.10 (§17).
+- The guide's Tested line, release 0.9, the sampler manifest's `tests.hardware` and the stamp `2026-10-26-02` say so.

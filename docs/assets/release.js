@@ -7,6 +7,9 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.9", date: "2026-10-26", changes: [
+    { en: "SAMPLE from Cycles One-Shot 0.11 is tested as this page builds it: flashed from this page and played on a Model:Cycles (2026-10-26): Loop and Reverse with their LEDs and letters, a single cycle looped, a trig cutting a sounding note, the switches kept by a saved project" },
+  ] },
   { version: "0.8", date: "2026-10-26", changes: [
     { en: "SAMPLE now comes from Cycles One-Shot 0.11 and loops and plays in reverse: on a SAMPLE track, hold RETRIG and press PUNCH for Loop, GATE for Reverse. Loop plays from Start to the end again and again with a hard seam, as on the Model:Samples, so a single-cycle waveform loops without a step; Reverse plays backwards from the next trig. Both are saved with the sound, the LEDs of PUNCH and GATE show them while RETRIG is held, and the sample's name ends with L and R while they are on. TRACK + PUNCH or GATE stays Control All" },
     { en: "A trig that cuts a SAMPLE note still sounding brings the new one in over 0.67 ms, as the Model:Samples does, so a looped waveform or a sample played in reverse does not click on every trig" },
