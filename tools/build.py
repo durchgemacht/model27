@@ -81,12 +81,22 @@ def cmd_list(cat):
             print(f"  {t['id']:16} {t['name']}{excl}")
 
 
+def shares_bytes(a, b):
+    """Vrai si deux tweaks écrivent à une même adresse."""
+    spans = [(w["off"], w["off"] + len(w["new"]) // 2) for w in a.get("writes", [])]
+    return any(lo < w["off"] + len(w["new"]) // 2 and w["off"] < hi
+               for w in b.get("writes", []) for lo, hi in spans)
+
+
 def check_conflicts(chosen):
-    ids = {t["id"] for t in chosen}
+    by_id = {t["id"]: t for t in chosen}
     for t in chosen:
         for other in t.get("conflicts", []):
-            if other in ids:
-                raise SystemExit(f"!! {t['id']} et {other} sont incompatibles (ils modifient les memes octets) : "
+            if other in by_id:
+                why = ("ils modifient les memes octets" if shares_bytes(t, by_id[other]) else
+                       "aucun octet commun, mais des données sauvées, une mémoire ou un geste en commun, déclarés dans "
+                       "« conflicts » ; tools/compose.py et tools/check_overlaps.py disent lesquels, notes/65")
+                raise SystemExit(f"!! {t['id']} et {other} sont incompatibles ({why}) : "
                                  "choisis l'un ou l'autre avec -t")
         for need in t.get("requires", []):               # s'applique par-dessus un autre tweak (notes/31)
             if need not in ids:
