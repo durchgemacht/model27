@@ -1,7 +1,7 @@
 # 63 — Level B, step 4: machine shortcuts and dispatchers, proven by a second reference machine (plan)
 
 **Status: plan, 2026-10-22; the maintainer's decisions (§9); B4a built and proven in emulation (§10); B4b built and proven
-in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK); B4d built and proven in emulation (§13: the same three proofs, ALL OK); B4e built (§14): the web flasher composes them, the standard's draft 0.3; RETRIG + PUNCH / GATE is free in the stock OS, a candidate for the list (§15, 2026-10-23).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
+in emulation (§11: `test_shortcuts.py` and `test_compose.py`, ALL OK); B4c built and proven in emulation (§12: `test_views.py`, `test_shortcuts.py`, `test_compose.py`, ALL OK); B4d built and proven in emulation (§13: the same three proofs, ALL OK); B4e built (§14): the web flasher composes them, the standard's draft 0.3; RETRIG + PUNCH / GATE is free in the stock OS, a candidate for the list (§15, 2026-10-23); as two machine switches, planned and decided (§16, 2026-10-26).** What remains of increment B4 of [notes/59](59-level-b-builder.md) (§6) once the stable
 ids were dropped ([notes/62](62-level-b4-stable-machine-ids.md) §9). It covers two pieces:
 
 - the dispatcher tables for the hooks two packages share;
@@ -777,3 +777,189 @@ selected track (on all six with TRACK held). No tweak of the folder hooks the tw
   or GATE press, nor for FUNC + PUNCH / GATE.
 - **The list itself**: this note's §0 and §1.3, STANDARD.md (the shortcut list), APPLYING.md and the README's
   "Shortcuts are predefined" grow by the new entries.
+
+## 16. RETRIG + PUNCH / GATE as machine switches: the plan (2026-10-26)
+
+**The maintainer's request (2026-10-26):** add RETRIG + PUNCH and RETRIG + GATE to the standard, so that a machine
+can use them if it wants. Decided with the request:
+
+- each is a **switch, on or off, saved with the sound**;
+- on the machine's tracks, **the PUNCH and GATE LEDs show the machine's switches while RETRIG is held**;
+- everything else (whether, when and where the screen shows a switch) is the machine's business;
+- **plan first, then build**, as for B4 (§7). The standard's text comes last, once the builder does what it says.
+
+Facts marked `[FAIT]` come from the disassembly of OS 1.13 (`_scratch/control-all/main.dis`, not committed),
+2026-10-26. Nothing here is built or run yet.
+
+### 16.1 In short
+
+- **Two press shortcuts** next to the four knob shortcuts: RETRIG held + a press on PUNCH, RETRIG held + a press on
+  GATE. A machine opts in per key. On its tracks the press flips the machine's switch, and PUNCH or GATE stay as they
+  were; on every other track the press does what it does in the stock OS.
+- **The value:** two bits of k 32, saved in record slot 18. Off is 0, so a new sound, a sound saved before and a
+  sound from the official OS start with both switches off.
+- **Two hooks:** one at the start of the function both presses call (`0x4001ac4a`), one in the main screen's LED
+  method (`0x4001cbfe`).
+- **The shortcut layer grows** (part 0.2) instead of a new part: it already owns the record chain the value is saved
+  through.
+- **REF2 uses both** and shows them in its label, as the template.
+
+### 16.2 The press `[FAIT]`
+
+- `0x4001ac4a(view, parameter)` has two callers only: PUNCH's case of MainScreenView's key handler (`0x4001c2d2`,
+  parameter 44) and GATE's (`0x4001caa2`, parameter 45), each on a fresh press without FUNC (§15.1).
+  - With TRACK held it switches the parameter on all six tracks through `0x4001abe2` (Control All).
+  - Otherwise it switches it on the selected track (`0x400cf866` → `0x4000eb90` → `0x40012412`).
+- `0x4001abe2(parameter, track)` reads the parameter through the method `+28` of the object `0x400097f0` returns,
+  and writes 256 when it was 0, else 0, through the setter `0x4000b274` (the value clamped by `0x4005a65a`, then the
+  methods `+24` and `+92`). PUNCH and GATE are 0 or `0x0100`.
+- **The hook:** a `jsr` over `0x4001ac4a`'s first 6 bytes (`4feffff47201`: `lea -12(sp),sp ; moveq #1,d1`). No tweak
+  of the folder writes there (all 288 JSON files of the tweak folder scanned, 2026-10-26); control-all-config's hook
+  is at `0x4001ac7a`, inside the loop.
+- **What it does:**
+  - It acts when RETRIG is held (`isKeyHeld(4)`) and TRACK is not. A held trig does not matter (decided, §16.11):
+    with RETRIG held the trig keys enter retrigs, so RETRIG + a trig + PUNCH is a corner case, and what the stock OS
+    does on a PUNCH press with a trig held was not read.
+  - It looks up the selected track's machine, as the dispatchers do (`dispatch.c`: the project's track at
+    `+212 + t · 68`, its sound from the method at `+40` of its vtable, the machine in the sound's byte `+38`).
+  - If that machine declared the press, it flips the switch and returns from `0x4001ac4a` without the stock body:
+    PUNCH or GATE does not switch.
+  - In every other case it replays the 6 bytes and goes on with the stock body.
+  - FUNC never reaches `0x4001ac4a`. TRACK + RETRIG + PUNCH stays Control All, as TRACK turns the knob shortcuts off.
+- **How the value reaches the voice** `[HYP]`, to settle in P1 by reading and in emulation:
+  - The setter `0x4000b274` takes a parameter number that has a descriptor (44, 45). k 32 has none, and the knob
+    shortcuts already lend descriptors 1–4, all four.
+  - The fallback: write the sound's `+84` and clear the track's entry in `0x800017ec`, which makes the audio side
+    copy the sound's k 0–32 at the next note (STANDARD.md §2.3; the OS does that after a preview note, `0x4005910e`).
+    A switch would then take effect at the next note, and a note already playing would keep the old value.
+- **The LEDs are asked again** after a flip: `0x400760ba(view)` requests a new LED frame (notes/58 §3).
+
+### 16.3 The LEDs
+
+- **What the stock OS does** `[FAIT]`:
+  - MainScreenView's LED method `0x4001cbfe` (reached through the thunk `0x4001cef8`) reads parameters 44 and 45 of
+    the selected track's sound (`0x4001cc66`, `0x4001cc7a`).
+  - It lights **LED 19 (`0x13`) for PUNCH and LED 20 (`0x14`) for GATE** through
+    `0x40005f86(leds, led, state, 0x404a8cb8)`: state 2 (lit) when the parameter is set, 1 (off) when it is 0.
+  - It then records its LEDs in `out`, its third argument (`0x400d82de`, `0x400d8020`). The views are served from
+    the top of the list, and the first writer of an LED wins (notes/58 §3).
+- **The hook** `[HYP]`: the 6 bytes at `0x4001cc86` (`2a00 4a82 57c0`: `move.l d0,d5 ; tst.l d2 ; seq d0`), where d2
+  holds PUNCH, d0 GATE and d4 the track. Nothing of the folder writes there (same scan).
+  - When RETRIG is held and the track's machine declared a press, it replaces that key's value with the machine's
+    switch.
+  - In every other case it only replays the three instructions.
+- **To prove:**
+  - that a press and a release of RETRIG ask for a new LED frame (RETRIG's own LED 27 is lit while it is held, by
+    another view's method, `0x4001d3de`);
+  - that LEDs 19 and 20 follow the switch after a flip.
+
+### 16.4 Where the value lives
+
+| | Where | Content |
+|---|---|---|
+| sound | k 32 (`+84`); the voice reads it at `params + 0x40` | `0x0100` RETRIG + PUNCH on, `0x0200` RETRIG + GATE on (as 8.8, the integer 0 to 3); every other bit 0 |
+| record | slot 18 (`+64`) | the same word |
+
+- **k 32** reaches the voice: the audio side copies the sound's k 0–32, 66 bytes (STANDARD.md §2.3). The stock OS
+  does not use it. In the claims only lfo-plus holds it (k 28–32), and lfo-plus already clashes with the shortcut
+  layer (§14).
+- **Record slot 18** `[FAIT]` (notes/47 §4.1):
+  - The stock save clears `+28..+91` and fills only k 0–22, so slot 18 stays 0.
+  - The stock load reads slots 0–23 and puts slot 18 on k 0, which nothing uses. The layer's load wrapper copies slot
+    18 into k 32 and clears k 0 again, as the track filter's did.
+  - In the claims only the track filter holds slot 18, and it already clashes with the shortcut layer.
+  - No other slot is free: the record is 100 bytes, slots 0–31 are `+28..+91`, and `+92..+99` hold other data.
+- **On the official OS** a sound saved in model27 loads with the word on k 0, which nothing uses, and k 32 at 0; a
+  sound saved there loses its switches (notes/64 §4).
+- **A sound saved by the track filter** (Modded-Cycles) carries Filter Env and Env Decay in slot 18. Loaded in a
+  model27 build with the layer, it switches a machine's switches at random: a happy accident of the kind of
+  notes/64, to add there.
+- **As for the knob shortcuts:** machine-scoped; kept when a track changes machine (`0x40014072` resets five
+  parameters); never p-locked nor an LFO destination (no descriptor); the stock copy of a sound stops at k 22
+  (`0x4005aa54`), to check on the device as for k 28–31 (§3.2).
+
+### 16.5 The builder
+
+- **The manifest:** `{"point": "shortcut", "key": "RETRIG", "press": "PUNCH", "why": "…"}`, or `"press": "GATE"`. No
+  name, range, default or formatter: the machine shows its switch itself, if it wants. `compose.py` and `composer.js`
+  refuse another key, a press declared twice, and `knob` and `press` in one entry.
+- **The part** (`tools/machines/shortcuts/`, 0.2):
+  - `part.json` gains `"presses": ["PUNCH", "GATE"]`, sound slot 32, record slot 18, the two sites and their claims;
+  - `shortcuts.S` gains `sc_press` and `sc_leds`, and the copy between slot 18 and k 32 in `sc_post_save` and
+    `sc_post_load`;
+  - the data block gains one byte per machine: bit 0 PUNCH, bit 1 GATE.
+- **When it goes in:** as today, when a machine declares a shortcut; the two new hooks only when a machine declares
+  a press.
+  - Every build with the layer changes bytes all the same (its code and the record copy): CHORD Tables' builds get
+    new MAIN OS hashes, and `REF_MAINOS` and the smoke test follow.
+  - SAMPLE alone, and every build without the layer, stays byte for byte.
+- **The claims** (`tools/claims.py`):
+  - `KEYS["GATE"] = 7`;
+  - stock entries for a press on PUNCH or GATE (it switches them) and for FUNC + PUNCH / GATE (it opens a view);
+  - the part claims `RETRIG + PUNCH/GATE` in situation `any`, on the tracks of the machine that declares it, with k 32
+    and record slot 18;
+  - no claim of the folder uses RETRIG + PUNCH / GATE (§15.1). Chord Keys' RETRIG + TRIG 1-16 and the arp's RETRIG +
+    NOTES are other atoms.
+- `REGISTRY.md` regenerated: two hooks, k 32, record slot 18, the gesture.
+
+### 16.6 REF2, the first user
+
+- **RETRIG + PUNCH = Square:** the triangle becomes a square.
+- **RETRIG + GATE = Tone open:** the one-pole lowpass is bypassed.
+- Both are heard, and both are easy to check in emulation.
+- REF2's label on the main screen (§12) shows them (`SQ`, `OP`), so that the template shows one way a machine may
+  show its switches.
+
+### 16.7 Proofs (Unicorn, run by the maintainer)
+
+`test_shortcuts.py` grows, on the builds REF2 alone, REF2 + SAMPLE, and CHORD Tables:
+
+- RETRIG + PUNCH on a REF2 track flips bit 8 of k 32 and not PUNCH (k 15); a second press flips it back; the same
+  for GATE and bit 9.
+- The same press on a SAMPLE track, on a stock track, and with TRACK held: the stock switch (Control All on the six
+  tracks), k 32 untouched. With a trig held on a REF2 track: the machine's switch, as without.
+- The LED method with and without RETRIG held: the states of LEDs 19 and 20.
+- Save and load: k 32 into slot 18 and back, k 0 back at 0; a record from the official OS gives 0.
+- The voice: REF2 plays a square, or the open tone, after the switch (at the next note, if §16.2's fallback is the
+  way).
+- `test_compose.py` and `test_views.py` with the same results; `webcompose_check`, Python against JavaScript;
+  `claims.py --self-test` with the new cases; `check_overlaps.py`; `registry.py --check`.
+
+### 16.8 The standard, last (draft 0.5)
+
+STANDARD.md §3.1 (the list grows by two switches), §4.2 (the `shortcut` entry with `press`), §5.2 (k 32), §5.3
+(slot 18), §5.4 (the gesture and the stock rows for the presses), §7.4 (REF2's manifest); APPLYING §12.4; the
+READMEs' "Shortcuts are predefined" (the standard's and model27's); this note's §0 and §1.3.
+
+### 16.9 Steps
+
+1. **P1:** the layer 0.2, the builder in Python, the claims, REF2's switches; the checks without firmware.
+2. **P2:** the proofs (§16.7), run by the maintainer.
+3. **P3:** `composer.js` and the page's data (`tweaks.js`, `REF_MAINOS`, the stamp); no new card, REF2 is not
+   offered.
+4. **P4:** the standard's draft 0.5, APPLYING, the READMEs; notes/64.
+5. **The device:** a REF2 build from `compose.py`, alone and with CHORD Tables, by the maintainer.
+
+Each step: a diff shown, a commit on the maintainer's word.
+
+### 16.10 Decisions for the maintainer
+
+1. The value in k 32 (bits 8 and 9) and record slot 18 (§16.4), the only free place.
+2. The shortcut layer grows to 0.2 instead of a new part; CHORD Tables' builds change hashes (§16.5).
+3. REF2's switches: Square and Tone open, shown in its label (§16.6).
+4. Which held keys keep the stock press: TRACK only (Control All), or a held trig as well (§16.2). FUNC never gets
+   there.
+5. If the value cannot reach a note already playing, a switch takes effect at the next note (§16.2).
+
+### 16.11 Decisions (2026-10-26)
+
+The maintainer took the recommendations:
+
+1. The value in k 32, bits 8 and 9, and record slot 18.
+2. The shortcut layer grows to 0.2; CHORD Tables' builds change hashes.
+3. REF2: RETRIG + PUNCH = Square, RETRIG + GATE = Tone open, shown in its label.
+4. **TRACK alone keeps the stock press** (Control All). With RETRIG held, a held trig changes nothing: the press flips
+   the machine's switch.
+5. If the value cannot reach a note already playing, a switch takes effect at the next note.
+
+Next: P1 (§16.9).
