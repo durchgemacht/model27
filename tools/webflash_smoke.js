@@ -303,7 +303,7 @@ async function main() {
     await wait(20);
     check(/Que voulez-vous installer/.test(text(doc, "h1s")) && doc.documentElement.lang === "fr", "FR switch translates the page");
     check(/Control All : choix des pistes/.test(text(doc, "features")) && /SAMPLE machine \(Cycles One-Shot\)/.test(text(doc, "features"))
-      && /Digital Delay \(effet\)/.test(text(doc, "features")) && /Expérimental/.test(text(doc, "features"))
+      && /Digital Delay \(effet\)/.test(text(doc, "features"))
       && /par durchgemacht/.test(text(doc, "features")) && /Testé/.test(text(doc, "features"))
       && doc.querySelector('#features a[href$="#control-all"]') && doc.querySelector('#features a[href$="#sampler"]'),
       "FR switch translates the cards (SAMPLE's texts are in English only), their credits and tags, with their guide links");

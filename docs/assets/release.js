@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.11", date: "2026-10-27", changes: [
+    { en: "Digital Delay is tested as this page builds it: flashed from this page alone and with SAMPLE and played on a Model:Cycles (2026-10-27). Its card now shows Tested",
+      fr: "Digital Delay est testé tel que cette page le construit : flashé depuis cette page seul et avec SAMPLE, et joué sur un Model:Cycles (2026-10-27). Sa carte affiche maintenant Testé" },
+  ] },
   { version: "0.10", date: "2026-10-27", changes: [
     { en: "New card, Digital Delay (under Sounds & machines), the first effect: a second delay for the delay slot, bright and clean, up to 5.4 s, each repeat a little thinner in the lows. Hold TRACK and turn Delay Time to switch the pattern between the stock Delay and Digital; the choice is saved with the pattern",
       fr: "Nouvelle carte, Digital Delay (dans Sons et machines), le premier effet : un second delay pour l'emplacement du delay, clair et net, jusqu'à 5,4 s, chaque répétition un peu plus fine dans les graves. Tenez TRACK et tournez Delay Time pour passer le pattern du Delay d'origine à Digital ; le choix est enregistré avec le pattern" },

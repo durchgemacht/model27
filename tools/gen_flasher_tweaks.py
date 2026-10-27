@@ -345,10 +345,10 @@ ALL_FEATURES = [
         "desc": "A second delay for the delay slot: bright and clean, up to 5.4 s, each repeat a little thinner in the "
                 "lows. Hold TRACK and turn Delay Time to switch the pattern's delay between the stock Delay and "
                 "Digital; Time and Fdbk keep their knobs.",
-        # PPPCCC's digital delay (2.0.0) ported to an effect package, their sound bit for bit in emulation; the
-        # command-line build of it alone played on the Model:Cycles on 2026-10-27 (notes/68 §18). Experimental
-        # until flashed from this page.
-        "status": "experimental",
+        # PPPCCC's digital delay (2.0.0) ported to an effect package, their sound bit for bit in emulation; tested
+        # on the Model:Cycles on 2026-10-27 from the command line, then flashed from this page alone and with SAMPLE
+        # (notes/68 §18, §19)
+        "status": "tested",
         "credit": {"kind": "based", "who": "gialloinfuso", "repo": "gialloinfuso/PPPCCC-Model-Cycles-1.13-Mods"},
         "license": "LICENSE-PPPCCC",
         # an effect composed in the page from its package (notes/68 §19), with the machines ticked: alone it gives

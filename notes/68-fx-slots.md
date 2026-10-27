@@ -1192,12 +1192,21 @@ alone gives MAIN OS `4fb4eac7…`, the image played on the device), `fill` 6/6. 
 
 ### 19.3 Left
 
-- **The device, from the page**: Digital alone, then with SAMPLE; then the card's status to "tested" (the guide's line,
-  the release, the stamp), as AGENTS.md's step 8.
+- ~~The device, from the page~~: done, §19.4.
 - **Id 1** is Digital's from the commit that ships it: fixed for good then (§15.5).
 - **The gesture's claim** (TRACK + Delay Time / Reverb Size) is not declared: the claims' vocabulary has no names for
   knobs 8 to 15 yet (§11.8).
 - **The standard** (step 5 of §15.9).
+
+### 19.4 Tested from the page (2026-10-27)
+
+The maintainer, 2026-10-27, from the work copy's page served on localhost: « alleine und mit sample getestet. alles wie
+erwartet ». **Digital Delay flashed from the web flasher alone (`digidelay`, MAIN OS `4fb4eac7…`) and with SAMPLE
+(`sampler+digidelay`) works on the Model:Cycles.** The card is "tested" (`FEATURES`, `tweaks.js`; its note without the
+"experimental" sentence), the guide's line "Tested", release 0.11, the stamp `2026-10-27-02`, `README.md` (three cards
+tested), the manifest's `tests` (status "tested"). `webflash_smoke.sh` with both files again: 178 checks, ALL PARTS OK;
+`gen_flasher_tweaks.py --check`, `ref_mainos.py --check` green. In the commits to come, this is AGENTS.md's step 8: a
+commit of its own after the card's.
 
 ## 20. The standard: draft 0.6 (2026-10-27)
 

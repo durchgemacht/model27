@@ -161,7 +161,7 @@ window.MC_TWEAKS = {
    "id": "digidelay",
    "label": "Digital Delay (effect)",
    "desc": "A second delay for the delay slot: bright and clean, up to 5.4 s, each repeat a little thinner in the lows. Hold TRACK and turn Delay Time to switch the pattern's delay between the stock Delay and Digital; Time and Fdbk keep their knobs.",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "based",
     "who": "gialloinfuso",
