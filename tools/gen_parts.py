@@ -9,9 +9,9 @@ tools/machines/<id>/<id>.o, as a package's generator writes its object, then che
 roots are defined, the only undefined symbols are the patch points, every relocation is R_68K_32. --check compares
 with the committed object.
 
-Today two parts: shortcuts, the machine shortcuts and the sound record chain (tools/machines/shortcuts/, B4b), and
-dispatch, the dispatchers of the points two machines share (tools/machines/dispatch/, B4c). Needs the m68k
-toolchain; compose.py does not.
+Today three parts: shortcuts, the machine shortcuts and the sound record chain (tools/machines/shortcuts/, B4b);
+dispatch, the dispatchers of the points two machines share (tools/machines/dispatch/, B4c); and fxslot, the effect
+slots (tools/machines/fxslot/, notes/68 step F1). Needs the m68k toolchain; compose.py does not.
 
     python3 tools/gen_parts.py [--check]
 """
@@ -26,7 +26,7 @@ sys.path.insert(0, str(HERE))
 import compose                     # noqa: E402
 import relocate                    # noqa: E402
 
-PARTS = ("shortcuts", "dispatch")
+PARTS = ("shortcuts", "dispatch", "fxslot")
 
 
 def main():

@@ -130,6 +130,12 @@ tools/machines/chordtables/   CHORD Tables (notes/66): an extension of CHORD, RE
                               since 0.2 the frames CHORD plays come from a pool in the stock table's SRAM, notes/66 §19);
                               tools/gen_chordtables.py builds it into 36-chordtables.json; tools/wavetable.py turns a
                               wavetable WAV into its files (32 frames of 256, harmonics 1-40), --self-test
+tools/machines/fxslot/        the effect slots, a part (notes/68): the mixer's delay and reverb go to the effect the playing
+                              pattern chose there (bytes 29-31 of its header, TRACK + Delay Time / Reverb Size), each slot
+                              with a line of its own; compose.py adds it to the builds whose packages are effects
+tools/machines/digidelay/     Digital Delay (notes/68 §18): PPPCCC's digital delay as an effect of the delay slot (id 1);
+                              tools/gen_digidelay.py builds it into 39-digidelay.json; refdelay/, refreverb/: the slots'
+                              reference effects, never offered
 tools/emu/                    Unicorn emulation of the OS: test_<mod>.py proofs, mcengine.py, emac.py, syntakt.py
 tools/gen_flasher_tweaks.py   FEATURES list -> docs/flasher/tweaks.js (generated); a machine card embeds its package and
                               the registrar's frame, composed in the page (notes/61)
@@ -161,7 +167,7 @@ CONTRIBUTING.md               terms for outside contributions, and how a machine
 
 Follow the shape of the last ones (tempo-max: commits `5997b4a`, `14fb9fa`, `6e592bc`; trig-hold, arp). In order:
 
-1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 66 is the last) with the
+1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 68 is the last) with the
    user's request and its source, the OS code involved (addresses, `[FAIT]`/`[HYP]`), the design, free space used and
    conflicts with other tweaks. Add a row to `notes/README.md`. See `notes/AGENTS.md`.
 2. **Write the generator** `tools/gen_<mod>.py` (and sources under `tools/machines/<mod>/` if it has code). It reads

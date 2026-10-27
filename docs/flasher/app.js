@@ -32,12 +32,19 @@ const REF_MAINOS = {
   // each card alone: each variant, each combination of real Syntakt engines
   "control-all-config": "eb70de0a330dc9c033db5c5fc5d8589c3356c94ad346a8d30840e03ecb90299d",
   "sampler": "72b596dc5ce258dd1e5419c961310dd80a7e286b3ee86ec2ebf1bf4af8413f61",
+  "digidelay": "4fb4eac751faa4e6ec02a2bfefd24ccb264bdd566ede2244a1ceb258542894b9",
   // every pair of cards the page lets you tick together
   "control-all-config+sampler": "327cbd37f5b30d03b82b61ab3f20d28f688f47173f7251c1ee7a18782d3d9618",
+  "control-all-config+digidelay": "bf33c83201f17a11bbd43deb8f3bb5c029c2dee07ab937f5cd1a9dc5cf74ff45",
+  "sampler+digidelay": "7fd42d2a749ea7d2ffe21f47d7473c2971e9228219271779079dd54f46caa26f",
+  // the largest combinations: every compatible card ticked, from each card, both ways, with and without the Syntakt engines, with and without each of the machines that join them
+  "control-all-config+sampler+digidelay": "b43144e5b63096e29a08df89df30651ccc8c0d7ebdffc122b306db242a85b5a2",
 };
 const REF_MODS = {
   "control-all-config": {"w": "b47aa26f4f855c750735a03eae7453847356c376f47a4010cf4f1a5bf316be5e"},
   "sampler": {"w": "28853ad2da8ee02d992848e217296dd8c8083a2fd7b7cf1887069dd27b4f2a5c", "p": "bc301051b49d96187027131eed93aaa8d26255a96364697e1f0a5a7a31daa34b"},
+  "digidelay": {"w": "a4076b491ede8a722d6b28382b1c5aea2970146739294892bda3ca1b5ad85588", "p": "3be011501c7656f91b572b60e475aea5aa44d455d8d6a3ae1a427b49891f402e"},
+  "sampler+digidelay": {"w": "adb181070995d2d1ed276e0be66a6c461e48f698a890d124b7caefbb59a74cb0", "p": "b6664d555c6d3637633e0916948b903397fed4b782842cb4db69b87e301139f2"},
 };
 
 // "Samples OS" tab: official Model:Samples OS 1.13 inside the official Model:Cycles container
@@ -68,6 +75,9 @@ const CREDITS = [
   { who: "TinyGregAudio", repo: "TinyGregAudio/Model-TG",
     en: "Model-TG (MIT license), built here by its own build, with two changes: in mute mode, each track key mutes at once; with 6-channel audio, a muted track's stem is no longer cut off; Sample preview reuses a short piece of its code",
     fr: "Model-TG (licence MIT), construit ici par son propre build, avec deux retouches : en mode mute, chaque touche de piste mute tout de suite ; avec l'audio 6 canaux, la piste USB d'une piste mutée n'est plus coupée net ; l'écoute des samples reprend un court passage de son code" },
+  { who: "gialloinfuso", repo: "gialloinfuso/PPPCCC-Model-Cycles-1.13-Mods",
+    en: "Digital Delay: the digital delay of the PPPCCC mods (MIT license), ported here to an effect, its sound bit for bit",
+    fr: "Digital Delay : le delay numérique des mods PPPCCC (licence MIT), porté ici en effet, son son au bit près" },
   { who: "mischa85", repo: "mischa85/elektron-firmware-tool",
     en: "the Elektron firmware container format and its re-signing (MIT license)", fr: "le format du conteneur firmware Elektron et sa re-signature (licence MIT)" },
   { who: "dagargo", repo: "dagargo/elektroid",
@@ -100,6 +110,7 @@ const GUIDE_OF = {
   macro: "macro",
   acid: "acid",
   sampler: "sampler",
+  digidelay: "digital-delay",
   "chord-keys": "chord-keys",
   "track-filter": "track-filter",
   "lfo-plus": "lfo-plus",
@@ -725,6 +736,10 @@ const FEAT = {
       short: "TRACK + TRIG 1–6 leaves a track out of Control All, or puts it back.",
       desc: "Hold TRACK and press TRIG 1–6 to take that track out of Control All (TRACK held + knob), or to put it back. While TRACK is held, TRIG 1–6 light for the tracks that follow and stay dark for the ones left out. The active track always follows, as on the Digitakt and Digitone. Left-out tracks also keep their machine, LFO destination and PUNCH/GATE when you change those with TRACK held.",
       note: "The choice is not saved: after power-on every track follows again, as on the stock OS. TRACK + LEVEL/DATA (volume, pan) still moves all six tracks." },
+    digidelay: { label: "Digital Delay (effect)",
+      short: "A second delay, bright and clean, up to 5.4 s; TRACK + Delay Time picks it for the pattern.",
+      desc: "A second delay for the delay slot, from gialloinfuso's PPPCCC mods: the opposite of the dark stock delay, bright and clean, up to 5.4 s, each repeat a little thinner in the lows. Hold TRACK and turn Delay Time: four detents to the right switch the pattern from the stock Delay to Digital, four to the left switch it back. The choice is saved with the pattern, so each pattern keeps its own delay and a pattern change switches it. While Digital plays, Time and Fdbk keep their knobs and read Digi Time and Digi Fdbk. The delay is mono, the same repeat on both sides, and starts from silence each time it is chosen.",
+      note: "On a firmware without Digital, a pattern that chose it plays the stock Delay. Experimental: this build is the one played on a Model:Cycles from the command line, not yet flashed from this page." },
     "trig-preview": { label: "Trig preview",
       short: "Sequencer stopped, hold a step and press PAGE to hear it.",
       desc: "With the sequencer stopped or paused, hold a step and press PAGE: the step plays with its own note, length and p-locks." },
@@ -824,6 +839,10 @@ const FEAT = {
       short: "TRACK + TRIG 1–6 écarte une piste de Control All, ou l'y remet.",
       desc: "Tenez TRACK et appuyez sur TRIG 1–6 pour écarter cette piste de Control All (TRACK tenu + potard), ou l'y remettre. TRACK tenu, les TRIG 1–6 s'allument pour les pistes qui suivent et restent éteints pour les autres. La piste active suit toujours, comme sur les Digitakt et Digitone. Les pistes écartées gardent aussi leur machine, leur destination de LFO et PUNCH/GATE quand vous les changez TRACK tenu.",
       note: "Le choix n'est pas enregistré : après l'allumage, toutes les pistes suivent de nouveau, comme sur l'OS d'origine. TRACK + LEVEL/DATA (volume, pan) bouge encore les six pistes." },
+    digidelay: { label: "Digital Delay (effet)",
+      short: "Un second delay, clair et net, jusqu'à 5,4 s ; TRACK + Delay Time le choisit pour le pattern.",
+      desc: "Un second delay pour l'emplacement du delay, tiré des mods PPPCCC de gialloinfuso : l'inverse du delay d'origine, sombre ; celui-ci est clair et net, jusqu'à 5,4 s, et chaque répétition est un peu plus fine dans les graves. Tenez TRACK et tournez Delay Time : quatre crans vers la droite passent le pattern du Delay d'origine à Digital, quatre vers la gauche le ramènent. Le choix est enregistré avec le pattern : chaque pattern garde son delay, et un changement de pattern le change. Pendant que Digital joue, Time et Fdbk gardent leurs potards et s'appellent Digi Time et Digi Fdbk. Le delay est mono, la même répétition des deux côtés, et repart du silence chaque fois qu'il est choisi.",
+      note: "Sur un firmware sans Digital, un pattern qui l'a choisi joue le Delay d'origine. Expérimental : ce build est celui joué sur un Model:Cycles depuis la ligne de commande, pas encore flashé depuis cette page." },
     "trig-preview": { label: "Écoute d'un pas",
       short: "Séquenceur arrêté, maintenez un pas et appuyez sur PAGE pour l'entendre.",
       desc: "Séquenceur à l'arrêt ou en pause, maintenez un pas et appuyez sur PAGE : le pas joue avec sa note, sa longueur et ses p-locks." },
@@ -1609,8 +1628,14 @@ function composeMachines(raw, ids) {
   if (!mainOsOfFile.has(raw)) mainOsOfFile.set(raw, window.MCBuilder.mainOsOf(raw, tw.device));
   const r = window.MCComposer.compose(mainOsOfFile.get(raw), tw.registrar, ids.map((id) => tw.packages[id]), tw.tweaks,
                                      tw.parts || {}, tw.claims || {});
-  log(`Composed ${r.tweak.id}: ${r.info.packages.map((p) => `${p.id} as machine ${p.index}`).join(", ")}, ` +
+  log(`Composed ${r.tweak.id}: ${r.info.packages.map((p) => (p.slot ? `${p.id} in the ${p.slot} slot`
+    : `${p.id} as machine ${p.index}`)).join(", ")}, ` +
     `${r.tweak.writes.length} writes, ${r.info.image} bytes added to the OS.`, "is-ok");
+  for (const [point, c] of Object.entries(r.info.fx_load || {}))   // notes/68 §17: an effect's load on the audio
+    if (c.missing) log(`The ${point.slice(3)} slot's load is not known: ${c.missing.join(", ")} declare no cost.`, "is-warn");
+    else if (c.steady > window.MCComposer.FX_WARN || c.peak > window.MCComposer.FX_PEAK_WARN)
+      log(`The ${point.slice(3)} slot's ${c.dearest} adds ${Math.round(c.share * 100)}% of an audio block to the stock `
+        + "effect: listen for drop-outs with many tracks playing.", "is-warn");
   return r.tweak;
 }
 

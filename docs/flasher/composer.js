@@ -19,6 +19,11 @@
  * a package; shortcutLayer() and dispatchLayer() place them and write their data blocks and sites as
  * compose.shortcut_layer() and compose.dispatch_layer() do, in the builds whose machines need them.
  *
+ * Effects (notes/68 §14 to §17): a package whose uses names fx.delay or fx.reverb is an effect, played in place of
+ * the mixer's stock delay or reverb when the playing pattern chooses it. fxLayer() places the part fxslot (compose.
+ * web_part()) and writes its data block and sites as compose.fx_layer() does; the slots' lines lie first in the
+ * variables; fxCost() is compose.fx_cost(), and a build whose slot passes FX_REFUSE is refused.
+ *
  * C2 (notes/65): the declared claims. A package's and a part's come with them (tools/claims.py's to_json form), the
  * tweaks' as a map by id. claimClashes() is claims.clashes(): the same saved slot, key combination, descriptor or
  * formatter, so a build also conflicts with the tweaks whose claims clash with its own, and a build whose own packages
@@ -33,6 +38,11 @@
 
 const BASE = 0x40000400;                          // where the MAIN OS runs (builder.js, tools/build.py)
 const STOCK_EXTENDED = { CHORD: 5 };              // compose.STOCK_EXTENDED: the stock machines a package may extend
+const FX_POINTS = ["fx.delay", "fx.reverb"];      // compose.FX_POINTS: the effect slots (notes/68 §2)
+const FX_LINE_MAX = 0x400000;                     // compose.FX_LINE_MAX: a slot's line, at most (notes/68 §16)
+const BLOCK_INSTR = 108225;                       // compose.BLOCK_INSTR: instructions in a block (notes/68 §17)
+const FX_WARN = Math.floor(BLOCK_INSTR / 10), FX_REFUSE = Math.floor(BLOCK_INSTR / 4);
+const FX_PEAK_WARN = Math.floor(BLOCK_INSTR / 2);
 
 function fromHex(s) {
   // two hexadecimal digits per byte, as everywhere in the page (builder.js); anything else is refused
@@ -486,6 +496,100 @@ function dispatchLayer(mainOs, part, packages, symsOf, at, codeEnd, first) {
                    points: Object.fromEntries(shared.map(([n, users]) => [n, users.map(([, p]) => p.id)])) } };
 }
 
+// compose.fx_layer(): the effect slots of this build (notes/68 §2, §11, §14). For each slot that has an effect, the
+// mixer's call of the stock effect goes to the part, and so do the handler's call at TRACK + a knob and the pattern
+// header's loader and initializer. The data block after the part's code lists each slot's effects by id (entry 0 the
+// stock effect), the names and formatters of the slot's two parameters per entry (the stock ones read in the user's
+// MAIN OS), the descriptor tables the names go into, then the part's state, then the strings. Returns { blob,
+// symbols, writes, skip, info }.
+function fxLayer(mainOs, part, effects, symsOf, at, codeEnd, descStock, descUsed, dstride) {
+  const d = part.data, slots = part.slots;
+  for (const [fmt, [site, want]] of Object.entries(part.formatter_sites)) {   // the stock formatters, as the boot code installs them
+    const va = parseInt(site, 16), here = hex(mainOs.subarray(va - BASE, va - BASE + want.length / 2));
+    if (here !== want) throw new Error(`${hx(va)}: ${want} expected (the formatter ${fmt}), ${here} found`);
+  }
+  const bySlot = Object.fromEntries(Object.keys(slots).map((n) => [n, []])), seen = {};
+  for (const p of effects) {
+    const u = fxEntry(p);
+    if (has(seen, u.id)) throw new Error(`${seen[u.id]} and ${p.id}: the same effect id ${u.id}`);
+    seen[u.id] = p.id;
+    bySlot[u.point].push(p);
+  }
+  const dataAt = align4(at + part.bundle.code.length / 2);
+  const block = new Uint8Array(d.size), strAt = new Map(), strs = [];
+  let strEnd = dataAt + d.size;
+  const string = (text) => {
+    if (!strAt.has(text)) { strAt.set(text, strEnd); strs.push(asciiz(text)); strEnd += text.length + 1; }
+    return strAt.get(text);
+  };
+  const stockWord = (desc, field) => u32(mainOs, descStock + dstride * desc + field - BASE);
+  const infoSlots = {};
+  Object.entries(slots).forEach(([name, s], k) => {
+    const [a, b] = s.descriptors, stockFmt = s.formatters.map((f) => parseInt(f, 16));
+    const rows = [[0, parseInt(s.stock_fn, 16), 0,
+                   [stockWord(a, 0x2c), stockWord(a, 0x34), stockWord(b, 0x2c), stockWord(b, 0x34), stockWord(a, 0x30),
+                    ...stockFmt]]];
+    const mine = bySlot[name].slice().sort((x, y) => fxEntry(x).id - fxEntry(y).id);
+    for (const p of mine) {
+      const u = fxEntry(p), syms = symsOf[p.id];
+      const fmts = u.params.map((q, j) => (q.format === undefined || q.format === null ? stockFmt[j]
+        : q.format === "int" ? parseInt(part.int_format, 16) : syms[q.format]));
+      const [pa, pb] = u.params;
+      rows.push([u.id, syms[u.process], u.reset ? syms[u.reset] : 0,
+                 [string(pa.long), string(pa.short), string(pb.long), string(pb.short), string(u.name), ...fmts]]);
+    }
+    if (rows.length > d.entries) throw new Error(`${rows.length - 1} effects in the ${name} slot: its table holds ${d.entries - 1}`);
+    put32(block, d.slots[k], rows.length);
+    rows.forEach(([fid, fn, reset, names], i) => {
+      [fid, fn, reset].forEach((v, j) => put32(block, d.slots[k] + 4 + 12 * i + 4 * j, v));
+      names.forEach((v, j) => put32(block, d.names + 28 * (d.entries * k + i) + 4 * j, v));
+    });
+    if (mine.length) infoSlots[name] = mine.map((p) => [fxEntry(p).id, p.id]);
+  });
+  put32(block, d.desc, descStock);
+  put32(block, d.desc + 4, descUsed);
+  const data = concat(block, ...strs);
+  if (dataAt + data.length > codeEnd) throw new Error(`the effect slots end at ${hx(dataAt + data.length)}, past ${hx(codeEnd)}`);
+  const { code, symbols } = placePart(part, at, codeEnd, { fx_data: dataAt });
+  const writes = [], skip = new Set();
+  const sites = Object.entries(slots).filter(([n]) => bySlot[n].length).map(([, s]) => s)
+    .concat(effects.length ? [part.track, part.load, part.init] : []);
+  for (const s of sites) {
+    const va = parseInt(s.hook, 16), here = hex(mainOs.subarray(va - BASE, va - BASE + s.stock.length / 2));
+    if (here !== s.stock) throw new Error(`${hx(va)}: ${s.stock} expected, ${here} found`);
+    writes.push({ off: va - BASE, old: s.stock, new: hex(concat(bytesOf(0x4e, 0xb9), be32(symbols[s.symbol]))) });
+    skip.add(va);
+  }
+  return { blob: concat(code, new Uint8Array(dataAt - at - code.length), data), symbols, writes, skip,
+           info: { id: part.id, code_at: at, code: code.length, data_at: dataAt, data: data.length, slots: infoSlots } };
+}
+
+// an effect's slot entry (fx.delay or fx.reverb) in its uses, or undefined
+const fxEntry = (p) => p.uses.find((u) => FX_POINTS.includes(u.point));
+
+// compose.fx_cost(): the load of each slot that has effects (notes/68 §17), from the effects' declared
+// cost.emulation and fxslot's: { slot: { dearest, steady, peak, share } }, or { slot: { missing: [ids] } }
+function fxCost(effects, part) {
+  const pc = (part.cost || {}).emulation || {}, out = {};
+  for (const point of FX_POINTS) {
+    const mine = effects.filter((p) => fxEntry(p).point === point);
+    if (!mine.length) continue;
+    const stock = (pc.stock || {})[point], over = (pc.overhead || {})[point];
+    const costs = Object.fromEntries(mine.map((p) => [p.id, ((p.cost || {}).emulation) || {}]));
+    const missing = Object.keys(costs).filter((i) => !["first", "max", "reset"].every((k) => Number.isInteger(costs[i][k])));
+    if (missing.length || !stock || !over) {
+      out[point] = { missing: missing.concat(stock && over ? [] : ["fxslot"]) };
+      continue;
+    }
+    let dearest = Object.keys(costs)[0];
+    for (const i of Object.keys(costs)) if (costs[i].max > costs[dearest].max) dearest = i;
+    const steady = costs[dearest].max + over.effect - stock.max;
+    const peak = Math.max(...Object.values(costs).map((c) => c.first + c.reset + over.silence + over.switch)) - stock.max;
+    out[point] = { dearest, steady, peak, share: steady / BLOCK_INSTR };
+  }
+  return out;
+}
+
 // tools/claims.py's rules (notes/65 §5), on the claims in its to_json form. A scope "all" meets every scope, a machine
 // itself; a situation "any" meets every situation.
 const meet = (s, t) => s === "all" || t === "all" || s === t;
@@ -636,23 +740,44 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
   // dispatchers') start at the extension when there is one; without one, they are the packages in the order given.
   const kindOf = (p) => {
     const mc = p.uses.find((u) => u.point === "machine"), st = p.uses.find((u) => u.point === "machine.stock");
+    const fx = fxEntry(p);
     if (mc && st) throw new Error(`${p.id}: an added machine or an extension of a stock machine, not both`);
-    if (!mc && !st) throw new Error(`${p.id}: no 'machine' entry in uses: not an added machine`);
+    if (fx && (mc || st)) throw new Error(`${p.id}: an effect and a machine in uses: an effect is a package of its own`);
+    if (!mc && !st && !fx) throw new Error(`${p.id}: no 'machine', 'machine.stock', 'fx.delay' or 'fx.reverb' entry in uses`);
     if (st && !has(STOCK_EXTENDED, st.machine))
       throw new Error(`${p.id}: machine.stock ${st.machine}: only ${Object.keys(STOCK_EXTENDED).join(", ")} can be extended`);
-    return { mc, st };
+    return { mc, st, fx };
   };
   const added = packages.filter((p) => kindOf(p).mc), exts = packages.filter((p) => kindOf(p).st);
+  const effects = packages.filter((p) => kindOf(p).fx);
   if (new Set(exts.map((p) => kindOf(p).st.machine)).size !== exts.length)
     throw new Error(`${exts.map((p) => p.id).join(", ")}: two packages extend the same stock machine`);
   const table = exts.concat(added);
   const tabFirst = exts.length ? STOCK_EXTENDED[kindOf(exts[0]).st.machine] : first;
   const machines = [], blobs = [], symsOf = {}, info = [];
   let codeCursor = pay, bssCursor = pay + lay.bss_off;
+  const lines = {};                               // the slots' lines (notes/68 §16): first in the variables
+  for (const point of FX_POINTS) {
+    const need = Math.max(0, ...effects.filter((p) => fxEntry(p).point === point).map((p) => fxEntry(p).line || 0));
+    for (const p of effects) {
+      const u = fxEntry(p), pps = p.patch_points || [];
+      if (u.point !== point) continue;
+      if (pps.length > 1 || pps.some((pp) => pp.kind !== "fx_line") || (pps.length > 0) !== (u.line !== undefined))
+        throw new Error(`${p.id}: an effect's line takes its size in 'line' and its address as a patch point of kind fx_line, both or neither`);
+      if (u.line !== undefined && !(Number.isInteger(u.line) && u.line >= 16 && u.line <= FX_LINE_MAX && u.line % 16 === 0))
+        throw new Error(`${p.id}: line: bytes, a multiple of 16 from 16 to ${hx(FX_LINE_MAX)}: ${u.line}`);
+    }
+    if (need) {
+      const at = Math.ceil(bssCursor / 16) * 16;
+      lines[point] = [at, need];
+      bssCursor = at + need;
+    }
+  }
   packages.forEach((p) => {
     const codeAt = align4(codeCursor), bssAt = align4(bssCursor);
-    const { mc, st } = kindOf(p), i = added.indexOf(p);
-    const values = patchValues(p, mc ? { machine_index: first + i, descriptor_base: 76 + 5 * i } : {});
+    const { mc, st, fx } = kindOf(p), i = added.indexOf(p);
+    const values = patchValues(p, mc ? { machine_index: first + i, descriptor_base: 76 + 5 * i }
+      : fx && fx.line ? { fx_line: lines[fx.point][0] } : {});
     const { blob, symbols: syms, bssEnd } = place(p.bundle, codeAt, bssAt, values);
     if (codeAt + blob.length > lay.stubs)
       throw new Error(`${p.id}: code and tables end at ${hx(codeAt + blob.length)}, past ${hx(lay.stubs)}`);
@@ -662,9 +787,9 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
                       update: syms[p.symbols.update], render: syms[p.symbols.render] });
     blobs.push([codeAt, blob]);
     symsOf[p.id] = syms;
-    info.push({ id: p.id, index: mc ? first + i : STOCK_EXTENDED[st.machine], desc: mc ? 76 + 5 * i : null,
-                extends: mc ? null : st.machine, code_at: codeAt, code: blob.length, bss_at: bssAt,
-                bss: bssEnd - bssAt });
+    info.push({ id: p.id, index: mc ? first + i : st ? STOCK_EXTENDED[st.machine] : null, desc: mc ? 76 + 5 * i : null,
+                extends: st ? st.machine : null, slot: fx ? fx.point.slice(3) : null, fx_id: fx ? fx.id : null,
+                code_at: codeAt, code: blob.length, bss_at: bssAt, bss: bssEnd - bssAt });
     codeCursor = codeAt + blob.length;
     bssCursor = bssEnd;
   });
@@ -690,6 +815,15 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
       codeCursor = at + dispatch.blob.length;
     }
   }
+  let fxs = null;                                 // the effect slots, in the builds that have an effect (notes/68)
+  if (effects.length) {
+    if (!parts.fxslot) throw new Error("an effect is ticked, and the page lacks the effect slots");
+    const at = align4(codeCursor);
+    fxs = fxLayer(mainOs, parts.fxslot, effects, symsOf, at, lay.stubs, frames.stock.desc,
+                  added.length ? lay.descn : frames.stock.desc, lay.dstride);
+    blobs.push([at, fxs.blob]);
+    codeCursor = at + fxs.blob.length;
+  }
   for (const p of packages)                       // a package's RAM claim must lie outside the payload
     for (const [lo, hi] of ramClaims(p))
       if (lo < bssCursor && pay < hi)
@@ -697,9 +831,9 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
   checkRamClaims(packages);
   const { writes, append } = machines.length ? fill(frameOf(frames, machines.length), mainOs, machines, blobs, bssCursor)
     : fillAlone(frameOf(frames, 0), mainOs, blobs, bssCursor);
-  const skip = new Set([...(layer ? layer.skip : []), ...(dispatch ? dispatch.skip : [])]);
+  const skip = new Set([...(layer ? layer.skip : []), ...(dispatch ? dispatch.skip : []), ...(fxs ? fxs.skip : [])]);
   for (const p of packages) writes.push(...packageWrites(p, mainOs, symsOf[p.id], skip));
-  for (const x of [layer, dispatch]) if (x) writes.push(...x.writes);
+  for (const x of [layer, dispatch, fxs]) if (x) writes.push(...x.writes);
   writes.sort((a, b) => a.off - b.off);
   checkOverlaps(writes);
   const ram = [[pay, bssCursor]].concat(...packages.map(ramClaims));
@@ -707,8 +841,14 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
   const declared = packages.flatMap((p) => p.conflicts_declared || [])
     .concat(layer ? parts.shortcuts.conflicts_declared || [] : []);   // none since notes/65 C2: computed
   const holders = buildHolders(packages, layer ? parts.shortcuts : null);       // notes/65: the claims
+  if (fxs) holders.push([parts.fxslot.id, parts.fxslot.claims || {}, parts.fxslot.claims || {}, true]);
   const clash = checkBuildClaims(holders);
   if (clash.length) throw new Error(`the build's own claims clash (notes/65): ${clash.join("; ")}`);
+  const load = fxs ? fxCost(effects, parts.fxslot) : {};
+  for (const [point, c] of Object.entries(load))  // notes/68 §17: a slot's dearest effect past FX_REFUSE is refused
+    if ((c.steady || 0) > FX_REFUSE)
+      throw new Error(`the ${point.slice(3)} slot: ${c.dearest} costs ${c.steady} instructions a block above the stock `
+        + `effect (${Math.round(c.share * 100)}% of a block), past ${FX_REFUSE} (notes/68 §17)`);
   const pool = new Set(tweaks.filter((t) => t.id).map((t) => t.id));
   const others = Object.fromEntries(Object.entries(claims).filter(([i]) => pool.has(i) && !ids.includes(i)));
   const byClaims = claimConflicts(holders, others);
@@ -717,14 +857,16 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
   const symbols = {};
   for (const p of packages)
     for (const k of [p.symbols.update, p.symbols.render, ...(p.keep || [])]) symbols[k] = hx(symsOf[p.id][k]);
-  for (const x of [layer, dispatch])
+  for (const x of [layer, dispatch, fxs])
     if (x) for (const [k, v] of Object.entries(x.symbols)) symbols[k] = hx(v);
+  for (const [point, [a]] of Object.entries(lines)) symbols[`fx_line_${point.slice(3)}`] = hx(a);
   const tweak = {
     id: tid,
     order: Math.min(...packages.map((p) => p.order)),
     name: packages.length > 1 ? packages.map((p) => p.name).join(" + ") : packages[0].name,
     description: [`Composed in the browser by composer.js (notes/61): ${info.map((x) => (x.extends
-      ? `${x.id} extending ${x.extends} (machine ${x.index})` : `${x.id} as machine ${x.index}`)).join(", ")}, `
+      ? `${x.id} extending ${x.extends} (machine ${x.index})` : x.slot ? `${x.id} in the ${x.slot} slot (effect ${x.fx_id})`
+        : `${x.id} as machine ${x.index}`)).join(", ")}, `
       + (machines.length ? "registered together through the registrar runtime"
         : "nothing registered (no added machine, notes/66 §3)") + ", as tools/compose.py composes them."],
     device: "Model:Cycles",
@@ -737,12 +879,13 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
     symbols,
   };
   return { tweak, info: { pay, end: bssCursor, image: append.pack.reduce((s, [, k]) => s + k, 0), packages: info,
-                          part: layer && layer.info, dispatch: dispatch && dispatch.info, byClaims } };
+                          part: layer && layer.info, dispatch: dispatch && dispatch.info, fx: fxs && fxs.info,
+                          fx_lines: lines, fx_load: load, byClaims } };
 }
 
 const API = { place, frameOf, fill, fillAlone, segments, bootStub, parameterBlock, packageWrites, shortcutUses,
-              shortcutPresses, shortcutLayer, dispatchLayer, computedConflicts, resolveClaims, claimClashes,
-              buildHolders, checkBuildClaims, claimConflicts, compose, fromHex };
+              shortcutPresses, shortcutLayer, dispatchLayer, fxLayer, fxCost, computedConflicts, resolveClaims,
+              claimClashes, buildHolders, checkBuildClaims, claimConflicts, compose, fromHex, FX_WARN, FX_PEAK_WARN };
 if (typeof module !== "undefined" && module.exports) module.exports = API;
 if (typeof window !== "undefined") window.MCComposer = API;
 })();

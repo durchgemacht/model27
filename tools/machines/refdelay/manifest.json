@@ -1,0 +1,39 @@
+{
+ "schema": "cycles-mod/0.1",
+ "id": "refdelay",
+ "version": "0.3",
+ "name": "REFD: model27's reference effect for the delay slot, a short echo with the slot's feedback",
+ "description": "The smallest effect package (notes/68, step F1): it proves the effect slots before a real effect uses them. The mixer's call of the delay goes to the builder's dispatcher (tools/machines/fxslot/), which calls REFD when the playing pattern chooses id 254 for the delay slot, and the stock delay otherwise. REFD is an echo of 85 ms fed back with the slot's Fdbk. Never offered to users.",
+ "license": "MIT",
+ "credit": {"kind": "own", "who": "durchgemacht and Claude", "repo": "durchgemacht/model27"},
+ "device": "Model:Cycles",
+ "os": "1.13",
+ "order": 37,
+ "build": {
+  "sources": ["refdelay.c"],
+  "include": ["."],
+  "cflags": ["-std=c99", "-mcpu=54418", "-O2", "-ffreestanding", "-fno-builtin", "-fno-tree-loop-distribute-patterns",
+             "-nostdlib", "-fno-pic", "-fno-common", "-ffunction-sections", "-fdata-sections", "-Wall", "-Wextra",
+             "-Werror"],
+  "defines": {},
+  "objects": ["refdelay.o"],
+  "patch_points": [{"symbol": "fx_line", "kind": "fx_line"}],
+  "roots": ["refd_process", "refd_reset"]
+ },
+ "uses": [
+  {"point": "fx.delay", "id": 254, "process": "refd_process", "reset": "refd_reset",
+   "line": 32768,
+   "params": [{"long": "REFD Time", "short": "TIME"}, {"long": "REFD Fdbk", "short": "FDBK", "format": "int"}],
+   "name": "REF Delay", "short": "REFD",
+   "why": "an effect of the delay slot: called as the stock delay 0x40057488 is, (out, in, P + 428), when the device has chosen id 254"}
+ ],
+ "claims": {},
+ "cost": {"emulation": {"first": 1741, "mean": 1741, "max": 1741, "reset": 24579,
+                       "pattern": "notes/68 \u00a717: instructions per block of the process called alone after its reset (the reset counted apart), on the OS 1.13 in tools/emu/test_fxslot.py section 6 (mcengine.py's counter): noise of +-2^28 into both channels, Time 0 and Fdbk 96 for the delay, Size 64 and Tone 96 for the reverb (x 256), the first block, then the mean and maximum over 21 blocks after 32 more"},
+          "device": {"status": "not measured"}},
+ "stock_behaviour": {"changes": [], "fixes": [], "unchanged": ["the stock delay, whenever the device has not chosen REFD"]},
+ "compat": {"built_against": ["model27"], "requires": [], "conflicts_declared": []},
+ "tests": {"emulation": {"tool": "tools/emu/test_fxslot.py (Unicorn, the OS's own code, notes/68)", "date": "2026-10-27",
+                         "build": "alone, with refreverb, and with sampler and refreverb"},
+           "hardware": {"date": "2026-10-27", "by": "maintainer", "build": "REFD 0.2 with refreverb, notes/68 §14.2; the steps of §14.7"}, "status": "experimental"}
+}

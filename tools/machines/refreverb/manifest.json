@@ -1,0 +1,38 @@
+{
+ "schema": "cycles-mod/0.1",
+ "id": "refreverb",
+ "version": "0.2",
+ "name": "REFR: model27's reference effect for the reverb slot, a low-pass whose speed follows Size",
+ "description": "The reverb slot's reference effect (notes/68, step F1), as REFD is the delay slot's: the mixer's call of the reverb goes to the builder's dispatcher (tools/machines/fxslot/), which calls REFR when the playing pattern chooses id 255 for the reverb slot, and the stock reverb otherwise. REFR is a one-pole low-pass per channel, not a reverb. Never offered to users.",
+ "license": "MIT",
+ "credit": {"kind": "own", "who": "durchgemacht and Claude", "repo": "durchgemacht/model27"},
+ "device": "Model:Cycles",
+ "os": "1.13",
+ "order": 38,
+ "build": {
+  "sources": ["refreverb.c"],
+  "include": ["."],
+  "cflags": ["-std=c99", "-mcpu=54418", "-O2", "-ffreestanding", "-fno-builtin", "-fno-tree-loop-distribute-patterns",
+             "-nostdlib", "-fno-pic", "-fno-common", "-ffunction-sections", "-fdata-sections", "-Wall", "-Wextra",
+             "-Werror"],
+  "defines": {},
+  "objects": ["refreverb.o"],
+  "patch_points": [],
+  "roots": ["refr_process", "refr_reset"]
+ },
+ "uses": [
+  {"point": "fx.reverb", "id": 255, "process": "refr_process", "reset": "refr_reset",
+   "params": [{"long": "REFR Speed", "short": "SPD", "format": "int"}, {"long": "REFR Tone", "short": "TONE"}],
+   "name": "REF Reverb", "short": "REFR",
+   "why": "an effect of the reverb slot: called as the stock reverb 0x400579c4 is, (out, in, P + 432), when the device has chosen id 255"}
+ ],
+ "claims": {},
+ "cost": {"emulation": {"first": 658, "mean": 658, "max": 658, "reset": 3,
+                       "pattern": "notes/68 \u00a717: instructions per block of the process called alone after its reset (the reset counted apart), on the OS 1.13 in tools/emu/test_fxslot.py section 6 (mcengine.py's counter): noise of +-2^28 into both channels, Time 0 and Fdbk 96 for the delay, Size 64 and Tone 96 for the reverb (x 256), the first block, then the mean and maximum over 21 blocks after 32 more"},
+          "device": {"status": "not measured"}},
+ "stock_behaviour": {"changes": [], "fixes": [], "unchanged": ["the stock reverb, whenever the device has not chosen REFR"]},
+ "compat": {"built_against": ["model27"], "requires": [], "conflicts_declared": []},
+ "tests": {"emulation": {"tool": "tools/emu/test_fxslot.py (Unicorn, the OS's own code, notes/68)", "date": "2026-10-27",
+                         "build": "alone, with refdelay, and with sampler and refdelay"},
+           "hardware": {"date": "2026-10-27", "by": "maintainer", "build": "refdelay with refreverb, notes/68 §14.2; the steps of §14.7"}, "status": "experimental"}
+}

@@ -7,6 +7,14 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.10", date: "2026-10-27", changes: [
+    { en: "New card, Digital Delay (under Sounds & machines), the first effect: a second delay for the delay slot, bright and clean, up to 5.4 s, each repeat a little thinner in the lows. Hold TRACK and turn Delay Time to switch the pattern between the stock Delay and Digital; the choice is saved with the pattern",
+      fr: "Nouvelle carte, Digital Delay (dans Sons et machines), le premier effet : un second delay pour l'emplacement du delay, clair et net, jusqu'à 5,4 s, chaque répétition un peu plus fine dans les graves. Tenez TRACK et tournez Delay Time pour passer le pattern du Delay d'origine à Digital ; le choix est enregistré avec le pattern" },
+    { en: "Based on the digital delay of gialloinfuso's PPPCCC mods (MIT), its sound bit for bit, checked in an emulator against their own code. The same build played on a Model:Cycles from the command line (2026-10-27); experimental here until flashed from this page. Goes with SAMPLE and Control All Config",
+      fr: "D'après le delay numérique des mods PPPCCC de gialloinfuso (MIT), son son au bit près, vérifié en émulation contre leur propre code. Le même build a joué sur un Model:Cycles depuis la ligne de commande (2026-10-27) ; expérimental ici tant qu'il n'a pas été flashé depuis cette page. Va avec SAMPLE et Control All Config" },
+    { en: "Effects are packages like the machines: each one plays in the delay or the reverb slot, the pattern chooses which, and more can come from other authors",
+      fr: "Les effets sont des paquets comme les machines : chacun joue à l'emplacement du delay ou de la reverb, le pattern choisit lequel, et d'autres pourront venir d'autres auteurs" },
+  ] },
   { version: "0.9", date: "2026-10-26", changes: [
     { en: "SAMPLE from Cycles One-Shot 0.11 is tested as this page builds it: flashed from this page and played on a Model:Cycles (2026-10-26): Loop and Reverse with their LEDs and letters, a single cycle looped, a trig cutting a sounding note, the switches kept by a saved project" },
   ] },

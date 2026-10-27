@@ -22,6 +22,9 @@ composer takes the packages the user names, in that order, and:
      knob lookup and the sound record functions jumping into it, a package's record wrapper chained behind it);
      when two packages take the same vtable entry or hook, adds the dispatchers (tools/machines/dispatch/, notes/63
      §4: another part, the entry or hook going to its dispatcher, which calls the right machine's method);
+     when a package is an effect (fx.delay or fx.reverb, notes/68), adds the effect slots (tools/machines/fxslot/:
+     a part, the mixer's call of each slot that has an effect going to its dispatcher, which calls the effect the
+     playing pattern chose, or the stock one; the pattern header's loader and initializer keep the choice);
   4. computes what the result cannot be installed with: every tweak of tweaks/ that writes other bytes to the same
      address or runs a payload in the composed payload or in a claimed RAM range, or whose declared claims clash
      with the build's (the same saved slot, key combination, descriptor or formatter: tools/claims.py, notes/65),
@@ -75,6 +78,20 @@ BUILD = ROOT / "build"
 # The stock machines a package may extend ("machine.stock", notes/66 §3), by number: CHORD only for now, the one next
 # to the added machines, so that the tables by machine (the shortcut layer's, the dispatchers') start at 5 with it.
 STOCK_EXTENDED = {"CHORD": 5}
+# The effect slots (notes/68 §2): a package that names one of them in uses is an effect, called in place of the
+# mixer's delay or reverb when the playing pattern has chosen it (tools/machines/fxslot/).
+FX_POINTS = ("fx.delay", "fx.reverb")
+# A slot's line (notes/68 §16): RAM in the payload's variables that every effect of the slot asking for one shares, as
+# one effect of a slot plays at a time; its address is the effect's patch point of kind fx_line. At most the stock
+# delay's own line, 4 MiB.
+FX_LINE_MAX = 0x400000
+# The effect slots' load (notes/68 §17), in instructions per block by the standard's count (its §6: 166 667 cycles a
+# block at 250 MHz, 1.54 cycles an instruction): a build warns when a slot's dearest effect costs more than FX_WARN
+# above the stock effect, steadily, and is refused above FX_REFUSE. The emulator does not time memory: these are the
+# numbers every author can produce, a device measurement beats them.
+BLOCK_INSTR = 108225
+FX_WARN, FX_REFUSE = BLOCK_INSTR // 10, BLOCK_INSTR // 4
+FX_PEAK_WARN = BLOCK_INSTR // 2              # the block of a switch, once: a warning past half a block
 REGISTRAR = MACHINES / "registrar" / "registrar.json"
 LINK = """SECTIONS
 {{
@@ -103,11 +120,50 @@ def load_manifest(mid):
     m["_dir"] = MACHINES / mid
     m["_machine"] = next((u for u in m["uses"] if u["point"] == "machine"), None)
     m["_stock"] = next((u for u in m["uses"] if u["point"] == "machine.stock"), None)
+    m["_effect"] = next((u for u in m["uses"] if u["point"] in FX_POINTS), None)
     if m["_machine"] and m["_stock"]:
         sys.exit(f"!! {mid}: a 'machine' and a 'machine.stock' entry in uses: an added machine or an extension of a "
                  "stock machine, not both")
-    if not m["_machine"] and not m["_stock"]:
-        sys.exit(f"!! {mid}: no 'machine' entry in uses: not an added machine")
+    if m["_effect"] and (m["_machine"] or m["_stock"]):
+        sys.exit(f"!! {mid}: an effect and a machine in uses: an effect is a package of its own (notes/68 §2)")
+    if not m["_machine"] and not m["_stock"] and not m["_effect"]:
+        sys.exit(f"!! {mid}: no 'machine', 'machine.stock', 'fx.delay' or 'fx.reverb' entry in uses: not an added "
+                 "machine, an extension or an effect")
+    if m["_effect"]:                         # an effect of the delay or reverb slot (notes/68 §2)
+        u = m["_effect"]
+        if sum(x["point"] in FX_POINTS for x in m["uses"]) > 1:
+            sys.exit(f"!! {mid}: an effect takes one slot")
+        if not isinstance(u.get("id"), int) or not 1 <= u["id"] <= 255:
+            sys.exit(f"!! {mid}: the effect's id must be 1 to 255 (0 is the stock effect): {u.get('id')!r}")
+        roots = m["build"].get("roots", [])
+        if not roots or roots[0] != u.get("process"):
+            sys.exit(f"!! {mid}: an effect names its process first in build.roots (it has no update and render)")
+        pps = m["build"].get("patch_points", [])
+        if any(pp.get("kind") != "fx_line" or "symbol" not in pp for pp in pps) or len(pps) > 1:
+            sys.exit(f"!! {mid}: an effect has one patch point at most, its line's address (kind fx_line, a symbol)")
+        line = u.get("line")
+        if bool(pps) != (line is not None):
+            sys.exit(f"!! {mid}: an effect that asks for a line gives its size in 'line' and takes its address as a "
+                     "patch point of kind fx_line, both or neither (notes/68 §16)")
+        if line is not None and (not isinstance(line, int) or not 16 <= line <= FX_LINE_MAX or line % 16):
+            sys.exit(f"!! {mid}: line: bytes, a multiple of 16 from 16 to {FX_LINE_MAX:#x}: {line!r}")
+        other = [x["point"] for x in m["uses"] if x["point"] not in FX_POINTS + ("memory.ram",)]
+        if other:
+            sys.exit(f"!! {mid}: an effect uses its slot and its RAM only, not {', '.join(other)} (notes/68 §2)")
+        if u.get("reset") and u["reset"] not in roots:
+            sys.exit(f"!! {mid}: the effect's reset {u['reset']} is not in build.roots")
+        texts = [("name", u.get("name"), 15)]
+        params = u.get("params")
+        if not isinstance(params, list) or len(params) != 2:
+            sys.exit(f"!! {mid}: an effect names the slot's two parameters in params (notes/68 §11)")
+        for k, prm in enumerate(params):
+            texts += [(f"params[{k}].long", prm.get("long"), 15), (f"params[{k}].short", prm.get("short"), 5)]
+            fmt = prm.get("format")
+            if fmt not in (None, "int") and fmt not in roots:
+                sys.exit(f"!! {mid}: params[{k}].format: 'int', a symbol in build.roots, or none (the stock one)")
+        for what, text, most in texts:
+            if not isinstance(text, str) or not 0 < len(text) <= most or not all(" " <= c <= "~" for c in text):
+                sys.exit(f"!! {mid}: {what}: printable ASCII, 1 to {most} characters: {text!r}")
     if m["_stock"]:                          # an extension of a stock machine (notes/66 §3)
         name = m["_stock"].get("machine")
         if name not in STOCK_EXTENDED:
@@ -126,9 +182,9 @@ def load_manifest(mid):
 
 def roots_of(m):
     """The entry points a package's object is laid out from: an added machine's update and render, then its kept
-    symbols; an extension's build.roots (its first two in the places of update and render)."""
+    symbols; an extension's or an effect's build.roots (its first two in the places of update and render)."""
     b = m["build"]
-    if m.get("_stock"):
+    if m.get("_stock") or m.get("_effect"):
         r = b["roots"]
         return r[0], r[1] if len(r) > 1 else r[0], list(dict.fromkeys(r[2:] + b.get("keep", [])))
     return b["symbols"]["update"], b["symbols"]["render"], b.get("keep", [])
@@ -264,6 +320,8 @@ def exported(m):
 
 def placed(p):
     """One package of a build in its tweak's description."""
+    if p.get("slot"):
+        return f"{p['id']} as effect {p['fx_id']} of the {p['slot']} slot"
     if p.get("extends"):
         return f"{p['id']} extending {p['extends']} (machine {p['index']})"
     return f"{p['id']} as machine {p['index']}"
@@ -286,12 +344,16 @@ def web_package(mid):
         sys.exit(f"!! {mid}: {path} is missing: run the package's generator (it writes the object)")
     lay = relocate.layout(path.read_bytes(), upd, rnd, keep, mid)
     uses = [{k: v for k, v in u.items() if k != "why"} for u in m["uses"]
-            if u["point"] in ("machine", "machine.stock", "memory.ram", "shortcut") or "hook" in u or "vtable" in u]
+            if u["point"] in ("machine", "machine.stock", "memory.ram", "shortcut") + FX_POINTS
+            or "hook" in u or "vtable" in u]
     names = [upd, rnd, *keep] if m["_machine"] else list(dict.fromkeys([upd, rnd, *keep]))
-    return {"id": mid, "name": m["name"], "order": m["order"], "version": m["version"],
-            "symbols": {"update": upd, "render": rnd}, "keep": keep, "patch_points": pps, "uses": uses,
-            "conflicts_declared": [c["with"] for c in m.get("compat", {}).get("conflicts_declared", [])],
-            "claims": cl.package_claims(m), "bundle": relocate.bundle(lay, names)}
+    out = {"id": mid, "name": m["name"], "order": m["order"], "version": m["version"],
+           "symbols": {"update": upd, "render": rnd}, "keep": keep, "patch_points": pps, "uses": uses,
+           "conflicts_declared": [c["with"] for c in m.get("compat", {}).get("conflicts_declared", [])],
+           "claims": cl.package_claims(m), "bundle": relocate.bundle(lay, names)}
+    if m["_effect"]:                         # an effect's load (notes/68 §17), which the page computes as fx_cost()
+        out["cost"] = m.get("cost", {})
+    return out
 
 
 def web_part(pid):
@@ -306,10 +368,11 @@ def web_part(pid):
         sys.exit(f"!! {path} is missing: run tools/gen_parts.py")
     roots = b["roots"]
     lay = relocate.layout(path.read_bytes(), roots[0], roots[1], roots[2:], pid)
-    out = {"id": pid, "version": p["version"], "roots": roots, "patch_points": b["patch_points"], "sites": p["sites"],
+    out = {"id": pid, "version": p["version"], "roots": roots, "patch_points": b["patch_points"],
            "data": p["data"], "bundle": relocate.bundle(lay, roots)}
-    if "shortcut" in p:
-        out["shortcut"] = p["shortcut"]
+    for key in ("sites", "shortcut", "slots", "track", "load", "init", "formatter_sites", "int_format", "cost"):
+        if key in p:                         # the effect slots' (notes/68) besides the shortcut layer's and dispatchers'
+            out[key] = p[key]
     if "claims" in p:                        # notes/65: what the part claims, in tools/claims.py's to_json form
         out["claims"] = cl.part_claims(p)
     if p.get("conflicts_declared"):
@@ -914,6 +977,114 @@ def dispatch_layer(img, part, mans, syms_of, at, code_end, first):
     return blob, out, writes, skip, info
 
 
+def fx_layer(img, part, effects, syms_of, at, code_end, desc_used):
+    """The effect slots of this build (notes/68 §2, §11, §14; steps F1, F2 and F2b): for each slot that has an effect,
+    the mixer's call of the stock effect goes to the part, and so does the handler's call at TRACK + a knob
+    (0x4001f89a), where TRACK + Delay Time / Reverb Size step through the slot's effects, and the pattern header's
+    loader and initializer (0x4005b4b0, 0x4006155e), which keep the pattern's choice. The data block after the part's code lists each
+    slot's effects by id (entry 0 the stock effect, with its process and reset), the names and formatters of the slot's
+    two parameters for each entry (the stock ones read from the image), the descriptor tables the names go into (the
+    stock one and desc_used, the one the OS uses), then the part's state, then the strings. A slot without an effect
+    keeps its stock call. Returns (blob, symbols, writes, the sites taken, info)."""
+    d, slots = part["data"], part["slots"]
+    path = object_path(part)
+    if not path.is_file():
+        sys.exit(f"!! {path} is missing: run tools/gen_parts.py")
+    for fmt, (site, want) in part["formatter_sites"].items():   # the stock formatters, as the boot code installs them
+        va = int(site, 16)
+        if img[va - BASE:va - BASE + len(want) // 2] != bytes.fromhex(want):
+            sys.exit(f"!! {va:#x}: {want} expected (the formatter {fmt}), {img[va - BASE:va - BASE + len(want) // 2].hex()} found")
+    by_slot, seen = {name: [] for name in slots}, {}
+    for m in effects:
+        u = m["_effect"]
+        if u["id"] in seen:
+            sys.exit(f"!! {seen[u['id']]} and {m['id']}: the same effect id {u['id']}")
+        seen[u["id"]] = m["id"]
+        by_slot[u["point"]].append(m)
+    roots = part["build"]["roots"]
+    lay = relocate.layout(path.read_bytes(), roots[0], roots[1], roots[2:], part["id"])
+    data_at = align4(at + len(lay["code"]))
+    block, strings, str_at = bytearray(d["size"]), bytearray(), {}
+
+    def string(text):
+        if text not in str_at:
+            str_at[text] = data_at + d["size"] + len(strings)
+            strings.extend(text.encode("ascii") + b"\0")
+        return str_at[text]
+
+    def stock_word(desc, field):
+        return struct.unpack_from(">I", img, g7.DESC + g7.DSTRIDE * desc + field - BASE)[0]
+    info_slots = {}
+    for k, (name, s) in enumerate(slots.items()):
+        a, b = s["descriptors"]
+        stock_fmt = [int(f, 16) for f in s["formatters"]]
+        rows = [(0, int(s["stock_fn"], 16), 0,
+                 (stock_word(a, 0x2c), stock_word(a, 0x34), stock_word(b, 0x2c), stock_word(b, 0x34),
+                  stock_word(a, 0x30), *stock_fmt))]
+        for m in sorted(by_slot[name], key=lambda m: m["_effect"]["id"]):
+            u, syms = m["_effect"], syms_of[m["id"]]
+            fmts = [stock_fmt[j] if p.get("format") is None else int(part["int_format"], 16) if p["format"] == "int"
+                    else syms[p["format"]] for j, p in enumerate(u["params"])]
+            pa, pb = u["params"]
+            rows.append((u["id"], syms[u["process"]], syms[u["reset"]] if u.get("reset") else 0,
+                         (string(pa["long"]), string(pa["short"]), string(pb["long"]), string(pb["short"]),
+                          string(u["name"]), *fmts)))
+        if len(rows) > d["entries"]:
+            sys.exit(f"!! {len(rows) - 1} effects in the {name} slot: its table holds {d['entries'] - 1}")
+        struct.pack_into(">I", block, d["slots"][k], len(rows))
+        for i, (fid, fn, reset, names) in enumerate(rows):
+            struct.pack_into(">III", block, d["slots"][k] + 4 + 12 * i, fid, fn, reset)
+            struct.pack_into(">7I", block, d["names"] + 28 * (d["entries"] * k + i), *names)
+        if by_slot[name]:
+            info_slots[name] = [(m["_effect"]["id"], m["id"]) for m in sorted(by_slot[name], key=lambda m: m["_effect"]["id"])]
+    struct.pack_into(">II", block, d["desc"], g7.DESC, desc_used)
+    blob_data = bytes(block) + bytes(strings)
+    if data_at + len(blob_data) > code_end:
+        sys.exit(f"!! the effect slots end at {data_at + len(blob_data):#x}, past {code_end:#x}")
+    values = {"fx_data": data_at}
+    pps = part["build"]["patch_points"]
+    code, syms, _ = relocate.apply(lay, at, at, code_end, {pp["symbol"]: values[pp["kind"]] for pp in pps})
+    blob = code + bytes(data_at - at - len(code)) + blob_data
+    writes, taken = [], set()
+    sites = [s for name, s in slots.items() if by_slot[name]]
+    sites += [part["track"], part["load"], part["init"]] if effects else []
+    for s in sites:
+        va, old = int(s["hook"], 16), bytes.fromhex(s["stock"])
+        if img[va - BASE:va - BASE + len(old)] != old:
+            sys.exit(f"!! {va:#x}: {old.hex()} expected, {img[va - BASE:va - BASE + len(old)].hex()} found")
+        writes.append({"off": va - BASE, "old": old.hex(), "new": (bytes.fromhex("4eb9") + g7.be32(syms[s["symbol"]])).hex()})
+        taken.add(va)
+    out = {r: syms[r] for r in roots}
+    out.update({pp["symbol"]: values[pp["kind"]] for pp in pps})
+    info = dict(id=part["id"], code_at=at, code=len(code), data_at=data_at, data=len(blob_data), slots=info_slots)
+    return blob, out, writes, taken, info
+
+
+def fx_cost(effects, part):
+    """The load of each slot that has effects (notes/68 §17), from the effects' declared cost.emulation and fxslot's:
+    {slot: {dearest, steady, peak, share}}, steady the dearest effect's maximum plus what fxslot adds with an effect,
+    less the stock effect's maximum; peak the block of a switch (the effect's first block, its reset, the stock
+    effect's block of silence, what fxslot adds besides), less the same; or {slot: {missing: [ids]}} when a number
+    is not declared."""
+    pc = part.get("cost", {}).get("emulation", {})
+    out = {}
+    for point in FX_POINTS:
+        mine = [m for m in effects if m["_effect"]["point"] == point]
+        if not mine:
+            continue
+        stock, over = pc.get("stock", {}).get(point), pc.get("overhead", {}).get(point)
+        costs = {m["id"]: m.get("cost", {}).get("emulation", {}) for m in mine}
+        missing = [i for i, c in costs.items() if not all(isinstance(c.get(k), int) for k in ("first", "max", "reset"))]
+        if missing or not stock or not over:
+            out[point] = {"missing": missing + ([] if stock and over else ["fxslot"])}
+            continue
+        dearest = max(costs, key=lambda i: costs[i]["max"])
+        steady = costs[dearest]["max"] + over["effect"] - stock["max"]
+        peak = max(c["first"] + c["reset"] + over["silence"] + over["switch"] for c in costs.values()) - stock["max"]
+        out[point] = {"dearest": dearest, "steady": steady, "peak": peak, "share": steady / BLOCK_INSTR}
+    return out
+
+
 def package_writes(m, img, syms, skip=()):
     """The package's own hooks (jsr/jmp into its code) and vtable entries, each checked against the stock bytes; the
     hooks and entries at the addresses in skip are left out (the shortcut layer chains them, a dispatcher takes
@@ -1003,12 +1174,13 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     against: the tweaks the conflicts are computed against (default: the folder's); against_claims: their claims,
     {id: claims} (default: the folder's, tools/claims.py.tweak_claims). Returns (tweak, info)."""
     if not ids:
-        sys.exit("!! name at least one machine")
+        sys.exit("!! name at least one package")
     if len(ids) != len(set(ids)):
-        sys.exit("!! a machine is named twice")
+        sys.exit("!! a package is named twice")
     mans = [load_manifest(i) for i in ids]
     added = [m for m in mans if m["_machine"]]           # numbered 6, 7, ... in the order given
     exts = [m for m in mans if m["_stock"]]              # extensions of a stock machine (notes/66 §3): CHORD
+    effects = [m for m in mans if m["_effect"]]          # effects of the delay and reverb slots (notes/68 §2)
     if len({m["_index"] for m in exts}) != len(exts):
         sys.exit(f"!! {', '.join(m['id'] for m in exts)}: two packages extend the same stock machine")
     pay = gs.PAY_ALONE
@@ -1020,13 +1192,22 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     table = exts + added
     tab_first = exts[0]["_index"] if exts else first
     machines, blobs, syms_of, info_pkgs = [], [], {}, []
+    lines = {}                               # the slots' lines (notes/68 §16): slot -> (address, bytes)
     with tempfile.TemporaryDirectory() as d:
         tmp = pathlib.Path(d)
         code_cursor, bss_cursor = pay, pay + gm.BSS_OFF
+        for point in FX_POINTS:              # first in the variables, each as large as its largest effect asks
+            need = max((m["_effect"].get("line", 0) for m in effects if m["_effect"]["point"] == point), default=0)
+            if need:
+                at = (bss_cursor + 15) & ~15
+                lines[point] = (at, need)
+                bss_cursor = at + need
         for m in mans:
             code_at, bss_at = align4(code_cursor), align4(bss_cursor)
             i = added.index(m) if m["_machine"] else None
             values = {"machine_index": first + i, "descriptor_base": 76 + 5 * i} if m["_machine"] else {}
+            if m["_effect"] and m["_effect"].get("line"):
+                values = {"fx_line": lines[m["_effect"]["point"]][0]}
             if relocator == "ld":
                 blob, syms, bss_end = compile_package(m, tmp, code_at, bss_at, gs.STUBS, values)
             else:
@@ -1052,9 +1233,11 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                                      render=syms[m["build"]["symbols"]["render"]]))
             blobs.append((code_at, blob))
             syms_of[m["id"]] = syms
-            info_pkgs.append(dict(id=m["id"], index=first + i if mc else m["_index"], desc=76 + 5 * i if mc else None,
-                                  extends=None if mc else m["_stock"]["machine"], code_at=code_at, code=len(blob),
-                                  bss_at=bss_at, bss=bss_end - bss_at))
+            fx = m["_effect"]
+            info_pkgs.append(dict(id=m["id"], index=first + i if mc else m.get("_index"), desc=76 + 5 * i if mc else None,
+                                  extends=m["_stock"]["machine"] if m["_stock"] else None,
+                                  slot=fx["point"][3:] if fx else None, fx_id=fx["id"] if fx else None,
+                                  code_at=code_at, code=len(blob), bss_at=bss_at, bss=bss_end - bss_at))
             code_cursor, bss_cursor = code_at + len(blob), bss_end
         layer, part = None, None             # the shortcut layer, in the builds whose machines declare a shortcut
         if any(u["point"] == "shortcut" for m in mans for u in m["uses"]):
@@ -1071,13 +1254,19 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             if dispatch:
                 blobs.append((at, dispatch[0]))
                 code_cursor = at + len(dispatch[0])
+        fxs = None                           # the effect slots, in the builds that have an effect (notes/68 §2)
+        if effects:
+            at = align4(code_cursor)
+            fxs = fx_layer(img, load_part("fxslot"), effects, syms_of, at, gs.STUBS, gs.DESCN if added else g7.DESC)
+            blobs.append((at, fxs[0]))
+            code_cursor = at + len(fxs[0])
         for m in mans:                       # a package's RAM claim must lie outside the payload
             for lo, hi in ram_claims(m):
                 if lo < bss_cursor and pay < hi:
                     sys.exit(f"!! {m['id']}: the payload ({pay:#x}..{bss_cursor:#x}) runs into its RAM claim {lo:#x}..{hi:#x}")
         check_ram_claims(mans)
         reg = load_registrar()
-        if not machines:                     # extensions only: their payload copied at boot, nothing registered
+        if not machines:                     # extensions and effects only: their payload copied at boot, nothing registered
             if registrar == "b1" or compare_b1:
                 sys.exit("!! --registrar b1 and --compare-b1 need an added machine")
             writes, append = payload_writes(img, blobs, bss_cursor, reg)
@@ -1091,10 +1280,10 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                     compare_b1_(reg, writes, append, writes1, append1)
             else:
                 writes, append = writes1, append1
-    skip = (layer[3] if layer else set()) | (dispatch[3] if dispatch else set())
+    skip = (layer[3] if layer else set()) | (dispatch[3] if dispatch else set()) | (fxs[3] if fxs else set())
     for m in mans:
         writes += package_writes(m, img, syms_of[m["id"]], skip)
-    for extra in (layer, dispatch):
+    for extra in (layer, dispatch, fxs):
         if extra:
             writes += extra[2]
     writes.sort(key=lambda x: x["off"])
@@ -1107,6 +1296,14 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
         declared |= {c["with"] for c in part.get("conflicts_declared", [])}
     tid = "+".join(ids)
     holders = cl.build_holders(mans, part if layer else None)    # notes/65: the claims, rules 2 and 3
+    if fxs:                                  # the effect slots' claims (the pattern header's bytes, notes/68 §14)
+        fxc = cl.part_claims(load_part("fxslot"))
+        holders.append(("fxslot", fxc, fxc, True))
+    load = fx_cost(effects, load_part("fxslot")) if fxs else {}
+    for point, c in load.items():             # notes/68 §17: a slot's dearest effect past FX_REFUSE is refused
+        if c.get("steady", 0) > FX_REFUSE:
+            sys.exit(f"!! the {point[3:]} slot: {c['dearest']} costs {c['steady']} instructions a block above the stock "
+                     f"effect ({c['share']:.0%} of a block), past {FX_REFUSE} (notes/68 §17)")
     clash = cl.check_build(holders)
     if clash:
         sys.exit(f"!! the build's own claims clash (notes/65): {'; '.join(clash)}")
@@ -1153,8 +1350,18 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
         tweak["description"].insert(6, f"With the dispatchers (tools/machines/dispatch/, notes/63 §4) at {di['code_at']:#x}, "
                                        f"their data at {di['data_at']:#x}: {', '.join(di['points'])}.")
         tweak["symbols"].update({k: f"{v:#x}" for k, v in dispatch[1].items()})
+    if fxs:
+        fi = fxs[4]
+        slots = "; ".join(f"{n}: " + ", ".join(f"{mid} ({i})" for i, mid in e) for n, e in fi["slots"].items())
+        tweak["description"].insert(6, f"With the effect slots (tools/machines/fxslot/, notes/68 §2) at {fi['code_at']:#x}, "
+                                       f"their data at {fi['data_at']:#x}: {slots}"
+                                       + "".join(f"; the {pt[3:]} slot's line at {a:#x}, {n} bytes"
+                                                 for pt, (a, n) in lines.items()) + ".")
+        tweak["symbols"].update({f"fx_line_{pt[3:]}": f"{a:#x}" for pt, (a, _n) in lines.items()})
+        tweak["symbols"].update({k: f"{v:#x}" for k, v in fxs[1].items()})
     info = dict(pay=pay, end=bss_cursor, image=sum(n for _, n in append["pack"]), packages=info_pkgs,
                 part=layer[4] if layer else None, dispatch=dispatch[4] if dispatch else None,
+                fx=fxs[4] if fxs else None, fx_lines=lines, fx_load=load,
                 claims=dict(by_claims={i: w for i, w in sorted(by_claims.items()) if i != tid},
                             declared_only=sorted(declared - by_bytes - set(by_claims) - {tid}),
                             views=cl.claim_views(holders, others)))
@@ -1250,7 +1457,8 @@ def main():
     ids = [i.strip() for i in args.machines.split(",") if i.strip()]
     tweak, info = compose(img, ids, args.relocator, args.compare_ld, args.registrar, args.compare_b1)
     for p in info["packages"]:
-        what = (f"extends {p['extends']} (machine {p['index']})" if p.get("extends")
+        what = (f"effect {p['fx_id']} of the {p['slot']} slot" if p.get("slot")
+                else f"extends {p['extends']} (machine {p['index']})" if p.get("extends")
                 else f"machine {p['index']}, descriptors {p['desc']}..{p['desc'] + 4}")
         print(f"  {p['id']:12s} {what}, code {p['code']} bytes at {p['code_at']:#x}, variables {p['bss']} bytes at "
               f"{p['bss_at']:#x}")
@@ -1262,6 +1470,19 @@ def main():
         p = info["dispatch"]
         print(f"  {p['id']:12s} code {p['code']} bytes at {p['code_at']:#x}, data {p['data']} bytes at {p['data_at']:#x}, "
               + "; ".join(f"{n}: {', '.join(ids)}" for n, ids in p["points"].items()))
+    if info["fx"]:
+        p = info["fx"]
+        print(f"  {p['id']:12s} code {p['code']} bytes at {p['code_at']:#x}, data {p['data']} bytes at {p['data_at']:#x}, "
+              + "; ".join(f"{n}: " + ", ".join(f"{mid} ({i})" for i, mid in e) for n, e in p["slots"].items()))
+        for point, c in info["fx_load"].items():
+            if "missing" in c:
+                print(f"  warning, the {point[3:]} slot's load is not known: no cost declared by "
+                      f"{', '.join(c['missing'])} (notes/68 §17)")
+            else:
+                warn = c["steady"] > FX_WARN or c["peak"] > FX_PEAK_WARN
+                print(f"  {'warning, ' if warn else ''}the {point[3:]} slot's load: {c['dearest']} at "
+                      f"most {c['steady']:+d} instructions a block on the stock effect ({c['share']:+.1%} of a block), "
+                      f"{c['peak']:+d} in the block of a switch")
     print(f"  tweak {tweak['id']}: {len(tweak['writes'])} writes, payload {info['pay']:#x}..{info['end']:#x}, "
           f"{info['image']} bytes added to the image, {len(tweak['conflicts'])} conflicts computed")
     ci = info["claims"]

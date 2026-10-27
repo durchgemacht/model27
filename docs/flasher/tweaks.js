@@ -156,6 +156,20 @@ window.MC_TWEAKS = {
    "cat": "sound",
    "package": "sampler",
    "license": "LICENSE-One-Shot.txt"
+  },
+  {
+   "id": "digidelay",
+   "label": "Digital Delay (effect)",
+   "desc": "A second delay for the delay slot: bright and clean, up to 5.4 s, each repeat a little thinner in the lows. Hold TRACK and turn Delay Time to switch the pattern's delay between the stock Delay and Digital; Time and Fdbk keep their knobs.",
+   "status": "experimental",
+   "credit": {
+    "kind": "based",
+    "who": "gialloinfuso",
+    "repo": "gialloinfuso/PPPCCC-Model-Cycles-1.13-Mods"
+   },
+   "cat": "sound",
+   "package": "digidelay",
+   "license": "LICENSE-PPPCCC.txt"
   }
  ],
  "packages": {
@@ -1331,6 +1345,154 @@ window.MC_TWEAKS = {
      ]
     },
     "bss": 62112
+   }
+  },
+  "digidelay": {
+   "id": "digidelay",
+   "name": "Digital Delay: PPPCCC's bright, clean delay of up to 5.4 s, for the delay slot",
+   "order": 39,
+   "version": "0.1",
+   "symbols": {
+    "update": "digi_process",
+    "render": "digi_reset"
+   },
+   "keep": [],
+   "patch_points": [
+    {
+     "symbol": "fx_line",
+     "kind": "fx_line"
+    }
+   ],
+   "uses": [
+    {
+     "point": "fx.delay",
+     "id": 1,
+     "process": "digi_process",
+     "reset": "digi_reset",
+     "line": 1048576,
+     "params": [
+      {
+       "long": "Digi Time",
+       "short": "TIME"
+      },
+      {
+       "long": "Digi Fdbk",
+       "short": "FDBK"
+      }
+     ],
+     "name": "Digital",
+     "short": "DIGI"
+    }
+   ],
+   "conflicts_declared": [],
+   "claims": {},
+   "bundle": {
+    "code": "4fefffc0206f004c48d77cfc1228000248814a416d00033036017150243c0000bb80780a7e0f207c401493100680000001004c020800c3fc0306c7fc0102e8a0283c0000038434034c040800c5c3eea22e00700fc5c34c507807e0a29282e2812f47003474202f41003cb4876300028876202f4300342639000000004a836700029a206f004426390000000022790000000047e801002879000000002439000000002c3900000000246f00482f4b003847f900000000202f0034780d90892200e8a1670001b2d3c1b3cc620001782003908902800003ffff7e0f22330c0020012a01028000007fffda852801eea42e2f003c2f41002c4c0748004c0708002e01bb872f4500302c477e0feea02e2a0004e687d0842812e6842a40d8872e04de80bf80bf84c0844a806d0000ba28072007e884e680d8802002e682e8809e842807d0822407d480b584b580c8804a846d000084280298862004ea80988027843c00dc80b9fc000400006402528c4a8e6d00011c202f002ce5882200bb816b0001382200d2852801b184b385c8854a846d000088214100042081528302830003ffff5088508ab1ef00386600ff0c23c30000000023cc0000000023c20000000023c60000000023c9000000004cd77cfc4fef00404e75de879f87243c7fffffffbf826000ff702e0dde879f870a877fffffff28072007e884e680d8802002e682e8809e842807d0822407d480b584b580c8804a846c00ff3e60bcd0809180223c7fffffff528302830003ffff5088508ab1812141fffc2141fff8b1ef00386600fe786000ff6a2812e6842e2a0004e68742809dce42af0030d8872e04de80bf804285bf8442af002c9bcd4281c0844a806c00febc6000ff704a806700fe4e7003c0834a8057c0710093c06000fe3ed2819381528302830003ffff5088508a0a817fffffff2141fffc2141fff8b1ef00386600fe066000fef822054aaf00306d00008e06817fffffff2001bb80c0814a806c00fec2223c7fffffff528321410004208102830003ffff5088508ab1ef00386600fdc66000feb8282f00340c840003fc006300fd742639000000002e3c0003fc002f4700344a836600fd6a206f0044700123c000000000226f003499cc47e8010042862f4b00384282246f004847f9000000006000fd7242416000fcce0681800000004a856c00fe3c223c80000000528321410004208102830003ffff5088508ab1ef00386600fd406000fe3242b9000000004e75",
+    "relocs": [
+     [
+      120,
+      "bss",
+      0
+     ],
+     [
+      136,
+      "bss",
+      4
+     ],
+     [
+      142,
+      "bss",
+      8
+     ],
+     [
+      152,
+      "bss",
+      12
+     ],
+     [
+      158,
+      "bss",
+      16
+     ],
+     [
+      164,
+      "bss",
+      20
+     ],
+     [
+      178,
+      "fx_line",
+      0
+     ],
+     [
+      430,
+      "bss",
+      4
+     ],
+     [
+      436,
+      "bss",
+      12
+     ],
+     [
+      442,
+      "bss",
+      16
+     ],
+     [
+      448,
+      "bss",
+      20
+     ],
+     [
+      454,
+      "bss",
+      8
+     ],
+     [
+      774,
+      "bss",
+      0
+     ],
+     [
+      802,
+      "bss",
+      0
+     ],
+     [
+      830,
+      "fx_line",
+      0
+     ],
+     [
+      894,
+      "bss",
+      0
+     ]
+    ],
+    "symbols": {
+     "digi_process": [
+      "code",
+      0
+     ],
+     "digi_reset": [
+      "code",
+      892
+     ]
+    },
+    "bss": 24
+   },
+   "cost": {
+    "emulation": {
+     "first": 2621,
+     "mean": 3131,
+     "max": 3131,
+     "reset": 2,
+     "pattern": "notes/68 §17: instructions per block of the process called alone after its reset (the reset counted apart), on the OS 1.13 in tools/emu/test_fxslot.py section 6 (mcengine.py's counter): noise of +-2^28 into both channels, Time 0 and Fdbk 96 for the delay, Size 64 and Tone 96 for the reverb (x 256), the first block, then the mean and maximum over 21 blocks after 32 more"
+    },
+    "device": {
+     "status": "not measured"
+    }
    }
   }
  },
@@ -3412,44 +3574,6 @@ window.MC_TWEAKS = {
      "kind": "shortcut_data"
     }
    ],
-   "sites": {
-    "knob": {
-     "vtable": "0x401005a8",
-     "stock_ptr": "0x4001e814",
-     "symbol": "sc_knob"
-    },
-    "record": [
-     {
-      "at": "0x4005afa0",
-      "stock": "4feffff448d71c00",
-      "symbol": "sc_save2"
-     },
-     {
-      "at": "0x4005b054",
-      "stock": "4feffff448d71c00",
-      "symbol": "sc_save1"
-     },
-     {
-      "at": "0x4005aecc",
-      "stock": "4feffff448d71c00",
-      "symbol": "sc_load"
-     }
-    ],
-    "press": [
-     {
-      "at": "0x4001ac4a",
-      "stock": "4feffff47201",
-      "op": "jmp",
-      "symbol": "sc_press"
-     },
-     {
-      "at": "0x4001cc86",
-      "stock": "2a004a8257c0",
-      "op": "jsr",
-      "symbol": "sc_leds"
-     }
-    ]
-   },
    "data": {
     "next": 0,
     "descn": 12,
@@ -3516,6 +3640,44 @@ window.MC_TWEAKS = {
      ]
     },
     "bss": 0
+   },
+   "sites": {
+    "knob": {
+     "vtable": "0x401005a8",
+     "stock_ptr": "0x4001e814",
+     "symbol": "sc_knob"
+    },
+    "record": [
+     {
+      "at": "0x4005afa0",
+      "stock": "4feffff448d71c00",
+      "symbol": "sc_save2"
+     },
+     {
+      "at": "0x4005b054",
+      "stock": "4feffff448d71c00",
+      "symbol": "sc_save1"
+     },
+     {
+      "at": "0x4005aecc",
+      "stock": "4feffff448d71c00",
+      "symbol": "sc_load"
+     }
+    ],
+    "press": [
+     {
+      "at": "0x4001ac4a",
+      "stock": "4feffff47201",
+      "op": "jmp",
+      "symbol": "sc_press"
+     },
+     {
+      "at": "0x4001cc86",
+      "stock": "2a004a8257c0",
+      "op": "jsr",
+      "symbol": "sc_leds"
+     }
+    ]
    },
    "shortcut": {
     "key": "RETRIG",
@@ -3683,34 +3845,6 @@ window.MC_TWEAKS = {
      "kind": "dispatch_data"
     }
    ],
-   "sites": {
-    "view.main": {
-     "vtable": "0x400ffe30",
-     "stock_ptr": "0x4001b22a",
-     "symbol": "dp_main",
-     "table": 4
-    },
-    "view.knob": {
-     "vtable": "0x4010053c",
-     "stock_ptr": "0x4001e40a",
-     "symbol": "dp_knob",
-     "table": 28
-    },
-    "screen.tick": {
-     "hook": "0x400075f0",
-     "stock": "4eb940076be4",
-     "op": "jsr",
-     "symbol": "dp_tick",
-     "table": 52
-    },
-    "browser.open": {
-     "hook": "0x400a6602",
-     "stock": "4eb9400a3052",
-     "op": "jsr",
-     "symbol": "dp_open",
-     "table": 76
-    }
-   },
    "data": {
     "first": 0,
     "count": 1,
@@ -3810,6 +3944,384 @@ window.MC_TWEAKS = {
      ]
     },
     "bss": 0
+   },
+   "sites": {
+    "view.main": {
+     "vtable": "0x400ffe30",
+     "stock_ptr": "0x4001b22a",
+     "symbol": "dp_main",
+     "table": 4
+    },
+    "view.knob": {
+     "vtable": "0x4010053c",
+     "stock_ptr": "0x4001e40a",
+     "symbol": "dp_knob",
+     "table": 28
+    },
+    "screen.tick": {
+     "hook": "0x400075f0",
+     "stock": "4eb940076be4",
+     "op": "jsr",
+     "symbol": "dp_tick",
+     "table": 52
+    },
+    "browser.open": {
+     "hook": "0x400a6602",
+     "stock": "4eb9400a3052",
+     "op": "jsr",
+     "symbol": "dp_open",
+     "table": 76
+    }
+   }
+  },
+  "fxslot": {
+   "id": "fxslot",
+   "version": "0.3",
+   "roots": [
+    "fx_delay",
+    "fx_reverb",
+    "fx_track",
+    "fx_load",
+    "fx_init"
+   ],
+   "patch_points": [
+    {
+     "symbol": "fx_data",
+     "kind": "fx_data"
+    }
+   ],
+   "data": {
+    "entries": 8,
+    "size": 1180,
+    "slots": [
+     0,
+     100
+    ],
+    "desc": 200,
+    "names": 208,
+    "state": 1168
+   },
+   "bundle": {
+    "code": "7000600270012f2f000c2f2f000c2f2f000c2f004eb9000000004fef00104e754fefffe8726448d70c04246f001c200a4c01080074012040d1fc000000002250b489640000b6203c000000e05888220a4c001800200a0680000000002640428075ab049041e8000cb4a8fff4670000c85280b08966ee42802041d1c0d1fc000000004a8a677e203c000008c0227c40a72714247c40a726b02f40000c243c000008882f490014203c000000002f4a0010223c000000002440225a200a45f12800d3ef000c2550002c25680010003025680004003423680008002c2368001000302368000c0034b08166cc266f0010226f001426a8001422a800184cd70c044fef00184e75203c00000850227c40a7264c247c40a725e82f40000c243c000008182f490014203c000000002f4a0010223c000000006080741c4c0208006000ff3a203940fe4228207940a7887c2f024a8067244a886724222877f2745fb481651a243c000002dc4c021800204006810000148420301800241f4e75241f42804e75598f2f0a2f02206f0014226f00101228001f1028001d73811f40000b1028001e142f000b344245f2085a200a7180b081672640c0220000810000070046c14201745a1341001d1341001e1342001f46c0241f245f588f4e751228001e1028001d304040c0240000820000070046c2340845f0185a1342001d1341001e2f4a0008136f000b001f46c0241f245f588f4e75206f000440c0220000810000070046c142011141001d1141001e725a1141001f46c04e754fefffe0706448d70c0c242f00242f6f002800142f6f002c00184c0208002f6f0030001c2440d5fc000000004eb90000000020404a80671e1228001f1028001d738132401028001e43f1085a20097180b081670000d62642d7fc0000000077ab049093c942814280b083660000a222524a89671641ea0004428041e8000cb2a8fff4670c5280b08966f0222a00044280142b04927782b283670000ae4a026624487900000000487900000000487900000000206a00082f40001c4e904fef000c202f00102200740c52814c021800207218004a88670a2f4000104e90202f0010760c4c03080041f20807175004922f6f001c002c2f6f001800282f6f00140024227208084cd70c0c4fef00204ed13009174004902f022f4100144eb900000000588f222f00106000ff461230281d2642d7fc0000000077ab0490718132412200b0836700ff2a60c6720c4c0108002f6f001c002c2f6f001800282f6f00140024227208084cd70c0c4fef00204ed14fefffdc7225202f002848d7440cb280676c7427b480665a3c7c0001200e76644c030800720141f900000000b2b0080064402239fc07000c4aaf002c6f4475b9000000007001bdc26744340e13c000000000700123c10000000013c20000000013c00000000070014cd7440c4fef00244e754cd7440c42804fef00244e759dce609a75b9000000007002bdc266bc778075b9000000002f43001cb68266ac200190b9000000000c800339000062000178103900000000340e23c10000000076035280738013c200000000b68164924201203940fe422813c1000000004a8067862f004eb94000f2082f400018588f4a806700ff7420402268003c4a896700ff681229001f1429001d1029001e7381244245f2085a200a7180b0816700013491c81229001f1429001d1029001e36087381204241f0085a1f43002220087180b0816700011842001f400023300ec0fc00642440d5fc0000000020122f4a00184a806700ff0441ea0004428175b7e82241e8000cb4a8fff4670000c25281b28066ee7201b2af001c6600fede42815281b0816300fed4760c4c031800206f001845f018071f92e822122f0023142f002240c0260000830000070046c3244141f2285a1342001d1341001e32081341001f46c0246f0014206a002c42a7486a002c206800102f4900184e904eb900000000508fb0af00106600fe7040c2200200800000070046c043f7e82241f900000000d1ce115104902f0e4eb90000000046c27001588f6000fe44360e700123c10000000013c3000000006000fe287401b4af001c6700ff4a4a816700fe1e53816000ff461029001d30406000fec81029001e6000fee62f042f2f00084eb900000000508f4a8066064ef94005a5cc78004ef94001f96a156b002600264feffff048d703032f0b2f0a4eb900000000508f4cd703034fef00104e754200114000264feffff048d703032f084eb900000000588f4cd703034fef00104e75",
+    "relocs": [
+     [
+      58,
+      "fx_data",
+      0
+     ],
+     [
+      88,
+      "fx_data",
+      0
+     ],
+     [
+      126,
+      "fx_data",
+      208
+     ],
+     [
+      168,
+      "fx_data",
+      200
+     ],
+     [
+      178,
+      "fx_data",
+      208
+     ],
+     [
+      294,
+      "fx_data",
+      200
+     ],
+     [
+      304,
+      "fx_data",
+      208
+     ],
+     [
+      604,
+      "fx_data",
+      0
+     ],
+     [
+      610,
+      "code",
+      320
+     ],
+     [
+      654,
+      "fx_data",
+      0
+     ],
+     [
+      726,
+      "fx_data",
+      656
+     ],
+     [
+      732,
+      "fx_data",
+      656
+     ],
+     [
+      738,
+      "fx_data",
+      912
+     ],
+     [
+      848,
+      "code",
+      32
+     ],
+     [
+      870,
+      "fx_data",
+      0
+     ],
+     [
+      970,
+      "fx_data",
+      0
+     ],
+     [
+      994,
+      "fx_data",
+      1173
+     ],
+     [
+      1008,
+      "fx_data",
+      1174
+     ],
+     [
+      1016,
+      "fx_data",
+      1176
+     ],
+     [
+      1022,
+      "fx_data",
+      1173
+     ],
+     [
+      1028,
+      "fx_data",
+      1172
+     ],
+     [
+      1062,
+      "fx_data",
+      1173
+     ],
+     [
+      1076,
+      "fx_data",
+      1174
+     ],
+     [
+      1092,
+      "fx_data",
+      1176
+     ],
+     [
+      1108,
+      "fx_data",
+      1172
+     ],
+     [
+      1116,
+      "fx_data",
+      1176
+     ],
+     [
+      1128,
+      "fx_data",
+      1173
+     ],
+     [
+      1146,
+      "fx_data",
+      1172
+     ],
+     [
+      1270,
+      "fx_data",
+      0
+     ],
+     [
+      1420,
+      "code",
+      320
+     ],
+     [
+      1452,
+      "fx_data",
+      0
+     ],
+     [
+      1466,
+      "code",
+      32
+     ],
+     [
+      1486,
+      "fx_data",
+      1176
+     ],
+     [
+      1492,
+      "fx_data",
+      1173
+     ],
+     [
+      22,
+      "code",
+      564
+     ],
+     [
+      1548,
+      "code",
+      930
+     ],
+     [
+      1592,
+      "code",
+      384
+     ],
+     [
+      1626,
+      "code",
+      528
+     ]
+    ],
+    "symbols": {
+     "fx_delay": [
+      "code",
+      0
+     ],
+     "fx_reverb": [
+      "code",
+      4
+     ],
+     "fx_track": [
+      "code",
+      1540
+     ],
+     "fx_load": [
+      "code",
+      1572
+     ],
+     "fx_init": [
+      "code",
+      1608
+     ]
+    },
+    "bss": 0
+   },
+   "slots": {
+    "fx.delay": {
+     "hook": "0x4005699c",
+     "stock": "4eb940057488",
+     "symbol": "fx_delay",
+     "stock_fn": "0x40057488",
+     "descriptors": [
+      37,
+      38
+     ],
+     "formatters": [
+      "0x4004dfda",
+      "0x40045ab8"
+     ]
+    },
+    "fx.reverb": {
+     "hook": "0x40056a2c",
+     "stock": "4eb9400579c4",
+     "symbol": "fx_reverb",
+     "stock_fn": "0x400579c4",
+     "descriptors": [
+      39,
+      40
+     ],
+     "formatters": [
+      "0x40045a68",
+      "0x4004e00e"
+     ]
+    }
+   },
+   "track": {
+    "hook": "0x4001f89a",
+    "stock": "4eb94005a5cc",
+    "symbol": "fx_track"
+   },
+   "load": {
+    "hook": "0x4005b4b0",
+    "stock": "156b00260026",
+    "symbol": "fx_load"
+   },
+   "init": {
+    "hook": "0x4006155e",
+    "stock": "420011400026",
+    "symbol": "fx_init"
+   },
+   "formatter_sites": {
+    "0x4004dfda": [
+     "0x400de32a",
+     "203c4004dfda"
+    ],
+    "0x40045ab8": [
+     "0x400de762",
+     "203c40045ab8"
+    ],
+    "0x40045a68": [
+     "0x400de732",
+     "41f940045a68"
+    ],
+    "0x4004e00e": [
+     "0x400de396",
+     "41f94004e00e"
+    ]
+   },
+   "int_format": "0x400456c8",
+   "cost": {
+    "emulation": {
+     "stock": {
+      "fx.delay": {
+       "first": 2659,
+       "max": 2659,
+       "mean": 2659
+      },
+      "fx.reverb": {
+       "first": 8205,
+       "max": 8205,
+       "mean": 8205
+      }
+     },
+     "overhead": {
+      "fx.delay": {
+       "effect": 87,
+       "silence": 2659,
+       "stock": 81,
+       "switch": 199
+      },
+      "fx.reverb": {
+       "effect": 86,
+       "silence": 8205,
+       "stock": 80,
+       "switch": 197
+      }
+     },
+     "pattern": "notes/68 §17: instructions per block on the OS 1.13 in tools/emu/test_fxslot.py section 6 (mcengine.py's counter), noise of +-2^28 into both channels, Time 0 and Fdbk 96 for the delay, Size 64 and Tone 96 for the reverb (x 256): stock, the stock effect, the first block, then the mean and maximum over 21 blocks after 32 more; overhead, what the slot adds at most, with the stock choice (stock) and with an effect (effect), in the block of a switch besides the effect's first block, its reset and the stock effect's block of silence (switch), and that block of silence (silence)"
+    }
+   },
+   "claims": {
+    "saved": [
+     [
+      "pattern, header +29",
+      3,
+      "all"
+     ]
+    ]
    }
   }
  },

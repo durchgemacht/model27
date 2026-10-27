@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Generates the tweaks of the reference packages alone: 28-refmachine.json (REF, notes/59 §2a),
 29-refmachine2.json (REF2, notes/63) and 34-refchord.json (REFC, the reference extension of a stock machine,
-notes/66 §3).
+notes/66 §3); and the objects of REFD and REFR, the reference effects of the delay and reverb slots (notes/68, step
+F1), whose tweaks come with the flasher's side of the effects (step F3): a tweak in the folder adds a computed conflict
+to every other composed tweak.
 
 The reference machine is model27's smallest added machine (tools/machines/refmachine/): a parabolic sine and noise
 through the stock amp chain, four knobs, no hook into the OS. It exists to prove the composer, to be the template a
@@ -9,7 +11,9 @@ new machine copies, and to measure the registrar's cost; it is never offered to 
 baseline the composed builds are compared with (sampler alone has 27-sampler.json for that). REF2
 (tools/machines/refmachine2/) is the second reference machine: the template for a machine that uses everything the
 standard lets a machine use (notes/63), never offered either. REFC (tools/machines/refchord/) extends CHORD instead of
-adding a machine: a shortcut and two hooks that count, nothing that sounds; never offered.
+adding a machine: a shortcut and two hooks that count, nothing that sounds; never offered. REFD
+(tools/machines/refdelay/) and REFR (tools/machines/refreverb/) are effects: called in place of the stock delay or
+reverb through the builder's effect slots (tools/machines/fxslot/) when the device chooses them; never offered.
 
 For each, this generator compiles the package's sources with the manifest's recipe into its committed object
 (tools/machines/<id>/<id>.o, ld -r of the objects: notes/60 §2), then composes the machine alone through
@@ -37,6 +41,8 @@ import gen_sdvintage_7th as g7     # noqa: E402
 MACHINES = (("refmachine", compose.DEV / "28-refmachine.json", ""),
             ("refmachine2", compose.DEV / "29-refmachine2.json", ""),
             ("refchord", compose.DEV / "34-refchord.json", " (notes/66 §3)"))
+# the reference effects (notes/68, step F1): their committed objects only, no tweak yet
+EFFECTS = ("refdelay", "refreverb")
 
 
 def main():
@@ -60,6 +66,15 @@ def main():
         print(f"  {mid}: {len(tweak['writes'])} writes, code {p['code']} bytes, variables {p['bss']} bytes, "
               f"{info['image']} bytes added to the image, {len(tweak['conflicts'])} conflicts computed")
         bad |= bool(gm.emit(out, text, args.check))
+    for mid in EFFECTS:
+        m = compose.load_manifest(mid)
+        with tempfile.TemporaryDirectory() as d:
+            obj = compose.build_object(m, pathlib.Path(d))
+        bad |= bool(compose.emit_bytes(compose.object_path(m), obj, args.check))
+        tweak, info = compose.compose(img, [mid])
+        p = info["packages"][0]
+        print(f"  {mid}: {len(tweak['writes'])} writes, code {p['code']} bytes, variables {p['bss']} bytes, "
+              f"{info['image']} bytes added to the image (object only, no tweak written)")
     if bad:
         raise SystemExit(1)
 

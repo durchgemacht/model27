@@ -71,7 +71,7 @@ def boot_hook_ok(os_img, payload):
     uc = Uc(UC_ARCH_M68K, UC_MODE_BIG_ENDIAN)
     uc.ctl_set_cpu_model(mk.UC_CPU_M68K_ANY)
     uc.mem_map(0x40000000, 0x02400000)                 # image + BSS jusqu'à 0x423380b0
-    uc.mem_map(E.PAYLOAD_DST, 0x00100000)
+    uc.mem_map(E.PAYLOAD_DST, max(0x00100000, (len(payload) + 0xfffff) & ~0xfffff))   # charge utile et variables
     uc.mem_map(0x80000000, 0x00010000)                 # SRAM, telle que 0x4000045c la laisse
     uc.mem_map(0x90000000, 0x00020000)
     uc.mem_write(E.BASE, os_img)

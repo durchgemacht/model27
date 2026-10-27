@@ -45,8 +45,13 @@ SELECTIONS = ((["sampler"], []), (["refmachine"], []), (["sampler", "refmachine"
               (["refchord"], []), (["refchord", "sampler"], []), (["sampler", "refchord"], []),
               (["refchord", "refmachine2"], []), (["sampler", "refchord", "refmachine2"], []),
               # notes/66 W3: CHORD Tables, alone, and with SAMPLE before and after it (two RAM claims)
-              (["chordtables"], []), (["chordtables", "sampler"], []), (["sampler", "chordtables"], []))
-PARTS = ("shortcuts", "dispatch")
+              (["chordtables"], []), (["chordtables", "sampler"], []), (["sampler", "chordtables"], []),
+              # notes/68: the effects alone, in both slots, with SAMPLE before and after them, with the shortcut layer
+              # and the dispatchers (REF2, SAMPLE), and with an extension of CHORD (the stock descriptor table)
+              (["digidelay"], []), (["refdelay", "refreverb"], []), (["sampler", "digidelay"], []),
+              (["digidelay", "sampler"], []), (["sampler", "refdelay", "refreverb"], []),
+              (["digidelay", "refreverb", "refmachine2", "sampler"], []), (["chordtables", "digidelay"], []))
+PARTS = ("shortcuts", "dispatch", "fxslot")
 COMPARED = ("id", "order", "name", "version", "conflicts", "writes", "append", "symbols")
 
 

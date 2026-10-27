@@ -1,0 +1,117 @@
+{
+ "schema": "cycles-mod/0.1",
+ "id": "digidelay",
+ "version": "0.1",
+ "name": "Digital Delay: PPPCCC's bright, clean delay of up to 5.4 s, for the delay slot",
+ "description": "The first real effect of model27's effect slots (notes/68 §18): PPPCCC's digital delay from their Model:Cycles 1.13 Mods 2.0.0, ported to an effect package, the sound theirs bit for bit. The opposite of the dark stock delay: bright and clean, up to 5.4 s, each repeat a little thinner in the lows (a high-pass of about 240 Hz and a low-pass of about 12.8 kHz in the feedback). Mono, the same repeat on both outputs. Time and Fdbk keep their knobs; the line is the delay slot's (1 MiB).",
+ "license": "MIT",
+ "credit": {
+  "kind": "based",
+  "who": "PPPCCC (gialloinfuso)",
+  "repo": "gialloinfuso/PPPCCC-Model-Cycles-1.13-Mods"
+ },
+ "source": "https://github.com/gialloinfuso/PPPCCC-Model-Cycles-1.13-Mods/tree/db7a846f",
+ "device": "Model:Cycles",
+ "os": "1.13",
+ "order": 39,
+ "build": {
+  "sources": [
+   "digidelay.c"
+  ],
+  "include": [
+   "."
+  ],
+  "cflags": [
+   "-std=c99",
+   "-mcpu=54418",
+   "-O2",
+   "-ffreestanding",
+   "-fno-builtin",
+   "-fno-tree-loop-distribute-patterns",
+   "-nostdlib",
+   "-fno-pic",
+   "-fno-common",
+   "-ffunction-sections",
+   "-fdata-sections",
+   "-Wall",
+   "-Wextra",
+   "-Werror"
+  ],
+  "defines": {},
+  "objects": [
+   "digidelay.o"
+  ],
+  "patch_points": [
+   {
+    "symbol": "fx_line",
+    "kind": "fx_line"
+   }
+  ],
+  "roots": [
+   "digi_process",
+   "digi_reset"
+  ]
+ },
+ "uses": [
+  {
+   "point": "fx.delay",
+   "id": 1,
+   "process": "digi_process",
+   "reset": "digi_reset",
+   "line": 1048576,
+   "params": [
+    {
+     "long": "Digi Time",
+     "short": "TIME"
+    },
+    {
+     "long": "Digi Fdbk",
+     "short": "FDBK"
+    }
+   ],
+   "name": "Digital",
+   "short": "DIGI",
+   "why": "an effect of the delay slot: called as the stock delay 0x40057488 is, (out, in, P + 428), when the playing pattern chooses id 1; its line of 262 144 frames is the slot's"
+  }
+ ],
+ "claims": {},
+ "cost": {
+  "emulation": {
+   "first": 2621,
+   "mean": 3131,
+   "max": 3131,
+   "reset": 2,
+   "pattern": "notes/68 §17: instructions per block of the process called alone after its reset (the reset counted apart), on the OS 1.13 in tools/emu/test_fxslot.py section 6 (mcengine.py's counter): noise of +-2^28 into both channels, Time 0 and Fdbk 96 for the delay, Size 64 and Tone 96 for the reverb (x 256), the first block, then the mean and maximum over 21 blocks after 32 more"
+  },
+  "device": {
+   "status": "not measured"
+  }
+ },
+ "stock_behaviour": {
+  "changes": [],
+  "fixes": [],
+  "unchanged": [
+   "the stock delay, whenever the playing pattern has not chosen Digital"
+  ]
+ },
+ "compat": {
+  "built_against": [
+   "model27"
+  ],
+  "requires": [],
+  "conflicts_declared": []
+ },
+ "tests": {
+  "emulation": {
+   "tool": "tools/emu/test_fxslot.py (Unicorn, the OS's own code, notes/68 §18)",
+   "date": "2026-10-27",
+   "build": "alone, with refreverb, and with sampler and refreverb"
+  },
+  "hardware": {
+   "date": "2026-10-27",
+   "by": "maintainer",
+   "build": "digidelay alone, notes/68 §18.3; the steps of §18.6"
+  },
+  "status": "experimental"
+ }
+}

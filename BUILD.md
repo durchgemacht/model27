@@ -260,6 +260,24 @@ python3 tools/emu/test_control_all_config.py --cycles model-cycles_OS1.13.syx \
     [--with 6ch-usbup,model-tg-st,syntakt-tg-sd-cp-toy-bits-swarm,arp,trig-hold,tempo-max,boot-anim --syntakt Syntakt_OS1.42.syx]
 python3 tools/build.py -i model-cycles_OS1.13.syx -t control-all-config
 ```
+
+### Digital Delay (effet)
+
+`tweaks/model-cycles_OS1.13/39-digidelay.json` est produit par `tools/gen_digidelay.py`, qui compile
+`tools/machines/digidelay/digidelay.c` (le delay numérique des mods PPPCCC de gialloinfuso, 2.0.0, MIT, porté en C pas à
+pas) et le compose seul avec `tools/compose.py` : un effet de l'emplacement du delay, avec la partie `fxslot`
+([note 68](notes/68-fx-slots.md) §14 à §19). TRACK + Delay Time choisit l'effet du pattern (octets 29 à 31 de son
+en-tête) ; la ligne de 1 Mio est celle de l'emplacement, dans les variables de la charge utile. La preuve fait tourner le
+vrai code du mixer, du gestionnaire des potards, du chargement et de l'initialisation des en-têtes de pattern, d'origine
+et modifié, et compte la charge ; avec `--pppccc`, le son contre le code même de PPPCCC :
+```sh
+python3 tools/gen_digidelay.py --cycles model-cycles_OS1.13.syx [--check]
+python3 tools/emu/test_fxslot.py --cycles model-cycles_OS1.13.syx \
+    [--pppccc PPPCCC-Model-Cycles-1.13-Mods/patches/06-delay-fx.json]
+python3 tools/build.py -i model-cycles_OS1.13.syx -t digidelay
+```
+MAIN OS patché, `digidelay` seul : `4fb4eac751faa4e6ec02a2bfefd24ccb264bdd566ede2244a1ceb258542894b9` (celui joué sur un
+Model:Cycles le 27/10/2026, et celui que la page compose).
 ### OS Cycles pour Model:Samples (et retour par USB)
 
 Pas un tweak : `tools/crossflash.py` met l'OS Cycles officiel dans le conteneur officiel du Model:Samples, en changeant les

@@ -339,6 +339,23 @@ ALL_FEATURES = [
         "package": "sampler",
     },
     {
+        "id": "digidelay",
+        "cat": "sound",
+        "label": "Digital Delay (effect)",
+        "desc": "A second delay for the delay slot: bright and clean, up to 5.4 s, each repeat a little thinner in the "
+                "lows. Hold TRACK and turn Delay Time to switch the pattern's delay between the stock Delay and "
+                "Digital; Time and Fdbk keep their knobs.",
+        # PPPCCC's digital delay (2.0.0) ported to an effect package, their sound bit for bit in emulation; the
+        # command-line build of it alone played on the Model:Cycles on 2026-10-27 (notes/68 §18). Experimental
+        # until flashed from this page.
+        "status": "experimental",
+        "credit": {"kind": "based", "who": "gialloinfuso", "repo": "gialloinfuso/PPPCCC-Model-Cycles-1.13-Mods"},
+        "license": "LICENSE-PPPCCC",
+        # an effect composed in the page from its package (notes/68 §19), with the machines ticked: alone it gives
+        # 39-digidelay.json byte for byte, whose conflicts give its excludes
+        "package": "digidelay",
+    },
+    {
         "id": "chord-keys",
         "cat": "live",
         "label": "Accords de gamme sur TRIG 1–16",
@@ -396,7 +413,7 @@ ALL_FEATURES = [
 # model27 offers a short list of cards. The other definitions above stay as they are, for the command-line build
 # (every tweak of tweaks/ is still built by tools/build.py) and so that merges from upstream apply cleanly; a card
 # comes back into the flasher by adding its id here, once it has been reviewed against the Cycles Mod Standard.
-OFFERED = ("sampler", "control-all-config")
+OFFERED = ("sampler", "digidelay", "control-all-config")
 FEATURES = [f for f in ALL_FEATURES if f["id"] in OFFERED]
 _missing = set(OFFERED) - {f["id"] for f in FEATURES}
 if _missing:
@@ -668,7 +685,8 @@ def render():
         "registrar": json.loads((HERE / "machines" / "registrar" / "frame.json").read_text(encoding="utf-8"))
         if packages else None,
         # model27, Level B (notes/63, B4e): the builder's parts, which the machines' shortcuts and shared points need
-        "parts": {pid: __import__("compose").web_part(pid) for pid in ("shortcuts", "dispatch")} if packages else None,
+        "parts": {pid: __import__("compose").web_part(pid) for pid in ("shortcuts", "dispatch", "fxslot")}
+        if packages else None,
         # model27, Level C (notes/65, C2): the declared claims of the offered tweaks, which the machine cards are
         # composed against (tools/claims.py's to_json form)
         "claims": {t["id"]: claimed[t["id"]] for t in tweaks if t["id"] in claimed} if packages else None,

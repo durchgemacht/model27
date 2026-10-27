@@ -59,7 +59,7 @@ class UI:
         uc.ctl_set_cpu_model(mk.UC_CPU_M68K_ANY)
         uc.mem_map(0x40000000, 0x02400000)            # image + BSS (jusqu'à 0x423380b0)
         uc.mem_write(BASE, img[:E.IMAGE_LEN])
-        uc.mem_map(0x43000000, 0x00100000)
+        uc.mem_map(0x43000000, max(0x00100000, (len(payload) + 0xfffff) & ~0xfffff))   # charge utile et variables
         uc.mem_write(0x43000000, payload)
         uc.mem_map(0x90000000, 0x04000000)            # pile, objets factices, fonctions interceptées
         uc.mem_write(STOP, b"\x4e\x71\x4e\x71")

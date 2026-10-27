@@ -1,0 +1,40 @@
+{
+ "schema": "model27-part/0.1",
+ "id": "fxslot",
+ "version": "0.3",
+ "name": "Effect slots: the mixer's delay and reverb go to the effect the pattern chose with TRACK + Delay Time / Reverb Size",
+ "description": "A part of model27's builder, not a machine (notes/68 §2, §9, §11, §14; steps F1, F2 and F2b): built once into fxslot.o by tools/gen_parts.py, added by tools/compose.py to a build in which a package is an effect. The mixer's call of the delay (0x4005699c) or of the reverb (0x40056a2c), for each slot that has an effect in the build, goes to the part, which runs the effect the playing pattern chose for that slot or the stock one, and names the slot's parameters after it; TRACK + Delay Time / Reverb Size (0x4001f89a, reached only while TRACK is held) steps the shown pattern's choice through the slot's effects. The choice is kept in the pattern header's bytes 29 to 31, which the OS saves but neither loads nor initializes: the part copies them in the loader (0x4005b4b0) and sets the stock effects in a new pattern (0x4006155e). The composer writes the data block (each slot's effects by id, entry 0 the stock effect; their parameters' names and formatters) right after the part's code. A slot without an effect keeps its stock call, and the gesture its stock meaning there.",
+ "license": "MIT",
+ "build": {
+  "sources": ["fxslot.c", "entries.S"],
+  "include": [],
+  "cflags": ["-std=c99", "-mcpu=54418", "-O2", "-ffreestanding", "-fno-builtin", "-fno-tree-loop-distribute-patterns",
+             "-nostdlib", "-fno-pic", "-fno-common", "-ffunction-sections", "-fdata-sections", "-Wall", "-Wextra",
+             "-Werror"],
+  "defines": {},
+  "objects": ["fxslot.o"],
+  "roots": ["fx_delay", "fx_reverb", "fx_track", "fx_load", "fx_init"],
+  "patch_points": [{"symbol": "fx_data", "kind": "fx_data"}]
+ },
+ "slots": {
+  "fx.delay": {"hook": "0x4005699c", "stock": "4eb940057488", "symbol": "fx_delay", "stock_fn": "0x40057488",
+               "descriptors": [37, 38], "formatters": ["0x4004dfda", "0x40045ab8"]},
+  "fx.reverb": {"hook": "0x40056a2c", "stock": "4eb9400579c4", "symbol": "fx_reverb", "stock_fn": "0x400579c4",
+                "descriptors": [39, 40], "formatters": ["0x40045a68", "0x4004e00e"]}
+ },
+ "track": {"hook": "0x4001f89a", "stock": "4eb94005a5cc", "symbol": "fx_track"},
+ "load": {"hook": "0x4005b4b0", "stock": "156b00260026", "symbol": "fx_load"},
+ "init": {"hook": "0x4006155e", "stock": "420011400026", "symbol": "fx_init"},
+ "formatter_sites": {"0x4004dfda": ["0x400de32a", "203c4004dfda"], "0x40045ab8": ["0x400de762", "203c40045ab8"],
+                     "0x40045a68": ["0x400de732", "41f940045a68"], "0x4004e00e": ["0x400de396", "41f94004e00e"]},
+ "int_format": "0x400456c8",
+ "data": {"entries": 8, "size": 1180, "slots": [0, 100], "desc": 200, "names": 208, "state": 1168},
+ "pattern": {"id_at": {"fx.delay": 29, "fx.reverb": 30}, "check_at": 31, "check": "0x5a + byte 29 + byte 30",
+             "root": "0x40fe4228", "playing": "0x40a7887c", "shown": "0x4000f208"},
+ "ids": {"stock": 0, "first": 1, "last": 239, "reference": [240, 255]},
+ "claims": {"saved": [{"where": "pattern, header +29", "bytes": 3}]},
+ "cost": {"emulation": {
+  "stock": {"fx.delay": {"first": 2659, "max": 2659, "mean": 2659}, "fx.reverb": {"first": 8205, "max": 8205, "mean": 8205}},
+  "overhead": {"fx.delay": {"effect": 87, "silence": 2659, "stock": 81, "switch": 199}, "fx.reverb": {"effect": 86, "silence": 8205, "stock": 80, "switch": 197}},
+  "pattern": "notes/68 §17: instructions per block on the OS 1.13 in tools/emu/test_fxslot.py section 6 (mcengine.py's counter), noise of +-2^28 into both channels, Time 0 and Fdbk 96 for the delay, Size 64 and Tone 96 for the reverb (x 256): stock, the stock effect, the first block, then the mean and maximum over 21 blocks after 32 more; overhead, what the slot adds at most, with the stock choice (stock) and with an effect (effect), in the block of a switch besides the effect's first block, its reset and the stock effect's block of silence (switch), and that block of silence (silence)"}}
+}

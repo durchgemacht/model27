@@ -215,20 +215,23 @@ async function main() {
   let fail = 0;
   const check = (cond, msg) => { console.log((cond ? "  ok  " : "  FAIL ") + msg); if (!cond) fail++; };
 
-  // 1. Page loads cleanly, everything is wired; model27's two cards
+  // 1. Page loads cleanly, everything is wired; model27's three cards
   if (MAIN) {
     const { w, doc, errors } = await load();
     check(errors.length === 0, "loads without JS error " + (errors.length ? JSON.stringify(errors) : ""));
     check(typeof w.MCBuilder === "object" && typeof w.MCComposer === "object" && typeof w.MCFlasher === "object",
       "MCBuilder + MCComposer + MCFlasher present");
     const ids = w.MC_TWEAKS.tweaks.map((x) => x.id), cards = w.MC_TWEAKS.features;
-    const smp = cards.find((f) => f.id === "sampler") || {};
-    check(ids.join() === "control-all-config" && cards.map((f) => f.id).join() === "control-all-config,sampler"
-      && smp.package === "sampler" && !smp.variants && Object.keys(w.MC_TWEAKS.packages).join() === "sampler"
+    const smp = cards.find((f) => f.id === "sampler") || {}, dd = cards.find((f) => f.id === "digidelay") || {};
+    check(ids.join() === "control-all-config" && cards.map((f) => f.id).join() === "control-all-config,sampler,digidelay"
+      && smp.package === "sampler" && !smp.variants && dd.package === "digidelay" && !dd.variants
+      && Object.keys(w.MC_TWEAKS.packages).join() === "sampler,digidelay"
+      && Object.keys(w.MC_TWEAKS.parts || {}).join() === "shortcuts,dispatch,fxslot"
       && w.MC_TWEAKS.registrar && w.MC_TWEAKS.registrar.schema === "model27-registrar-frame/0.1"
       && !cards.some((f) => f.engines || f.needs) && !w.MC_TWEAKS.tweaks.some((x) => x.append && x.append.syntakt),
-      "MC_TWEAKS: model27's two cards, Control All Config (its tweak) and SAMPLE (a machine card: its package and the " +
-      "registrar's frame, composed in the page), nothing that needs the Syntakt OS: " + ids.join());
+      "MC_TWEAKS: model27's three cards, Control All Config (its tweak), SAMPLE (a machine card) and Digital Delay (an " +
+      "effect card): their packages, the registrar's frame and the parts, composed in the page, nothing that needs the " +
+      "Syntakt OS: " + ids.join());
     check(/build \d{4}-/.test(text(doc, "build-stamp")), "version stamp shown");
     const srcs = [...doc.querySelectorAll("script[src]")].map((x) => x.getAttribute("src"));
     check(["builder.js", "composer.js", "tweaks.js", "flasher.js", "app.js"].every((f) => srcs.some((x) => x.startsWith(f + "?")))
@@ -237,7 +240,7 @@ async function main() {
     // display order: by section (Sounds & machines, then Live playing), FEATURES order inside a section; the build
     // keeps FEATURES order (checked in 1b)
     const feats = [...doc.querySelectorAll("#features input[type=checkbox]")].map((c) => c.id);
-    check(feats.join() === "feat-sampler,feat-control-all-config", "2 feature rows, by section: " + JSON.stringify(feats));
+    check(feats.join() === "feat-sampler,feat-digidelay,feat-control-all-config", "3 feature rows, by section: " + JSON.stringify(feats));
     check(cards.every((f) => doc.querySelector(`#cat-${f.cat || "other"} #mod-${f.id} #feat-${f.id}`)),
       "every feature has a row in its section (cat)");
     const tagOfFeat = (f) => (f.status === "tested" ? "Tested" : "Experimental");
@@ -246,14 +249,16 @@ async function main() {
     check(doc.getElementById("drop3-wrap").hidden, "no Syntakt drop zone: no card needs the Syntakt OS");
     const credits = [...doc.querySelectorAll("#features .credit a")].map((a) => a.href);
     const creditOf = (id) => [...doc.querySelectorAll(`label[for=feat-${id}] .credit a`)].map((a) => a.href);
-    check(credits.length === 4
+    check(credits.length === 6
       && creditOf("sampler")[0] === "https://github.com/durchgemacht/cycles-one-shot" && /\/LICENSE-One-Shot\.txt$/.test(creditOf("sampler")[1])
+      && creditOf("digidelay")[0] === "https://github.com/gialloinfuso/PPPCCC-Model-Cycles-1.13-Mods"
+      && /\/LICENSE-PPPCCC\.txt$/.test(creditOf("digidelay")[1])
       && creditOf("control-all-config")[0] === "https://github.com/durchgemacht/cycles-control-all-config"
       && /\/LICENSE-Control-All-Config\.txt$/.test(creditOf("control-all-config")[1]),
       "each row credits its author, with a link to the MIT license of the code it carries: " + JSON.stringify(credits));
     const list = [...doc.querySelectorAll("#credits-list a")].map((a) => a.textContent);
-    check(list.join() === "18nelli18/Modded-Cycles,scottmetoyer/ms-multi-output,drumkilla/elektron-model-tweaks,pichenettes/eurorack,RobinSchmidt/Open303,TinyGregAudio/Model-TG,mischa85/elektron-firmware-tool,dagargo/elektroid,mxldyn/octamax",
-      "credits section lists Modded-Cycles first, then the 8 repositories it builds on");
+    check(list.join() === "18nelli18/Modded-Cycles,scottmetoyer/ms-multi-output,drumkilla/elektron-model-tweaks,pichenettes/eurorack,RobinSchmidt/Open303,TinyGregAudio/Model-TG,gialloinfuso/PPPCCC-Model-Cycles-1.13-Mods,mischa85/elektron-firmware-tool,dagargo/elektroid,mxldyn/octamax",
+      "credits section lists Modded-Cycles first, then the 9 repositories it builds on");
     const lic = [...doc.querySelectorAll("#credits a")].map((a) => a.href).filter((h) => /LICENSE|NOTICES/.test(h));
     check(lic.join() === "https://github.com/18nelli18/Modded-Cycles/blob/main/LICENSE,https://github.com/durchgemacht/model27/blob/main/THIRD-PARTY-NOTICES.md",
       "credits section links Modded-Cycles' MIT license and model27's third-party notices: " + JSON.stringify(lic));
@@ -271,6 +276,21 @@ async function main() {
     check(smpAlone === "sampler" && both === "control-all-config,sampler" && bothOn && cacAlone === "control-all-config" && !chosen().length
       && doc.querySelector('#features a[href$="#sampler"]') && doc.querySelector('#features a[href$="#control-all"]'),
       `SAMPLE alone ${smpAlone}; with Control All Config ${both}, both ticked, no clash; Control All Config alone ${cacAlone}; guide links`);
+    // Digital Delay: an effect card, composed with the machine cards into one tweak, at the place of the first of them
+    box("feat-digidelay").click(); await wait(5);
+    const ddAlone = chosen();
+    box("feat-sampler").click(); await wait(5);
+    const ddSmp = chosen();
+    box("feat-control-all-config").click(); await wait(5);
+    const ddAll = chosen();
+    const allOn = ["sampler", "digidelay", "control-all-config"].every((i) => box("feat-" + i).checked)
+      && !doc.querySelector("#features .say.clash");
+    for (const i of ["digidelay", "sampler", "control-all-config"]) { box("feat-" + i).click(); await wait(5); }
+    check(ddAlone === "digidelay" && ddSmp === "sampler+digidelay" && ddAll === "control-all-config,sampler+digidelay"
+      && allOn && !chosen().length && doc.querySelector('#features a[href$="#digital-delay"]')
+      && doc.querySelectorAll('input[name="var-digidelay"]').length === 0,
+      `Digital Delay alone ${ddAlone}; with SAMPLE ${ddSmp}, one composed tweak; with Control All Config too ${ddAll}, all ` +
+      "ticked, no clash; no sub-choice; its guide link");
     box("feat-sampler").click(); await wait(30);
     check(doc.querySelectorAll('input[name="var-sampler"]').length === 0, "SAMPLE: a machine card, no sub-choice");
     check(!!doc.getElementById("tab-samples") && doc.getElementById("panel-samples").hidden && doc.getElementById("drop2-wrap").hidden,
@@ -283,6 +303,7 @@ async function main() {
     await wait(20);
     check(/Que voulez-vous installer/.test(text(doc, "h1s")) && doc.documentElement.lang === "fr", "FR switch translates the page");
     check(/Control All : choix des pistes/.test(text(doc, "features")) && /SAMPLE machine \(Cycles One-Shot\)/.test(text(doc, "features"))
+      && /Digital Delay \(effet\)/.test(text(doc, "features")) && /Expérimental/.test(text(doc, "features"))
       && /par durchgemacht/.test(text(doc, "features")) && /Testé/.test(text(doc, "features"))
       && doc.querySelector('#features a[href$="#control-all"]') && doc.querySelector('#features a[href$="#sampler"]'),
       "FR switch translates the cards (SAMPLE's texts are in English only), their credits and tags, with their guide links");
