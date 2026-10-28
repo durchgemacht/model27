@@ -31,9 +31,10 @@ HILBERT = DIR / "hilbert.json"     # tools/gen_hilbert.py
 Q24, Q29, Q30, Q31 = 1 << 24, 1 << 29, 1 << 30, 1 << 31
 # The send bus's level (notes/69 §12.4, §12.5): the median of the six stock machines' delay-send peaks at Delay Send
 # 127 and velocity 100, measured in the emulator on 2026-10-28 (120 879 524 and 126 707 260 the middle two), stands
-# for 0.5 of the prototype's scale; the echo comes back 6 dB (x 2) above the prototype's.
+# for 0.5 of the prototype's scale; the echo comes back 12 dB (x 4) above the prototype's: 6 dB to stand by Digital
+# Delay (§12.5), 6 more to come near the stock delay's first echo (§17).
 K_BUS = (120879524 + 126707260) / 2 / 0.5
-OUT_X = 2.0
+OUT_X = 4.0
 
 
 def q(v, one):

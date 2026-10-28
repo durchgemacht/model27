@@ -175,7 +175,7 @@ def render_bus(x, time, fdbk, off=0, theta_hz=0.0, seed=7):
 
 
 def render(x, time, fdbk, **kw):
-    """The return on the prototype's scale (the echo's 6 dB taken off again), to set beside v6's numbers."""
+    """The return on the prototype's scale (the echo's 12 dB taken off again), to set beside v6's numbers."""
     return render_bus(x, time, fdbk, **kw).astype(float) / OUT_SCALE
 
 

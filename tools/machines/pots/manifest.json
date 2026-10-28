@@ -28,12 +28,13 @@
    "why": "an effect of the delay slot: called as the stock delay 0x40057488 is, (out, in, P + 428), when the playing pattern chooses id 2; its line of 131 072 frames at 24 kHz is the slot's"}
  ],
  "claims": {},
- "cost": {"emulation": {"first": 10043, "mean": 10080, "max": 10118, "reset": 2,
+ "cost": {"emulation": {"first": 10716, "mean": 10753, "max": 10791, "reset": 2,
                        "pattern": "notes/68 §17: instructions per block of the process called alone after its reset (the reset counted apart), on the OS 1.13 in tools/emu/test_fxslot.py section 6 (mcengine.py's counter): noise of +-2^28 into both channels, Time 0 and Fdbk 96 for the delay, Size 64 and Tone 96 for the reverb (x 256), the first block, then the mean and maximum over 21 blocks after 32 more"},
           "device": {"status": "not measured"}},
  "stock_behaviour": {"changes": [], "fixes": [], "unchanged": ["the stock delay, whenever the playing pattern has not chosen POTS"]},
  "compat": {"built_against": ["model27"], "requires": [], "conflicts_declared": []},
- "tests": {"emulation": {"tool": "tools/emu/test_fxslot.py (Unicorn, the OS's own code, against the host build of tools/emu/pots_host.py, notes/69 §8, §14)", "date": "2026-10-28",
-                         "build": "alone, with sampler and refreverb, and with digidelay in the same slot"},
+ "tests": {"emulation": {"tool": "tools/emu/test_fxslot.py (Unicorn, the OS's own code, emac.py without the scale factor in fractional mode, against the host build of tools/emu/pots_host.py, notes/69 §8, §14, §16, §17)", "date": "2026-10-28",
+                         "build": "alone, with sampler and refreverb, and with digidelay in the same slot; the declared cost checked"},
+           "hardware": {"date": "2026-10-28", "by": "maintainer", "build": "digidelay+pots without the scale factor (notes/69 §16), in digiemu and on the device: the echo there, Digital and POTS much quieter than the stock delay (§17)"},
            "status": "experimental"}
 }

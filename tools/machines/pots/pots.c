@@ -17,10 +17,10 @@
  * POTS_RATE 2 (the maintainer's choice, notes/69 §12.6): the loop at 24 kHz between a half-band decimator
  * (-1, 0, 9, 16, 9, 0, -1) / 32 and the four-point interpolator; POTS_RATE 1: at 48 kHz. Samples Q2.29 (1.0 = 2^29,
  * the codec's full scale); the send bus carries 1.0 as K_BUS (measured, §12.4), IN_GAIN_Q29 and OUT_GAIN_Q30 take it
- * in and the echo out, 6 dB above the prototype's (§12.5). Every product goes through the EMAC in signed fractional
- * mode: on the device mac.l / msac.l / movclr.l, on the host (POTS_HOST) the same arithmetic as tools/emu/emac.py
- * executes it (each product truncated to 2^-23 of an LSB, the accumulator read as acc >> 31, saturated), so that both
- * give the same bits. Tables and constants: pots_tables.h (tools/gen_pots.py).
+ * in and the echo out, 12 dB above the prototype's (§12.5, §17). Every product goes through the EMAC in signed fractional
+ * mode, never with a scale factor: on the device mac.l / msac.l / movclr.l, on the host (POTS_HOST) the same
+ * arithmetic as tools/emu/emac.py executes it (each product truncated to 2^-23 of an LSB, the accumulator read as
+ * acc >> 31, saturated), so that both give the same bits. Tables and constants: pots_tables.h (tools/gen_pots.py).
  *
  * A full-scale bus (8 times the median machine's level, 18 dB above it) must not wrap anywhere (notes/69 §14.1): the
  * host's accumulator is 128 bits wide (emac.py's is unbounded; the device's has 8 bits above 1.0, and the largest sum
@@ -66,8 +66,6 @@ static wide acc;
 static inline void emac_start(void) { acc = 0; }
 static inline void mac(int32_t a, int32_t b) { acc += TRUNC((wide)a * b); }
 static inline void msac(int32_t a, int32_t b) { acc -= TRUNC((wide)a * b); }
-static inline void mac2(int32_t a, int32_t b) { acc += TRUNC((wide)a * b * 2); }
-static inline void msac2(int32_t a, int32_t b) { acc -= TRUNC((wide)a * b * 2); }
 static inline int32_t movclr(void)
 {
 	wide v = acc >> 31;
@@ -82,8 +80,6 @@ static inline void emac_start(void)                 /* signed, fractional, satur
 }
 static inline void mac(int32_t a, int32_t b) { __asm__ volatile("mac.l %0,%1,%%acc0" : : "r"(a), "r"(b)); }
 static inline void msac(int32_t a, int32_t b) { __asm__ volatile("msac.l %0,%1,%%acc0" : : "r"(a), "r"(b)); }
-static inline void mac2(int32_t a, int32_t b) { __asm__ volatile("mac.l %0,%1,<<,%%acc0" : : "r"(a), "r"(b)); }
-static inline void msac2(int32_t a, int32_t b) { __asm__ volatile("msac.l %0,%1,<<,%%acc0" : : "r"(a), "r"(b)); }
 static inline int32_t movclr(void)
 {
 	int32_t r;
@@ -97,6 +93,10 @@ static inline int clz32(uint32_t x)                 /* ff1: the first set bit co
 	return r;
 }
 #endif
+/* A doubled product is two products: the scale factor (mac.l Ry,Rx,<<,ACC) is ignored in fractional mode on the
+ * device (notes/69 §16: POTS 0.1 came out 85 dB down), so it is never used. */
+static inline void mac2(int32_t a, int32_t b) { mac(a, b); mac(a, b); }
+static inline void msac2(int32_t a, int32_t b) { msac(a, b); msac(a, b); }
 /* A mul() empties the accumulator: never call one inside a run of mac (the prototype's first fault, §12.2). */
 static inline int32_t mul(int32_t a, int32_t b) { mac(a, b); return movclr(); }          /* b Q31 */
 static inline int32_t mul30(int32_t a, int32_t b) { mac2(a, b); return movclr(); }       /* b Q30 */

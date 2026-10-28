@@ -185,6 +185,9 @@ class EMAC:
                 if not self.unsigned:
                     a, b = s32(a), s32(b)
                 p = a * b
+            if self.frac:
+                shift = 0             # comme QEMU : en fractionnaire la machine ignore le facteur d'echelle
+                #                       (POTS 0.1 l'utilisait : muet sur la machine, notes/69 §16)
             if shift == 1:
                 p <<= 1
             elif shift == -1:

@@ -217,7 +217,7 @@ v0.1 is steps 1 to 5 and 7 (two knobs, the shift fixed at 2 Hz); step 6 comes af
 2. **The package** (§7) and `gen_hilbert.py`; checks without emulation. *Built: §13.*
 3. **The proof** (§8), the maintainer's run; the cost declared. *Done: §14 (ALL OK §14.7, the cost declared; its
    check run ALL OK).*
-4. **Build for the device**, two knobs, the shift at 2 Hz: `build/fx-pots/`.
+4. **Build for the device**, two knobs, the shift at 2 Hz: `build/fx-pots/`. *Built: §15.*
 5. **The device**: the maintainer listens against the page and reads the load (`syntakt-meter`,
    [23](23-optimisation-charge.md) §5): POTS, Digital Delay and the stock delay, with six voices playing. If it comes
    close to 85 %: the 24 kHz loop (if not chosen in step 1), fewer Hilbert sections, the codec's search as a table.
@@ -241,6 +241,9 @@ The maintainer, 2026-10-27, by clicked answers:
 | D6 | The shift's range | later (step 6); proposal 0..12 Hz, square law, default 52 = 2 Hz |
 | D7 | The standard | at step 8, on an explicit go |
 | D8 | The codec's grain at 24 kHz, about 3 dB more in the band than v6 (§14.2) | **kept** as in the clips (2026-10-28) |
+| D9 | POTS's echo against the stock delay's (§17) | **+6 dB** (12 dB above the prototype's echo), 2026-10-28 |
+| D10 | The feedback's curve against the stock delay's (§17) | **kept** (v6's decay times) |
+| D11 | Digital Delay's level (§17) | **kept** (PPPCCC's sound bit for bit) |
 
 ## 11. Left to read or measure
 
@@ -518,3 +521,131 @@ manifest's `tests.emulation` carries the run.
 
 The check run (2026-10-28, `--machines pots`), the maintainer: « all ok »: the declared cost is the one counted.
 Step 3 is done; next step 4, the build for the device.
+
+## 15. Step 4, the builds for the device (2026-10-28)
+
+The maintainer, 2026-10-28: « Start step 4 ». Composed from the committed packages of `dcbab86` with
+`tools/compose.py --cycles <official> --machines <selection> --out build/fx-pots --tool <elektron-firmware-tool>`.
+v0.1 has two knobs, Time and Fdbk, and the shift fixed at 2 Hz upwards.
+
+### 15.1 The builds
+
+| Selection | Writes | Added to the image | MAIN OS (SHA-256) | The `.syx` (bytes) |
+|---|---|---|---|---|
+| digidelay, pots | 7 | 9 912 bytes | `ea856974…` | 900 384 |
+| sampler, digidelay, pots | 130 | 50 420 bytes | `3f29e96e…` | 948 384 |
+| pots | 7 | 8 984 bytes | `b7ed020d…` | 899 488 |
+
+In `build/fx-pots/` (git-ignored), each with its report (`.syx.json`). The C tool: checksums and HMAC ok, the same
+MAIN OS, for all three. The composer: the delay slot's load +7 546 instructions a block on the stock delay (7.0 % of a
+block), +10 244 in the block of a switch. The delay slot's line is Digital's 1 MiB when both are in. The proof of §14
+ran `pots`, `sampler,pots,refreverb` and `digidelay,pots`; `sampler,digidelay,pots` is placed by the same composer,
+and `webcompose_check.sh` showed POTS placed identically in 23 placements.
+
+The load meter (`syntakt-meter`, [23](23-optimisation-charge.md) §5) cannot go in: it is a payload of its own, among
+POTS's computed conflicts. Step 5 judges the load as Digital Delay's was judged (68 §18.7): by ear and by the interface.
+
+### 15.2 For the device (step 5)
+
+`digidelay+pots` (or the same with SAMPLE), a send on a track:
+
+1. The start-up as usual (the boot now clears the 1 MiB line and the state).
+2. TRACK + Delay Time, four detents right a step: Delay → Digital → POTS. With POTS the knobs read `POTS Time` /
+   `POTS Fdbk`, the group `POTS`; the stock formatters.
+3. The sound, against the prototype's listening page: the telephone band, the repeats drifting up pass after pass,
+   fading and now and then a dropout, the codec's grain on a tail (a little more of it than v6, D8). Time slides when
+   turned, as the stock delay's does; at Fdbk 127 a tail sustains without running away.
+4. Loud: several tracks with Delay Send 127 and high velocities at once: no crackle from a wrap (§14.1), the echo held.
+5. Switching between Delay, Digital and POTS while playing: each starts from silence, no old echo; a pattern change,
+   save and load keep the choice.
+6. **The load, the open risk.** The emulator counts POTS at 10 118 instructions a block (9.3 % of a block),
+   2.5 times §5's estimate. The device has taken 2 to 3 times the count before: the Syntakt engines about twice
+   ([23](23-optimisation-charge.md) §4), the stock effects about three times (68 §17.4). The Cycles idles at about
+   76 % and the interface starves above about 85 % (§5). Six tracks playing with POTS, then with Digital, then with the
+   stock delay: is the interface slow (knobs, screen), does the audio drop out, and from how many voices?
+7. Back to the official OS by USB, as before.
+
+If the load is too much, what keeps the sound bit for bit comes first: the codec's search as a table, the half-band
+filters' histories as rings instead of shifted arrays. After that, what changes it, each by ear: fewer Hilbert
+sections, a lighter receiver.
+
+## 16. The device, first try (2026-10-28): no echo, the EMAC's scale factor
+
+The maintainer, 2026-10-28, with `digidelay+pots` of §15: « man hört kein delay wenn man pots auswählt. entweder zu
+leise oder kaputt ».
+
+- **Not the level.** On the host build, at the median machine's level, Time 23 and Fdbk 64, POTS's echo is 1 to 4 dB
+  under Digital's on tones, 7 dB on a snare and 20 dB on a kick: audible.
+- **The cause.** POTS took its Q30 and Q29 products with the EMAC's scale factor (`mac.l Ry,Rx,<<,ACC0`, the product
+  doubled). Nothing that has run on the device uses it: none of the OS's EMAC instructions, none in the packages.
+  `emac.py` applied it in fractional mode. QEMU, which is Unicorn's core and digiemu's patched one, applies it in
+  integer mode only. With the shift ignored, the host build's echo falls by 85 dB (a tone, Time 23, Fdbk 64): silence,
+  as heard. So the proof of §14 was exact for `emac.py`'s reading of the EMAC, not for the device.
+- **Fixed.** POTS uses no scale factor: a doubled product is two `mac.l` (`mac2`), a quadrupled one four (`mul29`).
+  `emac.py` now ignores the scale factor in fractional mode, as QEMU does and as the device did here, so the emulator
+  computes such code as the device does. The object: 106 `mac.l`, 64 `movclr.l`, 1 `msac.l`, code 6 226 bytes
+  (+104), only `R_68K_32`.
+- On the host the measurements of §14.2 are unchanged, ALL OK: the products differ in the last bit only.
+- The manifest's cost is taken out until the next count (more `mac.l`). Its tests say the proof is to run again, and
+  that the device test of `dcbab86` heard no echo.
+- The builds of §15.1 again, from this object: MAIN OS `97ab648b…` (digidelay, pots), `93d997ce…` (with SAMPLE),
+  `ce70996f…` (pots); the C tool ok, the same sizes.
+
+**The proof again (2026-10-28), the maintainer's run: ALL OK**, with `emac.py` ignoring the scale factor: every
+section of §14.7 again, sections 8 and 10 bit for bit. The cost counted and declared in the manifest: first 10 716,
+mean 10 753, max 10 791, reset 2 instructions a block (two `mac.l` for one cost about +670). The delay slot's load:
++8 219 steadily above the stock delay (7.6 % of a block, under the 10 % warning), +10 917 in the block of a switch.
+The declared cost does not enter the build: the MAIN OS of `digidelay+pots` stays `97ab648b…`, the builds of this
+section stand. The check run (`--machines pots`), the maintainer: « prüflauf all ok »: the declared cost is the
+one counted. Next the maintainer tries the build in digiemu, then on the device (§15.2).
+
+## 17. The device, second try (2026-10-28): the echo there, quieter than the stock delay
+
+The maintainer, 2026-10-28, with the builds of §16 in digiemu and on the device: the echo is there; « digi und pots
+sind viel leiser als stock-delay ».
+
+### 17.1 The stock delay, read from its code
+
+`0x40057488`, its constants in the image. Each frame:
+
+- The line's frame through a soft clip `2x − x·|x|` (gain 2 for small signals), × 1/32, then × 16: the line's level.
+- A one-pole low pass, pole `0x4013ff84` = 0.8286 (about 1.4 kHz), whose gain below it is **2**.
+- A one-pole high pass, pole `0x4013fb84` = 0.9980 (about 15 Hz), at unity above it. This is the echo.
+- The line written with the send at unity plus the echo × 66 053 × the Fdbk word / 2³¹ (linear in the knob).
+
+So the stock delay's echo stands about 6 dB above the send below 1.4 kHz, and its loop gain there is
+2 × Fdbk / 127: 0.63 at 40, **1.0 at 64**, 1.4 at 90, where the soft clip holds it. From the middle of the knob on, its
+repeats hardly die and stand loud. Digital Delay's and POTS's curve (Digital's, × 1.18 for POTS) decay as v6 was tuned.
+
+### 17.2 The levels
+
+A float model of the stock delay from §17.1 against Digital Delay's model and POTS's host build. The send is at the
+median machine's level, Time 23 (375 ms). The first echo is Fdbk 0; at the other settings the level is taken over 3 s.
+In dB against the stock delay (outside the repository: `levels_vs_stock.py` next to the prototype):
+
+| | first echo | Fdbk 40 | Fdbk 64 | Fdbk 90 |
+|---|---|---|---|---|
+| Tone C5: Digital / POTS before / POTS now | −1.7 / −3.8 / **+2.2** | −2.3 / −4.3 / +1.7 | −6.0 / −6.7 / −0.7 | −16.7 / −16.5 / −10.5 |
+| Tone C3 | −6.0 / −12.2 / **−6.1** | −7.8 / −13.3 / −7.3 | −13.5 / −17.0 / −11.0 | −25.1 / −26.1 / −20.0 |
+| Snare | −1.9 / −11.5 / **−5.4** | −3.3 / −12.1 / −6.1 | −9.1 / −16.6 / −10.6 | −22.6 / −27.4 / −21.4 |
+| Kick | −12.0 / −28.9 / **−22.8** | −13.9 / −30.6 / −24.5 | −20.1 / −36.4 / −30.4 | −33.1 / −48.6 / −42.6 |
+
+A model read from the code, not a measurement on the device; it agrees with what the maintainer heard.
+
+### 17.3 Decided (2026-10-28) and built
+
+The maintainer, by clicked answers:
+
+- **POTS +6 dB** (D9): `OUT_X` 4 in `gen_pots.py`, `OUT_GAIN_Q30` = 1 980 694 272 (1.84). The first echo now stands
+  about at the stock delay's on middle tones; low tones, snare and kick stay under it, which is the telephone band.
+  The loudest return is −12.3 dBFS (SNARE's level, Fdbk 127), 10 dB under the echo's limit of §14.1.
+- **The feedback curve kept** (D10): the decay times of §14.2.
+- **Digital Delay kept** (D11): PPPCCC's level, bit for bit.
+
+The measurements of §14.2 are taken on the prototype's scale, so they are unchanged: ALL OK. The device's object
+changed (one table word), so the proof runs again; its count should not move (the gain sits outside every branch but
+the echo's limit). Builds again in `build/fx-pots/`: MAIN OS `c3b508f6…` (digidelay, pots), `dc7a3497…` (with
+SAMPLE), `4a17782e…` (pots); the C tool ok.
+
+The proof again (2026-10-28), the maintainer: « bewies all ok »: bit for bit, and the declared cost the one counted.
+Next the device with these builds (§15.2).
