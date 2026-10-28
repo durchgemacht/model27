@@ -1,0 +1,352 @@
+# 69 — POTS: a telephone-line delay for the delay slot (plan, 2026-10-27, English)
+
+The maintainer, 2026-10-27, asked for the plan of porting v6 as an effect of model27's delay slot: fixed point, cost,
+and the frequency shift as a third knob; the plan first, nothing built. The sound was worked out by ear with the
+maintainer in a float prototype kept outside the repository, round by round (v1 to v6), with listening pages and
+measurements; v6 is the sound to port. No code or data of any other product: the effect is written from a sound
+brief. Nothing is built yet; this note is the plan. Addresses: VA of OS 1.13.
+
+## 1. In short
+
+- **What it is.** A mono delay whose repeats go down an old telephone line on every pass: a skewed soft clip in the
+  transmitter, a second wandering tap (scatter), a frequency shift that adds up pass after pass, random fading and
+  rare dropouts, a 7-bit μ-law codec, a steep telephone band with an earpiece resonance, and a leveler. Time and Fdbk
+  on their knobs, as Digital Delay (§18 of [68](68-fx-slots.md)). In v0.1 the shift is fixed at 2 Hz upwards.
+- **Name** (decided 2026-10-27): **POTS**, the telephone trade's "plain old telephone service".
+- **Where.** An effect package of the delay slot, id 2, on the contract of [68](68-fx-slots.md) §15 and §16: no hook of
+  its own, its line the slot's.
+- **Fixed point.** Samples in Q2.29, products on the EMAC in fractional mode, as SD VINTAGE does
+  ([14](14-machine-sd-vintage.md)); everything that the prototype computes with `powf`, `logf`, `sinf` runs once a
+  block from small tables. The level the float sound was tuned at has to be found on the device's send bus first
+  (§4.1): the clip, the codec and the leveler depend on it.
+- **Cost.** `[HYP]` about 6 500 instructions a block at 48 kHz (6 % of a block by the emulator's count, 3.5 % above
+  the stock delay), about 4 000 if the loop runs at 24 kHz (§5). Under the composer's 10 % warning either way. The
+  device's share is the open risk: the stock effects count 10 % and measure 30 % on the device (§17.4 of 68).
+- **The shift as a third knob** comes after v0.1 (decided 2026-10-27): v0.1 has two knobs and is tested on the device
+  first. The third parameter needs the format to grow past two parameters (68 §15.8, the standard's §3.5 "reserved");
+  §6 keeps the design for then.
+- **Decisions:** §10.
+
+## 2. The sound to port: v6
+
+Each frame, in this order (the loop is everything from the read to the write):
+
+| Stage | v6, as the prototype computes it | In the loop |
+|---|---|---|
+| Send | (L + R) / 2 | |
+| Read | `line[w − D]`, D in frames from Time by the stock formula, slewing by `diff / 8192` a frame, else one frame every fourth (Digital's) | yes |
+| Scatter | + 0.35 × the line `D + s` frames back, s wandering 24..144 frames (linear interpolation; a new aim every 0.5..2 s, 0.5 s glide); × 0.9438798 | yes |
+| Shift | a Hilbert pair (two allpass chains, 90° apart) and a phasor: `I cos φ − Q sin φ`; φ turns at 2 Hz × (1 + 0.4 (0.7 sin(2πt/7.3 s) + 0.3 sin(2πt/2.9 s))) | yes |
+| Fading | × 10^(12 v / 40) dB-wise, v wandering in −1..1 (a new aim every 30..150 ms, 25 ms glide): ±6 dB | yes |
+| Dropouts | × 0.125 (−18 dB) for 8..25 ms, every 1.5..5 s | yes |
+| Codec | μ-law, μ = 255, 7 bits (63 steps a side), full scale 1.0; mixed out (dry) as the leveler's envelope falls from 0.01 to 0.0025 | yes |
+| Receiver | high pass 350 Hz and low pass 3 kHz, each 4-pole Butterworth, peak +6 dB at 1.5 kHz (Q 1), the chain scaled so its loudest frequency passes at unity | yes |
+| Leveler | envelope = the peak of the *next* block on the line (attack 0.5, release 0.0017 a block); in the loop a compressor, 3:1 above 0.25; on the echo a make-up √(0.15 / env), 0.6..2.5 | in the loop: the compressor |
+| Feedback | 1.18 × (3t − t³)/2, t = Fdbk / 127 (Digital's curve, past unity at the top) | yes |
+| Transmitter | `(c(5 s + 0.12) − c(0.12)) / 5`, `c(x) = x − 4x³/27` clamped at ±1.5; then a 1-pole low pass at 4 kHz and a 1-pole high pass at 200 Hz | yes |
+| Write | clamped to ±2.0 | |
+| Echo | the receiver's output × make-up × 1.5, the same on both channels | |
+
+Float 1.0 is the codec's full scale; the prototype's sources peak at 0.45..0.5 on the send. The measurements that
+settle the sound (all in the prototype): the decay to −60 dB after a phrase at Fdbk 40 / 64 / 90 / 100 is about
+2.6 / 4.9 / 20 / 23 s, from about 110 a tail no longer dies; the codec adds 6 to 8 dB more grain in the band than the
+8-bit codec of v5 and about 25 dB less above 4 kHz; a tail's end stays at about 1.5 kHz with nothing above 2 kHz;
+with a loud input at Fdbk 127 the echo peaks at −5.6 dB; silence in gives exact silence out.
+
+Settled by the maintainer (2026-10-27): the shift at 2 Hz upwards; the band from 350 Hz (a snare's body falls below
+it); mono; Time slides as the stock delay's does.
+
+## 3. What the slot gives `[FAIT]`
+
+From [68](68-fx-slots.md) §15.3, §16.3, §17 and Digital Delay (§18, `tools/machines/digidelay/digidelay.c`):
+
+- `process(out, in, params)` once a block in the audio interrupt: 32 stereo frames of signed 32 bits in, the same out,
+  every word written; `params` → Time at +0 and Fdbk at +2, each × 256, smoothed by the OS.
+- `reset()` before the first block after the effect is chosen, short. Digital Delay only marks its state; its first
+  block then starts from silence and reads a frame only once it was written since (`n`).
+- The line: the slot's, a multiple of 16 bytes up to 4 MiB, the address through the patch point `fx_line`, shared with
+  the slot's other effects, through the cache, the CPU only.
+- The C ABI: `d2`–`d7` / `a2`–`a6` kept; the EMAC is free, the mixer sets `MACSR` again after the call.
+- The build: `-mcpu=54418 -O2 -ffreestanding -fno-builtin -nostdlib`: no libgcc, so no 64-bit multiply in C
+  (Digital splits its products in two 32-bit ones).
+- The composer: `cost.emulation` declared, warning past 10 822 instructions a block over the stock delay's 2 659,
+  refusal past 27 056.
+
+## 4. Fixed point
+
+### 4.1 The level `[À FAIRE]`
+
+The clip (drive 5), the codec (full scale 1.0, faded out at 0.01), the compressor (0.25) and the make-up (0.15) were
+tuned on the prototype's float scale. On the device the send bus is signed 32-bit, and Digital Delay takes `(L >> 3)
++ (R >> 3)`; what a loud machine puts on the send at Delay Send 127 has not been measured. Step 1 measures it in the
+emulator (`mcengine.py`, a stock machine at its default level and a loud one, Delay Send 127, the send's peak and RMS)
+and fixes the scale `K` (float 1.0 ↔ `K` on the bus) so that a loud send peaks at about 0.5, as in the prototype. All
+thresholds then follow from `K`. If the send's level depends on the track's volume (pre- or post-fader), the
+character does too, as it would on a real line: to be heard on the device.
+
+### 4.2 Numbers
+
+- **Samples** in Q2.29 (1.0 = 2^29, headroom ×4 for the clamp at 2.0); the line holds Q2.29 words, one a frame.
+- **Products** on the EMAC, `mac.l` in signed fractional mode (`MACSR = 0xa0`, set at the start of `process`), then
+  `movclr.l`, as `sdvintage.c` does; coefficients in Q1.31, those past 1 (a biquad's `a1`) halved and the sum doubled.
+  For the host build the same C has a macro with the EMAC's exact rounding, so the host and the device give the same
+  bits (`tools/emu/emac.py` already executes the EMAC exactly in the proof; Unicorn's own EMAC is wrong in this mode,
+  [14](14-machine-sd-vintage.md) §4).
+- **Once a block, from tables**: the phasor's step (for under 25 Hz, `θ` and `1 − θ²/2` are exact enough); the fading
+  gain (a 33-entry dB table, interpolated); the leveler's two gains (a log2 from `ff1` and a 32-entry table, an exp2
+  back); the shift's slow wander (two slow sines from a 256-entry table); the random aims (xorshift32, as the
+  prototype).
+- **The codec**: 63 decision levels a side in a table (a binary search, six compares) and 64 output levels; the gate a
+  mix with one product.
+- **The clip**: `c(x)` in three products and two compares.
+- **The Hilbert pair**: the prototype's coefficients are a published design whose terms could not be read (the page
+  would not load for the fetcher). The port computes **its own** pair with a script of the repository (a minimax fit of
+  the phase difference): the line holds the transmitter's band, and the receiver keeps 350 Hz..3 kHz, so 90° ± 1° is
+  needed only from about 150 Hz to 6 kHz, which three sections a chain may give instead of four (`[HYP]`, to compute).
+  No third-party code or numbers then.
+- **The reset**: as Digital's, a mark; frames read only once written since (`n`).
+
+### 4.3 The 24 kHz option
+
+Everything in the loop sits below about 4 kHz: the line could run at 24 kHz, the send halved by a small half-band
+filter, the echo doubled by another. The loop's work halves, and the line too (512 KiB for the same 5.46 s). It changes
+the sound a little (what the transmitter's gentle low pass lets through above 12 kHz folds or goes). Step 1 renders
+both against v6, measures them (§2's numbers) and puts them on the listening page as tabs; the maintainer picks (D2).
+
+## 5. Cost `[HYP]`
+
+Instructions a frame, estimated from the operations (EMAC products about 2 instructions each, the states in
+registers or the cache):
+
+| Part | 48 kHz | 24 kHz loop |
+|---|---|---|
+| Send, read, slew, write, echo | 26 | 26 at 48 kHz + 10 for the two half-band filters |
+| Scatter | 14 | 7 |
+| Hilbert pair (3 + 3 sections) and phasor | 58 | 29 |
+| Fading, dropouts | 3 | 2 |
+| Codec and gate | 20 | 10 |
+| Receiver (five biquads) | 45 | 23 |
+| Leveler (frame part), feedback | 13 | 7 |
+| Transmitter | 16 | 8 |
+| **A frame** | **about 195** | **about 120** |
+| Once a block (gains, tables, peak look-ahead) | about 250 | about 200 |
+| **A block** | **about 6 500 (6 % of a block)** | **about 4 000 (3.7 %)** |
+| Above the stock delay (2 659) | +3 800 (+3.5 %) | +1 300 (+1.2 %) |
+
+- Under the composer's warning (10 %) both ways; the block of a switch adds only the reset (a mark) and `fxslot`'s
+  200.
+- **The device**: the emulator does not time memory. The stock effects count about 10 % of a block and take about 30 %
+  on the device ([68](68-fx-slots.md) §17.4); the Syntakt engines cost nearly twice their count
+  ([23](23-optimisation-charge.md) §4). The Cycles idles at about 76 %, the interface starves above about 85 %. At
+  48 kHz and twice its count POTS would add about 7 % on the device: close to that limit with six voices playing.
+  Hence step 5's measurement, and the 24 kHz option.
+- RAM: the line (1 MiB, or 512 KiB), about 300 bytes of state, about 1 KiB of tables. Code: about 3 to 4 KiB.
+
+## 6. The shift as a third parameter (after v0.1)
+
+Kept for the step after v0.1; its gesture, storage and range are the maintainer's to decide then (D4–D6).
+
+### 6.1 What the format needs
+
+68 §15.8 reserves "more parameters"; the standard's §3.5 says the same. For a third one an effect declares `params[2]`
+with its names, range, default and formatter, and the slot needs a place for the value, a way to edit it and a way to
+show it:
+
+- **The value, per pattern** `[HYP]` design: header byte 36 the delay slot's third parameter (0..127), 37 the reverb
+  slot's, 39 a check (`0x5a` + 36 + 37); copied by `fxslot`'s load hook (`0x4005b4b0`) and set by its init hook
+  (`0x4006155e`) as the choice in 29..31 is (68 §14); a failed check gives each effect its declared default. The three
+  bytes are free in the standard's table (§5.9) and clear of Chord Keys. Like the choice it is not lockable per step
+  and has no CC (a CC stays reserved).
+- **The gesture**, three ways:
+  - **TRACK + FUNC + Delay Time**: today it edits Fdbk as without TRACK (68 §9), so nothing is lost (FUNC + Delay Time
+    still edits Fdbk). TRACK becomes the effect's own layer: TRACK + knob the choice, TRACK + FUNC + knob the third
+    parameter. Only when the playing effect declares one; otherwise the stock edit, as today.
+  - A long TRACK press then the knob: no spare long press is known on TRACK.
+  - The reverb knob for the delay's third parameter: confusing, and the reverb slot's own effects would want it.
+- **The display**: the popup reads the descriptor's names and formatter when it draws (68 §11.1); while TRACK + FUNC is
+  held on knob 15 the part names descriptor 38 after the third parameter and gives it the third formatter, and gives
+  Fdbk's back when TRACK is released. `[À FAIRE]`: read where the popup's value comes from for descriptor 38 (the P
+  word, not the header byte), and whether the part can feed it the header byte's value.
+- **The name** of the third parameter: to choose with the maintainer.
+
+### 6.2 The shift's range
+
+A proposal for then: 0..127 → 0..12 Hz on a square law (`12 Hz × (k / 127)²`): fine steps where the sound is subtle;
+k = 52 gives the 2.0 Hz of v6, the default. The wander (±40 %) and the upward direction stay fixed. The prototype heard
+0, 0.7, 2, 5 and 12 Hz.
+
+### 6.3 What changes where
+
+`fxslot` (load and init hooks, the gesture, names and formatter of the third parameter, a header accessor), the
+manifest schema (`params` of three), `compose.py` and `composer.js` (the third names and formatter in the data block),
+`claims.py` (TRACK + FUNC + knob 15, header bytes 36, 37, 39 as `saved`), the proof (§8), the standard (Draft 0.7: §3.5
+"reserved" becomes the rule, §5.9 the three bytes). The standard changes only on the maintainer's explicit go.
+
+## 7. The package
+
+- `tools/machines/pots/`: `pots.c` (MIT, "durchgemacht and Claude"), `manifest.json` (id 2, `fx.delay`, `line` 1 MiB
+  or 512 KiB, params "POTS Time" / TIME and "POTS Fdbk" / FDBK with the stock formatters, group "POTS", short "POTS",
+  `cost.emulation` from the proof), `pots.o`.
+- `tools/gen_pots.py`: the object, `--check`, the build alone (as `gen_digidelay.py`); later `40-pots.json` and the
+  flasher card.
+- `tools/gen_hilbert.py`: the allpass pair (§4.2), its phase error printed, `--check` against the numbers in `pots.c`.
+- No third-party file: the code, the coefficients and the sound brief are model27's own.
+
+## 8. The proof
+
+As Digital Delay's (68 §18.5), in `tools/emu/test_fxslot.py`:
+
+1. **Host against device, bit for bit**: `pots.c` compiled for the host (the EMAC macro) and the device object in the
+   OS under Unicorn with `emac.py`, the same blocks (noise, a burst, silence, a Time slide, Fdbk 0..127), 400 blocks
+   and more, zero differences.
+2. **Against v6**: the host build against the float prototype on the prototype's measurements (§2): decay table within
+   10 %, tail end, codec in and above the band within 2 dB, peak at Fdbk 127, silence. These numbers go into the note.
+3. **In the slot**: chosen by the pattern, reset, shared line with Digital Delay (a switch Digital → POTS → Digital
+   reads nothing of the other), the stock delay's block of silence.
+4. **Cost**: counted as §17.2 of 68, declared in the manifest, checked by a second run.
+5. Unicorn does not run in this sandbox: the runs are the maintainer's.
+
+## 9. Steps
+
+v0.1 is steps 1 to 5 and 7 (two knobs, the shift fixed at 2 Hz); step 6 comes after it.
+
+1. **Prototype, fixed point**: the C of §4 written once, built for the host inside the prototype; the level `K`
+   measured (a script for the maintainer's terminal); 48 kHz against 24 kHz; own Hilbert pair; the measurements of §2
+   and a listening tab "v6 fixed point" next to v6. Decision D2.
+2. **The package** (§7) and `gen_hilbert.py`; checks without emulation.
+3. **The proof** (§8), the maintainer's run; the cost declared.
+4. **Build for the device**, two knobs, the shift at 2 Hz: `build/fx-pots/`.
+5. **The device**: the maintainer listens against the page and reads the load (`syntakt-meter`,
+   [23](23-optimisation-charge.md) §5): POTS, Digital Delay and the stock delay, with six voices playing. If it comes
+   close to 85 %: the 24 kHz loop (if not chosen in step 1), fewer Hilbert sections, the codec's search as a table.
+6. **After v0.1, the third parameter** (§6): `fxslot`, schema, composers, claims, proof (the header load and save as
+   `probe_chord_storage.py`, the gesture, the popup), POTS's shift on it; the device.
+7. **The flasher**: the card (experimental), guide, release; after the maintainer's test, tested.
+8. **The standard**: Draft 0.7 (POTS's id; with step 6, the third parameter and the header bytes), on the
+   maintainer's go.
+
+## 10. Decisions
+
+The maintainer, 2026-10-27, by clicked answers:
+
+| | Question | Decided |
+|---|---|---|
+| D1 | The name | **POTS** / POTS; the parameters "POTS Time", "POTS Fdbk" |
+| D2 | 48 kHz or a 24 kHz loop | **24 kHz** (2026-10-28, §12.6) |
+| D3 | Two knobs first, the third later | **yes: v0.1 has two knobs, the shift fixed at 2 Hz** |
+| D4 | The third parameter's gesture | later (step 6); proposal TRACK + FUNC + Delay Time |
+| D5 | Its storage | later (step 6); proposal per pattern, header 36 (+ 37, 39) |
+| D6 | The shift's range | later (step 6); proposal 0..12 Hz, square law, default 52 = 2 Hz |
+| D7 | The standard | at step 8, on an explicit go |
+
+## 11. Left to read or measure
+
+- `[À FAIRE]` the send bus's level (§4.1). *Measured: §12.4.*
+- `[À FAIRE]` own Hilbert coefficients and their phase error (§4.2). *Computed: §12.1.*
+- `[À FAIRE]` for step 6: the popup's value source for descriptor 38 while TRACK + FUNC is held (§6.1).
+- `[HYP]` the cost (§5) until counted; the device share until measured.
+
+## 12. Step 1, in the prototype (2026-10-27 and 28)
+
+The maintainer, 2026-10-27: « Ja, fang mit Schritt 1 an: Festkomma-Modell im Prototyp, eigene Hilbert-Koeffizienten,
+48 gegen 24 kHz, mit Hörprobe neben v6. Das Pegel-Skript für mein Terminal vorbereiten. » Everything in the prototype
+outside the repository; nothing in model27 yet but this section.
+
+### 12.1 The Hilbert pair, model27's own
+
+A minimax fit (Nelder-Mead from many starts) of the two chains' phase difference over 150 Hz..6 kHz, for both forms of
+§4.2: sections in z⁻² do better than first-order ones at the same number of products.
+
+| Loop | Form | Products | Phase error | The other side |
+|---|---|---|---|---|
+| 48 kHz | z⁻², 4 + 4 sections, chain A a frame late | 8 | ±0.62° | 45 dB under (46.2 measured in the model) |
+| 24 kHz | z⁻², 3 + 3 sections | 6 | ±0.35° | 50 dB under (50.9 measured) |
+
+v6 had 49 dB. The 24 kHz loop needs fewer sections because the band then spans most of the rate.
+
+### 12.2 The fixed point
+
+A single C file written as the device's (integers only, no 64-bit product, divisions only where the ColdFire has
+`divs.l`), with the EMAC as `tools/emu/emac.py` executes it: each product truncated to 2⁻²³ of an LSB, the accumulator
+read as `acc >> 31`, saturated. Tables and constants from a generator. The loop at 48 kHz, or at 24 kHz between a
+half-band decimator `(−1, 0, 9, 16, 9, 0, −1) / 32` and the four-point interpolator. Compiled for the host; a host-only
+switch turns stages off for the checks.
+
+Checked against the float prototype built with the same Hilbert pair, wave for wave (the difference under the float):
+
+| What runs | First 0.5 s | To 2.2 s | To 6.2 s |
+|---|---|---|---|
+| The radio stages alone, sines 0.1 to 0.9 | −101 to −104 dB | | |
+| All the arithmetic, no fading, scatter or codec | −81 dB | −70 dB | −55 dB |
+| Everything | −56 dB | −53 dB | −39 dB |
+
+What remains is the codec deciding a step the other way at its thresholds, carried round by the feedback.
+
+Two faults found by that comparison, both of which the device would have had:
+
+- `mul()` inside a run of `mac` calls empties the accumulator: the phasor's renormalization added `M²` into the
+  running `c² + s²` and read zero; the phasor grew without bound. Compute every `mul()` before a run of `mac`.
+- The skewed clip's polynomial in Q30 overflowed: `u` reaches 1.5, so `u²` = 2.25 and `u³` = 3.375 do not fit; the clip
+  came out 18 % too loud. It runs in Q2.29 now.
+
+### 12.3 Against v6
+
+| | v6 (float) | 48 kHz | 24 kHz |
+|---|---|---|---|
+| Decay to −60 dB at Fdbk 90 / 100 | 20.1 / 23.3 s | 21.1 / 24.6 s | 19.8 / 23.0 s |
+| A tail's end at 25 s | 1491 Hz, 0.1 % above 2 kHz | 1482 Hz, 0 % | 1496 Hz, 0.1 % |
+| Colour, repeat 1 → 7 | 983 → 1455 Hz | 981 → 1455 Hz | 983 → 1457 Hz |
+| Octave bands 250 Hz..4 kHz | | within 0.5 dB | within 0.6 dB |
+| Echo level, pluck / stab | −27.8 / −32.5 dB | −28.0 / −32.4 dB | −28.0 / −32.9 dB |
+| Peak at Fdbk 127, loud input | −5.6 dB | −5.6 dB | −5.6 dB |
+| Silence in | silence | exact zero | exact zero |
+
+At 24 kHz the snare's echoes come about 2 dB quieter. Listening clips of both rates sit next to v6 on the prototype's
+page. D2 (48 or 24 kHz) is the maintainer's, by ear.
+
+### 12.4 The send bus's level `[FAIT en émulation]`
+
+Measured with the OS's own audio interrupt (`seqrig.py`) and, unlike `seqrig`, the mixer, Volume + Dist and the
+block's accounting left running; the bus read where the mixer calls the delay (`0x4005699c`), every block; one track,
+a stock machine at its defaults, Delay Send 127. Two things the mixer needs that `seqrig` never gave it:
+
+- **Track Level** is not a sound word (descriptor 9, k = −1): the mixer reads it as word `t` of P, before the
+  tracks' blocks (`0x400567f4`: `mvsw %fp@+,%d6`), and computes every gain from it, Volume + Dist (`a2@(52)`, k 19),
+  Pan (`a2@(58)`, k 22) and the sends (`a2@(−12)` and `a2@(−10)` after `a2` moved on by 66: k 20, k 21), each block,
+  into `0x40a78bd0` / `…bb8` (delay) and `0x40a78b9c` / `…b80` (reverb). At 0 the bus is silent: the first full run.
+- **The mixer's one wait**: `0x4005697e..0x4005698a` reads `0xfc0453de` until bit 4 clears, the eDMA reading the delay
+  line; no other polling loop in `0x40056700..0x40058700` (the mixer, the stock effects and their DMA calls). The run
+  clears the bit there, as the finished DMA would.
+
+| Machine | Peak, velocity 100 | Peak, velocity 127 | RMS, velocity 100 |
+|---|---|---|---|
+| KICK | −22.8 dBFS | −20.7 dBFS | −34.3 dBFS |
+| SNARE | −19.9 dBFS | −18.0 dBFS | −46.0 dBFS |
+| METAL | −24.6 dBFS | −21.4 dBFS | −48.2 dBFS |
+| PERC | −25.0 dBFS | −22.9 dBFS | −42.8 dBFS |
+| TONE | −28.0 dBFS | −25.9 dBFS | −38.7 dBFS |
+| CHORD | −32.2 dBFS | −30.1 dBFS | −43.6 dBFS |
+
+### 12.5 Decided (2026-10-28): the level in and out
+
+The maintainer, by clicked answers:
+
+- **In: the median machine** at Delay Send 127 and velocity 100 peaks at 0.5 on the prototype's scale: `K_BUS` =
+  247 586 784, `IN_GAIN_Q29` = 1 164 158 973 (2.17, past Q30's range). KICK, METAL and PERC then reach the level the
+  sound was tuned at, SNARE drives harder (0.87), CHORD less (0.21). (Against the loudest machine: 4.8 dB less drive.)
+- **Out: 6 dB above the prototype's echo**, about as loud as Digital Delay: `OUT_GAIN_Q30` = 990 347 136 (0.922).
+  Before it, against Digital Delay at the same send (both in float): POTS's echo was 6.8 dB quieter on the pluck, 3.1 dB
+  on the stab, 19 dB on the snare (the band takes its body).
+
+With both, every measurement of §12.3 is unchanged; the loudest return (SNARE's level, Fdbk 127) is −18.2 dBFS on the
+bus. On the device the maintainer may still move both by ear (step 5).
+
+### 12.6 Decided (2026-10-28): the loop at 24 kHz
+
+The maintainer, 2026-10-28: « mach 24 ». Why: the receiver leaves nothing above about 3 kHz (−48 dB at 12 kHz), so a
+loop up to 12 kHz loses nothing measurable (§12.3; the other side even 51 dB under against 46); the load, the plan's
+largest risk (§5), drops from about 6 500 to about 4 000 instructions a block (+1.2 % of a block above the stock delay
+instead of +3.5 %); three Hilbert sections a chain instead of four; the line 512 KiB instead of 1 MiB for the same
+5.46 s. The cost: the snare's echoes about 2 dB quieter, and some 0.06 ms of the half-band filters' latency. Both
+rates stay in the one C file (`POTS_RATE`), so 48 kHz remains a rebuild away until the device's load is measured
+(step 5). The package of §7 takes `line` 524 288 bytes.
