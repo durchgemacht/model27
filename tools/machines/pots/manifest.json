@@ -1,0 +1,36 @@
+{
+ "schema": "cycles-mod/0.1",
+ "id": "pots",
+ "version": "0.1",
+ "name": "POTS: a delay whose repeats go down an old telephone line, for the delay slot",
+ "description": "model27's own character delay (notes/69): every repeat passes a telephone line once more, so the echoes darken into a narrow, crackling band (350 Hz to 3 kHz, a little nasal at 1.5 kHz), move up 2 Hz a pass (a frequency shift, so the harmonics slowly part), fade in and out, now and then drop for a moment, and pick up a coarse codec grain, which leaves them as the tail dies away. Time and Fdbk keep their knobs and the stock delay's ranges; at the highest Fdbk the repeats sustain without running away (a leveler in the loop). Mono, the same repeat on both outputs; the loop at 24 kHz, the line the delay slot's (512 KiB, up to 5.46 s).",
+ "license": "MIT",
+ "credit": {"kind": "own", "who": "durchgemacht and Claude", "repo": "durchgemacht/model27"},
+ "device": "Model:Cycles",
+ "os": "1.13",
+ "order": 40,
+ "build": {
+  "sources": ["pots.c"],
+  "include": ["."],
+  "cflags": ["-std=c99", "-mcpu=54418", "-O2", "-ffreestanding", "-fno-builtin", "-fno-tree-loop-distribute-patterns",
+             "-nostdlib", "-fno-pic", "-fno-common", "-ffunction-sections", "-fdata-sections", "-Wall", "-Wextra",
+             "-Werror"],
+  "defines": {"POTS_RATE": 2},
+  "objects": ["pots.o"],
+  "patch_points": [{"symbol": "fx_line", "kind": "fx_line"}],
+  "roots": ["pots_process", "pots_reset"]
+ },
+ "uses": [
+  {"point": "fx.delay", "id": 2, "process": "pots_process", "reset": "pots_reset",
+   "line": 524288,
+   "params": [{"long": "POTS Time", "short": "TIME"}, {"long": "POTS Fdbk", "short": "FDBK"}],
+   "name": "POTS", "short": "POTS",
+   "why": "an effect of the delay slot: called as the stock delay 0x40057488 is, (out, in, P + 428), when the playing pattern chooses id 2; its line of 131 072 frames at 24 kHz is the slot's"}
+ ],
+ "claims": {},
+ "cost": {"device": {"status": "not measured"}},
+ "stock_behaviour": {"changes": [], "fixes": [], "unchanged": ["the stock delay, whenever the playing pattern has not chosen POTS"]},
+ "compat": {"built_against": ["model27"], "requires": [], "conflicts_declared": []},
+ "tests": {"emulation": {"status": "not yet run", "tool": "tools/emu/test_fxslot.py (Unicorn, the OS's own code, notes/69 §8)"},
+           "status": "experimental"}
+}
