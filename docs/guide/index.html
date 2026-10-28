@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-10-27-02">
-<link rel="stylesheet" href="../assets/guide.css?v=2026-10-27-02">
+<link rel="stylesheet" href="../assets/site.css?v=2026-10-28-01">
+<link rel="stylesheet" href="../assets/guide.css?v=2026-10-28-01">
 <script>try{var l=localStorage.getItem("mc-lang"),t=localStorage.getItem("mc-theme")}catch(e){}document.documentElement.lang=l||(/^fr\b/i.test(navigator.language||"")?"fr":"en");if(t)document.documentElement.setAttribute("data-theme",t)</script>
 </head>
 <body data-page="guide">
@@ -41,6 +41,7 @@
         <li><a href="#flash"><span data-l="en">Flashing</span><span data-l="fr">Flasher</span></a></li>
         <li><a href="#sampler">SAMPLE machine (Cycles One-Shot)</a></li>
         <li><a href="#digital-delay"><span data-l="en">Digital Delay (effect)</span><span data-l="fr">Digital Delay (effet)</span></a></li>
+        <li><a href="#pots"><span data-l="en">POTS (effect)</span><span data-l="fr">POTS (effet)</span></a></li>
         <li><a href="#control-all"><span data-l="en">Control All, your choice of tracks</span><span data-l="fr">Control All : choix des pistes</span></a></li>
         <li><a href="#mods-on-samples"><span data-l="en">Mods on a Model:Samples</span><span data-l="fr">Des mods sur un Model:Samples</span></a></li>
         <li><a href="#samples"><span data-l="en">Samples OS</span><span data-l="fr">OS Samples</span></a></li>
@@ -131,13 +132,30 @@
         </ol>
         <dl class="facts">
           <div><dt><span data-l="en">Sound</span><span data-l="fr">Son</span></dt><dd><span data-l="en">mono: the two sides of the send summed, the same repeat on both. A high-pass of about 240 Hz and a low-pass of about 12.8 kHz sit in the feedback. It starts from silence each time it is chosen: no old echo comes back.</span><span data-l="fr">mono : les deux côtés du send additionnés, la même répétition des deux côtés. Un passe-haut d'environ 240 Hz et un passe-bas d'environ 12,8 kHz sont dans la réinjection. Il repart du silence chaque fois qu'il est choisi : aucun ancien écho ne revient.</span></dd></div>
-          <div><dt><span data-l="en">Other mods</span><span data-l="fr">Autres mods</span></dt><dd><span data-l="en">goes with SAMPLE and Control All Config. On a firmware without Digital, the official one too, a pattern that chose it plays the stock Delay.</span><span data-l="fr">va avec SAMPLE et Control All Config. Sur un firmware sans Digital, l'officiel aussi, un pattern qui l'a choisi joue le Delay d'origine.</span></dd></div>
+          <div><dt><span data-l="en">Other mods</span><span data-l="fr">Autres mods</span></dt><dd><span data-l="en">goes with SAMPLE, POTS and Control All Config. On a firmware without Digital, the official one too, a pattern that chose it plays the stock Delay.</span><span data-l="fr">va avec SAMPLE, POTS et Control All Config. Sur un firmware sans Digital, l'officiel aussi, un pattern qui l'a choisi joue le Delay d'origine.</span></dd></div>
           <div><dt><span data-l="en">Tested</span><span data-l="fr">Testé</span></dt><dd><span data-l="en">its sound is PPPCCC's bit for bit, checked in an emulator against their own code. On a Model:Cycles (2026-10-27), from the command line, then flashed from this page alone and with SAMPLE: the choice per pattern, long times and high feedback, switching back and forth, saved projects, six tracks playing.</span><span data-l="fr">son son est celui de PPPCCC au bit près, vérifié en émulation contre leur propre code. Sur un Model:Cycles (2026-10-27), depuis la ligne de commande, puis flashé depuis cette page seul et avec SAMPLE : le choix par pattern, les temps longs et la forte réinjection, les allers-retours, les projets enregistrés, six pistes en jeu.</span></dd></div>
         </dl>
       </section>
 
+      <section id="pots">
+        <h2><span class="n">5</span><span data-l="en">POTS (effect)</span><span data-l="fr">POTS (effet)</span></h2>
+        <p class="by"><span data-l="en">model27's own · MIT license</span><span data-l="fr">propre à model27 · licence MIT</span></p>
+        <p class="lede"><span data-l="en">A delay whose repeats go down an old telephone line: each pass darker and narrower, a little further out of tune, fading in and out and now and then dropping out, with a coarse digital grain on the tail. Each pattern chooses its delay.</span><span data-l="fr">Un delay dont les répétitions passent par une vieille ligne de téléphone : à chaque passage plus sombres et plus étroites, un peu plus désaccordées, elles vont et viennent et décrochent de temps en temps, avec un grain numérique grossier sur la queue. Chaque pattern choisit son delay.</span></p>
+        <ol>
+          <li><span data-l="en">Turn up a track's <b>Delay Send</b>, as for the stock delay.</span><span data-l="fr">Montez le <b>Delay Send</b> d'une piste, comme pour le delay d'origine.</span></li>
+          <li><span data-l="en">Hold <b>TRACK</b> and turn <b>Delay Time</b> to the right: every four detents the pattern steps to the next delay, the stock Delay, then Digital if it is ticked too, then POTS. With POTS the two delay knobs read <b>POTS Time</b> and <b>POTS Fdbk</b>. To the left it steps back.</span><span data-l="fr">Tenez <b>TRACK</b> et tournez <b>Delay Time</b> vers la droite : tous les quatre crans, le pattern passe au delay suivant, le Delay d'origine, puis Digital s'il est coché aussi, puis POTS. Avec POTS, les deux potards du delay s'appellent <b>POTS Time</b> et <b>POTS Fdbk</b>. Vers la gauche, il revient en arrière.</span></li>
+          <li><span data-l="en"><b>Delay Time</b> and <b>FUNC</b> + <b>Delay Time</b> (Fdbk) work as usual: Time follows the tempo as on the stock delay and slides while you turn it, and at the highest Fdbk the repeats go on without running away. The more Fdbk, the further down the line the tail goes: darker, more out of tune, grainier.</span><span data-l="fr"><b>Delay Time</b> et <b>FUNC</b> + <b>Delay Time</b> (Fdbk) marchent comme d'habitude : Time suit le tempo comme sur le delay d'origine et glisse pendant que vous le tournez, et au Fdbk le plus haut les répétitions continuent sans s'emballer. Plus il y a de Fdbk, plus la queue va loin sur la ligne : plus sombre, plus désaccordée, plus granuleuse.</span></li>
+          <li><span data-l="en">Save the project: each pattern keeps its own choice, and changing pattern changes the delay with it.</span><span data-l="fr">Enregistrez le projet : chaque pattern garde son choix, et un changement de pattern change le delay avec lui.</span></li>
+        </ol>
+        <dl class="facts">
+          <div><dt><span data-l="en">Sound</span><span data-l="fr">Son</span></dt><dd><span data-l="en">mono: the two sides of the send summed, the same repeat on both. The line passes about 350 Hz to 3 kHz, so kicks and low notes come back thin, as down a phone; middle tones come back about as loud as from the stock delay. It starts from silence each time it is chosen: no old echo comes back.</span><span data-l="fr">mono : les deux côtés du send additionnés, la même répétition des deux côtés. La ligne passe d'environ 350 Hz à 3 kHz : les grosses caisses et les notes graves reviennent minces, comme au téléphone ; les tons médiums reviennent à peu près aussi fort qu'avec le delay d'origine. Il repart du silence chaque fois qu'il est choisi : aucun ancien écho ne revient.</span></dd></div>
+          <div><dt><span data-l="en">Other mods</span><span data-l="fr">Autres mods</span></dt><dd><span data-l="en">goes with SAMPLE, Digital Delay and Control All Config. On a firmware without POTS, the official one too, a pattern that chose it plays the stock Delay.</span><span data-l="fr">va avec SAMPLE, Digital Delay et Control All Config. Sur un firmware sans POTS, l'officiel aussi, un pattern qui l'a choisi joue le Delay d'origine.</span></dd></div>
+          <div><dt><span data-l="en">Experimental</span><span data-l="fr">Expérimental</span></dt><dd><span data-l="en">checked in an emulator on the OS's own code. On a Model:Cycles (2026-10-28), from the command line: the level, the sound, switching between the delays, six tracks playing. Not yet flashed from this page.</span><span data-l="fr">vérifié en émulation sur le propre code de l'OS. Sur un Model:Cycles (2026-10-28), depuis la ligne de commande : le niveau, le son, les passages d'un delay à l'autre, six pistes en jeu. Pas encore flashé depuis cette page.</span></dd></div>
+        </dl>
+      </section>
+
       <section id="control-all">
-        <h2><span class="n">5</span><span data-l="en">Control All, your choice of tracks</span><span data-l="fr">Control All : choix des pistes</span></h2>
+        <h2><span class="n">6</span><span data-l="en">Control All, your choice of tracks</span><span data-l="fr">Control All : choix des pistes</span></h2>
         <p class="by"><span data-l="en">By</span><span data-l="fr">Par</span> <a href="https://github.com/durchgemacht/cycles-control-all-config" target="_blank" rel="noopener">durchgemacht</a></p>
         <p class="lede"><span data-l="en">Leave single tracks out of Control All: with TRACK held, a knob changes only the tracks you chose.</span><span data-l="fr">Écartez des pistes de Control All : TRACK tenu, un potard ne change que les pistes que vous avez choisies.</span></p>
         <ol>
@@ -156,7 +174,7 @@
       </section>
 
       <section id="mods-on-samples">
-        <h2><span class="n">6</span><span data-l="en">Mods on a Model:Samples</span><span data-l="fr">Des mods sur un Model:Samples</span></h2>
+        <h2><span class="n">7</span><span data-l="en">Mods on a Model:Samples</span><span data-l="fr">Des mods sur un Model:Samples</span></h2>
         <p class="lede"><span data-l="en">A Model:Samples can run the Model:Cycles OS with the same mods as a Model:Cycles. Whatever the machine, the flasher always installs the Model:Cycles OS. With the <a href="#sampler">SAMPLE</a> machine ticked, it can play the samples already on the +Drive (not yet tried on a Model:Samples).</span><span data-l="fr">Un Model:Samples peut faire tourner l'OS du Model:Cycles avec les mêmes mods qu'un Model:Cycles. Quelle que soit la machine, le flasher installe toujours l'OS du Model:Cycles. Avec la machine <a href="#sampler">SAMPLE</a> cochée, il peut jouer les samples déjà sur le +Drive (pas encore essayé sur un Model:Samples).</span></p>
         <ol>
           <li><span data-l="en">Back up your samples and projects with Elektron Transfer, then close Transfer.</span><span data-l="fr">Sauvegardez vos samples et vos projets avec Elektron Transfer, puis fermez Transfer.</span></li>
@@ -180,7 +198,7 @@
       </section>
 
       <section id="samples">
-        <h2><span class="n">7</span><span data-l="en">Samples OS</span><span data-l="fr">OS Samples</span></h2>
+        <h2><span class="n">8</span><span data-l="en">Samples OS</span><span data-l="fr">OS Samples</span></h2>
         <p class="lede"><span data-l="en">The Model:Cycles starts as a Model:Samples: you load and play your own samples, managed with Elektron Transfer.</span><span data-l="fr">Le Model:Cycles démarre en Model:Samples : vous chargez et jouez vos propres samples, gérés avec Elektron Transfer.</span></p>
         <p><span data-l="en">The flasher puts the official Model:Samples OS inside your Model:Cycles firmware file:</span><span data-l="fr">Le flasher place l'OS officiel du Model:Samples dans le fichier firmware de votre Model:Cycles :</span></p>
         <dl class="layers fig">
@@ -214,13 +232,13 @@
       </section>
 
       <section id="stock">
-        <h2><span class="n">8</span><span data-l="en">Back to stock</span><span data-l="fr">Revenir à l'origine</span></h2>
+        <h2><span class="n">9</span><span data-l="en">Back to stock</span><span data-l="fr">Revenir à l'origine</span></h2>
         <p><span data-l="en">The <b>Official firmware</b> tab of the flasher sends your OS file unchanged, over USB, like a normal update. It is also a good rehearsal before a first mod: it checks the cable and the setup without changing anything.</span><span data-l="fr">L'onglet <b>Firmware officiel</b> du flasher renvoie votre fichier d'OS sans le modifier, par USB, comme une mise à jour normale. C'est aussi une bonne répétition avant un premier mod : elle vérifie le câble et l'installation sans rien changer.</span></p>
         <p><span data-l="en">With the SAMPLE machine, first set your SAMPLE tracks back to an original machine (Kick to Chord): the official OS doesn't have SAMPLE, and a project that still names it can freeze its MACHINES page.</span><span data-l="fr">Avec la machine SAMPLE, remettez d'abord vos pistes SAMPLE sur une machine d'origine (de Kick à Chord) : l'OS officiel n'a pas SAMPLE, et un projet qui la nomme encore peut geler sa page MACHINES.</span></p>
       </section>
 
       <section id="recovery">
-        <h2><span class="n">9</span><span data-l="en">Recovery</span><span data-l="fr">Secours</span></h2>
+        <h2><span class="n">10</span><span data-l="en">Recovery</span><span data-l="fr">Secours</span></h2>
         <p class="lede"><span data-l="en">If the Model:Cycles no longer starts, its startup menu can always reinstall the OS: it lives in an area that updates never write.</span><span data-l="fr">Si le Model:Cycles ne démarre plus, son menu de démarrage peut toujours réinstaller l'OS : il vit dans une zone que les mises à jour n'écrivent jamais.</span></p>
         <figure class="fig">
           <div data-device data-scenes="func @logo | func,mainvol | s4 @READY TO/>RECEIVE" data-ms="1300"></div>
@@ -234,7 +252,7 @@
       </section>
 
       <section id="trouble">
-        <h2><span class="n">10</span><span data-l="en">Troubleshooting</span><span data-l="fr">Dépannage</span></h2>
+        <h2><span class="n">11</span><span data-l="en">Troubleshooting</span><span data-l="fr">Dépannage</span></h2>
         <div class="faq">
           <details>
             <summary><span data-l="en">Nothing happens on the Model:Cycles screen</span><span data-l="fr">Rien ne se passe sur l'écran du Model:Cycles</span></summary>
@@ -301,8 +319,8 @@
   </div>
 </footer>
 
-<script src="../assets/release.js?v=2026-10-27-02"></script>
-<script src="../assets/cycles.js?v=2026-10-27-02"></script>
-<script src="../assets/site.js?v=2026-10-27-02"></script>
+<script src="../assets/release.js?v=2026-10-28-01"></script>
+<script src="../assets/cycles.js?v=2026-10-28-01"></script>
+<script src="../assets/site.js?v=2026-10-28-01"></script>
 </body>
 </html>

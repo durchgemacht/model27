@@ -7,6 +7,12 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.12", date: "2026-10-28", changes: [
+    { en: "New card, POTS (under Sounds & machines), the second effect: a delay whose repeats go down an old telephone line, each pass darker and narrower (about 350 Hz to 3 kHz), a little further out of tune, fading and now and then dropping out, with a coarse grain on the tail. Hold TRACK and turn Delay Time to step the pattern from the stock Delay to Digital (when ticked) and on to POTS; the choice is saved with the pattern",
+      fr: "Nouvelle carte, POTS (dans Sons et machines), le deuxième effet : un delay dont les répétitions passent par une vieille ligne de téléphone, à chaque passage plus sombres et plus étroites (d'environ 350 Hz à 3 kHz), un peu plus désaccordées, qui vont et viennent et décrochent de temps en temps, avec un grain grossier sur la queue. Tenez TRACK et tournez Delay Time pour passer le pattern du Delay d'origine à Digital (s'il est coché), puis à POTS ; le choix est enregistré avec le pattern" },
+    { en: "model27's own, checked in an emulator on the OS's own code. Played on a Model:Cycles from the command line (2026-10-28), six tracks at once included; experimental here until flashed from this page. Goes with SAMPLE, Digital Delay and Control All Config",
+      fr: "Propre à model27, vérifié en émulation sur le propre code de l'OS. Joué sur un Model:Cycles depuis la ligne de commande (2026-10-28), six pistes à la fois comprises ; expérimental ici tant qu'il n'a pas été flashé depuis cette page. Va avec SAMPLE, Digital Delay et Control All Config" },
+  ] },
   { version: "0.11", date: "2026-10-27", changes: [
     { en: "Digital Delay is tested as this page builds it: flashed from this page alone and with SAMPLE and played on a Model:Cycles (2026-10-27). Its card now shows Tested",
       fr: "Digital Delay est testé tel que cette page le construit : flashé depuis cette page seul et avec SAMPLE, et joué sur un Model:Cycles (2026-10-27). Sa carte affiche maintenant Testé" },

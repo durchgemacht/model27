@@ -50,7 +50,10 @@ SELECTIONS = ((["sampler"], []), (["refmachine"], []), (["sampler", "refmachine"
               # and the dispatchers (REF2, SAMPLE), and with an extension of CHORD (the stock descriptor table)
               (["digidelay"], []), (["refdelay", "refreverb"], []), (["sampler", "digidelay"], []),
               (["digidelay", "sampler"], []), (["sampler", "refdelay", "refreverb"], []),
-              (["digidelay", "refreverb", "refmachine2", "sampler"], []), (["chordtables", "digidelay"], []))
+              (["digidelay", "refreverb", "refmachine2", "sampler"], []), (["chordtables", "digidelay"], []),
+              # notes/69 §19: POTS alone, with Digital in the same slot (both orders), and with SAMPLE and Digital
+              (["pots"], []), (["digidelay", "pots"], []), (["pots", "digidelay"], []),
+              (["sampler", "digidelay", "pots"], []))
 PARTS = ("shortcuts", "dispatch", "fxslot")
 COMPARED = ("id", "order", "name", "version", "conflicts", "writes", "append", "symbols")
 

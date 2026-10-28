@@ -8,7 +8,7 @@
  "credit": {"kind": "own", "who": "durchgemacht and Claude", "repo": "durchgemacht/model27"},
  "device": "Model:Cycles",
  "os": "1.13",
- "order": 40,
+ "order": 70,
  "build": {
   "sources": ["pots.c"],
   "include": ["."],
@@ -35,6 +35,6 @@
  "compat": {"built_against": ["model27"], "requires": [], "conflicts_declared": []},
  "tests": {"emulation": {"tool": "tools/emu/test_fxslot.py (Unicorn, the OS's own code, emac.py without the scale factor in fractional mode, against the host build of tools/emu/pots_host.py, notes/69 §8, §14, §16, §17)", "date": "2026-10-28",
                          "build": "alone, with sampler and refreverb, and with digidelay in the same slot; the declared cost checked"},
-           "hardware": {"date": "2026-10-28", "by": "maintainer", "build": "digidelay+pots without the scale factor (notes/69 §16), in digiemu and on the device: the echo there, Digital and POTS much quieter than the stock delay (§17)"},
+           "hardware": {"date": "2026-10-28", "by": "maintainer", "build": "digidelay+pots without the scale factor (notes/69 §16), in digiemu and on the device: the echo there, Digital and POTS much quieter than the stock delay (§17); then the builds with the echo 6 dB up, from the command line: the level, the sound, switching and six voices at once fine (§18)"},
            "status": "experimental"}
 }

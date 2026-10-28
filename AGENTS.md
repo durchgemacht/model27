@@ -136,6 +136,9 @@ tools/machines/fxslot/        the effect slots, a part (notes/68): the mixer's d
 tools/machines/digidelay/     Digital Delay (notes/68 §18): PPPCCC's digital delay as an effect of the delay slot (id 1);
                               tools/gen_digidelay.py builds it into 39-digidelay.json; refdelay/, refreverb/: the slots'
                               reference effects, never offered
+tools/machines/pots/          POTS (notes/69): model27's own telephone-line delay, the delay slot's second effect (id 2), in
+                              fixed point on the EMAC; tools/gen_pots.py writes its tables and builds it into
+                              70-pots.json; tools/gen_hilbert.py its Hilbert pair; tools/emu/pots_host.py its host build
 tools/emu/                    Unicorn emulation of the OS: test_<mod>.py proofs, mcengine.py, emac.py, syntakt.py
 tools/gen_flasher_tweaks.py   FEATURES list -> docs/flasher/tweaks.js (generated); a machine card embeds its package and
                               the registrar's frame, composed in the page (notes/61)

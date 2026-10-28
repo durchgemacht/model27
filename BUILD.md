@@ -278,6 +278,28 @@ python3 tools/build.py -i model-cycles_OS1.13.syx -t digidelay
 ```
 MAIN OS patché, `digidelay` seul : `4fb4eac751faa4e6ec02a2bfefd24ccb264bdd566ede2244a1ceb258542894b9` (celui joué sur un
 Model:Cycles le 27/10/2026, et celui que la page compose).
+
+### POTS (effet)
+
+`tweaks/model-cycles_OS1.13/70-pots.json` est produit par `tools/gen_pots.py`, qui écrit les tables de
+`tools/machines/pots/pots_tables.h` (la paire de Hilbert vient de `tools/machines/pots/hilbert.json`, calculée par
+`tools/gen_hilbert.py`, qui demande numpy), compile `tools/machines/pots/pots.c` (le code propre à model27, en virgule
+fixe sur l'EMAC) et le compose seul avec `tools/compose.py` : le deuxième effet de l'emplacement du delay (id 2), avec la
+partie `fxslot` ([note 69](notes/69-pots-delay.md)). Sa ligne de 512 Kio est celle de l'emplacement, partagée avec
+Digital Delay. `tools/emu/pots_host.py` compile le même code pour l'hôte et vérifie le son contre ses mesures ; la preuve
+de `test_fxslot.py` fait tourner le code de l'appareil dans l'OS contre ce build hôte, au bit près, et compte la charge :
+```sh
+python3 tools/gen_hilbert.py --check
+python3 tools/gen_pots.py --cycles model-cycles_OS1.13.syx [--check]
+python3 tools/emu/pots_host.py
+python3 tools/emu/test_fxslot.py --cycles model-cycles_OS1.13.syx --machines pots --machines sampler,pots,refreverb
+python3 tools/build.py -i model-cycles_OS1.13.syx -t pots
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,digidelay,pots   # avec Digital et SAMPLE
+```
+MAIN OS patché, `pots` seul : `4a17782e49d8620162022cd26dab6fe96febb8d379d458685a0dc5e9f4fc3955` ; `digidelay` et `pots`
+composés : `c3b508f618eacc9f47fb1e7995d27e0652ae95e54824bda01e35ae58e367c2a9` ; avec SAMPLE (`sampler`, `digidelay`,
+`pots`) : `dc7a34978bd128d37a32534c92e161a74fee32a2624e1e12de270e72835ad6e0`. Ce sont les builds essayés sur un
+Model:Cycles le 28/10/2026 depuis la ligne de commande (note 69 §18), et ceux que la page compose.
 ### OS Cycles pour Model:Samples (et retour par USB)
 
 Pas un tweak : `tools/crossflash.py` met l'OS Cycles officiel dans le conteneur officiel du Model:Samples, en changeant les

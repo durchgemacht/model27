@@ -356,6 +356,22 @@ ALL_FEATURES = [
         "package": "digidelay",
     },
     {
+        "id": "pots",
+        "cat": "sound",
+        "label": "POTS (effect)",
+        "desc": "A delay whose repeats go down an old telephone line: each pass darker and narrower, a little out of "
+                "tune, fading and now and then dropping out, with a coarse grain on the tail. Hold TRACK and turn "
+                "Delay Time to switch the pattern's delay between the stock Delay, Digital and POTS; Time and Fdbk "
+                "keep their knobs.",
+        # model27's own (notes/69), its sound settled in a float prototype; bit for bit its host build in emulation;
+        # played on the Model:Cycles on 2026-10-28 from the command line, six voices at once included (notes/69 §18)
+        "status": "experimental",
+        "credit": None,
+        # an effect composed in the page from its package (notes/69 §19), with the machines and Digital ticked:
+        # alone it gives 70-pots.json byte for byte, whose conflicts give its excludes
+        "package": "pots",
+    },
+    {
         "id": "chord-keys",
         "cat": "live",
         "label": "Accords de gamme sur TRIG 1–16",
@@ -413,7 +429,7 @@ ALL_FEATURES = [
 # model27 offers a short list of cards. The other definitions above stay as they are, for the command-line build
 # (every tweak of tweaks/ is still built by tools/build.py) and so that merges from upstream apply cleanly; a card
 # comes back into the flasher by adding its id here, once it has been reviewed against the Cycles Mod Standard.
-OFFERED = ("sampler", "digidelay", "control-all-config")
+OFFERED = ("sampler", "digidelay", "pots", "control-all-config")
 FEATURES = [f for f in ALL_FEATURES if f["id"] in OFFERED]
 _missing = set(OFFERED) - {f["id"] for f in FEATURES}
 if _missing:

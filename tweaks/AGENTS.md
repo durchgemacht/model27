@@ -28,6 +28,7 @@ cave check; add to it only with the reasoning in `why` and in a note.
 | `40`–`49` | sequencer and interface features: `40` arp, `41` trig-hold, `42` tempo-max, `43` boot-anim, `44` multiline-browser, `45` chord-keys, `46` level-pan-values, `47` trigless-dim (`48` claimed by an open PR) |
 | `50`–`59` | MIDI: `50` midi-both, `51` midi-live-both (AveyCole, they exclude each other); **next one is `52`** |
 | `60`–`69` | modulation: `60` lfo-plus (DavidCaruso); **next one is `61`** |
+| `70`–`79` | effects of the delay and reverb slots (notes/68, 69): `70` pots (Digital Delay came first, as `39`); **next one is `71`** |
 | `90`–`99` | diagnostics (load meters, profile), not offered to users |
 
 ## Fields

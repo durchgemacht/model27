@@ -33,18 +33,26 @@ const REF_MAINOS = {
   "control-all-config": "eb70de0a330dc9c033db5c5fc5d8589c3356c94ad346a8d30840e03ecb90299d",
   "sampler": "72b596dc5ce258dd1e5419c961310dd80a7e286b3ee86ec2ebf1bf4af8413f61",
   "digidelay": "4fb4eac751faa4e6ec02a2bfefd24ccb264bdd566ede2244a1ceb258542894b9",
+  "pots": "4a17782e49d8620162022cd26dab6fe96febb8d379d458685a0dc5e9f4fc3955",
   // every pair of cards the page lets you tick together
   "control-all-config+sampler": "327cbd37f5b30d03b82b61ab3f20d28f688f47173f7251c1ee7a18782d3d9618",
   "control-all-config+digidelay": "bf33c83201f17a11bbd43deb8f3bb5c029c2dee07ab937f5cd1a9dc5cf74ff45",
+  "control-all-config+pots": "be4a6190bfeb83fdd9e1fdde4959cc5dc5ed687ec30d35fc2f552f944fe9adee",
   "sampler+digidelay": "7fd42d2a749ea7d2ffe21f47d7473c2971e9228219271779079dd54f46caa26f",
+  "sampler+pots": "20de74e15e1e3a9cf12c2d908d1b4bea8cc617dda5038e96c51e0140a9421aba",
+  "digidelay+pots": "c3b508f618eacc9f47fb1e7995d27e0652ae95e54824bda01e35ae58e367c2a9",
   // the largest combinations: every compatible card ticked, from each card, both ways, with and without the Syntakt engines, with and without each of the machines that join them
-  "control-all-config+sampler+digidelay": "b43144e5b63096e29a08df89df30651ccc8c0d7ebdffc122b306db242a85b5a2",
+  "control-all-config+sampler+digidelay+pots": "08802be66222ac75d5a71db945572a4cca015830aa57dd2316c46b3f4226f838",
 };
 const REF_MODS = {
   "control-all-config": {"w": "b47aa26f4f855c750735a03eae7453847356c376f47a4010cf4f1a5bf316be5e"},
   "sampler": {"w": "28853ad2da8ee02d992848e217296dd8c8083a2fd7b7cf1887069dd27b4f2a5c", "p": "bc301051b49d96187027131eed93aaa8d26255a96364697e1f0a5a7a31daa34b"},
   "digidelay": {"w": "a4076b491ede8a722d6b28382b1c5aea2970146739294892bda3ca1b5ad85588", "p": "3be011501c7656f91b572b60e475aea5aa44d455d8d6a3ae1a427b49891f402e"},
+  "pots": {"w": "4268fb4663adb28e648edc8ebf2ea1a4a200a22b75feffab5b10267d2d7db7bc", "p": "41d48a5e13fec802947f0492db129ed0aa448352f053b6bd03da84098681ac59"},
   "sampler+digidelay": {"w": "adb181070995d2d1ed276e0be66a6c461e48f698a890d124b7caefbb59a74cb0", "p": "b6664d555c6d3637633e0916948b903397fed4b782842cb4db69b87e301139f2"},
+  "sampler+pots": {"w": "197a92b9aa649a1e21de35264f3ab60772b0c4507a0cc5d1d370a5d9b74623a7", "p": "36efa1f820ed53be3a02340990695d8217ad728019e565bcba8ada5a8fcccbf1"},
+  "digidelay+pots": {"w": "17be9baa538e403edca072e3faa84ddfd739cab6f18d9f009b8a3261b71cca14", "p": "aa5d61c25b3795a2b9b4ceb7f27fdae87424fc0e2eeda549bcd65a218cfc38bf"},
+  "sampler+digidelay+pots": {"w": "cf8ac967743e7720fca265b5d5b229b710fbff86d4a539c81305d35634b6029d", "p": "e55f35e8d1c247ad0973799dfe24495dc7542d8bb70acd3b1737e2ad36d24c71"},
 };
 
 // "Samples OS" tab: official Model:Samples OS 1.13 inside the official Model:Cycles container
@@ -111,6 +119,7 @@ const GUIDE_OF = {
   acid: "acid",
   sampler: "sampler",
   digidelay: "digital-delay",
+  pots: "pots",
   "chord-keys": "chord-keys",
   "track-filter": "track-filter",
   "lfo-plus": "lfo-plus",
@@ -740,6 +749,10 @@ const FEAT = {
       short: "A second delay, bright and clean, up to 5.4 s; TRACK + Delay Time picks it for the pattern.",
       desc: "A second delay for the delay slot, from gialloinfuso's PPPCCC mods: the opposite of the dark stock delay, bright and clean, up to 5.4 s, each repeat a little thinner in the lows. Hold TRACK and turn Delay Time: four detents to the right switch the pattern from the stock Delay to Digital, four to the left switch it back. The choice is saved with the pattern, so each pattern keeps its own delay and a pattern change switches it. While Digital plays, Time and Fdbk keep their knobs and read Digi Time and Digi Fdbk. The delay is mono, the same repeat on both sides, and starts from silence each time it is chosen.",
       note: "On a firmware without Digital, a pattern that chose it plays the stock Delay." },
+    pots: { label: "POTS (effect)",
+      short: "A delay down an old phone line: each repeat darker, narrower and a little out of tune.",
+      desc: "A third delay for the delay slot, model27's own: every repeat goes down an old telephone line once more. The echoes darken into a narrow band (about 350 Hz to 3 kHz, a little nasal), drift a little further out of tune each pass as their harmonics move apart, fade in and out, now and then drop out for a moment, and pick up a coarse digital grain that leaves them as the tail dies away. Hold TRACK and turn Delay Time: every four detents to the right step the pattern to the next delay, the stock Delay, then Digital if it is ticked too, then POTS; to the left they step back. The choice is saved with the pattern. While POTS plays, Time and Fdbk keep their knobs and ranges and read POTS Time and POTS Fdbk; at the highest Fdbk the repeats go on without running away. The delay is mono, the same repeat on both sides, and starts from silence each time it is chosen.",
+      note: "On a firmware without POTS, a pattern that chose it plays the stock Delay. Experimental: played on a Model:Cycles from the command line, not yet flashed from this page." },
     "trig-preview": { label: "Trig preview",
       short: "Sequencer stopped, hold a step and press PAGE to hear it.",
       desc: "With the sequencer stopped or paused, hold a step and press PAGE: the step plays with its own note, length and p-locks." },
@@ -843,6 +856,10 @@ const FEAT = {
       short: "Un second delay, clair et net, jusqu'à 5,4 s ; TRACK + Delay Time le choisit pour le pattern.",
       desc: "Un second delay pour l'emplacement du delay, tiré des mods PPPCCC de gialloinfuso : l'inverse du delay d'origine, sombre ; celui-ci est clair et net, jusqu'à 5,4 s, et chaque répétition est un peu plus fine dans les graves. Tenez TRACK et tournez Delay Time : quatre crans vers la droite passent le pattern du Delay d'origine à Digital, quatre vers la gauche le ramènent. Le choix est enregistré avec le pattern : chaque pattern garde son delay, et un changement de pattern le change. Pendant que Digital joue, Time et Fdbk gardent leurs potards et s'appellent Digi Time et Digi Fdbk. Le delay est mono, la même répétition des deux côtés, et repart du silence chaque fois qu'il est choisi.",
       note: "Sur un firmware sans Digital, un pattern qui l'a choisi joue le Delay d'origine." },
+    pots: { label: "POTS (effet)",
+      short: "Un delay passé par une vieille ligne de téléphone : chaque répétition plus sombre, plus étroite, un peu désaccordée.",
+      desc: "Un troisième delay pour l'emplacement du delay, propre à model27 : chaque répétition repasse par une vieille ligne de téléphone. Les échos s'assombrissent dans une bande étroite (d'environ 350 Hz à 3 kHz, un peu nasillarde), se désaccordent un peu plus à chaque passage à mesure que leurs harmoniques s'écartent, vont et viennent, décrochent de temps en temps un court instant, et prennent un grain numérique grossier qui les quitte quand la queue s'éteint. Tenez TRACK et tournez Delay Time : tous les quatre crans vers la droite, le pattern passe au delay suivant, le Delay d'origine, puis Digital s'il est coché aussi, puis POTS ; vers la gauche, il revient en arrière. Le choix est enregistré avec le pattern. Pendant que POTS joue, Time et Fdbk gardent leurs potards et leurs plages et s'appellent POTS Time et POTS Fdbk ; au Fdbk le plus haut, les répétitions continuent sans s'emballer. Le delay est mono, la même répétition des deux côtés, et repart du silence chaque fois qu'il est choisi.",
+      note: "Sur un firmware sans POTS, un pattern qui l'a choisi joue le Delay d'origine. Expérimental : joué sur un Model:Cycles depuis la ligne de commande, pas encore flashé depuis cette page." },
     "trig-preview": { label: "Écoute d'un pas",
       short: "Séquenceur arrêté, maintenez un pas et appuyez sur PAGE pour l'entendre.",
       desc: "Séquenceur à l'arrêt ou en pause, maintenez un pas et appuyez sur PAGE : le pas joue avec sa note, sa longueur et ses p-locks." },

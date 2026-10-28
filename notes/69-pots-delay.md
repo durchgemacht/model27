@@ -187,7 +187,7 @@ manifest schema (`params` of three), `compose.py` and `composer.js` (the third n
 - `tools/machines/pots/`: `pots.c` (MIT, "durchgemacht and Claude"), `manifest.json` (id 2, `fx.delay`, `line` 1 MiB
   or 512 KiB, params "POTS Time" / TIME and "POTS Fdbk" / FDBK with the stock formatters, name "POTS", short "POTS",
   `cost.emulation` from the proof), `pots.o`.
-- `tools/gen_pots.py`: the object, `--check`, the build alone (as `gen_digidelay.py`); later `40-pots.json` and the
+- `tools/gen_pots.py`: the object, `--check`, the build alone (as `gen_digidelay.py`); later `70-pots.json` (§19.1) and the
   flasher card.
 - `tools/gen_hilbert.py`: the allpass pair (§4.2), its phase error printed, `--check` against the numbers in
   `hilbert.json`, which `gen_pots.py` writes into the tables.
@@ -220,10 +220,10 @@ v0.1 is steps 1 to 5 and 7 (two knobs, the shift fixed at 2 Hz); step 6 comes af
 4. **Build for the device**, two knobs, the shift at 2 Hz: `build/fx-pots/`. *Built: §15.*
 5. **The device**: the maintainer listens against the page and reads the load (`syntakt-meter`,
    [23](23-optimisation-charge.md) §5): POTS, Digital Delay and the stock delay, with six voices playing. If it comes
-   close to 85 %: the 24 kHz loop (if not chosen in step 1), fewer Hilbert sections, the codec's search as a table.
+   close to 85 %: the 24 kHz loop (if not chosen in step 1), fewer Hilbert sections, the codec's search as a table. *Done: §18.*
 6. **After v0.1, the third parameter** (§6): `fxslot`, schema, composers, claims, proof (the header load and save as
    `probe_chord_storage.py`, the gesture, the popup), POTS's shift on it; the device.
-7. **The flasher**: the card (experimental), guide, release; after the maintainer's test, tested.
+7. **The flasher**: the card (experimental), guide, release; after the maintainer's test, tested. *Built: §19.*
 8. **The standard**: Draft 0.7 (POTS's id; with step 6, the third parameter and the header bytes), on the
    maintainer's go.
 
@@ -649,3 +649,62 @@ SAMPLE), `4a17782e…` (pots); the C tool ok.
 
 The proof again (2026-10-28), the maintainer: « bewies all ok »: bit for bit, and the declared cost the one counted.
 Next the device with these builds (§15.2).
+
+## 18. The device, third try (2026-10-28): it works, the load too
+
+The maintainer, 2026-10-28, with the builds of §17.3 (the echo 6 dB up), asked whether they were tried on the device,
+by a clicked answer: « Gerät ok, auch die Last ». The level, the sound, switching between the effects and six voices
+playing at once are fine on the Model:Cycles. Which of the three builds was not named; just before, the maintainer had
+asked for the one with SAMPLE.
+
+So step 5 is done: the load of §15.2 (item 6), the open risk, did not show, and none of the fallbacks there is needed.
+The card comes next (step 7, §19). As Digital Delay's (68 §19.4), it stays experimental until the maintainer flashes
+it from the page.
+
+## 19. Step 7, the card (2026-10-28)
+
+The maintainer, 2026-10-28: « ok, passt. weiter », after the device's third try (§18). Built as Digital Delay's card
+(68 §19).
+
+### 19.1 What was built
+
+- **The card's build alone**: `70-pots.json` by `gen_pots.py` (as `gen_digidelay.py`). The manifest's order is 70, not
+  the 40 of §7: 40 is arp's and the 30s are full, so `tweaks/AGENTS.md` gives the slots' effects `70`–`79` (Digital
+  Delay came first, as 39). The order moves nothing in the builds of §17.3: composed again with order 70, their MAIN OS
+  are the same (`c3b508f6…`, `dc7a3497…`, `4a17782e…`), and `build.py -t pots` gives `4a17782e…` too.
+- The tweaks whose conflicts are computed against the folder gained `pots` and nothing else: `27-sampler`,
+  `28-refmachine`, `29-refmachine2`, `34-refchord`, `36-chordtables`, `39-digidelay`. `REGISTRY.md` regenerated: the
+  four hooks of `fxslot` now have two targets, by the combination.
+- **The card**: `FEATURES` (`cat` sound, experimental, `package` pots, no `credit` and no `license`: model27's own code,
+  under the repository's MIT), `OFFERED`; `tweaks.js` generated. The page composes it with the other package cards
+  into one tweak: `digidelay+pots`, `sampler+digidelay+pots`.
+- **`app.js`**: the card's texts (en, fr), its guide anchor `pots`; `REF_MAINOS` (11 combinations) and `REF_MODS` (8)
+  by `ref_mainos.py`: POTS alone `4a17782e…` and with Digital `c3b508f6…`, the builds of §17.3.
+- **`tools/webcompose_synth.py`**: four selections with POTS (alone, with Digital in both orders, with SAMPLE and
+  Digital).
+- **`tools/webflash_smoke.js`**: four cards, their order by section, POTS without a credit, POTS alone, with Digital,
+  with SAMPLE and with Control All Config, its tag, the French texts.
+- **For users**: the guide's section 5, POTS (en, fr; the sections after it renumbered; Digital's "Other mods" names
+  POTS), release 0.12, the stamp `2026-10-28-01`, `README.md`, `PROVENANCE.md`, `BUILD.md`, the repository map in
+  `AGENTS.md`. No word of the sound's working names and no third-party credit: the sound and the code are model27's.
+
+### 19.2 Checks (2026-10-28)
+
+- `webcompose_check.sh` with the official file: every selection identical to `compose.py`, the four new ones too
+  (`pots` `4a17782e…`, `digidelay+pots` `c3b508f6…`, `sampler+digidelay+pots` `dc7a3497…`, the builds of §17.3;
+  `pots+digidelay` `54e07bd2…`); `fill` 6/6.
+- `webflash_smoke.sh` with both official files: 184 checks, **ALL PARTS OK**.
+- `ref_mainos.py --check`, `webbuild_check.sh`, `webflash_check.sh`, `check_overlaps.py`, `registry.py --check`,
+  `claims.py --check`, `py_compile`: green.
+- `gen_pots`, `gen_digidelay`, `gen_sampler`, `gen_refmachine`, `gen_chordtables`, `gen_parts`, `gen_registrar`,
+  `gen_flasher_tweaks` with `--check`, `gen_hilbert.py --check`, `pots_host.py` (the measurements of §14.2): green.
+- Red as on `HEAD` before this step, nothing to do with POTS: `claims.py --self-test` (three cases on SAMPLE's
+  claims: × Model-TG, × the track filter, × REF2) and `relocate_6ch.py --check` (§13.2).
+- Not run again: `test_fxslot.py` (Unicorn, the maintainer's terminal). The object is unchanged since its last run
+  (§17.3); only the manifest's order moved, which the proof does not read.
+
+### 19.3 For the device
+
+From the page, served from the work copy (as 68 §19.4): POTS alone (MAIN OS `4a17782e…`), with Digital (`c3b508f6…`)
+and with SAMPLE (`sampler+digidelay+pots`, `dc7a3497…`), the steps of §15.2. If all is as expected, the card becomes
+"tested" in a commit of its own (AGENTS.md step 8).
