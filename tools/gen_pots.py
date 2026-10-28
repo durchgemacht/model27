@@ -125,6 +125,7 @@ def tables():
         "CLIP_IN": int(0.35 * Q29), "CLIP_U": int(1.5 * Q29),
         "DRIVE5_Q31": q(1 / 5, Q31), "GRIT_BIAS": q(0.12, Q29), "SAT_K": q(4 / 27, Q31), "SAT_BIAS_OUT": q(c, Q29),
         "GATE_LO": q(0.0025, Q29), "GATE_HI": q(0.01, Q29), "SAFE": q(2.0, Q29), "PHASOR_M": q(0.9999, Q31),
+        "OUT_MAX": int(0.75 * 2 ** 31),                      # the echo's limit (notes/69 §14.1)
         "K_BUS": int(round(K_BUS)),
         "IN_GAIN_Q29": q(Q29 / K_BUS, Q29),                  # about 2.17, past Q30's range
         "OUT_GAIN_Q30": q(K_BUS / Q29 * OUT_X, Q30),

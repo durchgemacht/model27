@@ -46,7 +46,8 @@ def disasm(binfile, base, start, stop, arch="m68k:isa-c:emac"):
 class EMAC:
     def __init__(self, uc):
         self.uc = uc
-        self.acc = [0, 0, 0, 0]          # valeur exacte, unite 2^-62 (fract.) ou 1 (entier)
+        self.acc = [0, 0, 0, 0]          # valeur exacte, unite 2^-62 (fract.) ou 1 (entier) ; les fermetures
+        #                                  rapides gardent cette liste : la changer en place (acc[:] = ...)
         self.macsr = 0
         self.mask = 0xffffffff
         self.ops = {}

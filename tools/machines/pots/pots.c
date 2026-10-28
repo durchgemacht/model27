@@ -22,6 +22,12 @@
  * executes it (each product truncated to 2^-23 of an LSB, the accumulator read as acc >> 31, saturated), so that both
  * give the same bits. Tables and constants: pots_tables.h (tools/gen_pots.py).
  *
+ * A full-scale bus (8 times the median machine's level, 18 dB above it) must not wrap anywhere (notes/69 §14.1): the
+ * host's accumulator is 128 bits wide (emac.py's is unbounded; the device's has 8 bits above 1.0, and the largest sum
+ * here, mul29 of two full-scale words, needs 3); the input is held at +-2.0 before the decimator, the feedback added
+ * to it saturating, the echo held at +-0.75 of full scale before the interpolator. Below those levels nothing
+ * changes: the measurements of §12.3 stay as they were. Built with -fwrapv on both sides.
+ *
  * Contract (notes/68 §15.3, §16.3): pots_process(out, in, params), called as the stock delay 0x40057488 is, params
  * P + 428 (Time at +0, Fdbk at +2, x 256). The line is the delay slot's, LINE_FRAMES words, shared with the slot's other
  * effects: after pots_reset a frame is read only once it was written since (n counts them). pots_reset() only marks
@@ -54,16 +60,17 @@ extern int32_t fx_line[];           /* the delay slot's line: LINE_FRAMES words 
 
 /* --- the EMAC ----------------------------------------------------------------------------------------------- */
 #ifdef POTS_HOST
-static int64_t acc;
-#define TRUNC(p) ((p) & ~(int64_t)0x7fffff)
+typedef __int128 wide;
+static wide acc;
+#define TRUNC(p) ((p) & ~(wide)0x7fffff)
 static inline void emac_start(void) { acc = 0; }
-static inline void mac(int32_t a, int32_t b) { acc += TRUNC((int64_t)a * b); }
-static inline void msac(int32_t a, int32_t b) { acc -= TRUNC((int64_t)a * b); }
-static inline void mac2(int32_t a, int32_t b) { acc += TRUNC((int64_t)a * b * 2); }
-static inline void msac2(int32_t a, int32_t b) { acc -= TRUNC((int64_t)a * b * 2); }
+static inline void mac(int32_t a, int32_t b) { acc += TRUNC((wide)a * b); }
+static inline void msac(int32_t a, int32_t b) { acc -= TRUNC((wide)a * b); }
+static inline void mac2(int32_t a, int32_t b) { acc += TRUNC((wide)a * b * 2); }
+static inline void msac2(int32_t a, int32_t b) { acc -= TRUNC((wide)a * b * 2); }
 static inline int32_t movclr(void)
 {
-	int64_t v = acc >> 31;
+	wide v = acc >> 31;
 	acc = 0;
 	return v > INT32_MAX ? INT32_MAX : v < INT32_MIN ? INT32_MIN : (int32_t)v;
 }
@@ -96,6 +103,14 @@ static inline int32_t mul30(int32_t a, int32_t b) { mac2(a, b); return movclr();
 static inline int32_t mul29(int32_t a, int32_t b) { mac2(a, b); mac2(a, b); return movclr(); }   /* b Q29 */
 
 static inline int32_t clamp(int32_t x, int32_t lo, int32_t hi) { return x < lo ? lo : x > hi ? hi : x; }
+
+static inline int32_t add_sat(int32_t a, int32_t b)
+{
+	int32_t s = (int32_t)((uint32_t)a + (uint32_t)b);
+	if ((a ^ s) & (b ^ s) & INT32_MIN)                  /* both of a sign, the sum of the other: it wrapped */
+		return a < 0 ? INT32_MIN : INT32_MAX;
+	return s;
+}
 
 static int32_t lg2(int32_t x)       /* log2(x / 2^29) in Q24, x > 0 */
 {
@@ -285,7 +300,7 @@ static int32_t frame(int32_t x_in, const blockv *b)
 	st.gc += b->dgc;
 	st.gw += b->dgw;
 
-	int32_t s = x_in + mul30(loop, b->fb);
+	int32_t s = add_sat(x_in, mul30(loop, b->fb));
 	if (!OFF(D_TX)) {
 		/* the skewed clip in Q2.29: u reaches 1.5, u^2 2.25 and u^3 3.375 (Q30 overflowed: the second fault, §12.2) */
 		int32_t u = clamp(s, -CLIP_IN, CLIP_IN);
@@ -372,8 +387,8 @@ void pots_process(int32_t *out, const int32_t *in, const int16_t *params)
 
 #if POTS_RATE == 1
 	for (int i = 0; i < BLOCK; i++) {
-		int32_t x = mul29((in[2 * i] >> 1) + (in[2 * i + 1] >> 1), IN_GAIN_Q29);
-		int32_t y = mul30(frame(x, &b), OUT_GAIN_Q30);
+		int32_t x = clamp(mul29((in[2 * i] >> 1) + (in[2 * i + 1] >> 1), IN_GAIN_Q29), -SAFE, SAFE);
+		int32_t y = clamp(mul30(frame(x, &b), OUT_GAIN_Q30), -OUT_MAX, OUT_MAX);
 		out[2 * i] = out[2 * i + 1] = y;
 	}
 #else
@@ -381,11 +396,12 @@ void pots_process(int32_t *out, const int32_t *in, const int16_t *params)
 		for (int j = 0; j < 2; j++) {
 			for (int k = 6; k > 0; k--)
 				st.dec[k] = st.dec[k - 1];
-			st.dec[0] = mul29((in[4 * i + 2 * j] >> 1) + (in[4 * i + 2 * j + 1] >> 1), IN_GAIN_Q29);
+			st.dec[0] = clamp(mul29((in[4 * i + 2 * j] >> 1) + (in[4 * i + 2 * j + 1] >> 1), IN_GAIN_Q29),
+			                  -SAFE, SAFE);                 /* the decimator's sums then stay under 1.2 x 2^30 */
 		}
 		int32_t *h = st.dec;
 		int32_t x = -(h[0] >> 5) + 9 * (h[2] >> 5) + (h[3] >> 1) + 9 * (h[4] >> 5) - (h[6] >> 5);
-		int32_t y = mul30(frame(x, &b), OUT_GAIN_Q30);
+		int32_t y = clamp(mul30(frame(x, &b), OUT_GAIN_Q30), -OUT_MAX, OUT_MAX);   /* its sums under 0.94 */
 		int32_t *p = st.itp;
 		p[0] = p[1]; p[1] = p[2]; p[2] = p[3]; p[3] = y;
 		int32_t odd = -(p[0] >> 4) + 9 * (p[1] >> 4) + 9 * (p[2] >> 4) - (p[3] >> 4);
@@ -419,4 +435,6 @@ void pots_render(const int32_t *in, int32_t *out, int frames, const int16_t *par
 }
 
 int pots_rate(void) { return POTS_RATE; }
+
+void pots_host_tempo(int32_t t) { tempo = t; }    /* the OS's word at 0x40149310 */
 #endif

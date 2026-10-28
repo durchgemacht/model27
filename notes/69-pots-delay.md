@@ -215,7 +215,8 @@ v0.1 is steps 1 to 5 and 7 (two knobs, the shift fixed at 2 Hz); step 6 comes af
    measured (a script for the maintainer's terminal); 48 kHz against 24 kHz; own Hilbert pair; the measurements of §2
    and a listening tab "v6 fixed point" next to v6. Decision D2.
 2. **The package** (§7) and `gen_hilbert.py`; checks without emulation. *Built: §13.*
-3. **The proof** (§8), the maintainer's run; the cost declared.
+3. **The proof** (§8), the maintainer's run; the cost declared. *Done: §14 (ALL OK §14.7, the cost declared; its
+   check run ALL OK).*
 4. **Build for the device**, two knobs, the shift at 2 Hz: `build/fx-pots/`.
 5. **The device**: the maintainer listens against the page and reads the load (`syntakt-meter`,
    [23](23-optimisation-charge.md) §5): POTS, Digital Delay and the stock delay, with six voices playing. If it comes
@@ -239,6 +240,7 @@ The maintainer, 2026-10-27, by clicked answers:
 | D5 | Its storage | later (step 6); proposal per pattern, header 36 (+ 37, 39) |
 | D6 | The shift's range | later (step 6); proposal 0..12 Hz, square law, default 52 = 2 Hz |
 | D7 | The standard | at step 8, on an explicit go |
+| D8 | The codec's grain at 24 kHz, about 3 dB more in the band than v6 (§14.2) | **kept** as in the clips (2026-10-28) |
 
 ## 11. Left to read or measure
 
@@ -391,3 +393,128 @@ prototype's files.
 
 Not proved yet: that the device object computes what the host build does (step 3: Unicorn with `emac.py`, the same
 blocks, the maintainer's run), and the cost.
+
+## 14. Step 3, the proof (prepared 2026-10-28)
+
+The maintainer, 2026-10-28: « Start step 3 ». The proof of §8 written; the runs that need Unicorn are the
+maintainer's (§14.5).
+
+### 14.1 Limits against a full-scale bus
+
+Writing the proof showed that the host build could not follow the device at a full-scale bus, which section 3 of
+`test_fxslot.py` feeds every fifth block: the host's accumulator was 64 bits wide, and `mul29` of two full-scale words
+(2^64 before the shift) wrapped it, where `emac.py` (unbounded) and the device (8 bits above 1.0) do not. Three more
+sums could wrap in C at that level. Changed in `pots.c` (§13's object rebuilt):
+
+- the host's accumulator 128 bits wide (`__int128`);
+- the input held at ±2.0 before the decimator (its sums then stay under 1.2 × 2^30; anything above 0.35 is clipped
+  by the transmitter anyway);
+- the feedback added to the input saturating (`add_sat`);
+- the echo held at ±0.75 of full scale before the interpolator (its sums then stay under 0.94), 16 dB above the
+  loudest return measured (§12.5);
+- `-fwrapv` on both sides, so that any other wrap is the same on the host and the device.
+
+At the prototype's levels nothing changed: the host build still gives the prototype's bits at both rates (the 24 runs
+of §13.2). The code grew from 5 818 to 6 122 bytes, still only `R_68K_32`.
+
+### 14.2 On the host, against v6
+
+`tools/emu/pots_host.py` builds `pots.c` with the host's C compiler at the manifest's rate. Section 8 compares the
+device's object with it, and it takes the measurements of §12.3 again on that build. The sources are synthesized as
+in the prototype. It runs without Unicorn or firmware (`python3 tools/emu/pots_host.py`); here, ALL OK:
+
+| | The port (24 kHz) | v6 | Allowed |
+|---|---|---|---|
+| The shift | up, the other side 50.9 dB under | up | ≥ 45 dB |
+| Decay to −60 dB, Fdbk 40 / 64 / 90 / 100 | 2.45 / 4.85 / 19.75 / 22.95 s | 2.55 / 4.85 / 20.1 / 23.3 s | 10 % |
+| Fdbk 110, 127 | not dead after 25 s | the same | |
+| A tail's end at 25 s | 1496 Hz, 0.1 % above 2 kHz | 1491 Hz, 0.1 % | 3 %, ≤ 1 % |
+| Colour, repeats 1 → 7 | 983 → 1457 Hz | 983 → 1455 Hz | 3 % each |
+| Octave bands 250 Hz..4 kHz | within 0.6 dB | | 1 dB |
+| Echo level, pluck / stab | −28.0 / −32.9 dB | −27.8 / −32.5 dB | 1 dB |
+| Codec's grain in the tail, in the band, at 1 / 3 / 6 / 15 s | −35.4 / −30.3 / −24.0 / −20.1 dB | −38.4 / −33.2 / −26.3 / −19.7 dB | −2 to +5 dB |
+| The same above 4 kHz | −59.7 / −62.0 / −57.6 / −58.4 dB | −60.6 / −62.7 / −58.8 / −59.0 dB | ≤ +2 dB |
+| Peak at Fdbk 127, loud input | −5.6 dB | −5.6 dB | 0.5 dB |
+| Silence in | exact zero | silence | |
+
+**New: the codec's grain is about 3 dB stronger in the band at 24 kHz**, early in a tail (1 to 6 s), the same by
+15 s. The codec's error has the same power at either rate. At 24 kHz it lies in half the band, so twice as much of it
+passes the receiver. The 48 kHz loop measured the same way stays within 1 dB of v6 (−37.8 / −33.4 / −26.6 /
+−18.7 dB). §12.3 did not measure it; it is in the 24 kHz clips the maintainer chose by ear (§12.6). The check allows
+the rate's 10 log10(48 / 24) = 3 dB above v6 on top of the 2 dB. **Decided (2026-10-28), the maintainer: « Keep
+it »**: the grain stays as the 24 kHz loop gives it (D8, §10); not matched to v6.
+
+### 14.3 In `tools/emu/test_fxslot.py`
+
+- The selections `pots` and `sampler,pots,refreverb`, with POTS's host build as the model of the delay slot. Sections
+  2 to 6 as for every effect: the sites, the line, the audio against the model bit for bit (the playing pattern
+  choosing POTS, the stock delay's block of silence, the reset), the gesture, the pattern, the cost.
+- Section 8, POTS alone, against its host build, bit for bit: a burst at the median machine's level and its echoes;
+  noise at that level; full-scale noise at Fdbk 127 (the limits of §14.1); Time sliding 0 to 6 with Fdbk rising to
+  127 under bursts; silence. Then a reset and it all again, then 2 400 blocks more, past the first dropout
+  (2 250 blocks after the reset). 3 380 blocks, Time 0 and 1 so that the loop goes round some twenty times.
+- Section 9, once a run: the measurements of §14.2 as checks.
+- Section 10, once a run: `digidelay,pots` composed, the pattern choosing Digital, POTS, Digital, POTS through
+  `fx_delay` (80 blocks each), the slot's line (1 MiB) filled with noise before each switch. Each return must be its
+  model's from its reset: neither effect reads what was on the line before it.
+- The cost: counted as for every effect (68 §17.2) into `build/fx-cost.json`. The manifest declares it after the
+  maintainer's run, and a second run checks it.
+
+### 14.4 Checked here
+
+`test_fxslot.py --dry` for `pots`, `sampler,pots,refreverb` and `digidelay,refreverb`: ALL OK (the sites, the data
+block with "POTS Time" / "POTS Fdbk" / "POTS", the stock formatters, the line of 512 KiB at `0x43036000`). Sections 8
+to 10 run against a stand-in for the device that runs the same models and fxslot's switch rule (outside the
+repository): every check passes. That checks the proof's own code, not the device. `gen_pots.py --check`,
+`gen_hilbert.py --check`, `claims.py`, `check_overlaps.py`, `registry.py --check`, `gen_flasher_tweaks.py --check`,
+`py_compile` and `webcompose_check.sh` with the official file (POTS 23/23 placements): OK.
+
+### 14.5 The maintainer's run
+
+```sh
+python3 tools/emu/test_fxslot.py --cycles <model-cycles_OS1.13.syx> --machines pots --machines sampler,pots,refreverb
+```
+
+Then the cost from `build/fx-cost.json` goes into the manifest's `cost.emulation`, and the same command again
+checks it.
+
+### 14.6 The maintainer's first run (2026-10-28): a fault of the proof
+
+Every check passed except POTS's two bit-for-bit ones (sections 8 and 10). Both parted at block 23, where the first
+echo comes back at Time 0; before it, both sides return silence. The general audio check of section 3 had passed
+only because its delay times are long enough that no echo came back.
+
+A probe outside the repository compared the state (86 words by name), the line and the output after each block. On
+the device side every EMAC product was 0 from block 0 on. The cause was the proof's own: before each call
+`Side.effect` replaced `emac.acc` with a new list, while `emac.py`'s fast `mac.l` / `msac.l` closures keep the list
+they were made with. From the first call on, the products went into the old list and `movclr.l` read the new one.
+Fixed: the list cleared in place (as `test_track_filter.py` does), and a comment in `emac.py`. Shown with `emac.py`
+alone: 0.5 × 0.5 gives 0 with the list replaced, 0.25 with the fix. Nothing proven before is touched: REFD, REFR,
+Digital Delay and fxslot have no EMAC instruction, SAMPLE does not play in this proof, and the stock effects ran the
+same code on both sides. POTS is the first effect with EMAC code. Ruled out on the way: every one of POTS's 148
+EMAC instructions is hooked by `emac.py` and decoded as in the object; every kind of instruction in `pots.o` also
+occurs in packages already proven in Unicorn.
+
+The cost counted in that run is not declared yet: first 10 043, mean 9 857, max 9 874, reset 2 instructions a block
+(+7 302 steadily above the stock delay, 6.7 % of a block, under the composer's 10 % warning). With the products
+right, the branches that depend on them (the clip, the codec's search, the leveler) may count differently. It is
+2.5 times the estimate of §5 and §12.6 (about 4 000), which makes the device's load (step 5) the thing to watch.
+
+### 14.7 The second run (2026-10-28): ALL OK
+
+The maintainer, after the fix of §14.6: « allok ». Proven on the OS's own code, for `pots` and
+`sampler,pots,refreverb`:
+
+- POTS's process gives its host build's bits: the 3 380 blocks of section 8, from start-up, after a reset and past
+  the first dropout, at full scale included; the playing pattern choosing it in section 3.
+- Digital Delay and POTS share the delay slot's line without reading each other's frames (section 10).
+- The measurements of §14.2 hold for the device (section 9 on the host build, which section 8 ties to the device).
+- The sites, the line, the gesture, the pattern header and the register contract, as for every effect.
+
+The cost counted (68 §17.2), now declared in the manifest's `cost.emulation`: first 10 043, mean 10 080, max 10 118,
+reset 2 instructions a block. The composer's load of the delay slot (`compose.fx_cost`): steadily +7 546 above the
+stock delay, 7.0 % of a block, under the 10 % warning (10 822); a switch's block +10 244 (the warning at 54 112). The
+manifest's `tests.emulation` carries the run.
+
+The check run (2026-10-28, `--machines pots`), the maintainer: « all ok »: the declared cost is the one counted.
+Step 3 is done; next step 4, the build for the device.

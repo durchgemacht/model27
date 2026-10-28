@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Proof of the effect slots (notes/68, steps F1, F2 and F2b, §16 to §18) on the OS's own code, with REFD and REFR,
-the reference effects of the delay and reverb slots (tools/machines/refdelay/, tools/machines/refreverb/), and Digital
-Delay, PPPCCC's (tools/machines/digidelay/), through the builder's part tools/machines/fxslot/.
+the reference effects of the delay and reverb slots (tools/machines/refdelay/, tools/machines/refreverb/), Digital
+Delay, PPPCCC's (tools/machines/digidelay/), and POTS, model27's telephone-line delay (tools/machines/pots/, notes/69),
+through the builder's part tools/machines/fxslot/.
 
 For each selection (by default: refdelay; refreverb; refdelay,refreverb; sampler,refdelay,refreverb; digidelay;
-digidelay,refreverb; sampler,digidelay,refreverb), on the official OS 1.13:
+digidelay,refreverb; sampler,digidelay,refreverb; pots; sampler,pots,refreverb), on the official OS 1.13:
   1. start-up: the bootstrap's own aPLib depacker reads the grown OS back; the boot hook copies the payload and clears
      the BSS;
   2. the sites: the mixer's call of each slot that has an effect (0x4005699c, 0x40056a2c) -> jsr fx_delay / fx_reverb,
@@ -55,14 +56,27 @@ digidelay,refreverb; sampler,digidelay,refreverb), on the official OS 1.13:
      127 with full-scale noise, saturating; the delay moved to 2 250 frames and slewing; silence, the tail; a reset,
      then it all again from silence), against a model of PPPCCC's arithmetic, bit for bit; with --pppccc, against
      PPPCCC's own code too (their patches/06-delay-fx.json applied to the official OS after 00-core.json, which it
-     requires, its entry 0x40160e6c), bit for bit up to the reset, which PPPCCC does not have.
+     requires, its entry 0x40160e6c), bit for bit up to the reset, which PPPCCC does not have;
+  8. POTS (notes/69 §8.1, §14), its process called alone (a burst at the median machine's level and its echoes; noise;
+     full-scale noise at Fdbk 127, past the input's, the feedback's and the echo's limits; Time sliding and Fdbk rising
+     under bursts; silence; a reset, then it all again; then on past its first dropout, 2 250 blocks after the reset),
+     against its host build (tools/emu/pots_host.py: pots.c compiled with the host's C compiler, the EMAC as emac.py
+     executes it), bit for bit.
+And once a run (notes/69 §8.2, §8.3):
+  9. POTS against v6: the measurements that settled its sound in the float prototype (the shift's direction, the decay,
+     a tail's end, the colour, the octave bands, the echo's level, the codec's grain, the peak at Fdbk 127, silence),
+     taken again on the host build, which section 8 has found to give the device's bits;
+ 10. Digital Delay and POTS in the delay slot of one build: the pattern switching Digital -> POTS -> Digital -> POTS
+     through fx_delay, the slot's line filled with noise before each switch: each effect's return its model's from
+     its reset, bit for bit (neither reads what was on the line before it).
 
 The SDRAM the stock effects use (the delay line 0x42400000-0x42800000, the reverb's lines 0x42340000-0x423d8000, both
 through their uncached aliases 0x4a...) is mapped, and the eDMA's registers (0xfc040000-0xfc050000) read as zeros:
 the DMA does not run in the emulator, so both engines read the same buffers.
 
-Needs Unicorn and numpy (pip install unicorn numpy) and m68k-elf-objdump; Unicorn's JIT does not run inside a
-sandbox that forbids it (it stops with SIGILL at the first memory map): run it in a normal terminal. About a minute.
+Needs Unicorn and numpy (pip install unicorn numpy), m68k-elf-objdump and the host's C compiler (cc, for POTS's host
+build); Unicorn's JIT does not run inside a sandbox that forbids it (it stops with SIGILL at the first memory map): run
+it in a normal terminal. A few minutes, most of them POTS's 3 400 blocks of section 8.
 
     python3 tools/emu/test_fxslot.py --cycles model-cycles_OS1.13.syx [--machines refdelay,refreverb] [--blocks 60]
                                      [--pppccc PPPCCC-Model-Cycles-1.13-Mods/patches/06-delay-fx.json]
@@ -88,6 +102,7 @@ sys.path.insert(0, str(HERE.parent))
 import compose                      # noqa: E402
 import gen_sdvintage_7th as g7      # noqa: E402
 import mcengine as E                # noqa: E402
+import pots_host as PH              # noqa: E402
 import test_compose as TC           # noqa: E402
 import test_sdvintage as T          # noqa: E402
 import test_sdvintage_exact as X    # noqa: E402
@@ -95,7 +110,8 @@ import test_sdvintage_7th as t7     # noqa: E402
 from test_sdvintage_7th import check  # noqa: E402
 
 SELECTIONS = [["refdelay"], ["refreverb"], ["refdelay", "refreverb"], ["sampler", "refdelay", "refreverb"],
-              ["digidelay"], ["digidelay", "refreverb"], ["sampler", "digidelay", "refreverb"]]
+              ["digidelay"], ["digidelay", "refreverb"], ["sampler", "digidelay", "refreverb"],
+              ["pots"], ["sampler", "pots", "refreverb"]]
 PART = compose.load_part("fxslot")
 SLOTS = {"delay": dict(site=0x4005699c, stock=0x40057488, entry="fx_delay", out=0x8000ba90, params=428, rec=3,
                        desc=(37, 38)),
@@ -288,7 +304,7 @@ class Digital:
         return out
 
 
-MODELS = {"refdelay": RefDelay, "refreverb": RefReverb, "digidelay": Digital}
+MODELS = {"refdelay": RefDelay, "refreverb": RefReverb, "digidelay": Digital, "pots": PH.Pots}
 
 
 class Effect:
@@ -509,7 +525,8 @@ class Side:
         return done and kept and sp_ok
 
     def effect(self, fn, out, inp, params):
-        self.e.emac.macsr, self.e.emac.acc = 0xa0, [0, 0, 0, 0]     # as the mixer leaves them (0x40056940)
+        self.e.emac.macsr = 0xa0                  # as the mixer leaves them (0x40056940)
+        self.e.emac.acc[:] = [0, 0, 0, 0]         # in place: emac.py's fast mac.l keeps this list (notes/69 §14.6)
         return self.call(fn, out, inp, params)
 
     def read(self, va, n):
@@ -1037,6 +1054,94 @@ def digital_tests(key, stock, img, runtime, tweak, syms, pppccc):
         print(f"  note  {key}: no --pppccc: Digital Delay checked against the model only")
 
 
+# --- 8. POTS ----------------------------------------------------------------------------------------------------------
+def noise(rng, amp, burst=1, every=1):
+    """The bus, block i: noise of +-amp in the first burst blocks of every every, else silence."""
+    return lambda i: ([int(v) for v in rng.integers(-amp, amp, size=64)] if amp and i % every < burst else [0] * 64)
+
+
+def pots_phases(rng):
+    """(name, blocks, the words at P + 428 for block i, the bus for block i)."""
+    med = PH.K_BUS // 2                          # the median machine's peak on the bus (notes/69 §12.5)
+    return [("a burst at the median machine's level, its echoes (Time 0, Fdbk 96)", 150,
+             lambda i: (0, 96 << 8), noise(rng, med, 8, 150)),
+            ("noise at that level, Time 1, Fdbk 64", 80, lambda i: (1 << 8, 64 << 8), noise(rng, med)),
+            ("full-scale noise at Fdbk 127", 60, lambda i: (0, 127 << 8), noise(rng, 1 << 31)),
+            ("Time sliding 0 to 6, Fdbk rising 0 to 127, a burst every 20 blocks", 120,
+             lambda i: (6 * 256 * i // 120, 127 * 256 * i // 120), noise(rng, 2 * med, 4, 20)),
+            ("silence, the tail at Fdbk 110", 80, lambda i: (0, 110 << 8), noise(rng, 0))]
+
+
+POTS_LONG = 2400                                 # blocks after the second round: past the first dropout
+
+
+def pots_tests(key, img, runtime, tweak, syms):
+    b, model = Side(img, runtime, tweak), PH.Pots()
+    rng = np.random.default_rng(69)
+    out = SLOTS["delay"]["out"]
+    bad, n = [], 0
+    rounds = [("from start-up", pots_phases(rng)), ("after a reset", pots_phases(rng)),
+              ("on past the first dropout", [("a burst every 200 blocks, Time 0, Fdbk 90", POTS_LONG,
+                                              lambda i: (0, 90 << 8), noise(rng, PH.K_BUS // 2, 6, 200))])]
+    for rnd, phases in rounds:
+        if rnd == "after a reset":
+            b.call(syms["pots_reset"])
+            model.reset()
+        for name, count, words, bus in phases:
+            for i in range(count):
+                w, x = words(i), bus(i)
+                b.write(P + 428, struct.pack(">2h", *w))
+                b.write(BUS, struct.pack(">64i", *x))
+                b.effect(syms["pots_process"], out, BUS, P + 428)
+                if b.frames(out) != model(x, w):
+                    bad.append(f"{rnd}, {name}, block {i}")
+                n += 1
+    check(not bad and not b.bad, f"{key}: POTS alone, {n} blocks ("
+          + "; ".join(p_[0] for p_ in rounds[0][1]) + "; from start-up, then again after a reset, then on past its "
+          "first dropout): its outputs its host build's, bit for bit" + (f"; {'; '.join(bad[:3])}" if bad else "")
+          + (f"; {'; '.join(b.bad[:3])}" if b.bad else ""))
+
+
+# --- 9. POTS against v6 ------------------------------------------------------------------------------------------------
+def v6_tests():
+    out, m = PH.against_v6()
+    for ok, text in out:
+        check(ok, f"POTS on the host against v6: {text}")
+    print(f"  note  the loudest return, SNARE's level at Fdbk 127: {m['return_peak_dbfs']} dBFS on the bus")
+
+
+# --- 10. Digital Delay and POTS in one slot ---------------------------------------------------------------------------
+def switch_tests(stock):
+    tweak, info, img, runtime = TC.built(stock, ["digidelay", "pots"])
+    syms = {k: int(v, 16) for k, v in tweak["symbols"].items()}
+    b = Side(img, runtime, tweak)
+    fx = Patterns(b.write, FIX)
+    models = {1: Digital(), 2: PH.Pots()}
+    rng = np.random.default_rng(70)
+    out = SLOTS["delay"]["out"]
+    at, size = info["fx_lines"]["fx.delay"]
+    bad, n, filled = [], 0, True
+    for mid in (1, 2, 1, 2):
+        b.write(at, rng.integers(-(1 << 31), 1 << 31, size=size // 4, dtype=np.int64).astype(">i4").tobytes())
+        filled &= sum(1 for v in struct.unpack(f">{size // 4}i", b.read(at, size)) if v) > size // 8
+        fx.set(0, hdr(delay=mid))
+        fx.link()
+        models[mid].reset()                      # fxslot resets the effect that starts (fxslot.c, fx_run)
+        for i in range(80):
+            x = [int(v) for v in rng.integers(-(PH.K_BUS // 2), PH.K_BUS // 2, size=64)] if i < 40 else [0] * 64
+            w = (0, 96 << 8)
+            b.write(P + 428, struct.pack(">2h", *w))
+            b.write(BUS, struct.pack(">64i", *x))
+            b.effect(syms["fx_delay"], out, BUS, P + 428)
+            if b.frames(out) != models[mid](x, w):
+                bad.append(f"{'Digital' if mid == 1 else 'POTS'} ({n // 80 + 1}), block {i}")
+            n += 1
+    check(filled and not bad and not b.bad, f"digidelay+pots: the delay slot's line ({size} bytes at {at:#x}) filled "
+          f"with noise before each switch, the pattern choosing Digital, POTS, Digital, POTS (80 blocks each, Time 0, "
+          "Fdbk 96): each return its model's from its reset, bit for bit: neither reads what was on the line before it"
+          + (f"; {'; '.join(bad[:3])}" if bad else "") + (f"; {'; '.join(b.bad[:3])}" if b.bad else ""))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cycles", required=True, help="official model-cycles_OS1.13.syx")
@@ -1047,8 +1152,8 @@ def main():
     args = ap.parse_args()
     selections = [[i.strip() for i in s.split(",") if i.strip()] for s in args.machines] if args.machines else SELECTIONS
     stock = T.main_os_from_syx(args.cycles)
-    Digital.tempo = struct.unpack_from(">i", stock, TEMPO - compose.BASE)[0]
-    digital_done = False
+    Digital.tempo = PH.Pots.tempo = struct.unpack_from(">i", stock, TEMPO - compose.BASE)[0]
+    digital_done = pots_done = False
     for ids in selections:
         key = "+".join(ids)
         mans = {i: compose.load_manifest(i) for i in ids}
@@ -1060,7 +1165,7 @@ def main():
         if not slots:
             sys.exit(f"!! {key}: the proof needs an effect (refdelay, refreverb)")
         if any(e.id not in MODELS for s in slots.values() for e in s.values()):
-            sys.exit(f"!! {key}: only the reference effects have a model here")
+            sys.exit(f"!! {key}: only {', '.join(MODELS)} have a model here")
         if any(len(s) > 1 for s in slots.values()):
             sys.exit(f"!! {key}: one effect per slot in this proof")
         tweak, info, img, runtime = TC.built(stock, ids)
@@ -1091,11 +1196,20 @@ def main():
             print("Digital Delay")
             digital_tests(key, stock, img, runtime, tweak, syms, args.pppccc)
             digital_done = True
+        if "pots" in ids and not pots_done:
+            print("POTS")
+            pots_tests(key, img, runtime, tweak, syms)
+            pots_done = True
     if COST["effects"]:
         out = HERE.parent.parent / "build" / "fx-cost.json"
         out.parent.mkdir(exist_ok=True)
         out.write_text(json.dumps(COST, indent=1, sort_keys=True) + "\n")
         print(f"\nthe counted costs: {out}")
+    if not args.dry:
+        print("\nPOTS against v6, on the host")
+        v6_tests()
+        print("\nDigital Delay and POTS in one slot")
+        switch_tests(stock)
     print("\nthe composer's refusals, and a line shared")
     refusal_tests("refdelay")
     sharing_tests(stock)
