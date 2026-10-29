@@ -310,9 +310,9 @@ async function main() {
     check(potsAlone === "pots" && potsDd === "digidelay+pots" && potsSmp === "sampler+digidelay+pots"
       && potsAll === "control-all-config,sampler+digidelay+pots" && fourOn && !chosen().length
       && doc.querySelector('#features a[href$="#pots"]') && doc.querySelectorAll('input[name="var-pots"]').length === 0
-      && /Experimental/.test(doc.querySelector("label[for=feat-pots] .tag").textContent),
+      && /Tested/.test(doc.querySelector("label[for=feat-pots] .tag").textContent),
       `POTS alone ${potsAlone}; with Digital ${potsDd}, one composed tweak; with SAMPLE ${potsSmp}; with Control All ` +
-      `Config too ${potsAll}, all ticked, no clash; no sub-choice; its guide link; tagged Experimental`);
+      `Config too ${potsAll}, all ticked, no clash; no sub-choice; its guide link; tagged Tested`);
     box("feat-sampler").click(); await wait(30);
     check(doc.querySelectorAll('input[name="var-sampler"]').length === 0, "SAMPLE: a machine card, no sub-choice");
     check(!!doc.getElementById("tab-samples") && doc.getElementById("panel-samples").hidden && doc.getElementById("drop2-wrap").hidden,
@@ -326,7 +326,6 @@ async function main() {
     check(/Que voulez-vous installer/.test(text(doc, "h1s")) && doc.documentElement.lang === "fr", "FR switch translates the page");
     check(/Control All : choix des pistes/.test(text(doc, "features")) && /SAMPLE machine \(Cycles One-Shot\)/.test(text(doc, "features"))
       && /Digital Delay \(effet\)/.test(text(doc, "features")) && /POTS \(effet\)/.test(text(doc, "features"))
-      && /Expérimental/.test(text(doc, "features"))
       && /par durchgemacht/.test(text(doc, "features")) && /Testé/.test(text(doc, "features"))
       && doc.querySelector('#features a[href$="#control-all"]') && doc.querySelector('#features a[href$="#sampler"]'),
       "FR switch translates the cards (SAMPLE's texts are in English only), their credits and tags, with their guide links");

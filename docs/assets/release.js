@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.13", date: "2026-10-29", changes: [
+    { en: "POTS is tested as this page builds it: flashed from this page and played on a Model:Cycles (2026-10-29), low notes and a kick in the send keeping their tone. Its card now shows Tested",
+      fr: "POTS est testé tel que cette page le construit : flashé depuis cette page et joué sur un Model:Cycles (2026-10-29), les notes graves et une grosse caisse dans le send gardant leur son. Sa carte affiche maintenant Testé" },
+  ] },
   { version: "0.12", date: "2026-10-29", changes: [
     { en: "New card, POTS (under Sounds & machines), the second effect: a delay whose repeats go down an old telephone line, each pass darker and narrower (about 350 Hz to 3 kHz), a little further out of tune, fading and now and then dropping out, with a coarse grain on the tail. Hold TRACK and turn Delay Time to step the pattern from the stock Delay to Digital (when ticked) and on to POTS; the choice is saved with the pattern",
       fr: "Nouvelle carte, POTS (dans Sons et machines), le deuxième effet : un delay dont les répétitions passent par une vieille ligne de téléphone, à chaque passage plus sombres et plus étroites (d'environ 350 Hz à 3 kHz), un peu plus désaccordées, qui vont et viennent et décrochent de temps en temps, avec un grain grossier sur la queue. Tenez TRACK et tournez Delay Time pour passer le pattern du Delay d'origine à Digital (s'il est coché), puis à POTS ; le choix est enregistré avec le pattern" },

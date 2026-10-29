@@ -928,3 +928,10 @@ item 2).
 The maintainer, 2026-10-29, asked how POTS sounds on the device with this build, flashed from the work copy's page
 (stamp `2026-10-29-01`; POTS alone, with Digital and with SAMPLE suggested, the material of §21): « Klingt gut ». Which
 combinations were flashed was not named.
+
+### 22.6 Tested from the page (2026-10-29)
+
+After §22.5, the maintainer, asked whether to commit and set the card to "tested": « Beide Commits ». The card is
+"tested" (`FEATURES`, `tweaks.js`; its note without the "experimental" sentence), the guide's line "Tested", release
+0.13, the stamp `2026-10-29-02`, `README.md` (four cards tested), the manifest's `tests` (status "tested"),
+`webflash_smoke.js` (POTS tagged Tested). AGENTS.md's step 8: a commit of its own after the one of §20 to §22.
