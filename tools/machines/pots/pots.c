@@ -8,11 +8,16 @@
  *     scatter   + a second tap 24..144 frames (at 48 kHz) further back, wandering
  *     shift     a Hilbert pair and a phasor: the repeat moves up 2 Hz a pass, the speed wandering +-40 %
  *     fading    +-6 dB, wandering; now and then a dropout of -18 dB for 8..25 ms
+ *     receiver  its 350 Hz high pass (4 poles) first, so that no bass sets the codec's steps (notes/69 §22)
  *     codec     mu-law, 7 bits, faded out as the tail falls from -40 to -52 dB
- *     receiver  350 Hz high pass and 3 kHz low pass (4 poles each), +6 dB at 1.5 kHz, the loudest frequency at unity
+ *     receiver  then its 3 kHz low pass (4 poles) and +6 dB at 1.5 kHz, the loudest frequency at unity
  *     leveler   3:1 above 0.25 in the loop; on the echo a make-up towards 0.15, 0.6..2.5, x 1.5
  *     feedback  Digital Delay's curve x 1.18
- *     sender    the skewed clip (c(5 s + 0.12) - c(0.12)) / 5, c(x) = x - 4 x^3 / 27; 4 kHz low pass, 200 Hz high pass
+ *     sender    the skewed clip (c(3 s + 0.12) - c(0.12)) / 3, c(x) = x - 4 x^3 / 27; 4 kHz low pass, 200 Hz high pass
+ *
+ * Before the sender, outside the loop, a limiter holds the send at the level v6 was tuned at (0.5, the median machine
+ * at Delay Send 127): the block's peak, a 0.2 s release, the gain ramped over the block; a hotter send no longer drives
+ * the clip harder (notes/69 §21, §22). Under that level the send passes as it is.
  *
  * POTS_RATE 2 (the maintainer's choice, notes/69 §12.6): the loop at 24 kHz between a half-band decimator
  * (-1, 0, 9, 16, 9, 0, -1) / 32 and the four-point interpolator; POTS_RATE 1: at 48 kHz. Samples Q2.29 (1.0 = 2^29,
@@ -45,7 +50,7 @@
 #define SHIFT_SIGN 1                /* the shift goes up (checked in the prototype, notes/69 §12.2) */
 
 #ifdef POTS_HOST
-enum { D_SCAT = 1, D_FADE = 2, D_CODEC = 4, D_LEVEL = 8, D_RX = 16, D_TX = 32, D_SHIFT = 64 };
+enum { D_SCAT = 1, D_FADE = 2, D_CODEC = 4, D_LEVEL = 8, D_RX = 16, D_TX = 32, D_SHIFT = 64, D_CLIP = 128 };
 static int dbg_off;                 /* stages turned off by the checks */
 static int32_t dbg_theta;           /* the shift's step a loop frame, Q31 radians, when not 0 */
 static int32_t tempo = 14400;       /* 120 BPM */
@@ -141,18 +146,17 @@ static int32_t sin_t(uint32_t ph)    /* sin(2 pi ph / 2^32), Q31 */
 	return SIN_T[i] + mul(SIN_T[i + 1] - SIN_T[i], f << 15);
 }
 
-static int32_t mulaw(int32_t x)      /* the codec, encoded and decoded: 63 steps a side, full scale 1.0 */
+static inline int32_t mulaw(int32_t x)   /* the codec, encoded and decoded: 63 steps a side, full scale 1.0 */
 {
-	int32_t a = x < 0 ? -x : x;
-	int lo = 0, hi = CODEC_STEPS;   /* the code: how many thresholds a passes */
-	while (lo < hi) {
-		int mid = (lo + hi) >> 1;
-		if (a >= CODEC_T[mid])
-			lo = mid + 1;
-		else
-			hi = mid;
+	int32_t a = x < 0 ? -x : x;     /* INT32_MIN stays negative: code 0 */
+	int code = 0;                   /* the code: how many thresholds a passes, from its bucket's first (notes/69 §20) */
+	if (a > 0) {
+		int z = clz32((uint32_t)a);
+		code = CODEC_IDX[((31 - z) << 3) + (int)((((uint32_t)a << z) >> 28) & 7)];
+		while (code < CODEC_STEPS && a >= CODEC_T[code])
+			code++;
 	}
-	return x < 0 ? -CODEC_L[lo] : CODEC_L[lo];
+	return x < 0 ? -CODEC_L[code] : CODEC_L[code];
 }
 
 /* --- the state ---------------------------------------------------------------------------------------------- */
@@ -160,8 +164,9 @@ typedef struct { int32_t v, target, coef; int left, min_blocks, max_blocks; } wa
 
 static struct {
 	uint32_t ready, w, d, n;
-	int32_t ha[HIL_N][4], hb[HIL_N][4], a_prev;      /* x1 x2 y1 y2 */
-	int32_t rx[5][4];
+	int32_t ha[HIL_N + 1][2], hb[HIL_N + 1][2], a_prev;  /* x1 x2: the chain's input, then each section's output */
+	int32_t rx[7][2];                               /* the same for the receiver: its input, its high pass's two
+	                                                 * biquads, the codec's output, then the other three biquads */
 	int32_t txlp, txhp;
 	int32_t pc, ps;                                 /* the shift's phasor, Q31 */
 	uint32_t ph1, ph2;                              /* its speed's slow wander */
@@ -169,7 +174,8 @@ static struct {
 	wander fade, sc;
 	int gap_wait, gap_on;
 	uint32_t rng;
-	int32_t dec[7], itp[4];                         /* POTS_RATE 2: the half-band filters' histories */
+	int32_t dec[4], itp[3];                         /* POTS_RATE 2: the half-band filters' histories (the taps read) */
+	int32_t lim, ig;                                /* the limiter: the send's envelope (bus words), the input's gain */
 } st;
 
 static uint32_t rnd(void)
@@ -219,6 +225,7 @@ static void init(uint32_t target)
 	st.pc = PHASOR_M;
 	st.gc = INT32_MAX;
 	st.gw = st.fade_g = 1 << 29;
+	st.ig = IN_GAIN_Q29;
 	st.fade = (wander){0, 0, FADE_COEF, 0, 45, 225};
 	st.sc = (wander){0, 0, SCAT_COEF, 0, 750, 3000};
 	st.scat = SC_MIN_Q16 + (SC_SPAN_Q16 >> 1);
@@ -226,21 +233,43 @@ static void init(uint32_t target)
 }
 
 /* --- one loop frame ----------------------------------------------------------------------------------------- */
-static inline int32_t allpass(int32_t s[4], int32_t x, int32_t c)
+/* A cascade keeps one history per signal: a section's input is the output of the one before, so h[0] holds the
+ * input's last two values and h[k + 1] section k's output's. The same products in the same order as four words a
+ * section, half the moves, unrolled (notes/69 §20). */
+static inline int32_t chain(int32_t (*h)[2], const int32_t *c, int32_t x)   /* allpasses (c - z^-2) / (1 - c z^-2) */
 {
-	int32_t y = mul(x + s[3], c) - s[1];
-	s[1] = s[0]; s[0] = x;
-	s[3] = s[2]; s[2] = y;
-	return y;
+	int32_t x2 = h[0][1];
+	h[0][1] = h[0][0];
+	h[0][0] = x;
+#pragma GCC unroll 4
+	for (int k = 0; k < HIL_N; k++) {
+		int32_t y1 = h[k + 1][0], y2 = h[k + 1][1];
+		int32_t y = mul(x + y2, c[k]) - x2;
+		h[k + 1][1] = y1;
+		h[k + 1][0] = y;
+		x = y;
+		x2 = y2;
+	}
+	return x;
 }
 
-static inline int32_t biquad(int32_t s[4], const int32_t c[5], int32_t x)
+static inline int32_t receiver(int32_t (*h)[2], const int32_t (*c)[5], int n, int32_t x)   /* n of its biquads */
 {
-	mac2(x, c[0]); mac2(s[0], c[1]); mac2(s[1], c[2]); mac2(s[2], c[3]); mac2(s[3], c[4]);
-	int32_t y = movclr();
-	s[1] = s[0]; s[0] = x;
-	s[3] = s[2]; s[2] = y;
-	return y;
+	int32_t x1 = h[0][0], x2 = h[0][1];
+	h[0][1] = x1;
+	h[0][0] = x;
+#pragma GCC unroll 3
+	for (int k = 0; k < n; k++) {
+		int32_t y1 = h[k + 1][0], y2 = h[k + 1][1];
+		mac2(x, c[k][0]); mac2(x1, c[k][1]); mac2(x2, c[k][2]); mac2(y1, c[k][3]); mac2(y2, c[k][4]);
+		int32_t y = movclr();
+		h[k + 1][1] = y1;
+		h[k + 1][0] = y;
+		x = y;
+		x1 = y1;
+		x2 = y2;
+	}
+	return x;
 }
 
 static int32_t line_at(uint32_t back)
@@ -268,11 +297,7 @@ static int32_t frame(int32_t x_in, const blockv *b)
 	}
 
 	/* the shift: the Hilbert pair on x / 2, the phasor turning once a frame */
-	int32_t va = x >> 1, vb = x >> 1;
-	for (int k = 0; k < HIL_N; k++) {
-		va = allpass(st.ha[k], va, HIL_A[k]);
-		vb = allpass(st.hb[k], vb, HIL_B[k]);
-	}
+	int32_t va = chain(st.ha, HIL_A, x >> 1), vb = chain(st.hb, HIL_B, x >> 1);
 	int32_t I = st.a_prev, Q = vb;
 	st.a_prev = va;
 	mac2(I, st.pc);
@@ -290,11 +315,12 @@ static int32_t frame(int32_t x_in, const blockv *b)
 		y = mul29(y, st.fade_g);
 		st.fade_g += b->dfade;
 	}
+	if (!OFF(D_RX))
+		y = receiver(st.rx, RX_C, 2, y);                 /* the high pass: rx[0..2] */
 	if (!OFF(D_CODEC))
 		y += mul(mulaw(y) - y, b->grain_w);
 	if (!OFF(D_RX))
-		for (int k = 0; k < 5; k++)
-			y = biquad(st.rx[k], RX_C[k], y);
+		y = receiver(st.rx + 3, RX_C + 2, 3, y);         /* the low pass and the peak: rx[3..6] */
 
 	int32_t loop = mul(y, st.gc), wet = mul29(y, st.gw);
 	st.gc += b->dgc;
@@ -303,11 +329,13 @@ static int32_t frame(int32_t x_in, const blockv *b)
 	int32_t s = add_sat(x_in, mul30(loop, b->fb));
 	if (!OFF(D_TX)) {
 		/* the skewed clip in Q2.29: u reaches 1.5, u^2 2.25 and u^3 3.375 (Q30 overflowed: the second fault, §12.2) */
-		int32_t u = clamp(s, -CLIP_IN, CLIP_IN);
-		u = clamp(5 * u + GRIT_BIAS, -CLIP_U, CLIP_U);
-		int32_t u2 = mul29(u, u), u3 = mul29(u2, u);
-		int32_t c = u - mul(u3, SAT_K) - SAT_BIAS_OUT;
-		s = mul(c, DRIVE5_Q31);
+		if (!OFF(D_CLIP)) {                             /* the checks of §22 measure without it, the filters kept */
+			int32_t u = clamp(s, -CLIP_IN, CLIP_IN);
+			u = clamp(DRIVE * u + GRIT_BIAS, -CLIP_U, CLIP_U);
+			int32_t u2 = mul29(u, u), u3 = mul29(u2, u);
+			int32_t c = u - mul(u3, SAT_K) - SAT_BIAS_OUT;
+			s = mul(c, DRIVE_INV_Q31);
+		}
 		st.txlp += mul(s - st.txlp, TX_LP_K);
 		st.txhp += mul(st.txlp - st.txhp, TX_HP_K);
 		s = st.txlp - st.txhp;
@@ -385,29 +413,57 @@ void pots_process(int32_t *out, const int32_t *in, const int16_t *params)
 	st.pc += mul(st.pc, e);
 	st.ps += mul(st.ps, e);
 
+	/* the limiter: the block's peak on the send (L / 2 + R / 2, bus words) before playing it, the input's gain ramped
+	 * over the block to hold it at LIM_BUS; IN_GAIN_Q29 itself, and no ramp, while the send stays under */
+	int32_t pk = 0;
+#pragma GCC unroll 4
+	for (int i = 0; i < BLOCK; i++) {
+		int32_t v = (in[2 * i] >> 1) + (in[2 * i + 1] >> 1);
+		v = v < 0 ? -v : v;
+		if (v > pk)
+			pk = v;
+	}
+	st.lim = pk > st.lim ? pk : mul(st.lim, LIM_REL);
+	int32_t ig = st.ig, ig1 = IN_GAIN_Q29;
+	if (st.lim > LIM_BUS) {
+		int32_t g = ex2(LIM_L2 - lg2(st.lim));
+		ig1 = mul(IN_GAIN_Q29, g >= (1 << 29) ? INT32_MAX : g << 2);
+	}
+	int32_t dig = (ig1 - ig) >> LOOP_SHIFT;
+	st.ig = ig1;
+
 #if POTS_RATE == 1
 	for (int i = 0; i < BLOCK; i++) {
-		int32_t x = clamp(mul29((in[2 * i] >> 1) + (in[2 * i + 1] >> 1), IN_GAIN_Q29), -SAFE, SAFE);
+		ig += dig;
+		int32_t x = clamp(mul29((in[2 * i] >> 1) + (in[2 * i + 1] >> 1), ig), -SAFE, SAFE);
 		int32_t y = clamp(mul30(frame(x, &b), OUT_GAIN_Q30), -OUT_MAX, OUT_MAX);
 		out[2 * i] = out[2 * i + 1] = y;
 	}
 #else
+	/* the histories in locals for the block (notes/69 §20): the decimator's inputs 1, 2, 3 and 5 frames before this
+	 * pair (h0, h1, h2, h4, the taps it reads); the interpolator's last three loop frames (p1..p3, the newest last) */
+	int32_t h0 = st.dec[0], h1 = st.dec[1], h2 = st.dec[2], h4 = st.dec[3];
+	int32_t p1 = st.itp[0], p2 = st.itp[1], p3 = st.itp[2];
 	for (int i = 0; i < LOOP_FRAMES; i++) {
-		for (int j = 0; j < 2; j++) {
-			for (int k = 6; k > 0; k--)
-				st.dec[k] = st.dec[k - 1];
-			st.dec[0] = clamp(mul29((in[4 * i + 2 * j] >> 1) + (in[4 * i + 2 * j + 1] >> 1), IN_GAIN_Q29),
-			                  -SAFE, SAFE);                 /* the decimator's sums then stay under 1.2 x 2^30 */
-		}
-		int32_t *h = st.dec;
-		int32_t x = -(h[0] >> 5) + 9 * (h[2] >> 5) + (h[3] >> 1) + 9 * (h[4] >> 5) - (h[6] >> 5);
+		ig += dig;
+		int32_t x0 = clamp(mul29((in[4 * i] >> 1) + (in[4 * i + 1] >> 1), ig), -SAFE, SAFE);
+		int32_t x1 = clamp(mul29((in[4 * i + 2] >> 1) + (in[4 * i + 3] >> 1), ig), -SAFE, SAFE);
+		/* the decimator's sums then stay under 1.2 x 2^30 */
+		int32_t x = -(x1 >> 5) + 9 * (h0 >> 5) + (h1 >> 1) + 9 * (h2 >> 5) - (h4 >> 5);
+		h4 = h2;
+		h2 = h0;
+		h1 = x0;
+		h0 = x1;
 		int32_t y = clamp(mul30(frame(x, &b), OUT_GAIN_Q30), -OUT_MAX, OUT_MAX);   /* its sums under 0.94 */
-		int32_t *p = st.itp;
-		p[0] = p[1]; p[1] = p[2]; p[2] = p[3]; p[3] = y;
-		int32_t odd = -(p[0] >> 4) + 9 * (p[1] >> 4) + 9 * (p[2] >> 4) - (p[3] >> 4);
-		out[4 * i] = out[4 * i + 1] = p[1];
+		int32_t odd = -(p1 >> 4) + 9 * (p2 >> 4) + 9 * (p3 >> 4) - (y >> 4);
+		out[4 * i] = out[4 * i + 1] = p2;
 		out[4 * i + 2] = out[4 * i + 3] = odd;
+		p1 = p2;
+		p2 = p3;
+		p3 = y;
 	}
+	st.dec[0] = h0; st.dec[1] = h1; st.dec[2] = h2; st.dec[3] = h4;
+	st.itp[0] = p1; st.itp[1] = p2; st.itp[2] = p3;
 #endif
 }
 

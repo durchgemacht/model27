@@ -296,10 +296,12 @@ python3 tools/emu/test_fxslot.py --cycles model-cycles_OS1.13.syx --machines pot
 python3 tools/build.py -i model-cycles_OS1.13.syx -t pots
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,digidelay,pots   # avec Digital et SAMPLE
 ```
-MAIN OS patché, `pots` seul : `4a17782e49d8620162022cd26dab6fe96febb8d379d458685a0dc5e9f4fc3955` ; `digidelay` et `pots`
-composés : `c3b508f618eacc9f47fb1e7995d27e0652ae95e54824bda01e35ae58e367c2a9` ; avec SAMPLE (`sampler`, `digidelay`,
-`pots`) : `dc7a34978bd128d37a32534c92e161a74fee32a2624e1e12de270e72835ad6e0`. Ce sont les builds essayés sur un
-Model:Cycles le 28/10/2026 depuis la ligne de commande (note 69 §18), et ceux que la page compose.
+MAIN OS patché, `pots` seul : `ed46726e214a9708d48a1dd85a8c0622d3e4673cb22e66427b89f606c53ee2c9` ; `digidelay` et `pots`
+composés : `0151fe14475d69bc52405351213a9cfe63aa1e78edf3de817d8ca8b200002faf` ; avec SAMPLE (`sampler`, `digidelay`,
+`pots`) : `eea3594aa49adfbdf5487eff78332db6099eefaeef6b49a5f89d81ba0c92ed5e`, ceux que la page compose. Depuis les
+builds essayés sur un Model:Cycles (note 69 §18, §21), un limiteur retient un envoi trop fort au niveau pour lequel le
+son a été réglé, la saturation de l'émetteur est moins poussée (3 au lieu de 5) et le passe-haut du récepteur passe
+avant le codec (§22) ; ce build n'est pas encore passé sur la machine.
 ### OS Cycles pour Model:Samples (et retour par USB)
 
 Pas un tweak : `tools/crossflash.py` met l'OS Cycles officiel dans le conteneur officiel du Model:Samples, en changeant les

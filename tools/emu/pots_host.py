@@ -6,7 +6,10 @@ v6's numbers.
 
 The host build is pots.c's own arithmetic, the EMAC as tools/emu/emac.py executes it: once test_fxslot.py finds the
 device's object giving the same bits as this build, what is measured here holds for the device. The sources are
-synthesized as the prototype's were (a pluck phrase, a minor-seventh stab, one bright note: band-limited saws).
+synthesized as the prototype's were (a pluck phrase, a minor-seventh stab, one bright note: band-limited saws). Since
+notes/69 §22 (a limiter before the sender, the drive 3, the receiver's high pass before the codec) one number is no
+longer v6's, the peak of a loud phrase at Fdbk 127, and one check holds what §22 was for: a low chord and a beat sent
+hot keep their tone.
 
     python3 tools/emu/pots_host.py       # the measurements against v6: numpy and a C compiler, no Unicorn, no firmware
 """
@@ -26,7 +29,7 @@ import numpy as np
 HERE = pathlib.Path(__file__).resolve().parent
 PKG = HERE.parent / "machines" / "pots"
 SR, BLOCK = 48000, 32
-D_SCAT, D_FADE, D_CODEC, D_LEVEL, D_RX, D_TX = 1, 2, 4, 8, 16, 32
+D_SCAT, D_FADE, D_CODEC, D_LEVEL, D_RX, D_TX, D_CLIP = 1, 2, 4, 8, 16, 32, 128
 ALL_OFF = D_SCAT | D_FADE | D_CODEC | D_LEVEL | D_RX | D_TX
 _TMP = []
 
@@ -103,6 +106,11 @@ V6 = {
     "codec_db": {1: (-38.4, -60.6), 3: (-33.2, -62.7), 6: (-26.3, -58.8), 15: (-19.7, -59.0)},
     "peak_127_db": -5.6,
 }
+# notes/69 §22: the sender's drive 3 instead of 5 compresses a loud phrase less, its echo peaks 1.8 dB above v6's
+PEAK_127_DB = -3.8
+# §21, §22: the share of the band that is not the line's linear echo, at v6's send level and 12 dB above (the clip and
+# the codec against the same chain without them, best scaled), at most (POTS 0.1 had -10.8 / +1.5 and -4.1 / +9.0)
+HOT = {"chord": -15.0, "beat": -9.0}
 # The codec's error has the same power at either rate; at 24 kHz it lies in half the band, so up to 3 dB more of it
 # passes the receiver (measured, notes/69 §14.2: +3 dB at 1 to 6 s, nothing at 15 s; the 48 kHz loop within 1 dB of
 # v6). The grain is allowed that much more above v6's in the band.
@@ -160,6 +168,36 @@ def src_note(dur):
     return norm(x, 0.5), 0.6
 
 
+def src_chord_low(dur):
+    """A minor-seventh chord on C3, twice (notes/69 §21)."""
+    x = np.zeros(int(dur * SR))
+    for at in (0.2, 1.2):
+        for m in (48, 51, 55, 58):
+            for det in (-8, 8):
+                place(x, tone(detuned(m, det), 0.7, 0.3, 0.35), at)
+    return x
+
+
+def src_beat(dur):
+    """One bar at 120 BPM, kick, snare and hats, all of it sent (notes/69 §21.3)."""
+    rng = np.random.default_rng(3)
+    x = np.zeros(int(dur * SR))
+    t = np.arange(int(0.4 * SR)) / SR
+    kick = np.sin(2 * math.pi * np.cumsum(45 + 85 * np.exp(-t / 0.035)) / SR) * np.exp(-t / 0.22)
+    sn = (0.35 * np.diff(rng.standard_normal(len(t) + 1)) * np.exp(-t / 0.08)
+          + np.sin(2 * math.pi * 190 * t) * np.exp(-t / 0.05))
+    hat = np.diff(np.diff(rng.standard_normal(len(t) + 2))) * np.exp(-t / 0.022)
+    for step in range(16):
+        at = 0.2 + step * 0.125
+        if step in (0, 6, 8, 11):
+            place(x, 0.9 * kick, at)
+        if step in (4, 12):
+            place(x, 0.8 * sn, at)
+        if step % 2 == 0:
+            place(x, (0.10 if step % 4 else 0.16) * hat, at)
+    return x
+
+
 def render_bus(x, time, fdbk, off=0, theta_hz=0.0, seed=7):
     """The bus words the slot returns (left channel) for a mono send x on the prototype's scale, put on the bus at
     K_BUS, Time and Fdbk held."""
@@ -203,6 +241,18 @@ def spectrum(seg):
     return np.fft.rfftfreq(len(seg), 1 / SR), p
 
 
+def band_share(test, ref, lo=300, hi=3400):
+    """dB of test in lo..hi Hz once the best-scaled ref is taken off, against that ref."""
+    f = np.fft.rfftfreq(len(test), 1 / SR)
+    t, r = np.fft.rfft(test), np.fft.rfft(ref)
+    t[(f < lo) | (f > hi)] = 0
+    r[(f < lo) | (f > hi)] = 0
+    t, r = np.fft.irfft(t, len(test)), np.fft.irfft(r, len(ref))
+    a = float(np.dot(t, r) / max(np.dot(r, r), 1e-30))
+    e = t - a * r
+    return round(10 * math.log10(max(float(np.dot(e, e)), 1e-30) / max(a * a * float(np.dot(r, r)), 1e-30)), 1)
+
+
 def measure():
     m = {}
     t = np.arange(3 * SR) / SR                   # the shift, every other stage off, 10 Hz: up, the other side under
@@ -242,6 +292,11 @@ def measure():
     loud, _end = src_pluck(30, repeats=3)
     m["peak_127_db"] = round(peak_db(render(loud / np.max(np.abs(loud)), 23, 127)), 1)
     m["silence_words"] = int(np.max(np.abs(render_bus(np.zeros(5 * SR), 23, 100))))
+    m["hot"] = {}
+    for name, src in (("chord", src_chord_low), ("beat", src_beat)):
+        x = src(6.5)
+        m["hot"][name] = [band_share(render(norm(x, pk), 23, 64), render(norm(x, pk), 23, 64, off=D_CLIP | D_CODEC))
+                          for pk in (0.5, 2.0)]
     m["return_peak_dbfs"] = round(20 * math.log10(np.max(np.abs(render_bus(loud / np.max(np.abs(loud)) * 0.87, 23,
                                                                            127))) / 2 ** 31), 1)
     return m
@@ -279,8 +334,14 @@ def against_v6():
         f"{v[0]} / {v[1]}" for v in V6["codec_db"].values()) + f"): in the band from {TOL['codec_db']:g} dB under "
         f"to {TOL['codec_db'] + CODEC_RATE_DB:.0f} dB over v6's (the loop at {LOOP_RATE // 1000} kHz), above it no "
         f"more than {TOL['codec_db']:g} dB over"))
-    out.append((abs(m["peak_127_db"] - V6["peak_127_db"]) <= TOL["peak_db"],
-                f"a loud phrase at Fdbk 127: the echo peaks at {m['peak_127_db']} dB (v6 {V6['peak_127_db']})"))
+    out.append((abs(m["peak_127_db"] - PEAK_127_DB) <= TOL["peak_db"],
+                f"a loud phrase at Fdbk 127: the echo peaks at {m['peak_127_db']} dB ({PEAK_127_DB} since the drive 3 "
+                f"of notes/69 §22, v6 {V6['peak_127_db']})"))
+    out.append((all(v <= HOT[k] for k, vs in m["hot"].items() for v in vs),
+                "sent hot, the tone kept (notes/69 §22: the limiter, the drive 3, the high pass before the codec): what "
+                "the clip and the codec add in the band, at v6's send level / 12 dB above, the chord on C3 "
+                + " / ".join(f"{v}" for v in m["hot"]["chord"]) + f" dB (at most {HOT['chord']:g}), a beat all of it "
+                "sent " + " / ".join(f"{v}" for v in m["hot"]["beat"]) + f" dB (at most {HOT['beat']:g})"))
     out.append((m["silence_words"] == 0, f"silence in, 5 s at Fdbk 100: {m['silence_words']} out (exact silence)"))
     return out, m
 

@@ -530,7 +530,7 @@ Code trop gros pour un masque, ajouté à la fin de l'image (`at`) et copié au 
 | acid-tg | 35 | `0x401bf8c0` | 11 792 | `0x401c26d0` | `0x46700000` | 221 928 | model-tg-st |
 | chordtables | 36 | `0x401aa140` | 5 848 | `0x401ab818` | `0x43000000` | 222 292 |  |
 | digidelay | 39 | `0x401aa140` | 3 764 | `0x401aaff4` | `0x43000000` | 1 269 784 |  |
-| pots | 70 | `0x401aa140` | 9 088 | `0x401ac4c0` | `0x43000000` | 745 816 |  |
+| pots | 70 | `0x401aa140` | 11 504 | `0x401ace30` | `0x43000000` | 745 752 |  |
 | syntakt-meter | 90 | `0x401aa140` | 269 056 | `0x401ebc40` | `0x43000000` | 269 056 |  |
 | syntakt-tg-meter | 91 | `0x401bf8c0` | 243 472 | `0x401fafd0` | `0x46700000` | 269 056 | model-tg-st |
 | syntakt-tg-profile | 92 | `0x401bf8c0` | 243 904 | `0x401fb180` | `0x46700000` | 269 056 | model-tg-st |
@@ -847,7 +847,7 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | midi-both | 3 | 3 | 0 | 0 | 0 | 0 | 0 |  | notes/53 |
 | midi-live-both | 6 | 0 | 4 | 0 | 1 | 1 | 0 |  | notes/53 |
 | lfo-plus | 30 | 0 | 12 | 4 | 7 | 7 | 0 |  | notes/56 |
-| pots | 7 | 0 | 5 | 0 | 1 | 1 | 0 | 9 088 o | notes/69 |
+| pots | 7 | 0 | 5 | 0 | 1 | 1 | 0 | 11 504 o | notes/69 |
 
 ## 8. Key combinations (declared claims, notes/65)
 

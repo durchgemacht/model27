@@ -708,3 +708,223 @@ The maintainer, 2026-10-28: « ok, passt. weiter », after the device's third tr
 From the page, served from the work copy (as 68 §19.4): POTS alone (MAIN OS `4a17782e…`), with Digital (`c3b508f6…`)
 and with SAMPLE (`sampler+digidelay+pots`, `dc7a3497…`), the steps of §15.2. If all is as expected, the card becomes
 "tested" in a commit of its own (AGENTS.md step 8).
+
+## 20. The load: a quarter less, the same bits (2026-10-28)
+
+The maintainer, 2026-10-28: « welche optionen gibt es die cpu-last zu reduzieren ohne die sound qualität zu
+beeinflussen? prüfen », then « Yes, build them in ».
+
+### 20.1 Measured outside the proof
+
+Unicorn does not run in this sandbox. A small ColdFire interpreter outside the repository (Python, reading
+`m68k-elf-objdump`'s text, the EMAC as the host model) runs POTS's object alone. It gives the host build's words bit
+for bit over 490 blocks (a burst, noise, full-scale noise at Fdbk 127, Time sliding while Fdbk rises, silence) and
+counts as the proof does: on the cost pattern of 68 §17 it gives first 10 716, mean 10 753, max 10 791, reset 2, the
+manifest's numbers of §16. With the line numbers of a `-g` build of the same code, the block went:
+
+| | Instructions a block |
+|---|---|
+| The receiver, 5 biquads | 2 344 |
+| The decimator | 1 811 (816 of them shifting its history) |
+| The Hilbert pair | 1 424 |
+| The codec | 1 202 (its binary search) |
+| Feedback and transmitter | 1 059 |
+| Read, slew and scatter | 909 |
+| Interpolator and output | 416 |
+| The rest (shift, leveler, fade, gains, the line's write, the loop, per block) | 1 588 |
+
+### 20.2 Four rewrites, the same arithmetic
+
+Each keeps every product, its order and every shift as they were; only where the values wait between frames changes.
+
+| Rewrite | Saved a block |
+|---|---|
+| **Decimator and interpolator**: their histories in locals for the block, the decimator only the four taps it reads (its inputs 1, 2, 3 and 5 frames back), the interpolator its last three frames; no array shifted six places twice a frame | 1 087 |
+| **Receiver**: one history per signal (a biquad's input is the one before's output, so `rx[0]` holds the input's two last values and `rx[k + 1]` biquad k's), unrolled: half the moves | 799 |
+| **Codec**: the code from a bucket instead of a binary search; the level's top bit and the three below it index `CODEC_IDX` (248 bytes, written by `gen_pots.py`), the code at the bucket's smallest level, then the thresholds one by one, two at most | 450 |
+| **Hilbert pair**: as the receiver, one history per signal (`chain()`), unrolled | 417 |
+
+All four: **first 7 666, mean 8 194, max 8 217, reset 2** (−24 %), declared in the manifest. The composer: the delay
+slot's load +5 645 above the stock delay (5.2 % of a block, was 7.6 %), +7 867 in the block of a switch (was
++10 917). Code 8 246 bytes (+2 020, unrolled), variables 264 bytes (−80).
+
+Weighed and left: skipping the codec while its gate is shut (only near silence it saves, a loud block costs 31 more);
+clearing the state a word at a time (no gain: GCC clears it well already). Not tried, each its own step: `mac.l` with
+the EMAC's parallel load in the receiver (the OS uses that form, `emac.py` runs it), about 300 to 500 more, in
+hand-written assembly; changes of a last bit (the input's gain after the decimator, one product with a doubled
+coefficient), inaudible but no longer the same words.
+
+### 20.3 Checked (2026-10-28)
+
+- The interpreter: the new object against the committed one's host build, the 490 blocks of §20.1: none differ, and
+  the device's words are its host build's.
+- Host builds of the committed `pots.c` and the new one, both rates: 216 runs of 3 000 blocks (two levels, three knob
+  paths, every stage switch of the checks, the shift fixed or wandering): none differ.
+- The codec's buckets against the binary search, every one of the 2³² words: the same code.
+- `pots_host.py` ALL OK; `gen_pots.py --check`; the rate-1 build compiles for the device and the host.
+- The builds of §15 again in `build/fx-pots/`: MAIN OS `202d1234…` (pots), `9bf12f78…` (digidelay, pots),
+  `d1c0f97a…` (with SAMPLE), the C tool ok; the page composes the same (`webcompose_check.sh`).
+- The comparison with the prototype of step 2 (§13.2) no longer applies since §16 and §17 (two `mac.l` for the scale
+  factor, the echo 6 dB up): it reports differences for the committed version too, the same counts.
+
+### 20.4 For the maintainer
+
+1. The proof, on this object:
+   ```sh
+   ../.venv-emu/bin/python tools/emu/test_fxslot.py --cycles <model-cycles_OS1.13.syx> --machines pots --machines sampler,pots,refreverb
+   ```
+   Sections 8 and 10 must stay bit for bit, and the declared cost (7 666 / 8 194 / 8 217 / 2) must be the one
+   counted. The interpreter counted it, not Unicorn: if the run counts otherwise, its numbers go into the manifest.
+2. The device: from the page, or `build/fx-pots/`. The sound must be the one of §18, unchanged; the load lighter.
+
+### 20.5 The proof's run (2026-10-28): ALL OK
+
+The maintainer's run of §20.4 on this object: every section ALL OK. POTS alone (3 380 blocks) bit for bit its host
+build; Digital and POTS in one slot, the line filled with noise before each switch, bit for bit; the measurements
+against v6 as before. The cost counted by Unicorn is the declared one, first 7 666, mean 8 194, max 8 217, reset 2,
+as the interpreter counted it; the stock delay 2 659, `fxslot` +87 with the effect, +199 in a switch's block. Next the
+device (§20.4, item 2).
+
+## 21. From the page, and the sound on the device (2026-10-29)
+
+The maintainer, 2026-10-29, with several combinations flashed from the work copy's page (localhost, stamp
+2026-10-28-02, §20's object): « alle haben wie erwartet funktioniert ». On the sound: more of a hiss than they had
+heard in digiemu (tried less there); material with low notes comes back from the delay almost only as noise, too
+broken, too lo-fi.
+
+### 21.1 Measured: the sender's clip, not the codec
+
+Outside the repository (`_scratch/pots-lofi/`: a copy of pots.c whose host build can leave out the clip alone or the
+codec alone, bit for bit pots.c with nothing left out). The first echo (Fdbk 0, Time 23), in 300..3400 Hz: what is not
+the linear echo (the same chain without the clip and the codec, best scaled), in dB against that echo. The sources are
+`pots_host.py`'s (band-limited saws); the peak on the prototype's scale, 0.5 being the median machine at Delay Send 127
+and velocity 100 (§12.5), the level v6 was tuned at:
+
+| Source | Peak | All | The clip alone | The codec alone |
+|---|---|---|---|---|
+| Pluck (middle notes) | 0.5 / 1.0 / 2.0 | −15.2 / −7.2 / −3.6 | −15.3 / −7.2 / −3.6 | −35.9 / −21.5 / −10.6 |
+| Minor-seventh chord on C3 | 0.5 / 1.0 / 2.0 | −10.3 / −4.1 / −0.6 | −10.4 / −4.1 / −0.6 | −33.2 / −23.6 / −10.4 |
+| Bass line on C2 | 0.5 / 1.0 / 2.0 | −12.0 / −6.2 / −4.5 | −12.1 / −6.3 / −4.5 | −31.4 / −31.3 / −12.4 |
+| Bass under a lead | 0.5 / 1.0 / 2.0 | −11.7 / −4.2 / −0.4 | −11.7 / −4.2 / −0.4 | −34.5 / −33.6 / −16.0 |
+
+(The codec alone at 2.0: the level then reaches its full scale, which the clip otherwise keeps it from.)
+
+- The sender's clip (× 5 into `c(x)`, §2) makes nearly all of it; the codec stays 30 dB or more under the echo.
+- The send's level decides. At v6's level the products stand 10 to 15 dB under the echo, 6 dB above it 4 to 7 dB,
+  12 dB above it nearly as loud as the echo (0.5 to 4.5 dB under): then the band holds mostly the clip's products.
+- Dense low material (the chord, the bass under a lead) comes out about 5 dB worse than the pluck at the same level:
+  intermodulation, not harmonics, which the ear takes for noise. Repeat by repeat (Fdbk 64, the leveler on) the share
+  stays at the first echo's.
+- digiemu had the same drive (§16's builds; §17 raised only the echo, §20 changed no bit), so the share was the same
+  there, 6 dB quieter; what differs is the material and its level.
+
+### 21.2 What would help, measured the same way
+
+The share for the chord on C3, repeats 1 to 6 at Fdbk 64 (the leveler on), dB:
+
+| Candidate | Peak 0.5 | 1.0 | 2.0 | Cost |
+|---|---|---|---|---|
+| Today | −9 to −10 | −3.5 to −6.5 | +0.5 to −2 | |
+| A limiter before the sender at v6's level (0.5) | −9 to −10 | −8.5 to −11 | −8.5 to −11.5 | a block's peak and one gain, estimated +200..400 instructions a block |
+| The drive 3 instead of 5 | −16 to −18 | −7.5 to −10.5 | −2 to −6 | none (constants) |
+| Both | −16 to −18 | −16 to −17.5 | −15.5 to −18 | as the limiter |
+
+For the bass under a lead the same picture, up to 2 dB better. The drive 2 (first echo only): −25 / −13.5 / −5.5.
+Dropped: a high pass before the clip (worse: the saw's edges get sharper and clip harder). The band's high pass before
+the codec changes nothing on tonal material, but it does on a beat (§21.3). The limiter keeps v6 bit for bit wherever the send stays under v6's
+level; the drive changes the sound everywhere. The limiter was measured in the scratch copy in floating point (the
+block's peak, 200 ms release, the gain ramped over the block), not yet in fixed point.
+
+Open: the maintainer's choice, by ear.
+
+### 21.3 The listening page (2026-10-29)
+
+A private page for the maintainer (outside the repository, `_scratch/pots-lofi/hoer.py`): five sources at three send
+levels (v6's, +6 dB, +12 dB), five versions, Time 23 and Fdbk 64, the dry as loud at every level and the echo as POTS
+returns it on the bus. **A beat with the kick in the send** showed what the tonal sources had hidden: there the codec
+counts as well (the clip alone −6.1 dB, the codec alone −8.6 dB at v6's level), because the kick's low end sets the
+codec's steps and its error lands in the band, where the beat leaves little. The receiver's 350 Hz high pass (its two
+first sections) before the codec and the rest after it: the beat 10 dB cleaner, tonal material unchanged (within
+0.1 dB); the error above 3 kHz is still taken by the low pass after the codec, as v6 wanted (§2).
+
+The share over the whole clip (the same measure as §21.1), dB at v6's level / +6 / +12:
+
+| Source | Today | Limiter | Limiter, drive 3 | Limiter, drive 3, high pass first | Limiter, drive 2, high pass first |
+|---|---|---|---|---|---|
+| Bass line on C2 | −10.5 / −4.5 / −2.4 | −10.5 / −9.4 / −8.8 | −17.5 / −16.0 / −15.7 | −17.6 / −16.1 / −15.8 | −24.7 / −23.5 / −23.1 |
+| Minor-seventh chord on C3 | −10.8 / −2.7 / +1.5 | −10.8 / −9.2 / −9.8 | −18.0 / −16.4 / −17.1 | −18.1 / −16.4 / −17.1 | −23.7 / −22.5 / −22.9 |
+| Bass under a lead | −10.2 / −2.4 / +1.5 | −10.2 / −5.7 / −5.4 | −18.5 / −13.2 / −12.9 | −18.6 / −13.2 / −12.9 | −24.4 / −20.5 / −20.0 |
+| Beat, all of it sent | −4.1 / +4.0 / +9.0 | −4.1 / −1.6 / −2.9 | −8.0 / −6.9 / −7.5 | −14.4 / −11.0 / −10.9 | −18.4 / −16.7 / −17.1 |
+| Pluck (v6's material) | −12.6 / −5.4 / −1.9 | −12.6 / −10.1 / −9.9 | −19.5 / −17.1 / −17.0 | −19.6 / −17.1 / −17.0 | −25.5 / −22.8 / −22.8 |
+
+The sketch's limiter holds less well on the bass under a lead and on the beat (+6 dB comes out 3 to 4 dB worse than
+v6's level, where it should match): not explained yet, to look at when it is built in fixed point. Costs: the high
+pass first moves two sections, no more work; the drive is constants.
+
+## 22. Built in: the limiter, the drive 3, the high pass before the codec (2026-10-29)
+
+The maintainer, 2026-10-29, after the listening page (§21.3): « ok, baue limiter+d3+hp ein ».
+
+### 22.1 What changed
+
+- **The limiter**, before the sender, outside the loop (the feedback is not limited): each block, the peak of
+  `L / 2 + R / 2` over its 32 frames in bus words, before the block plays; the envelope takes the peak when it is
+  higher, else falls by `1 − 1/300` a block (0.2 s). Above `LIM_BUS` (0.5 × `K_BUS`, v6's level, §12.5) the input's
+  gain becomes `IN_GAIN_Q29 × 2^(LIM_L2 − lg2(env))`, ramped over the block's loop frames; under it the gain is
+  `IN_GAIN_Q29` itself, with no ramp, and the send passes as before.
+- **The sender's drive 3**: `(c(3 s + 0.12) − c(0.12)) / 3`, `CLIP_IN` 1.75 / 3 (`DRIVE` in `gen_pots.py`).
+- **The receiver's high pass before the codec**: its two high-pass biquads, then the codec, then its low pass and the
+  peak; `receiver()` runs the biquads it is given, `rx` holds seven histories (the codec's output its own). The codec's
+  error above 3 kHz still meets the low pass, as v6 wanted (§2).
+- Host only: `D_CLIP` leaves the clip out and keeps the sender's filters, for the check of §22.2.
+- **The cost**: first 8 236, mean 8 812, max 8 845, reset 2 (+628 on §20, most of it the block's peak); the delay
+  slot +6 273 above the stock delay (5.8 % of a block), +8 437 in a switch's block. Code 8 644 bytes, variables 280.
+  Still 1 946 under the build played in §18.
+
+### 22.2 Checked (2026-10-29)
+
+- **Against the listening page's version** (the scratch copy, `Limiter · Drive 3 · Hochpass`): the shares of §21.3 the
+  same within 0.1 dB at all three levels; the echoes differ by 35 to 126 dB under the page's (the limiter in fixed
+  point, the drive's 1/3 a product instead of a division).
+- **The interpreter** (§20.1): the device's object gives its host build's words over the 490 blocks; the cost above.
+- **`pots_host.py` ALL OK.** v6's measurements hold (the decays, the tail, the colour, the octaves, the level, the
+  codec's grain, silence) but one: a loud phrase at Fdbk 127 now peaks at −3.8 dB (v6 −5.6), the drive 3 compressing
+  less; that is its expectation now. A new check holds what §22 is for: what the clip and the codec add in the band,
+  at v6's send level and 12 dB above, the chord on C3 −18.1 / −17.1 dB (at most −15) and a beat all of it sent −14.4 /
+  −10.9 dB (at most −9); POTS 0.1 had −10.8 / +1.5 and −4.1 / +9.0. The loudest return is −10.4 dBFS (was −12.3),
+  8 dB under the echo's limit (§14.1).
+- **Why the limiter holds 1 to 5 dB worse at +6 or +12 dB than at v6's level** (§21.3): it compresses. Between peaks the
+  gain comes back up, and the feedback adds to the send before the clip. Attacking at once (the block's peak is known
+  first) or a release of 0.5 or 1 s changes it by 2 dB at most; left as heard.
+- **The builds** in `build/fx-pots/`: MAIN OS `ed46726e…` (pots), `0151fe14…` (digidelay, pots), `eea3594a…` (with
+  SAMPLE), the C tool ok. `webcompose_check.sh` identical (the four POTS selections too), `webflash_smoke.sh` ALL OK,
+  `ref_mainos.py`, `gen_flasher_tweaks.py`, `gen_pots.py --check`, `registry.py` (regenerated), `claims.py --check`,
+  `check_overlaps.py`, `webbuild_check.sh`, `webflash_check.sh`, `gen_hilbert.py --check`, the rate-1 builds for the
+  device and the host: green.
+- **Texts**: the card (its description and note, en and fr), the guide's Sound and Experimental, release 0.12 (dated
+  2026-10-29, its third line rewritten), `BUILD.md`, the stamp `2026-10-29-01`. The version stays 0.1: the card has
+  not been published.
+
+### 22.3 For the maintainer
+
+1. The proof, on this object:
+   ```sh
+   ../.venv-emu/bin/python tools/emu/test_fxslot.py --cycles <model-cycles_OS1.13.syx> --machines pots --machines sampler,pots,refreverb
+   ```
+   Sections 8 and 10 bit for bit, section 9 the host measurements of §22.2, and the declared cost (8 236 / 8 812 /
+   8 845 / 2) the one counted.
+2. The device, from the work copy's page: POTS alone, with Digital, with SAMPLE. The material of §21 (low notes, a
+   kick in the send, a loud sample or several tracks on the delay): the repeats keep their tone; then §15.2.
+
+### 22.4 The proof's run (2026-10-29): ALL OK
+
+The maintainer's run of §22.3, item 1, on this object: « Beweis ALL OK ». POTS alone and with SAMPLE and the reference
+reverb bit for bit its host build on the OS's own code, Digital and POTS in one slot bit for bit, the host
+measurements of §22.2, and the declared cost (8 236 / 8 812 / 8 845 / 2) the one counted. Next the device (§22.3,
+item 2).
+
+### 22.5 The device (2026-10-29): « Klingt gut »
+
+The maintainer, 2026-10-29, asked how POTS sounds on the device with this build, flashed from the work copy's page
+(stamp `2026-10-29-01`; POTS alone, with Digital and with SAMPLE suggested, the material of §21): « Klingt gut ». Which
+combinations were flashed was not named.
