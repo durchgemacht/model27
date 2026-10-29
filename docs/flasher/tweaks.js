@@ -175,7 +175,7 @@ window.MC_TWEAKS = {
    "id": "pots",
    "label": "POTS (effect)",
    "desc": "A delay whose repeats go down an old telephone line: each pass darker and narrower, a little out of tune, fading and now and then dropping out, with a coarse grain on the tail. Hold TRACK and turn Delay Time to switch the pattern's delay between the stock Delay, Digital and POTS; Time and Fdbk keep their knobs.",
-   "status": "experimental",
+   "status": "tested",
    "credit": null,
    "cat": "sound",
    "package": "pots"

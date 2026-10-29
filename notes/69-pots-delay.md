@@ -1029,3 +1029,11 @@ item 2).
 
 The maintainer, 2026-10-29, asked whether the project that lagged still lags with this build, flashed from the work
 copy's page (stamp `2026-10-29-03`): « Kein Lag mehr ». The sound against the 24 kHz build was not named.
+
+### 23.7 Tested from the page (2026-10-29)
+
+After §23.6, the maintainer, asked whether to commit and set the card to "tested" again: « Beide Commits ». The card
+is "tested" (`FEATURES`, `tweaks.js`; its note without the "experimental" sentence), the guide's line "Tested",
+release 0.15, the stamp `2026-10-29-04`, `README.md` (four cards tested), the manifest's `tests` (status "tested"),
+`webflash_smoke.js` (POTS tagged Tested). What was tested on the device is what §23.6 says: the 12 kHz build flashed
+from the page, the project that lagged without lag.
