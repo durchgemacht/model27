@@ -6,9 +6,9 @@ Adresses : VA de l'OS 1.13 (la section 3 commence en `0x40000400`). Un mod qui v
 
 ## En bref
 
-- 290 tweaks, 32 178 écritures.
+- 290 tweaks, 32 182 écritures.
 - Masques de sprites libérables : 164 (35 960 o), dont 51 pris (17 808 o) et **113 libres (18 152 o)**.
-- Crochets sur l'OS : 114 adresses détournées, dont 68 à l'identique par des mods de familles différentes.
+- Crochets sur l'OS : 115 adresses détournées, dont 70 à l'identique par des mods de familles différentes.
 - Pointeurs réécrits : 65 adresses. Écritures dans des octets 0xFF hors masques : 14 zones.
 - Charges utiles ajoutées après l'OS : 269 tweaks ; place restante au §3.
 - Declared claims (notes/65): 16 holders; the saved data in §6, the key combinations in §8, the descriptors, formatters, p-lock rows and MIDI in §9, the views in §10.
@@ -529,8 +529,8 @@ Code trop gros pour un masque, ajouté à la fin de l'image (`at`) et copié au 
 | refchord | 34 | `0x401aa140` | 984 | `0x401aa518` | `0x43000000` | 221 192 |  |
 | acid-tg | 35 | `0x401bf8c0` | 11 792 | `0x401c26d0` | `0x46700000` | 221 928 | model-tg-st |
 | chordtables | 36 | `0x401aa140` | 5 848 | `0x401ab818` | `0x43000000` | 222 292 |  |
-| digidelay | 39 | `0x401aa140` | 3 764 | `0x401aaff4` | `0x43000000` | 1 269 784 |  |
-| pots | 70 | `0x401aa140` | 11 804 | `0x401acf5c` | `0x43000000` | 483 676 |  |
+| digidelay | 39 | `0x401aa140` | 3 792 | `0x401ab010` | `0x43000000` | 1 269 784 |  |
+| pots | 70 | `0x401aa140` | 11 832 | `0x401acf78` | `0x43000000` | 483 676 |  |
 | syntakt-meter | 90 | `0x401aa140` | 269 056 | `0x401ebc40` | `0x43000000` | 269 056 |  |
 | syntakt-tg-meter | 91 | `0x401bf8c0` | 243 472 | `0x401fafd0` | `0x46700000` | 269 056 | model-tg-st |
 | syntakt-tg-profile | 92 | `0x401bf8c0` | 243 904 | `0x401fb180` | `0x46700000` | 269 056 | model-tg-st |
@@ -599,6 +599,7 @@ Instructions de l'OS remplacées par un détour (`jsr`, `jmp`, `bsr.l`, `bra.l`)
 | `0x4004dfa2` | `704c222f0004` | jmp | charge utile (mémoire), 3 cibles selon la combinaison | acid, acid-tg, macro, macro-acid, macro-acid-tg, macro-tg, refmachine, refmachine2, sampler, sdvintage-7th, syntakt-* (32/32), syntakt-*-acid (31/31), syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31), syntakt-tg-* (33/33), syntakt-tg-*-acid (31/31), syntakt-tg-*-macro (31/31), syntakt-tg-*-macro-acid (31/31), syntakt-vintage | notes/18, notes/31, notes/36, notes/43, notes/54, notes/60, notes/63, notes/65 |
 | `0x40053a6c` | `4fefff8048d77cfc42af…` | jsr | OS `0x4008e6ba` | boot-anim | notes/39 |
 | `0x40056610` | `4fefffd848d73cfc` | jmp | charge utile (image) +0xdbf6 | model-tg, model-tg-st | notes/31, notes/36 |
+| `0x400567d8` | `4eb94005802e` | jsr | charge utile (mémoire), 2 cibles selon la combinaison | digidelay, pots | notes/68, notes/69 |
 | `0x4005699c` | `4eb940057488` | jsr | charge utile (mémoire), 2 cibles selon la combinaison | digidelay, pots | notes/68, notes/69 |
 | `0x40056b38` | `4878000448798000b990` | jsr | charge utile (image) +0xab08 | model-tg, model-tg-st | notes/31, notes/36 |
 | `0x400587f6` | `4eb940091f20` | jsr | masque `0x4018a788` +0x1b2 | arp | notes/32 |
@@ -609,6 +610,7 @@ Instructions de l'OS remplacées par un détour (`jsr`, `jmp`, `bsr.l`, `bra.l`)
 | `0x40059392` | `4eb940002912` | jsr | masque `0x4015c044` +0x292 | 6ch-usbup, acid, macro, macro-acid, model-tg, model-tg-st, syntakt-* (32/32), syntakt-*-acid (31/31), syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31) | notes/31, notes/36 |
 | `0x400593ce` | `4eb940002912` | jsr | masque `0x4015c044` +0x292 | 6ch-usbup, acid, macro, macro-acid, model-tg, model-tg-st, syntakt-* (32/32), syntakt-*-acid (31/31), syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31) | notes/31, notes/36 |
 | `0x400597c6` | `4eb940091ab2` | jsr | masque `0x401835b8` +0x8e `lfo_audio` | lfo-plus | notes/56 |
+| `0x4005981e` | `4eb9400a7d4a` | jsr | charge utile (mémoire), 2 cibles selon la combinaison | digidelay, pots | notes/68, notes/69 |
 | `0x4005981e` | `4eb9401b715c` | jsr | charge utile (mémoire) +0x3350e | syntakt-tg-* (1/33) | notes/31 |
 | `0x40059852` | `4eb940056f58` | jsr | masque `0x4014ab5c` +0x0 `tf_post` | track-filter | notes/47 |
 | `0x40059872` | `4eb9401b7b54` | jsr | charge utile (mémoire) +0x3353e | syntakt-tg-* (1/33) | notes/31 |
@@ -833,7 +835,7 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | refchord | 9 | 0 | 6 | 1 | 1 | 1 | 0 | 984 o | notes/66 |
 | acid-tg | 114 | 50 | 15 | 47 | 1 | 1 | 0 | 11 792 o | notes/54 |
 | chordtables | 9 | 0 | 6 | 1 | 1 | 1 | 0 | 5 848 o | notes/66 |
-| digidelay | 7 | 0 | 5 | 0 | 1 | 1 | 0 | 3 764 o | notes/68 |
+| digidelay | 9 | 0 | 7 | 0 | 1 | 1 | 0 | 3 792 o | notes/68 |
 | arp | 14 | 0 | 6 | 0 | 4 | 4 | 0 |  | notes/32 |
 | trig-hold | 5 | 0 | 3 | 0 | 1 | 1 | 0 |  | notes/33 |
 | tempo-max | 12 | 12 | 0 | 0 | 0 | 0 | 0 |  | notes/38 |
@@ -847,7 +849,7 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | midi-both | 3 | 3 | 0 | 0 | 0 | 0 | 0 |  | notes/53 |
 | midi-live-both | 6 | 0 | 4 | 0 | 1 | 1 | 0 |  | notes/53 |
 | lfo-plus | 30 | 0 | 12 | 4 | 7 | 7 | 0 |  | notes/56 |
-| pots | 7 | 0 | 5 | 0 | 1 | 1 | 0 | 11 804 o | notes/69 |
+| pots | 9 | 0 | 7 | 0 | 1 | 1 | 0 | 11 832 o | notes/69 |
 
 ## 8. Key combinations (declared claims, notes/65)
 

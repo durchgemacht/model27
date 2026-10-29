@@ -553,7 +553,7 @@ function fxLayer(mainOs, part, effects, symsOf, at, codeEnd, descStock, descUsed
   const { code, symbols } = placePart(part, at, codeEnd, { fx_data: dataAt });
   const writes = [], skip = new Set();
   const sites = Object.entries(slots).filter(([n]) => bySlot[n].length).map(([, s]) => s)
-    .concat(effects.length ? [part.track, part.load, part.init] : []);
+    .concat(effects.length ? [part.track, part.load, part.init, part.early, part.late] : []);
   for (const s of sites) {
     const va = parseInt(s.hook, 16), here = hex(mainOs.subarray(va - BASE, va - BASE + s.stock.length / 2));
     if (here !== s.stock) throw new Error(`${hx(va)}: ${s.stock} expected, ${here} found`);

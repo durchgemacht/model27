@@ -23,7 +23,7 @@ Model:Cycles over USB. Modded-Cycles has since moved to a single OS with 2.0; mo
 together, so that a new machine fits next to the others. The rules a mod follows for that are the
 **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.5), written alongside.
 
-**Status: beta, release 0.15.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers four
+**Status: beta, release 0.16.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers four
 cards, all tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
 [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples on the +Drive,
 [Control All Config](https://github.com/durchgemacht/cycles-control-all-config), **Digital Delay**, the first

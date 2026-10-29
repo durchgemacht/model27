@@ -1229,3 +1229,92 @@ explicit order the rule "the standard is not changed" asks for. Written in `cycl
 Its links to model27's `notes/68-fx-slots.md` and `tools/machines/digidelay/manifest.json` hold once this work is in
 model27's repository. The status line says "draft 0.6, 2026-10-27", without "public": it becomes public with its
 push.
+
+## 21. The stock effects' setup before the voices (2026-10-29)
+
+The maintainer, 2026-10-29, after POTS had made a busy project lag (notes/69 §23) and asked how Model-TG does its
+effects: « Ja, nachbauen ».
+
+### 21.1 What Model-TG found
+
+Model-TG (TinyGregAudio, MIT, v1.1.0, `src/model_tg.s`, its `fx_early`) has no delay or reverb of its own; its master
+effects are simple stages on the bus that cost nothing when off. But it moves the stock effects' per-block setup. The
+output stage (`0x400567ba`) calls `0x4005802e(P)` at `0x400567d8`: the reverb's taps and **the delay line's read,
+started on the eDMA** (channel 30, §16.1), which the output stage then **waits for** at `0x4005697e` before calling the
+delay. Model-TG measured that wait at about 4.5 % of every block (its comment; the emulator has no DMA timing, so not
+measured here). Its `fx_early` takes the block's call of the voice loop (`jsr 0x400a7d4a` at `0x4005981e`), runs the
+setup there first, and replaces the call at `0x400567d8` by what the setup leaves. The transfer then runs while the
+voices render. It also skips both effects after 10.9 s of silence; not taken here.
+
+In model27 the read and the wait happen every block whatever the delay slot plays (§16.1): with POTS or Digital the
+mixer waits for a read only the stock delay uses.
+
+### 21.2 Built: `fxslot` 0.4
+
+- **`fx_early`**, `jsr` from `0x4005981e` instead of `jsr 0x400a7d4a`: pushes `a2`, the block's state (the voice
+  loop's argument; the output stage's `a3`, the same object: `0x40059862` pushes `a2` for it), calls `0x4005802e`, and
+  jumps to the voice loop with the stack as the caller built it.
+- **`fx_late`**, `jsr` from `0x400567d8` instead of `jsr 0x4005802e`: `move.l #0x20,%macsr`, `movclr` of acc0 into d0
+  and of acc1 into d1, `rts`: what the setup leaves (it ends with `movclr` of both after its products and that MACSR,
+  `0x400582b4`), d0 and d1 free after a call; acc2 and acc3 it never touches.
+- What the setup reads (read from its code, and Model-TG's analysis): the effects' state left by the last block, the
+  delay time at `P + 428` (set before `0x4005981e`), its own SRAM. The voice loop sets MACSR itself (`0x400a7d5a`).
+- Composed with any effect card, as the slots' other hooks (`part.json`'s `early` and `late`, `compose.py` and
+  `composer.js`); 9 writes for an effect alone instead of 7. No offered card writes at either site. The credit:
+  `entries.S`, `tools/machines/fxslot/LICENSE` (Model-TG's notice), `PROVENANCE.md`, release 0.16.
+
+### 21.3 The proof: section 11 of `test_fxslot.py`
+
+The OS's own audio interrupt (`seqrig.py`, with the mixer, the effects and the output stage left running), six tracks
+of the six stock machines with Delay Send 127 and Reverb Send 100, trigs every 12 blocks, the stock effects chosen;
+the stock OS and the build side by side for 96 blocks. Checked: the setup once a block, before the voice loop in the
+build and after it in the stock OS; after every block the SRAM, the voices, the mixer's gains, the effects' lines, the
+eDMA's registers and the EMAC the stock OS's, bit for bit; and in the build, from the voice loop to the wait at
+`0x4005697e`, no access to the eDMA's registers, the effects' lines or the SRAM buffers their reads fill (so the
+transfer may run during the voices). The DMA itself does not run in the emulator (the wait's bit is cleared there, as
+the finished transfer would): what the transfer would copy is the same in both orders when nothing touches it in
+between, which the last check shows.
+
+### 21.4 Built and checked here (2026-10-29)
+
+- `gen_parts.py` (fxslot 1 672 bytes of code), `gen_digidelay.py`, `gen_pots.py` (9 writes each), `registry.py`,
+  `check_overlaps.py`, `claims.py --check`: green. `test_fxslot.py --dry` ALL OK (the sites, 9 writes).
+- The builds in `build/fx-early/`: MAIN OS `4a1521cb…` (pots), `7e867f70…` (digidelay, pots), `1f35d6cf…` (with
+  SAMPLE), `0ce37cf6…` (digidelay), `5582b3dd…` (digidelay with SAMPLE); the C tool ok. `webcompose_check.sh`
+  identical; `REF_MAINOS`, `tweaks.js` regenerated; release 0.16, the stamp `2026-10-29-05`, `BUILD.md` (also its POTS
+  lines left from §23: the line 256 KiB, tested).
+
+### 21.5 For the maintainer
+
+1. The proof, now with section 11:
+   ```sh
+   ../.venv-emu/bin/python tools/emu/test_fxslot.py --cycles <model-cycles_OS1.13.syx> --machines pots --machines sampler,pots,refreverb --machines digidelay
+   ```
+2. The device, from the work copy's page: the busy project with POTS, then with Digital and the stock delay: does the
+   interface feel lighter, is the sound the same. The cards stay "tested" in the work copy until then; nothing is
+   committed before.
+
+### 21.6 The first run (2026-10-29): bit for bit, but a check that could not pass
+
+The maintainer's run of §21.5, item 1, its output pasted whole: everything ALL OK but section 11's third check, in all
+three selections, failing on its last condition only: "the delay's return loud in 0 of 96 blocks". No block differed
+(the check appends the first differing address and the EMAC's state, and appended none), the setup ran once a block
+in the right place, and nothing touched the DMA's ranges in between. The condition was wrong: the stock delay plays
+what the DMA reads from its line, and the DMA does not run in the emulator, so its return is silence in both engines
+(and so is the reverb's). The check now counts the blocks in which the delay's send (`0x8000b990`, the mixer's sum
+of the tracks' sends) is loud, which the six voices make it; the returns' silence is said in its text.
+
+### 21.7 The second run (2026-10-29): ALL OK
+
+The maintainer's run of §21.5, item 1, with the check of §21.6: « Beweis ALL OK ». In `pots`, `sampler,pots,refreverb`
+and `digidelay`: the whole audio interrupt 96 blocks on the stock OS and on the build, the setup before the voice loop
+in the build, every block bit for bit with the stock OS, nothing touching the DMA's ranges between the voice loop and
+the wait; the rest of the proof as before. Next the device (§21.5, item 2).
+
+### 21.8 On the device (2026-10-29)
+
+The maintainer flashed from the work copy's page (stamp 2026-10-29-05, `fxslot` 0.4) and played the busy project; asked
+how it runs with the new build: « Läuft, klingt gleich » (it runs, it sounds the same). Which of the page's selections
+was flashed was not said, nor whether the interface feels lighter: the saving itself (about 4.5 % of a block by
+Model-TG's measure) is not measured here, only that nothing broke and nothing changed in the sound. Digital Delay and
+POTS keep their Tested tag; release 0.16 says so, stamp 2026-10-29-06.

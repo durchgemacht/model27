@@ -370,7 +370,8 @@ def web_part(pid):
     lay = relocate.layout(path.read_bytes(), roots[0], roots[1], roots[2:], pid)
     out = {"id": pid, "version": p["version"], "roots": roots, "patch_points": b["patch_points"],
            "data": p["data"], "bundle": relocate.bundle(lay, roots)}
-    for key in ("sites", "shortcut", "slots", "track", "load", "init", "formatter_sites", "int_format", "cost"):
+    for key in ("sites", "shortcut", "slots", "track", "load", "init", "early", "late", "formatter_sites", "int_format",
+                "cost"):
         if key in p:                         # the effect slots' (notes/68) besides the shortcut layer's and dispatchers'
             out[key] = p[key]
     if "claims" in p:                        # notes/65: what the part claims, in tools/claims.py's to_json form
@@ -1047,7 +1048,7 @@ def fx_layer(img, part, effects, syms_of, at, code_end, desc_used):
     blob = code + bytes(data_at - at - len(code)) + blob_data
     writes, taken = [], set()
     sites = [s for name, s in slots.items() if by_slot[name]]
-    sites += [part["track"], part["load"], part["init"]] if effects else []
+    sites += [part["track"], part["load"], part["init"], part["early"], part["late"]] if effects else []
     for s in sites:
         va, old = int(s["hook"], 16), bytes.fromhex(s["stock"])
         if img[va - BASE:va - BASE + len(old)] != old:

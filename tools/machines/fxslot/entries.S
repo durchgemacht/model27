@@ -24,6 +24,16 @@
  *   fx_init    jsr from 0x4006155e in place of clr.b d0; move.b d0,38(a0), in a new pattern header's initializer
  *              (0x40061526): a0 the header. Does the same, then fx_hdr_init(a0); the initializer goes on at 0x40061564
  *              with d0 = 0 and a0, as it uses them.
+ *   fx_early   jsr from 0x4005981e in place of jsr 0x400a7d4a, the block's call of the voice loop (notes/68 §21): runs
+ *              the effects' per-block setup 0x4005802e first, with a2 the block's state as the output stage would
+ *              (its a3, the same object), then jumps to the voice loop with the stack as the caller built it. The
+ *              setup starts the delay line's read on the eDMA, which the output stage then waits for (0x4005697e):
+ *              started here, the transfer runs while the voices render. Model-TG's idea and analysis (TinyGregAudio,
+ *              MIT; its fx_early in src/model_tg.s): the setup reads only what the effects left last block and the
+ *              delay time at P + 428, set before this call, and nothing until the output stage touches what it does.
+ *   fx_late    jsr from 0x400567d8 in place of jsr 0x4005802e, where the output stage ran the setup: leaves what the
+ *              setup leaves, MACSR 0x20 and acc0, acc1 clear (it ends with movclr of both and that MACSR), d0 and d1
+ *              free after a call.
  *
  * License: MIT (LICENSE next to this file). */
 
@@ -86,4 +96,19 @@ fx_init:
 	addq.l	#4, %sp
 	movem.l	(%sp), %d0-%d1/%a0-%a1
 	lea	16(%sp), %sp
+	rts
+
+	.section .text.fx_early, "ax"
+	.p2align 2
+	.globl	fx_early
+	.globl	fx_late
+fx_early:
+	move.l	%a2, -(%sp)			/* the block's state */
+	jsr	0x4005802e			/* the effects' setup: the reverb's taps, the delay's read on the eDMA */
+	addq.l	#4, %sp
+	jmp	0x400a7d4a			/* the voice loop, its arguments as the caller pushed them */
+fx_late:
+	move.l	#0x20, %macsr			/* what the setup leaves */
+	movclr.l	%acc0, %d0
+	movclr.l	%acc1, %d1
 	rts

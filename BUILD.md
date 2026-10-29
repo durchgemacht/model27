@@ -276,8 +276,10 @@ python3 tools/emu/test_fxslot.py --cycles model-cycles_OS1.13.syx \
     [--pppccc PPPCCC-Model-Cycles-1.13-Mods/patches/06-delay-fx.json]
 python3 tools/build.py -i model-cycles_OS1.13.syx -t digidelay
 ```
-MAIN OS patché, `digidelay` seul : `4fb4eac751faa4e6ec02a2bfefd24ccb264bdd566ede2244a1ceb258542894b9` (celui joué sur un
-Model:Cycles le 27/10/2026, et celui que la page compose).
+MAIN OS patché, `digidelay` seul : `0ce37cf6882b11ac19d3782843d3588b73d9907eaaf8c5cc500cec051742e4ae`, celui que la page
+compose, avec la partie `fxslot` 0.4, qui lance la préparation des effets d'origine avant la boucle des voix (note 68
+§21, l'idée de Model-TG), jouée sur un Model:Cycles depuis la page le 29/10/2026 (§21.8) ; le build joué le 27/10/2026
+était `4fb4eac7…`.
 
 ### POTS (effet)
 
@@ -285,7 +287,7 @@ Model:Cycles le 27/10/2026, et celui que la page compose).
 `tools/machines/pots/pots_tables.h` (la paire de Hilbert vient de `tools/machines/pots/hilbert.json`, calculée par
 `tools/gen_hilbert.py`, qui demande numpy), compile `tools/machines/pots/pots.c` (le code propre à model27, en virgule
 fixe sur l'EMAC) et le compose seul avec `tools/compose.py` : le deuxième effet de l'emplacement du delay (id 2), avec la
-partie `fxslot` ([note 69](notes/69-pots-delay.md)). Sa ligne de 512 Kio est celle de l'emplacement, partagée avec
+partie `fxslot` ([note 69](notes/69-pots-delay.md)). Sa ligne de 256 Kio est celle de l'emplacement, partagée avec
 Digital Delay. `tools/emu/pots_host.py` compile le même code pour l'hôte et vérifie le son contre ses mesures ; la preuve
 de `test_fxslot.py` fait tourner le code de l'appareil dans l'OS contre ce build hôte, au bit près, et compte la charge :
 ```sh
@@ -296,11 +298,12 @@ python3 tools/emu/test_fxslot.py --cycles model-cycles_OS1.13.syx --machines pot
 python3 tools/build.py -i model-cycles_OS1.13.syx -t pots
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,digidelay,pots   # avec Digital et SAMPLE
 ```
-MAIN OS patché, `pots` seul : `28cf64c08163fa2b4c4d7fee5fa35f158189b9b02a8909b2affa7e946dad4ced` ; `digidelay` et `pots`
-composés : `caab268e313bedf9d1a209108e3c26d5c4a027228616cb741d0a37815d42ee15` ; avec SAMPLE (`sampler`, `digidelay`,
-`pots`) : `cbd50fa8c4fa74c8a1f27512b5abf847868b79ffec7b5973847f5c842fbbfcc1`, ceux que la page compose. La ligne tourne
-à 12 kHz avec un codec 8 bits (note 69 §23), environ un cinquième plus légère que le build à 24 kHz testé sur un
-Model:Cycles (§22.5) ; ce build n'est pas encore passé sur la machine.
+MAIN OS patché, `pots` seul : `4a1521cb90c1206e90fc243846081695008620fc0c657c2940dd19d55937f4dd` ; `digidelay` et `pots`
+composés : `7e867f703d0146b6f1ea70cb049b473585a14b9fce7b9994c3135ffb9e6ff45c` ; avec SAMPLE (`sampler`, `digidelay`,
+`pots`) : `1f35d6cf744df86f361322aae3222810b80738a6d10e3c1b7b01b1084dd5f4e5`, ceux que la page compose. La ligne tourne
+à 12 kHz avec un codec 8 bits (note 69 §23), testée sur un Model:Cycles (§23.6, `28cf64c0…`) ; depuis, la partie
+`fxslot` 0.4 lance la préparation des effets d'origine avant la boucle des voix (note 68 §21, l'idée de Model-TG),
+jouée sur un Model:Cycles depuis la page le 29/10/2026 : un projet chargé tourne et sonne pareil (§21.8).
 ### OS Cycles pour Model:Samples (et retour par USB)
 
 Pas un tweak : `tools/crossflash.py` met l'OS Cycles officiel dans le conteneur officiel du Model:Samples, en changeant les

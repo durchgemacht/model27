@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.16", date: "2026-10-29", changes: [
+    { en: "Digital Delay and POTS leave the machines more time: the stock delay and reverb now start reading their lines before the voices play, instead of the mixer waiting for that read afterwards, which Model-TG measured at about 4.5 % of every block. Model-TG's idea (TinyGregAudio, MIT). The same sound, checked block for block in an emulator, and played on a Model:Cycles from this page (2026-10-29): a busy project runs and sounds the same",
+      fr: "Digital Delay et POTS laissent plus de temps aux machines : le delay et la reverb d'origine lancent maintenant la lecture de leurs lignes avant que les voix jouent, au lieu que le mixeur attende cette lecture après, ce que Model-TG a mesuré à environ 4,5 % de chaque bloc. Une idée de Model-TG (TinyGregAudio, MIT). Le même son, vérifié bloc par bloc en émulation, et joué sur un Model:Cycles depuis cette page (2026-10-29) : un projet chargé tourne et sonne pareil" },
+  ] },
   { version: "0.15", date: "2026-10-29", changes: [
     { en: "POTS is tested again as this page builds it: its 12 kHz build flashed from this page and played on a Model:Cycles (2026-10-29), where a busy project that lagged with the 24 kHz build plays without lag. Its card shows Tested again",
       fr: "POTS est de nouveau testé tel que cette page le construit : son build à 12 kHz flashé depuis cette page et joué sur un Model:Cycles (2026-10-29), où un projet chargé qui ralentissait avec le build à 24 kHz joue sans ralentir. Sa carte affiche de nouveau Testé" },

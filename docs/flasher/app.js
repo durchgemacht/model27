@@ -32,27 +32,27 @@ const REF_MAINOS = {
   // each card alone: each variant, each combination of real Syntakt engines
   "control-all-config": "eb70de0a330dc9c033db5c5fc5d8589c3356c94ad346a8d30840e03ecb90299d",
   "sampler": "72b596dc5ce258dd1e5419c961310dd80a7e286b3ee86ec2ebf1bf4af8413f61",
-  "digidelay": "4fb4eac751faa4e6ec02a2bfefd24ccb264bdd566ede2244a1ceb258542894b9",
-  "pots": "28cf64c08163fa2b4c4d7fee5fa35f158189b9b02a8909b2affa7e946dad4ced",
+  "digidelay": "0ce37cf6882b11ac19d3782843d3588b73d9907eaaf8c5cc500cec051742e4ae",
+  "pots": "4a1521cb90c1206e90fc243846081695008620fc0c657c2940dd19d55937f4dd",
   // every pair of cards the page lets you tick together
   "control-all-config+sampler": "327cbd37f5b30d03b82b61ab3f20d28f688f47173f7251c1ee7a18782d3d9618",
-  "control-all-config+digidelay": "bf33c83201f17a11bbd43deb8f3bb5c029c2dee07ab937f5cd1a9dc5cf74ff45",
-  "control-all-config+pots": "6c726110e04577ad3248b014b207b10138d61d8eee544fb16ddfa118c31a6ae2",
-  "sampler+digidelay": "7fd42d2a749ea7d2ffe21f47d7473c2971e9228219271779079dd54f46caa26f",
-  "sampler+pots": "c180fabbe4dea218d6dd0a8727dd5e2502736c2e9ef16ef73eb4ff2cab2383f3",
-  "digidelay+pots": "caab268e313bedf9d1a209108e3c26d5c4a027228616cb741d0a37815d42ee15",
+  "control-all-config+digidelay": "1571ba93fd41437c08a43c4ed5b1406c5ca76c89e5340ffd2073dbc6a67545d6",
+  "control-all-config+pots": "fb3b998c09987463203a4f8366ceef51dd3a14e30e02f38be2b4b1cf7b85e758",
+  "sampler+digidelay": "5582b3dd81a490f9bb5f4cbc8c88815c63dacd62d0dff6054e342d797cea761e",
+  "sampler+pots": "8a68df7b3cbee13c13c1c65c8f39f3da61b4272318b188208d961631aaff9659",
+  "digidelay+pots": "7e867f703d0146b6f1ea70cb049b473585a14b9fce7b9994c3135ffb9e6ff45c",
   // the largest combinations: every compatible card ticked, from each card, both ways, with and without the Syntakt engines, with and without each of the machines that join them
-  "control-all-config+sampler+digidelay+pots": "6c010e6a83dd8db04b381007f187e071ebc91bb65335403db53348c02aee00cd",
+  "control-all-config+sampler+digidelay+pots": "97242c243d98792dad4428d25ddc2b9a44de40cf8163bc798b3cccf73c557e09",
 };
 const REF_MODS = {
   "control-all-config": {"w": "b47aa26f4f855c750735a03eae7453847356c376f47a4010cf4f1a5bf316be5e"},
   "sampler": {"w": "28853ad2da8ee02d992848e217296dd8c8083a2fd7b7cf1887069dd27b4f2a5c", "p": "bc301051b49d96187027131eed93aaa8d26255a96364697e1f0a5a7a31daa34b"},
-  "digidelay": {"w": "a4076b491ede8a722d6b28382b1c5aea2970146739294892bda3ca1b5ad85588", "p": "3be011501c7656f91b572b60e475aea5aa44d455d8d6a3ae1a427b49891f402e"},
-  "pots": {"w": "bbab35d3a9b0056fb2ed13ab14dd668a59f0031bd67840d4379b490b9aec3c70", "p": "f8e5f172294a71505b020487c8d2609fac84c14fb0036d3bd40ceec509afbf62"},
-  "sampler+digidelay": {"w": "adb181070995d2d1ed276e0be66a6c461e48f698a890d124b7caefbb59a74cb0", "p": "b6664d555c6d3637633e0916948b903397fed4b782842cb4db69b87e301139f2"},
-  "sampler+pots": {"w": "8f94bf71a12aaf30d86421e3d2508be1b4ecd1184adff0bb1cb83f9925059132", "p": "fd5bfaaf77e39d19f7c2ecbdb5e5a1358a87e2f867fd3d92e1cea1e59e2700d1"},
-  "digidelay+pots": {"w": "7902e569d93a8694086257f77544110edeff19eb85e0e89ce0856fcd8b2c16df", "p": "84af8ea235d88b0a4583f79c40e9375c1363a7d17fd4ca7782289935a33e9b1c"},
-  "sampler+digidelay+pots": {"w": "bc7d7129c81200835934025544cda0952c32904485609642bfcaed629af738ca", "p": "757472448d3ee42b524b551aa0512f34226670ecd3d04544b7666337032d961d"},
+  "digidelay": {"w": "3bf52cde4e512f188b62076d4afd59ff888e59c6544635510ab95316e91bdf96", "p": "b6ddafd224b5431469aeff3c942fe07b21ff6584aa3146313763677dc51c3261"},
+  "pots": {"w": "7945ae8c8ec46561dce23026459b42f3ac8f04e9dfcdccc5787de1a573df1a2b", "p": "c7dfdf0bb79aa92c6fa421ed282267bcad02e68f6cbbf5e54d38b3d9558b9c60"},
+  "sampler+digidelay": {"w": "d7f3a2d8b9f8d65fe3624160bf761a794bde651a576d8cbf275786dcae7eea27", "p": "97268f2785ec89e6e472f6ccfd2f348953ffa6f3551fe26a0747c274ccaeb039"},
+  "sampler+pots": {"w": "32fa270241c56f701565ec4ec16b55eeb353805240e6be85373f5549315ed3af", "p": "a8eec4f3577330c4ed3105545b768bf6cd22551a4c113ea327dca203e2e6d87d"},
+  "digidelay+pots": {"w": "467a1e5a69afab6d9026c105870beab9b0c34f3c078860ada1d9a20d01942fe1", "p": "deb2571e85cb53022bc70199ffbb4e1f97af4de34008b56f06a228ebf49864e3"},
+  "sampler+digidelay+pots": {"w": "9b92ac9c54fe9068b37787b6bd274812d8d5e06f071065643473ad745389acce", "p": "d3cfadc3dfeaeb126d208ebd73d021b282dfffb47f294dbb7fe918e8cc21e17f"},
 };
 
 // "Samples OS" tab: official Model:Samples OS 1.13 inside the official Model:Cycles container

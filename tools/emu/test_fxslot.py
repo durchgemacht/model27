@@ -69,6 +69,15 @@ And once a run (notes/69 §8.2, §8.3):
  10. Digital Delay and POTS in the delay slot of one build: the pattern switching Digital -> POTS -> Digital -> POTS
      through fx_delay, the slot's line filled with noise before each switch: each effect's return its model's from
      its reset, bit for bit (neither reads what was on the line before it).
+And for every selection, unless --dry:
+ 11. the effects' setup before the voices (notes/68 §21, Model-TG's idea): the OS's own audio interrupt
+     (tools/emu/seqrig.py, the mixer, the effects and the output stage left running), six tracks of the six stock
+     machines with Delay Send and Reverb Send, trigs every few blocks, the stock effects chosen; the stock OS and the
+     build side by side, block for block: the setup 0x4005802e runs once a block, before the voice loop in the build
+     and in the output stage in the stock OS; the SRAM, the voices, the mixer's gains, the effects' lines, the eDMA's
+     registers and the EMAC after each block the stock OS's, bit for bit; and in the build, from the voice loop to the
+     output stage's wait for the delay's read (0x4005697e), no access to what that read and the reverb's touch (the
+     eDMA's registers, the effects' lines, their buffers in SRAM): the transfer may run while the voices render.
 
 The SDRAM the stock effects use (the delay line 0x42400000-0x42800000, the reverb's lines 0x42340000-0x423d8000, both
 through their uncached aliases 0x4a...) is mapped, and the eDMA's registers (0xfc040000-0xfc050000) read as zeros:
@@ -139,6 +148,14 @@ TEMPO = 0x40149310                                          # the OS's tempo, wh
 PPPCCC_DD = 0x40160e6c                                      # PPPCCC 2.0.0's Digital delay entry (patch 06's symbol DD)
 COST = {"effects": {}, "slots": {}}                         # what the cost section counts, for build/fx-cost.json
 TIMER = 0xfc07000c                                          # the DMA timer 0, 135.168 MHz
+EARLY_SITE, LATE_SITE, VOICES = 0x4005981e, 0x400567d8, 0x400a7d4a   # fx_early, fx_late, the voice loop (§21)
+DMA_WAIT, DMA_STATUS = 0x4005697e, 0xfc0453de               # the output stage's wait for the delay's read
+DMA_TOUCHED = ((0xfc044000, 0xfc046000), (0x42400000, 0x42800000), (0x4a400000, 0x4a800000),   # its registers, the
+               (0x423d0000, 0x423d8000), (0x4a3d0000, 0x4a3d8000),                              # lines, the buffers
+               (0x8000afe0, 0x8000b4e0), (0x8000b590, 0x8000b7b0))                            # the reads fill
+EARLY_SAME = ((0x80000000, 0x20000), (0x42300000, 0x20000), (0x40a78000, 0x8000), (0x42340000, 0x000a0000),
+              (0x42400000, 0x00400000), (0xfc044000, 0x2000))
+EARLY_BLOCKS = 96
 PAUSE = 54067200                                            # 0.4 s of it
 BOOT_SITES = {0x400004b2, 0x400b1106, 0x4016cae8}           # the payload's boot: the hook, the stub's mask and its sprite
 SRAM = (0x80000000, 0x20000)
@@ -346,14 +363,16 @@ def site_tests(key, stock, tweak, img, runtime, slots, only_effects, desc_used):
             check(got == jsr(syms[s["entry"]]), f"{key}: {s['site']:#x} -> jsr {s['entry']} ({syms[s['entry']]:#x})")
         else:
             check(got == jsr(s["stock"]), f"{key}: {s['site']:#x} keeps jsr {s['stock']:#x}: no effect in the {name} slot")
-    for site, entry in ((TRACK_SITE, "fx_track"), (LOAD_SITE, "fx_load"), (INIT_SITE, "fx_init")):
+    for site, entry in ((TRACK_SITE, "fx_track"), (LOAD_SITE, "fx_load"), (INIT_SITE, "fx_init"),
+                        (EARLY_SITE, "fx_early"), (LATE_SITE, "fx_late")):
         got = img[site - compose.BASE:site - compose.BASE + 6]
         check(got == jsr(syms[entry]), f"{key}: {site:#x} -> jsr {entry} ({syms[entry]:#x})")
     sites = {compose.BASE + w["off"] for w in tweak["writes"]}
     if only_effects:
-        want = BOOT_SITES | {SLOTS[n]["site"] for n in slots} | {TRACK_SITE, LOAD_SITE, INIT_SITE}
-        check(sites == want, f"{key}: {len(sites)} writes, the slots', the gesture's, the header's and the payload's "
-              "boot only "
+        want = BOOT_SITES | {SLOTS[n]["site"] for n in slots} | {TRACK_SITE, LOAD_SITE, INIT_SITE, EARLY_SITE,
+                                                                  LATE_SITE}
+        check(sites == want, f"{key}: {len(sites)} writes, the slots', the gesture's, the header's, the setup's and "
+              "the payload's boot only "
               f"({', '.join(hex(a) for a in sorted(sites ^ want)) or 'nothing of the registrar'})")
     blk = Block(runtime, syms["fx_data"])
 
@@ -1110,6 +1129,117 @@ def v6_tests():
     print(f"  note  the loudest return, SNARE's level at Fdbk 127: {m['return_peak_dbfs']} dBFS on the bus")
 
 
+# --- 11. the effects' setup before the voices (notes/68 §21) ---------------------------------------------------------
+def early_tests(key, stock, img, runtime, tweak):
+    """The whole audio interrupt on the stock OS and on the build, block for block (see the module's docstring)."""
+    import seqrig as S
+    from unicorn import UC_HOOK_MEM_READ
+
+    class Rig(S.Rig):
+        def _ret0(self, uc, addr, size, ud):     # seqrig skips the mixer, the effects and the output: run them
+            if addr not in (0x40056f58, 0x40056ea8, 0x400567ba):
+                super()._ret0(uc, addr, size, ud)
+
+    descs = {}
+    for i in range(76):
+        o = g7.DESC + 0x38 * i - compose.BASE
+        at = struct.unpack_from(">I", stock, o + 0x2c)[0] - compose.BASE
+        name = stock[at:stock.index(b"\0", at)].decode("latin1")
+        descs[name] = dict(k=struct.unpack_from(">i", stock, o + 4)[0], default=struct.unpack_from(">h", stock, o + 18)[0])
+    sides = []
+    for im, rt, tw in ((stock, None, None), (img, runtime, tweak)):
+        if rt is None:
+            e = E.Engine(im)
+        else:
+            e = E.Engine(im, payload=(E.PAYLOAD_DST, rt), payload_code=TC.code_ranges(tw))
+            e.uc.mem_map(TC.POOL[0], TC.POOL[1] - TC.POOL[0])
+        uc = e.uc
+        rig = Rig(e, bpm=120)
+        S.ensure_map(uc, 0x4a000000, 0x00800000)
+
+        def dma_done(u, _a, _s, _d):              # the read the hardware finishes and the emulator never does
+            w = struct.unpack(">H", bytes(u.mem_read(DMA_STATUS, 2)))[0]
+            u.mem_write(DMA_STATUS, struct.pack(">H", w & ~0x10))
+        uc.hook_add(UC_HOOK_CODE, dma_done, begin=DMA_WAIT, end=DMA_WAIT)
+        side = dict(e=e, uc=uc, rig=rig, order=[], window=False, touched=[])
+
+        def at_code(u, addr, _s, _d, side=side):
+            side["order"].append(addr)
+            if addr == VOICES:
+                side["window"] = True
+            elif addr == DMA_WAIT:
+                side["window"] = False
+        for a in (TAPS, VOICES, DMA_WAIT):
+            uc.hook_add(UC_HOOK_CODE, at_code, begin=a, end=a)
+
+        def touch(u, _access, addr, _size, _v, _d, side=side):
+            if side["window"] and any(lo <= addr < hi for lo, hi in DMA_TOUCHED) and len(side["touched"]) < 8:
+                side["touched"].append((u.reg_read(mk.UC_M68K_REG_PC), addr))
+        for lo, hi in DMA_TOUCHED:
+            uc.hook_add(UC_HOOK_MEM_READ | UC_HOOK_MEM_WRITE, touch, begin=lo, end=hi - 1)
+        for t in range(6):                        # the six stock machines at their defaults, both sends up
+            m = E.MACH[("KICK", "SNARE", "METAL", "PERC", "TONE", "CHORD")[t]]
+            c, sh, sw, ct, d = E.DEFAULTS[m]
+            for name, v in (("machine", m), ("color", c), ("shape", sh), ("sweep", sw), ("contour", ct),
+                            ("decay", d), ("pitch", 64), ("finetune", 64)):
+                rig.param(t, E.SLOT[name], int(round(v * 256)))
+            for name, v in (("Volume +Dist", descs["Volume +Dist"]["default"]), ("Pan", descs["Pan"]["default"]),
+                            ("Delay Send", 127 << 8), ("Reverb Send", 100 << 8)):
+                rig.param(t, descs[name]["k"], v)
+            lev = descs["Track Level"]["default"]  # word t of P, not a sound word (notes/69 §12.4)
+            uc.mem_write(S.TARGETS + 2 * t, struct.pack(">h", lev))
+            uc.mem_write(S.SMOOTH + 4 * t, struct.pack(">i", lev << 16))
+            uc.mem_write(S.PARAMS + 2 * t, struct.pack(">h", lev))
+        for j, v in ((214, 23 << 8), (215, 96 << 8), (216, 64 << 8), (217, 96 << 8)):   # Time, Fdbk, Size, Tone
+            uc.mem_write(S.TARGETS + 2 * j, struct.pack(">h", v))
+            uc.mem_write(S.SMOOTH + 4 * j, struct.pack(">i", v << 16))
+            uc.mem_write(S.PARAMS + 2 * j, struct.pack(">h", v))
+        for t in range(6):
+            rig.set_step(t, 0, vel=100)
+            for k in range(EARLY_BLOCKS // 12):
+                rig.schedule_step(t, 0, rig.now + (2 + 12 * k + 2 * t) * rig.blk)
+        sides.append(side)
+    a, b = sides
+    diff, order_bad, emac_bad, stopped, loud = [], [], [], [], 0
+    for i in range(EARLY_BLOCKS):
+        for side in sides:
+            side["order"].clear()
+            side["rig"].block()
+            pc = side["uc"].reg_read(mk.UC_M68K_REG_PC)
+            if pc != E.STOP and len(stopped) < 3:
+                stopped.append(f"block {i}: stopped at {pc:#x}")
+        oa = [x for x in a["order"] if x in (TAPS, VOICES)]
+        ob = [x for x in b["order"] if x in (TAPS, VOICES)]
+        if (oa, ob) != ([VOICES, TAPS], [TAPS, VOICES]) and len(order_bad) < 3:
+            order_bad.append(f"block {i}: stock {[hex(x) for x in oa]}, build {[hex(x) for x in ob]}")
+        for lo, n in EARLY_SAME:
+            x, y = bytes(a["uc"].mem_read(lo, n)), bytes(b["uc"].mem_read(lo, n))
+            if x != y and len(diff) < 4:
+                k = next(j for j in range(n) if x[j] != y[j])
+                diff.append(f"block {i}: {lo + k:#x}")
+        ea, eb = a["e"].emac, b["e"].emac
+        if (ea.macsr, list(ea.acc)) != (eb.macsr, list(eb.acc)) and len(emac_bad) < 3:
+            emac_bad.append(f"block {i}: MACSR {ea.macsr:#x} / {eb.macsr:#x}, acc {list(ea.acc)} / {list(eb.acc)}")
+        send = np.frombuffer(bytes(a["uc"].mem_read(BUS, 256)), ">i4")   # the delay's send, as the mixer left it
+        loud += int(np.max(np.abs(send.astype(np.int64))) > 1 << 20)
+    check(not stopped and not a["e"].unmapped and not b["e"].unmapped,
+          f"{key}: the whole audio interrupt, {EARLY_BLOCKS} blocks on both, back each time, nothing unmapped"
+          + (f"; {'; '.join(stopped)}" if stopped else "")
+          + (f"; unmapped {[hex(x) for _p, x in (a['e'].unmapped + b['e'].unmapped)[:4]]}"
+             if a["e"].unmapped or b["e"].unmapped else ""))
+    check(not order_bad, f"{key}: the setup 0x4005802e once a block, before the voice loop in the build, after it in "
+          "the stock OS" + (f"; {'; '.join(order_bad)}" if order_bad else ""))
+    check(not diff and not emac_bad and loud > EARLY_BLOCKS // 4,
+          f"{key}: six tracks with both sends, the stock effects: after every block the SRAM, the voices, the mixer's "
+          f"gains, the effects' lines, the eDMA's registers and the EMAC the stock OS's, bit for bit (the delay's "
+          f"send loud in {loud} of {EARLY_BLOCKS} blocks; the effects' returns stay silent here, their lines being read "
+          f"and written by the DMA, which does not run in the emulator)"
+          + (f"; {'; '.join(diff + emac_bad)}" if diff or emac_bad else ""))
+    check(not b["touched"], f"{key}: from the voice loop to the output stage's wait, no access to the eDMA's registers, "
+          "the effects' lines or the buffers their reads fill"
+          + (f"; {', '.join(f'{pc:#x} at {ad:#x}' for pc, ad in b['touched'])}" if b["touched"] else ""))
+
+
 # --- 10. Digital Delay and POTS in one slot ---------------------------------------------------------------------------
 def switch_tests(stock):
     tweak, info, img, runtime = TC.built(stock, ["digidelay", "pots"])
@@ -1200,6 +1330,8 @@ def main():
             print("POTS")
             pots_tests(key, img, runtime, tweak, syms)
             pots_done = True
+        print("the effects' setup before the voices")
+        early_tests(key, stock, img, runtime, tweak)
     if COST["effects"]:
         out = HERE.parent.parent / "build" / "fx-cost.json"
         out.parent.mkdir(exist_ok=True)
