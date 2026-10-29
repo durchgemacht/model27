@@ -9,7 +9,7 @@
  *     shift     a Hilbert pair and a phasor: the repeat moves up 2 Hz a pass, the speed wandering +-40 %
  *     fading    +-6 dB, wandering; now and then a dropout of -18 dB for 8..25 ms
  *     receiver  its 350 Hz high pass (4 poles) first, so that no bass sets the codec's steps (notes/69 §22)
- *     codec     mu-law, 7 bits, faded out as the tail falls from -40 to -52 dB
+ *     codec     mu-law, 8 bits (7 before notes/69 §23), faded out as the tail falls from -40 to -52 dB
  *     receiver  then its 3 kHz low pass (4 poles) and +6 dB at 1.5 kHz, the loudest frequency at unity
  *     leveler   3:1 above 0.25 in the loop; on the echo a make-up towards 0.15, 0.6..2.5, x 1.5
  *     feedback  Digital Delay's curve x 1.18
@@ -19,8 +19,10 @@
  * at Delay Send 127): the block's peak, a 0.2 s release, the gain ramped over the block; a hotter send no longer drives
  * the clip harder (notes/69 §21, §22). Under that level the send passes as it is.
  *
- * POTS_RATE 2 (the maintainer's choice, notes/69 §12.6): the loop at 24 kHz between a half-band decimator
- * (-1, 0, 9, 16, 9, 0, -1) / 32 and the four-point interpolator; POTS_RATE 1: at 48 kHz. Samples Q2.29 (1.0 = 2^29,
+ * POTS_RATE 4 (the maintainer's choice, notes/69 §23, for the device's load): the loop at 12 kHz, down by a half-band
+ * decimator (-1, 0, 9, 16, 9, 0, -1) / 32 to 24 kHz and a 15-tap half-band to 12 kHz, up by the same 15-tap
+ * half-band and a four-point interpolator; POTS_RATE 2 (§12.6, until §23): at 24 kHz, the first and the last of
+ * these; POTS_RATE 1: at 48 kHz. Samples Q2.29 (1.0 = 2^29,
  * the codec's full scale); the send bus carries 1.0 as K_BUS (measured, §12.4), IN_GAIN_Q29 and OUT_GAIN_Q30 take it
  * in and the echo out, 12 dB above the prototype's (§12.5, §17). Every product goes through the EMAC in signed fractional
  * mode, never with a scale factor: on the device mac.l / msac.l / movclr.l, on the host (POTS_HOST) the same
@@ -41,7 +43,7 @@
 #include <stdint.h>
 
 #ifndef POTS_RATE
-#define POTS_RATE 2
+#define POTS_RATE 4
 #endif
 #include "pots_tables.h"
 
@@ -146,7 +148,7 @@ static int32_t sin_t(uint32_t ph)    /* sin(2 pi ph / 2^32), Q31 */
 	return SIN_T[i] + mul(SIN_T[i + 1] - SIN_T[i], f << 15);
 }
 
-static inline int32_t mulaw(int32_t x)   /* the codec, encoded and decoded: 63 steps a side, full scale 1.0 */
+static inline int32_t mulaw(int32_t x)   /* the codec, encoded and decoded: CODEC_STEPS a side, full scale 1.0 */
 {
 	int32_t a = x < 0 ? -x : x;     /* INT32_MIN stays negative: code 0 */
 	int code = 0;                   /* the code: how many thresholds a passes, from its bucket's first (notes/69 §20) */
@@ -175,6 +177,7 @@ static struct {
 	int gap_wait, gap_on;
 	uint32_t rng;
 	int32_t dec[4], itp[3];                         /* POTS_RATE 2: the half-band filters' histories (the taps read) */
+	int32_t hbo[7], hbe[3], hby[7];                 /* POTS_RATE 4: the 15-tap half-band's, down and up */
 	int32_t lim, ig;                                /* the limiter: the send's envelope (bus words), the input's gain */
 } st;
 
@@ -211,7 +214,7 @@ static uint32_t knob_delay(int16_t time)   /* the stock delay's formula (notes/6
 {
 	uint32_t d = (uint32_t)((((int32_t)time + 256) * 48000 >> 10) * 900 / TEMPO);
 	d = d > 261120u ? 261120u : d < 32u ? 32u : d;
-	return POTS_RATE == 2 ? (d + 1) >> 1 : d;
+	return POTS_RATE == 1 ? d : (d + POTS_RATE / 2) / POTS_RATE;
 }
 
 static void init(uint32_t target)
@@ -235,13 +238,13 @@ static void init(uint32_t target)
 /* --- one loop frame ----------------------------------------------------------------------------------------- */
 /* A cascade keeps one history per signal: a section's input is the output of the one before, so h[0] holds the
  * input's last two values and h[k + 1] section k's output's. The same products in the same order as four words a
- * section, half the moves, unrolled (notes/69 §20). */
+ * section, half the moves (notes/69 §20); not unrolled since §23, where the smaller code beat the fewer instructions
+ * (the 8 KB instruction cache). */
 static inline int32_t chain(int32_t (*h)[2], const int32_t *c, int32_t x)   /* allpasses (c - z^-2) / (1 - c z^-2) */
 {
 	int32_t x2 = h[0][1];
 	h[0][1] = h[0][0];
 	h[0][0] = x;
-#pragma GCC unroll 4
 	for (int k = 0; k < HIL_N; k++) {
 		int32_t y1 = h[k + 1][0], y2 = h[k + 1][1];
 		int32_t y = mul(x + y2, c[k]) - x2;
@@ -258,7 +261,6 @@ static inline int32_t receiver(int32_t (*h)[2], const int32_t (*c)[5], int n, in
 	int32_t x1 = h[0][0], x2 = h[0][1];
 	h[0][1] = x1;
 	h[0][0] = x;
-#pragma GCC unroll 3
 	for (int k = 0; k < n; k++) {
 		int32_t y1 = h[k + 1][0], y2 = h[k + 1][1];
 		mac2(x, c[k][0]); mac2(x1, c[k][1]); mac2(x2, c[k][2]); mac2(y1, c[k][3]); mac2(y2, c[k][4]);
@@ -281,8 +283,8 @@ typedef struct { int32_t target, fb, dgc, dgw, dfade, dscat, grain_w, cs, sn; } 
 
 static int32_t frame(int32_t x_in, const blockv *b)
 {
-	int32_t diff = (int32_t)(b->target - st.d), step = diff >> (POTS_RATE == 2 ? 12 : 13);
-	if (step == 0 && diff != 0 && !(st.w & (POTS_RATE == 2 ? 1 : 3)))
+	int32_t diff = (int32_t)(b->target - st.d), step = diff >> (POTS_RATE == 4 ? 11 : POTS_RATE == 2 ? 12 : 13);
+	if (step == 0 && diff != 0 && !(st.w & (POTS_RATE == 1 ? 3 : 1)))
 		step = diff > 0 ? 1 : -1;
 	st.d += (uint32_t)step;
 
@@ -416,7 +418,6 @@ void pots_process(int32_t *out, const int32_t *in, const int16_t *params)
 	/* the limiter: the block's peak on the send (L / 2 + R / 2, bus words) before playing it, the input's gain ramped
 	 * over the block to hold it at LIM_BUS; IN_GAIN_Q29 itself, and no ramp, while the send stays under */
 	int32_t pk = 0;
-#pragma GCC unroll 4
 	for (int i = 0; i < BLOCK; i++) {
 		int32_t v = (in[2 * i] >> 1) + (in[2 * i + 1] >> 1);
 		v = v < 0 ? -v : v;
@@ -439,6 +440,46 @@ void pots_process(int32_t *out, const int32_t *in, const int16_t *params)
 		int32_t y = clamp(mul30(frame(x, &b), OUT_GAIN_Q30), -OUT_MAX, OUT_MAX);
 		out[2 * i] = out[2 * i + 1] = y;
 	}
+#elif POTS_RATE == 4
+	/* 48 -> 24 kHz by the 7-tap half-band of rate 2 (twice a loop frame), 24 -> 12 kHz by a 15-tap half-band (its odd
+	 * taps HB_C1..C7, the centre 1/2); back up the same 15-tap half-band (even samples the echo, odd ones
+	 * interpolated) and the four-point interpolator of rate 2 */
+	int32_t h0 = st.dec[0], h1 = st.dec[1], h2 = st.dec[2], h4 = st.dec[3];
+	int32_t p1 = st.itp[0], p2 = st.itp[1], p3 = st.itp[2];
+	for (int i = 0; i < LOOP_FRAMES; i++) {
+		ig += dig;
+		int32_t x0 = clamp(mul29((in[8 * i] >> 1) + (in[8 * i + 1] >> 1), ig), -SAFE, SAFE);
+		int32_t x1 = clamp(mul29((in[8 * i + 2] >> 1) + (in[8 * i + 3] >> 1), ig), -SAFE, SAFE);
+		int32_t x2 = clamp(mul29((in[8 * i + 4] >> 1) + (in[8 * i + 5] >> 1), ig), -SAFE, SAFE);
+		int32_t x3 = clamp(mul29((in[8 * i + 6] >> 1) + (in[8 * i + 7] >> 1), ig), -SAFE, SAFE);
+		int32_t a0 = -(x1 >> 5) + 9 * (h0 >> 5) + (h1 >> 1) + 9 * (h2 >> 5) - (h4 >> 5);
+		h4 = h2; h2 = h0; h1 = x0; h0 = x1;
+		int32_t a1 = -(x3 >> 5) + 9 * (h0 >> 5) + (h1 >> 1) + 9 * (h2 >> 5) - (h4 >> 5);
+		h4 = h2; h2 = h0; h1 = x2; h0 = x3;
+		int32_t *o = st.hbo, *e = st.hbe;                /* o: the odd 24 kHz samples 1, 3 .. 13 back; e: the even 2, 4, 6 */
+		mac(e[2], 1 << 30);
+		mac(o[2], HB_C1); mac(o[3], HB_C1); mac(o[1], HB_C3); mac(o[4], HB_C3);
+		mac(o[0], HB_C5); mac(o[5], HB_C5); mac(a1, HB_C7); mac(o[6], HB_C7);
+		int32_t x = movclr();
+		o[6] = o[5]; o[5] = o[4]; o[4] = o[3]; o[3] = o[2]; o[2] = o[1]; o[1] = o[0]; o[0] = a1;
+		e[2] = e[1]; e[1] = e[0]; e[0] = a0;
+		int32_t y = clamp(mul30(frame(x, &b), OUT_GAIN_Q30), -OUT_MAX, OUT_MAX);
+		int32_t *yh = st.hby;                            /* the echo 1 .. 7 loop frames back */
+		mac(yh[3], 2 * HB_C1); mac(yh[2], 2 * HB_C1); mac(yh[4], 2 * HB_C3); mac(yh[1], 2 * HB_C3);
+		mac(yh[5], 2 * HB_C5); mac(yh[0], 2 * HB_C5); mac(yh[6], 2 * HB_C7); mac(y, 2 * HB_C7);
+		int32_t v0 = yh[3], v1 = clamp(movclr(), -OUT_MAX, OUT_MAX);
+		yh[6] = yh[5]; yh[5] = yh[4]; yh[4] = yh[3]; yh[3] = yh[2]; yh[2] = yh[1]; yh[1] = yh[0]; yh[0] = y;
+		int32_t odd = -(p1 >> 4) + 9 * (p2 >> 4) + 9 * (p3 >> 4) - (v0 >> 4);
+		out[8 * i] = out[8 * i + 1] = p2;
+		out[8 * i + 2] = out[8 * i + 3] = odd;
+		p1 = p2; p2 = p3; p3 = v0;
+		odd = -(p1 >> 4) + 9 * (p2 >> 4) + 9 * (p3 >> 4) - (v1 >> 4);
+		out[8 * i + 4] = out[8 * i + 5] = p2;
+		out[8 * i + 6] = out[8 * i + 7] = odd;
+		p1 = p2; p2 = p3; p3 = v1;
+	}
+	st.dec[0] = h0; st.dec[1] = h1; st.dec[2] = h2; st.dec[3] = h4;
+	st.itp[0] = p1; st.itp[1] = p2; st.itp[2] = p3;
 #else
 	/* the histories in locals for the block (notes/69 §20): the decimator's inputs 1, 2, 3 and 5 frames before this
 	 * pair (h0, h1, h2, h4, the taps it reads); the interpolator's last three loop frames (p1..p3, the newest last) */

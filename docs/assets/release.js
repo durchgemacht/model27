@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.14", date: "2026-10-29", changes: [
+    { en: "POTS runs its telephone line at 12 kHz with an 8-bit codec, as a real phone does, instead of 24 kHz: about a fifth lighter on the processor, which a busy pattern needed. The sound stays the same, as measured on a computer. Experimental again until this build has been on the machine",
+      fr: "POTS fait tourner sa ligne de téléphone à 12 kHz avec un codec 8 bits, comme un vrai téléphone, au lieu de 24 kHz : environ un cinquième plus léger pour le processeur, ce dont un pattern chargé avait besoin. Le son reste le même, mesuré sur ordinateur. De nouveau expérimental tant que ce build n'est pas passé sur la machine" },
+  ] },
   { version: "0.13", date: "2026-10-29", changes: [
     { en: "POTS is tested as this page builds it: flashed from this page and played on a Model:Cycles (2026-10-29), low notes and a kick in the send keeping their tone. Its card now shows Tested",
       fr: "POTS est testé tel que cette page le construit : flashé depuis cette page et joué sur un Model:Cycles (2026-10-29), les notes graves et une grosse caisse dans le send gardant leur son. Sa carte affiche maintenant Testé" },

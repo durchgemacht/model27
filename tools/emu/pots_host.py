@@ -113,7 +113,8 @@ PEAK_127_DB = -3.8
 HOT = {"chord": -15.0, "beat": -9.0}
 # The codec's error has the same power at either rate; at 24 kHz it lies in half the band, so up to 3 dB more of it
 # passes the receiver (measured, notes/69 §14.2: +3 dB at 1 to 6 s, nothing at 15 s; the 48 kHz loop within 1 dB of
-# v6). The grain is allowed that much more above v6's in the band.
+# v6), at 12 kHz in a quarter. The grain is allowed that much more above v6's in the band; the 8-bit codec of the 12 kHz
+# loop (§23) stays within 1 dB of v6's.
 CODEC_RATE_DB = 10 * math.log10(SR / LOOP_RATE)
 TOL = {"decay": 0.10, "tail_hz": 0.03, "tail_pct": 1.0, "colour": 0.03, "octave_db": 1.0, "level_db": 1.0,
        "codec_db": 2.0, "peak_db": 0.5, "image_db": 45.0}

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """POTS's Hilbert pair (notes/69 §4.2, §12.1): two chains of allpass sections in z^-2, (c - z^-2) / (1 - c z^-2),
 chain a one frame late, whose phases stay 90 degrees apart over the band the shift needs (150 Hz to 6 kHz: the line
-holds the transmitter's band, the receiver keeps 350 Hz to 3 kHz). model27's own design, no published numbers: a
+holds the transmitter's band, the receiver keeps 350 Hz to 3 kHz; for the loop at 12 kHz, notes/69 §23, to 5 kHz,
+6 kHz being its Nyquist). model27's own design, no published numbers: a
 minimax fit of the phase difference, Nelder-Mead from many seeded starts. The pairs live in
 tools/machines/pots/hilbert.json; tools/gen_pots.py writes them into the package's tables.
 
@@ -21,8 +22,11 @@ import numpy as np
 HERE = pathlib.Path(__file__).resolve().parent
 OUT = HERE / "machines" / "pots" / "hilbert.json"
 BAND = (150.0, 6000.0)
+BAND_OF = {"12000": (150.0, 5000.0)}        # a pair's own band where BAND reaches its Nyquist
 GRID = 600
-PAIRS = {"24000": (3, 3), "48000": (4, 4)}  # sections a chain: the loop at 24 kHz (POTS_RATE 2), at 48 kHz (1)
+# sections a chain: the loop at 12 kHz (POTS_RATE 4), at 24 kHz (2), at 48 kHz (1)
+PAIRS = {"12000": (3, 3), "24000": (3, 3), "48000": (4, 4)}
+SEEDS = {"12000": (1, 2, 3), "24000": (1,), "48000": (3,)}   # the fit's starts: the best of these seeds
 LIMIT_DEG = 1.0                             # the most a pair may be off 90 degrees within the band
 STARTS = 60
 
@@ -32,9 +36,9 @@ def phase(c, w):
     return np.angle((c - z2) / (1 - c * z2))
 
 
-def error_deg(a, b, fs):
+def error_deg(a, b, fs, band=BAND):
     """The largest distance from 90 degrees of the phase difference (chain a late by a frame) over the band."""
-    w = 2 * math.pi * np.geomspace(*BAND, GRID) / fs
+    w = 2 * math.pi * np.geomspace(*band, GRID) / fs
     d = np.degrees(sum(phase(c, w) for c in a) - w - sum(phase(c, w) for c in b))
     d = (d + 180.0) % 360.0 - 180.0
     return float(np.max(np.abs(np.abs(d) - 90.0)))
@@ -75,11 +79,11 @@ def nelder_mead(f, x0, step, iters=4000, tol=1e-10):
     return pts[i], vals[i]
 
 
-def design(na, nb, fs, seed):
+def design(na, nb, fs, seed, band=BAND):
     """The best pair from STARTS seeded starts; each c is 1 / (1 + e^-u), so it stays in (0, 1)."""
     rng = np.random.default_rng(seed)
     unpack = lambda u: (1 / (1 + np.exp(-np.clip(u[:na], -40, 40))), 1 / (1 + np.exp(-np.clip(u[na:], -40, 40))))
-    f = lambda u: error_deg(*unpack(u), fs)
+    f = lambda u: error_deg(*unpack(u), fs, band)
     best = (None, 1e9)
     for _ in range(STARTS):
         u, v = nelder_mead(f, rng.normal(0, 1.5, na + nb), 0.6)
@@ -99,18 +103,21 @@ def main():
         data = {"band_hz": list(BAND), "note": "model27's own pair (notes/69 §12.1): a minimax fit by "
                 "tools/gen_hilbert.py --design; sections in z^-2, (c - z^-2) / (1 - c z^-2), chain a one frame late"}
         for fs, (na, nb) in PAIRS.items():
-            data[fs] = design(na, nb, int(fs), seed=3 if fs == "48000" else 1)
+            band = BAND_OF.get(fs, BAND)
+            data[fs] = min((design(na, nb, int(fs), seed, band) for seed in SEEDS[fs]), key=lambda d: d["error_deg"])
+            if fs in BAND_OF:
+                data[fs]["band_hz"] = list(band)
         OUT.write_text(json.dumps(data, indent=1) + "\n")
     data = json.loads(OUT.read_text())
     bad = list(data["band_hz"]) != list(BAND)
     for fs, (na, nb) in PAIRS.items():
-        p = data[fs]
-        err = error_deg(p["a"], p["b"], int(fs))
+        p, band = data[fs], BAND_OF.get(fs, BAND)
+        err = error_deg(p["a"], p["b"], int(fs), band)
         ok = (len(p["a"]), len(p["b"])) == (na, nb) and abs(err - p["error_deg"]) < 1e-6 and err <= LIMIT_DEG \
-            and all(0 < c < 1 for c in p["a"] + p["b"])
+            and all(0 < c < 1 for c in p["a"] + p["b"]) and list(p.get("band_hz", BAND)) == list(band)
         bad |= not ok
-        print(f"  {'ok' if ok else 'FAIL'}: {fs} Hz, {na} + {nb} sections: 90 degrees +-{err:.3f} from {BAND[0]:g} to "
-              f"{BAND[1]:g} Hz, the other side {image_db(err):.1f} dB under")
+        print(f"  {'ok' if ok else 'FAIL'}: {fs} Hz, {na} + {nb} sections: 90 degrees +-{err:.3f} from {band[0]:g} to "
+              f"{band[1]:g} Hz, the other side {image_db(err):.1f} dB under")
     if bad:
         raise SystemExit(1)
 

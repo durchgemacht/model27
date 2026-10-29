@@ -3,7 +3,7 @@
  "id": "pots",
  "version": "0.1",
  "name": "POTS: a delay whose repeats go down an old telephone line, for the delay slot",
- "description": "model27's own character delay (notes/69): every repeat passes a telephone line once more, so the echoes darken into a narrow, crackling band (350 Hz to 3 kHz, a little nasal at 1.5 kHz), move up 2 Hz a pass (a frequency shift, so the harmonics slowly part), fade in and out, now and then drop for a moment, and pick up a coarse codec grain, which leaves them as the tail dies away. A hot send is held at the level the sound was tuned at, so low notes and a kick keep their tone (notes/69 §22). Time and Fdbk keep their knobs and the stock delay's ranges; at the highest Fdbk the repeats sustain without running away (a leveler in the loop). Mono, the same repeat on both outputs; the loop at 24 kHz, the line the delay slot's (512 KiB, up to 5.46 s).",
+ "description": "model27's own character delay (notes/69): every repeat passes a telephone line once more, so the echoes darken into a narrow, crackling band (350 Hz to 3 kHz, a little nasal at 1.5 kHz), move up 2 Hz a pass (a frequency shift, so the harmonics slowly part), fade in and out, now and then drop for a moment, and pick up a coarse codec grain, which leaves them as the tail dies away. A hot send is held at the level the sound was tuned at, so low notes and a kick keep their tone (notes/69 §22). Time and Fdbk keep their knobs and the stock delay's ranges; at the highest Fdbk the repeats sustain without running away (a leveler in the loop). Mono, the same repeat on both outputs; the loop at 12 kHz with an 8-bit codec (notes/69 §23), the line the delay slot's (256 KiB, up to 5.46 s).",
  "license": "MIT",
  "credit": {"kind": "own", "who": "durchgemacht and Claude", "repo": "durchgemacht/model27"},
  "device": "Model:Cycles",
@@ -15,26 +15,26 @@
   "cflags": ["-std=c99", "-mcpu=54418", "-O2", "-ffreestanding", "-fno-builtin", "-fno-tree-loop-distribute-patterns",
              "-nostdlib", "-fno-pic", "-fno-common", "-ffunction-sections", "-fdata-sections", "-fwrapv", "-Wall",
              "-Wextra", "-Werror"],
-  "defines": {"POTS_RATE": 2},
+  "defines": {"POTS_RATE": 4},
   "objects": ["pots.o"],
   "patch_points": [{"symbol": "fx_line", "kind": "fx_line"}],
   "roots": ["pots_process", "pots_reset"]
  },
  "uses": [
   {"point": "fx.delay", "id": 2, "process": "pots_process", "reset": "pots_reset",
-   "line": 524288,
+   "line": 262144,
    "params": [{"long": "POTS Time", "short": "TIME"}, {"long": "POTS Fdbk", "short": "FDBK"}],
    "name": "POTS", "short": "POTS",
-   "why": "an effect of the delay slot: called as the stock delay 0x40057488 is, (out, in, P + 428), when the playing pattern chooses id 2; its line of 131 072 frames at 24 kHz is the slot's"}
+   "why": "an effect of the delay slot: called as the stock delay 0x40057488 is, (out, in, P + 428), when the playing pattern chooses id 2; its line of 65 536 frames at 12 kHz is the slot's"}
  ],
  "claims": {},
- "cost": {"emulation": {"first": 8236, "mean": 8812, "max": 8845, "reset": 2,
+ "cost": {"emulation": {"first": 6400, "mean": 6502, "max": 6545, "reset": 2,
                        "pattern": "notes/68 §17: instructions per block of the process called alone after its reset (the reset counted apart), on the OS 1.13 in tools/emu/test_fxslot.py section 6 (mcengine.py's counter): noise of +-2^28 into both channels, Time 0 and Fdbk 96 for the delay, Size 64 and Tone 96 for the reverb (x 256), the first block, then the mean and maximum over 21 blocks after 32 more"},
           "device": {"status": "not measured"}},
  "stock_behaviour": {"changes": [], "fixes": [], "unchanged": ["the stock delay, whenever the playing pattern has not chosen POTS"]},
  "compat": {"built_against": ["model27"], "requires": [], "conflicts_declared": []},
  "tests": {"emulation": {"tool": "tools/emu/test_fxslot.py (Unicorn, the OS's own code, emac.py without the scale factor in fractional mode, against the host build of tools/emu/pots_host.py, notes/69 §8, §14, §16, §17)", "date": "2026-10-29",
-                         "build": "alone, with sampler and refreverb, and with digidelay in the same slot; the declared cost checked. The load's rewrites (notes/69 §20): bit for bit the object before, the cost first counted by an interpreter outside the repository, then by the proof on this object: ALL OK, the declared cost the one counted (§20.5). §22 (the limiter, the drive 3, the high pass before the codec): the host measurements ALL OK, the device's object its host build's bit for bit and the cost counted by the interpreter; the proof's run on this object ALL OK, the declared cost the one counted (§22.4)"},
-           "hardware": {"date": "2026-10-29", "by": "maintainer", "build": "digidelay+pots without the scale factor (notes/69 §16), in digiemu and on the device: the echo there, Digital and POTS much quieter than the stock delay (§17); then the builds with the echo 6 dB up, from the command line: the level, the sound, switching and six voices at once fine (§18); the rewrites of §20 (the same sound bit for bit) flashed from the work copy's page in several combinations on 2026-10-29: working as expected, low material too broken (§21); §22's build from the work copy's page: « Klingt gut » (§22.5)"},
-           "status": "tested"}
+                         "build": "alone, with sampler and refreverb, and with digidelay in the same slot; the declared cost checked. The load's rewrites (notes/69 §20): bit for bit the object before, the cost first counted by an interpreter outside the repository, then by the proof on this object: ALL OK, the declared cost the one counted (§20.5). §22 (the limiter, the drive 3, the high pass before the codec): the host measurements ALL OK, the device's object its host build's bit for bit and the cost counted by the interpreter; the proof's run on that object ALL OK, the declared cost the one counted (§22.4). §23 (the loop at 12 kHz, an 8-bit codec, the loops not unrolled): the host measurements ALL OK, the device's object its host build's bit for bit and the cost counted by the interpreter; the proof's run on this object ALL OK, the declared cost the one counted (§23.5)"},
+           "hardware": {"date": "2026-10-29", "by": "maintainer", "build": "digidelay+pots without the scale factor (notes/69 §16), in digiemu and on the device: the echo there, Digital and POTS much quieter than the stock delay (§17); then the builds with the echo 6 dB up, from the command line: the level, the sound, switching and six voices at once fine (§18); the rewrites of §20 (the same sound bit for bit) flashed from the work copy's page in several combinations on 2026-10-29: working as expected, low material too broken (§21); §22's build from the work copy's page: « Klingt gut » (§22.5), tested; then laggy in a busy pattern, gone with the stock delay (§23); §23's build (the loop at 12 kHz) from the work copy's page, the project that lagged: « Kein Lag mehr » (§23.6)"},
+           "status": "experimental"}
 }

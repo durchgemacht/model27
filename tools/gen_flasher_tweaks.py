@@ -364,9 +364,9 @@ ALL_FEATURES = [
                 "Delay Time to switch the pattern's delay between the stock Delay, Digital and POTS; Time and Fdbk "
                 "keep their knobs.",
         # model27's own (notes/69), its sound settled in a float prototype; bit for bit its host build in emulation;
-        # tested on the Model:Cycles on 2026-10-28 from the command line, six voices at once included, then flashed
-        # from this page on 2026-10-29 with a hot send held (notes/69 §18, §22.5)
-        "status": "tested",
+        # the 24 kHz build tested on the Model:Cycles (notes/69 §18, §22.5); the loop at 12 kHz of §23, lighter for a
+        # busy pattern, not on the machine yet
+        "status": "experimental",
         "credit": None,
         # an effect composed in the page from its package (notes/69 §19), with the machines and Digital ticked:
         # alone it gives 70-pots.json byte for byte, whose conflicts give its excludes

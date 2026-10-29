@@ -935,3 +935,97 @@ After §22.5, the maintainer, asked whether to commit and set the card to "teste
 "tested" (`FEATURES`, `tweaks.js`; its note without the "experimental" sentence), the guide's line "Tested", release
 0.13, the stamp `2026-10-29-02`, `README.md` (four cards tested), the manifest's `tests` (status "tested"),
 `webflash_smoke.js` (POTS tagged Tested). AGENTS.md's step 8: a commit of its own after the one of §20 to §22.
+
+## 23. Lighter for a busy pattern: the loop at 12 kHz (2026-10-29)
+
+### 23.1 Laggy, and why the count misled
+
+The maintainer, 2026-10-29, after §22.6: « gerät ist wieder laggy ». With the same project and the pattern switched to
+the stock delay: « Lag ist weg ». So POTS tips that project over the edge.
+
+The proof counts instructions, not cycles. The MCF54415 has an 8 KB instruction cache and an 8 KB data cache
+(notes/26 §1); with the voices and the mixer between two of POTS's blocks, POTS reloads its code every block. The
+cycle model of notes/27 §2 and 31 (1.54 cycles an instruction, 15 a 16-byte line from SDRAM, 4 ways, the caches cold
+at each block; outside the repository, the interpreter of §20.1 tracing each block):
+
+| Build | Instructions (mean) | Code lines a block | Cycles, % of a block |
+|---|---|---|---|
+| §18, played, « Last ok » | 10 753 | 169 | 12.1 |
+| §20 | 8 194 | 254 | 10.4 |
+| §22 (committed) | 8 812 | 255 | 11.0 |
+| §22, the loops not unrolled | 9 792 | 202 | 11.5 |
+
+§20's unrolling saved instructions but cost cache lines, and its code evicts more of the voices'. In the model §22 is
+still lighter than §18, so the project of today is heavier than §18's test; POTS has to get much lighter, not a few
+percent. Small cuts, measured: the limiter's peak, the leveler's scan and the frame's reads without their bound, bit
+for bit, −142 instructions; one product with a doubled coefficient in the receiver, −304 more but no longer the same
+bits; together 0.4 % of a block. Not enough.
+
+### 23.2 The loop at 12 kHz
+
+The line keeps 350 Hz to 3 kHz, and a real telephone samples at 8 kHz. `POTS_RATE 4`:
+
+- **Down**: the 7-tap half-band of rate 2 to 24 kHz, twice a loop frame, then a **15-tap half-band** to 12 kHz
+  (a Kaiser-windowed sinc, β 4.25, four odd taps `HB_C1`–`HB_C7` from `gen_pots.py`): flat within 0.025 dB to 3.5 kHz,
+  50.7 dB down from 8.5 kHz. **Up**: the same half-band (the even samples the echo, the odd ones interpolated, clamped
+  as the echo), then the four-point interpolator of rate 2.
+- **The Hilbert pair** for 12 kHz, 3 + 3 sections, by `gen_hilbert.py`'s own fit over 150 Hz to 5 kHz (6 kHz is the
+  Nyquist): 0.089° off 90°, the other side 62 dB under; `hilbert.json` keeps its band.
+- Time by `(d + 2) / 4`; the slew as at 24 kHz (`diff >> 11`, one frame every second frame); the scatter 6 to 36
+  frames; the line 65 536 frames, 256 KiB (`line` in the manifest), still up to 5.44 s.
+- **The feedback's top 1.195** at 12 kHz (1.18 at the other rates): with 1.18 the decay at Fdbk 90 came 3 s short.
+- **The codec at 8 bits** (127 steps a side): at 12 kHz its error lies in a quarter of the band, and the 7-bit
+  codec's grain came 4 to 8 dB above v6's in the tail; with 8 bits, as a real telephone, it is v6's again.
+- **The loops not unrolled**: at 12 kHz the unrolled build was as heavy in the model (8.7 %, 302 lines) as the rolled
+  one (8.7 %, 247 lines), and the smaller code evicts less of the voices'.
+
+A listening page for the maintainer (outside the repository, `_scratch/pots-12k/hoer12.py`): the sources of §21.3 at
+v6's level and 12 dB above and a long tail at Fdbk 100, as committed (24 kHz), at 12 kHz, at 12 kHz with 8 bits.
+Decided by a clicked answer: « 12 kHz · 8 Bit ».
+
+### 23.3 Checked (2026-10-29)
+
+- **The interpreter**: the device's object its host build's over the 490 blocks; the cost **first 6 400, mean 6 502,
+  max 6 545, reset 2**, declared; the model **8.8 % of a block** (was 11.0), 247 code lines. The composer: the delay slot
+  +3 973 above the stock delay (3.7 % of a block, was 5.8), +6 601 in a switch's block. Code 6 258 bytes of
+  instructions.
+- **`pots_host.py` ALL OK**: the shift's other side 103 dB under; the decays 2.45 / 4.85 / 19.7 / 22.95 s at Fdbk 40 /
+  64 / 90 / 100 (v6 2.55 / 4.85 / 20.1 / 23.3), on from 110; the tail's end 1 507 Hz; the colour 986 → 1 475 Hz; the
+  octaves within 0.3 dB of v6; the level −28.3 / −33.2 dB; the codec's grain −38.6 / −32.6 / −26.6 / −18.7 dB at 1 / 3 /
+  6 / 15 s (v6 −38.4 / −33.2 / −26.3 / −19.7); the loud phrase's peak −4.0 dB; sent hot, the chord −18.4 / −17.3 dB,
+  the beat −15.4 / −11.5 dB; silence exact. The loudest return −10.8 dBFS.
+- **What a sine above 6 kHz leaves**, the clip and the codec off: 8 to 13 kHz come back 57 to 70 dB under a 1 kHz sine
+  (at 24 kHz 61 to 120 dB).
+- **The builds** in `build/fx-pots/`: MAIN OS `28cf64c0…` (pots), `caab268e…` (digidelay, pots), `cbd50fa8…` (with
+  SAMPLE), the C tool ok; `webcompose_check.sh` identical, `webflash_smoke.sh` ALL OK, `ref_mainos.py`,
+  `gen_flasher_tweaks.py`, `gen_pots.py --check`, `gen_hilbert.py --check`, `registry.py` (regenerated),
+  `claims.py --check`, `check_overlaps.py`, `webbuild_check.sh`, `webflash_check.sh`, rates 1, 2 and 4 for the device
+  and the host: green.
+- **Texts**: the card experimental again (`FEATURES`, its note), the guide's line "Experimental", release 0.14,
+  `README.md`, `BUILD.md`, the stamp `2026-10-29-03`, `webflash_smoke.js` (POTS tagged Experimental), the manifest's
+  `tests`. The 24 kHz build stays the tested one of §22.5.
+
+### 23.4 For the maintainer
+
+1. The proof, on this object:
+   ```sh
+   ../.venv-emu/bin/python tools/emu/test_fxslot.py --cycles <model-cycles_OS1.13.syx> --machines pots --machines sampler,pots,refreverb
+   ```
+   Sections 8 and 10 bit for bit, section 9 the host measurements of §23.3, the declared cost (6 400 / 6 502 / 6 545 /
+   2) the one counted.
+2. The device, from the work copy's page: the project that lagged, with POTS; then the sound against the 24 kHz build
+   (low notes, a kick in the send, a long tail).
+
+### 23.5 The proof's run (2026-10-29): ALL OK
+
+The maintainer's run of §23.4, item 1, on this object, its output pasted whole: ALL OK. POTS alone (3 380 blocks)
+and with SAMPLE and the reference reverb bit for bit its host build on the OS's own code; the delay slot's line
+262 144 bytes, its address in the effect's code; Digital and POTS in one slot (Digital's 1 MiB line filled with noise
+before each switch) bit for bit; the host measurements of §23.3; the declared cost (6 400 / 6 502 / 6 545 / 2) the one
+counted, the stock delay 2 659, `fxslot` +87 with the effect, +199 in a switch's block. Next the device (§23.4,
+item 2).
+
+### 23.6 The device (2026-10-29): « Kein Lag mehr »
+
+The maintainer, 2026-10-29, asked whether the project that lagged still lags with this build, flashed from the work
+copy's page (stamp `2026-10-29-03`): « Kein Lag mehr ». The sound against the 24 kHz build was not named.

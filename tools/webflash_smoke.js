@@ -310,9 +310,9 @@ async function main() {
     check(potsAlone === "pots" && potsDd === "digidelay+pots" && potsSmp === "sampler+digidelay+pots"
       && potsAll === "control-all-config,sampler+digidelay+pots" && fourOn && !chosen().length
       && doc.querySelector('#features a[href$="#pots"]') && doc.querySelectorAll('input[name="var-pots"]').length === 0
-      && /Tested/.test(doc.querySelector("label[for=feat-pots] .tag").textContent),
+      && /Experimental/.test(doc.querySelector("label[for=feat-pots] .tag").textContent),
       `POTS alone ${potsAlone}; with Digital ${potsDd}, one composed tweak; with SAMPLE ${potsSmp}; with Control All ` +
-      `Config too ${potsAll}, all ticked, no clash; no sub-choice; its guide link; tagged Tested`);
+      `Config too ${potsAll}, all ticked, no clash; no sub-choice; its guide link; tagged Experimental`);
     box("feat-sampler").click(); await wait(30);
     check(doc.querySelectorAll('input[name="var-sampler"]').length === 0, "SAMPLE: a machine card, no sub-choice");
     check(!!doc.getElementById("tab-samples") && doc.getElementById("panel-samples").hidden && doc.getElementById("drop2-wrap").hidden,

@@ -33,26 +33,26 @@ const REF_MAINOS = {
   "control-all-config": "eb70de0a330dc9c033db5c5fc5d8589c3356c94ad346a8d30840e03ecb90299d",
   "sampler": "72b596dc5ce258dd1e5419c961310dd80a7e286b3ee86ec2ebf1bf4af8413f61",
   "digidelay": "4fb4eac751faa4e6ec02a2bfefd24ccb264bdd566ede2244a1ceb258542894b9",
-  "pots": "ed46726e214a9708d48a1dd85a8c0622d3e4673cb22e66427b89f606c53ee2c9",
+  "pots": "28cf64c08163fa2b4c4d7fee5fa35f158189b9b02a8909b2affa7e946dad4ced",
   // every pair of cards the page lets you tick together
   "control-all-config+sampler": "327cbd37f5b30d03b82b61ab3f20d28f688f47173f7251c1ee7a18782d3d9618",
   "control-all-config+digidelay": "bf33c83201f17a11bbd43deb8f3bb5c029c2dee07ab937f5cd1a9dc5cf74ff45",
-  "control-all-config+pots": "df47c209eccdbf99e1f2d01cbb3713e950c97f3072f2f620ba590f89749e05c0",
+  "control-all-config+pots": "6c726110e04577ad3248b014b207b10138d61d8eee544fb16ddfa118c31a6ae2",
   "sampler+digidelay": "7fd42d2a749ea7d2ffe21f47d7473c2971e9228219271779079dd54f46caa26f",
-  "sampler+pots": "ae14fd66dcf67a45b3a2ac6ce48578a5588ec014b87ffb76ab5b10c0ed10af3b",
-  "digidelay+pots": "0151fe14475d69bc52405351213a9cfe63aa1e78edf3de817d8ca8b200002faf",
+  "sampler+pots": "c180fabbe4dea218d6dd0a8727dd5e2502736c2e9ef16ef73eb4ff2cab2383f3",
+  "digidelay+pots": "caab268e313bedf9d1a209108e3c26d5c4a027228616cb741d0a37815d42ee15",
   // the largest combinations: every compatible card ticked, from each card, both ways, with and without the Syntakt engines, with and without each of the machines that join them
-  "control-all-config+sampler+digidelay+pots": "6bbded2348a7e3b8ab2bfb11270cc131322914039599e2dd765bdd90db9b055d",
+  "control-all-config+sampler+digidelay+pots": "6c010e6a83dd8db04b381007f187e071ebc91bb65335403db53348c02aee00cd",
 };
 const REF_MODS = {
   "control-all-config": {"w": "b47aa26f4f855c750735a03eae7453847356c376f47a4010cf4f1a5bf316be5e"},
   "sampler": {"w": "28853ad2da8ee02d992848e217296dd8c8083a2fd7b7cf1887069dd27b4f2a5c", "p": "bc301051b49d96187027131eed93aaa8d26255a96364697e1f0a5a7a31daa34b"},
   "digidelay": {"w": "a4076b491ede8a722d6b28382b1c5aea2970146739294892bda3ca1b5ad85588", "p": "3be011501c7656f91b572b60e475aea5aa44d455d8d6a3ae1a427b49891f402e"},
-  "pots": {"w": "455dba499b21676bb4027aaa689247dfc7a6e53cef4eb5239cc8622d31f9b2ed", "p": "0c3f84edde4a9b2bde43a8639ee789af577647190ac2c81a1f08876c3afcafc4"},
+  "pots": {"w": "bbab35d3a9b0056fb2ed13ab14dd668a59f0031bd67840d4379b490b9aec3c70", "p": "f8e5f172294a71505b020487c8d2609fac84c14fb0036d3bd40ceec509afbf62"},
   "sampler+digidelay": {"w": "adb181070995d2d1ed276e0be66a6c461e48f698a890d124b7caefbb59a74cb0", "p": "b6664d555c6d3637633e0916948b903397fed4b782842cb4db69b87e301139f2"},
-  "sampler+pots": {"w": "8cfae3aee459cb53b21375d47d2e05e5c5fca45214eaf74a62493b1bf9e504b6", "p": "9fc82c21bd27523482eba26551d5e4ce739e638ab749cea42fac29030f539ec5"},
-  "digidelay+pots": {"w": "0d24c4e307af7fe4830bb80c8baa66ad1d5aa8364475e1a63e1eb0b48597d7fd", "p": "1c766a1c96df0975d4ae8d182c8f166b4d29a6b9340c2bd6708d9e9dc1401e1b"},
-  "sampler+digidelay+pots": {"w": "0863337dc5ef280628e29bcf2d830ff3d7ed0bcaa5eed9263bea18c7560ee18d", "p": "450681ef357fc4a2f48dbb9ce776f37540ea629af7c6b41b5d0428ffd42c17a0"},
+  "sampler+pots": {"w": "8f94bf71a12aaf30d86421e3d2508be1b4ecd1184adff0bb1cb83f9925059132", "p": "fd5bfaaf77e39d19f7c2ecbdb5e5a1358a87e2f867fd3d92e1cea1e59e2700d1"},
+  "digidelay+pots": {"w": "7902e569d93a8694086257f77544110edeff19eb85e0e89ce0856fcd8b2c16df", "p": "84af8ea235d88b0a4583f79c40e9375c1363a7d17fd4ca7782289935a33e9b1c"},
+  "sampler+digidelay+pots": {"w": "bc7d7129c81200835934025544cda0952c32904485609642bfcaed629af738ca", "p": "757472448d3ee42b524b551aa0512f34226670ecd3d04544b7666337032d961d"},
 };
 
 // "Samples OS" tab: official Model:Samples OS 1.13 inside the official Model:Cycles container
@@ -752,7 +752,7 @@ const FEAT = {
     pots: { label: "POTS (effect)",
       short: "A delay down an old phone line: each repeat darker, narrower and a little out of tune.",
       desc: "A third delay for the delay slot, model27's own: every repeat goes down an old telephone line once more. The echoes darken into a narrow band (about 350 Hz to 3 kHz, a little nasal), drift a little further out of tune each pass as their harmonics move apart, fade in and out, now and then drop out for a moment, and pick up a coarse digital grain that leaves them as the tail dies away. A hot send is held at the level the sound was tuned at, so low notes and a kick keep their tone. Hold TRACK and turn Delay Time: every four detents to the right step the pattern to the next delay, the stock Delay, then Digital if it is ticked too, then POTS; to the left they step back. The choice is saved with the pattern. While POTS plays, Time and Fdbk keep their knobs and ranges and read POTS Time and POTS Fdbk; at the highest Fdbk the repeats go on without running away. The delay is mono, the same repeat on both sides, and starts from silence each time it is chosen.",
-      note: "On a firmware without POTS, a pattern that chose it plays the stock Delay." },
+      note: "On a firmware without POTS, a pattern that chose it plays the stock Delay. Experimental: this build runs the line at 12 kHz, lighter on the processor, and has not been on the machine yet; the 24 kHz build before it was tested." },
     "trig-preview": { label: "Trig preview",
       short: "Sequencer stopped, hold a step and press PAGE to hear it.",
       desc: "With the sequencer stopped or paused, hold a step and press PAGE: the step plays with its own note, length and p-locks." },
@@ -859,7 +859,7 @@ const FEAT = {
     pots: { label: "POTS (effet)",
       short: "Un delay passé par une vieille ligne de téléphone : chaque répétition plus sombre, plus étroite, un peu désaccordée.",
       desc: "Un troisième delay pour l'emplacement du delay, propre à model27 : chaque répétition repasse par une vieille ligne de téléphone. Les échos s'assombrissent dans une bande étroite (d'environ 350 Hz à 3 kHz, un peu nasillarde), se désaccordent un peu plus à chaque passage à mesure que leurs harmoniques s'écartent, vont et viennent, décrochent de temps en temps un court instant, et prennent un grain numérique grossier qui les quitte quand la queue s'éteint. Un envoi trop fort est ramené au niveau pour lequel le son a été réglé : les notes graves et une grosse caisse gardent leur son. Tenez TRACK et tournez Delay Time : tous les quatre crans vers la droite, le pattern passe au delay suivant, le Delay d'origine, puis Digital s'il est coché aussi, puis POTS ; vers la gauche, il revient en arrière. Le choix est enregistré avec le pattern. Pendant que POTS joue, Time et Fdbk gardent leurs potards et leurs plages et s'appellent POTS Time et POTS Fdbk ; au Fdbk le plus haut, les répétitions continuent sans s'emballer. Le delay est mono, la même répétition des deux côtés, et repart du silence chaque fois qu'il est choisi.",
-      note: "Sur un firmware sans POTS, un pattern qui l'a choisi joue le Delay d'origine." },
+      note: "Sur un firmware sans POTS, un pattern qui l'a choisi joue le Delay d'origine. Expérimental : ce build fait tourner la ligne à 12 kHz, plus léger pour le processeur, et n'est pas encore passé sur la machine ; le build à 24 kHz d'avant a été testé." },
     "trig-preview": { label: "Écoute d'un pas",
       short: "Séquenceur arrêté, maintenez un pas et appuyez sur PAGE pour l'entendre.",
       desc: "Séquenceur à l'arrêt ou en pause, maintenez un pas et appuyez sur PAGE : le pas joue avec sa note, sa longueur et ses p-locks." },
