@@ -5,12 +5,13 @@ added machine of the Model:Cycles.
   - 27-sampler.json: 7th machine, after the 6 stock ones.
 
 The code is Cycles One-Shot's (durchgemacht, MIT: tools/machines/sampler/LICENSE, copied next to the tweaks as
-LICENSE-One-Shot), taken as is from https://github.com/durchgemacht/cycles-one-shot at tag v0.11 (UPSTREAM_COMMIT below; 0.8 made the
+LICENSE-One-Shot), taken as is from https://github.com/durchgemacht/cycles-one-shot at tag v0.12 (UPSTREAM_COMMIT below; 0.8 made the
 patch points SAMPLE_MACHINE and DESC_START symbols behind CM_SYMBOLS in pool.h and view.c, and gave each assembly
 file a section of its own, for builders like this one; 0.9 split the bar above the waveform into the pattern's
 number and the sample's name; 0.10 puts a column on the left with the pattern's number, the track's number and its
 level; 0.11 loops and plays in reverse on two switches, RETRIG + PUNCH and RETRIG + GATE, which it reads only when
-built with SMP_SWITCHES, as the manifest builds it here), with the same paths as there: src/ the sound core
+built with SMP_SWITCHES, as the manifest builds it here; 0.12 shows the whole view for a held trig while Start or
+Length turns, its locks marked, and so takes NoteVelocityView's draw too), with the same paths as there: src/ the sound core
 (6-tap polyphase interpolation at 96 kHz, the Model:Samples' filter), machine/ the bridge to the voice loop, the
 sample memory (loaded from the +Drive, chosen in the PRESET browser, saved with the sound), the waveform view and
 the hooks. The build recipe is tools/machines/sampler/manifest.json; the compiled object sampler.o is committed next
@@ -22,8 +23,8 @@ The tweak is SAMPLE alone as tools/compose.py composes it, and so as the web fla
 tools/gen_refmachine.py makes REF2's. The mechanics are MACRO's and ACID's (notes/43, notes/54): the same moved
 tables, the same place in the payload (0x43000000), the same detours, but assembled once as the registrar runtime and
 fed a parameter block per build (notes/60). SAMPLE's own hooks follow, from the manifest: the browser's file open, the
-sound record save (two versions) and load, the screen's redraw, and the draw methods of the main screen and of the
-knob view (vtable entries). Since 0.11 SAMPLE declares the two switches, so the builder's shortcut layer comes with it
+sound record save (two versions) and load, the screen's redraw, and the draw methods of the main screen, of the
+knob view and of NoteVelocityView (vtable entries). Since 0.11 SAMPLE declares the two switches, so the builder's shortcut layer comes with it
 (notes/63 §16): the press, the LEDs, and k 32 saved in record slot 18, with SAMPLE's record wrappers chained behind the
 layer's. The sample pool is the RAM from 8 MB above the payload window to Model-TG's window (0x43800000..0x46700000,
 47 MB; POOL below): a combined build whose payload ends above POOL[0] must move it.
@@ -66,8 +67,8 @@ LICENSE_OUT = DEV / "LICENSE-One-Shot"
 SRC = HERE / "machines" / "sampler"
 
 UPSTREAM = "https://github.com/durchgemacht/cycles-one-shot"
-UPSTREAM_TAG, UPSTREAM_COMMIT = "v0.11", "a874a1ccea1fe58022c67377ca939b24994b2160"
-VERSION = "0.11"
+UPSTREAM_TAG, UPSTREAM_COMMIT = "v0.12", "c32c49d6e215bad00adda48b88ce71aeaeda545f"
+VERSION = "0.12"
 
 POOL = (0x43800000, 0x46700000)
 # The build recipe (sources, flags, defines, patch points, symbols to keep) is the manifest's,

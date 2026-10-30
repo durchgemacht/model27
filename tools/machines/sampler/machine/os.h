@@ -88,6 +88,52 @@ static inline char *os_sound(int t)
 /* A trig is held, so a turned knob edits its locks (UIStates+356, 0x4006b736); the knob view then
    shows the held trigs' locked values (0x4001e5dc). */
 #define TRIG_HELD()         (((char (*)(void *))0x4006b736)(((void *(*)(void))0x400cf9a8)()) != 0)
+/* NoteVelocityView (vtable 0x40102568, draw 0x400299de, its only reference at +16) draws only while a
+   trig is held: the trig's note, velocity and length over columns 0..63, after the main screen's and
+   the knob view's own draws. */
+#define NOTE_DRAW(v, b)     ((void (*)(void *, void *))0x400299de)(v, b)
+/* The held trigs, as the knob view goes through them (0x4006be48): step n is held while bit n of the
+   64-bit word UIStates+348 (high) : +352 (low) is set, for n up to the count 0x40016402 gives for the
+   selected track's pattern data (0x4000f23e). */
+static inline int32_t step_count(void)
+{
+    char *project = ((char *(*)(void))0x400cf866)();
+
+    if (!project)
+        return 0;
+    return ((int32_t (*)(void *))0x40016402)(((void *(*)(void *))0x4000f23e)(project));
+}
+static inline int step_held(int32_t n)
+{
+    const char *ui = ((char *(*)(void))0x400cf9a8)();
+
+    return (int)(*(const uint32_t *)(ui + (n < 32 ? 352 : 348)) >> (n & 31) & 1);
+}
+/* A step's lock of parameter p, -1 for none: the knob view's entry +96 (0x4001d784). It reaches the
+   track through entry +128 of the view's vtable (0x4001dff4), which uses nothing else of the view, so
+   a word holding the vtable stands in for the view. A step's sound lock, -1 for none: entry +108
+   (0x4001e246), which does not touch the view. */
+static inline int32_t step_lock(int32_t n, int32_t p)
+{
+    static const uint32_t knob_view = 0x4010052c;
+
+    return ((int32_t (*)(const void *, int32_t, int32_t))0x4001d784)(&knob_view, n, p);
+}
+#define step_sound_lock(n)  ((int32_t (*)(void *, int32_t))0x4001e246)(0, n)
+/* Sound i of the project's pool: 0x40009c4a(project + 116, i) gives its holder, project + 774 + 68 * i,
+   a holder like a track's; the sound through entry +40 of its vtable, as for os_sound. */
+static inline char *os_pool_sound(int32_t i)
+{
+    char *project = ((char *(*)(void))0x400cf866)();
+    char *holder;
+    void **vt;
+
+    if (!project)
+        return 0;
+    holder = ((char *(*)(void *, int32_t))0x40009c4a)(project + 116, i);
+    vt = *(void ***)holder;
+    return vt && vt[10] ? ((char *(*)(char *))vt[10])(holder) : 0;
+}
 /* The selected track: 0x40012412(0x4000eb90(project)), as in Modded-Cycles' notes 32 and 44. */
 static inline int32_t selected_track(void)
 {

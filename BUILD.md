@@ -299,8 +299,8 @@ python3 tools/build.py -i model-cycles_OS1.13.syx -t pots
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,digidelay,pots   # avec Digital et SAMPLE
 ```
 MAIN OS patché, `pots` seul : `4a1521cb90c1206e90fc243846081695008620fc0c657c2940dd19d55937f4dd` ; `digidelay` et `pots`
-composés : `7e867f703d0146b6f1ea70cb049b473585a14b9fce7b9994c3135ffb9e6ff45c` ; avec SAMPLE (`sampler`, `digidelay`,
-`pots`) : `1f35d6cf744df86f361322aae3222810b80738a6d10e3c1b7b01b1084dd5f4e5`, ceux que la page compose. La ligne tourne
+composés : `7e867f703d0146b6f1ea70cb049b473585a14b9fce7b9994c3135ffb9e6ff45c` ; avec SAMPLE 0.12 (`sampler`, `digidelay`,
+`pots`) : `1d7bc3b1333e76f45685f7fe5a54c482d43b66a0dfb1819b90fda65cfef3ed18`, ceux que la page compose. La ligne tourne
 à 12 kHz avec un codec 8 bits (note 69 §23), testée sur un Model:Cycles (§23.6, `28cf64c0…`) ; depuis, la partie
 `fxslot` 0.4 lance la préparation des effets d'origine avant la boucle des voix (note 68 §21, l'idée de Model-TG),
 jouée sur un Model:Cycles depuis la page le 29/10/2026 : un projet chargé tourne et sonne pareil (§21.8).

@@ -5,9 +5,12 @@
 
    It takes the place of MainScreenView while that shows the track, and of the knob view while that
    shows Start or Length (COLOR or SHAPE), so the markers follow those two knobs as they turn. Any
-   other knob shows its value as before, and so do Start and Length while a trig is held: the knob
-   view then shows the locked value. Tracks on other machines keep the stock views. In builds with
-   the switches (SMP_SWITCHES), the name's box ends with L while Loop is on and R while Reverse is. */
+   other knob shows its value as before. While a trig is held, the OS's NoteVelocityView covers the
+   left half with the trig's note, velocity and length; when Start or Length turns then, the view
+   takes the whole screen as without a held trig, its markers on the held trig's locks and its sample
+   and name a sound lock's, and NoteVelocityView stays away until the value is gone. Tracks on other
+   machines keep the stock views. In builds with the switches (SMP_SWITCHES), the name's box ends with
+   L while Loop is on and R while Reverse is. */
 #include "view.h"
 #include "pool.h"
 #include "os.h"
@@ -266,11 +269,14 @@ static void column(smp_bitmap *b, int32_t t)
         fill(b, METER_X0 + 2, 2, METER_X1 - 2, 1 + rows, 1);
 }
 
-static int32_t sound_span(const char *sound, int at)  /* 8.8 word -> 0..SMP_SPAN, fraction kept */
+static int32_t clamp_span(int32_t k)                  /* 8.8 word -> 0..SMP_SPAN, fraction kept */
 {
-    int32_t k = *(const int16_t *)(sound + at);
-
     return k < 0 ? 0 : k > SMP_SPAN ? SMP_SPAN : k;
+}
+
+static int32_t sound_span(const char *sound, int at)
+{
+    return clamp_span(*(const int16_t *)(sound + at));
 }
 
 /* Outside what a trig plays, a quarter of the pixels: every other row counted from the zero line,
@@ -319,7 +325,8 @@ static void waveform(smp_bitmap *b, const int16_t *lo, const int16_t *hi, int32_
     }
 }
 
-void smp_view_draw(smp_bitmap *b, const char *sound)
+/* The view of sound with start and length (0..SMP_SPAN) marked. */
+static void draw_view(smp_bitmap *b, const char *sound, int32_t start, int32_t length)
 {
     const int16_t *lo = 0, *hi = 0;
     uint32_t id = smp_sound_id(sound);
@@ -337,11 +344,16 @@ void smp_view_draw(smp_bitmap *b, const char *sound)
     if (!id)
         label(b, FONT_MEDIUM, TEXT_X, TEXT_Y, 2, "NO SAMPLE");
     else if (state == SLOT_READY)
-        waveform(b, lo, hi, sound_span(sound, SOUND_COLOR), sound_span(sound, SOUND_SHAPE));
+        waveform(b, lo, hi, start, length);
     else if (state == SLOT_FAILED)
         label(b, FONT_MEDIUM, TEXT_X, TEXT_Y, 2, "NOT FOUND");
     else
         label(b, FONT_MEDIUM, TEXT_X, TEXT_Y, 2, "LOADING");
+}
+
+void smp_view_draw(smp_bitmap *b, const char *sound)
+{
+    draw_view(b, sound, sound_span(sound, SOUND_COLOR), sound_span(sound, SOUND_SHAPE));
 }
 
 /* The selected track's live sound, if it plays SAMPLE. */
@@ -366,15 +378,74 @@ void smp_main_draw(void *view, smp_bitmap *b)
         MAIN_DRAW(view, b);
 }
 
+/* --- with a trig held ------------------------------------------------------------------------- */
+
+/* What the held trigs play while Start or Length (param) turns, found the way the knob view finds
+   the value it shows (0x4001e40a through 0x4006be48 and 0x4001d66e): the first held step with a lock
+   of param or a sound lock; without one, the track's sound and its own values. A step's sound is
+   its sound lock's, if it has one; where the step has no lock of Start or Length, that sound's own
+   value stands (0x4001e160). Values are 8.8 words. */
+typedef struct {
+    const char *sound;
+    int32_t start, length;
+} smp_held;
+
+static void find_held(int32_t param, const char *track_sound, smp_held *h)
+{
+    int32_t n, count = step_count(), start = -1, length = -1, pool = -1;
+
+    for (n = 0; n < count; n++) {
+        if (!step_held(n))
+            continue;
+        start = step_lock(n, DESC_START);
+        length = step_lock(n, DESC_LENGTH);
+        pool = step_sound_lock(n);
+        if (pool != -1 || (param == DESC_START ? start : length) != -1)
+            break;
+    }
+    if (n >= count)
+        start = length = pool = -1;
+    h->sound = pool >= 0 ? os_pool_sound(pool) : track_sound;
+    h->start = start;
+    h->length = length;
+    if (h->sound && start == -1)
+        h->start = *(const int16_t *)(h->sound + SOUND_COLOR);
+    if (h->sound && length == -1)
+        h->length = *(const int16_t *)(h->sound + SOUND_SHAPE);
+}
+
+/* Set while the knob view shows SAMPLE's view for a held trig. The OS draws every view on each
+   redraw, the knob view before NoteVelocityView, so this is new for each one. */
+static int held_shown;
+
 void smp_knob_draw(void *view, smp_bitmap *b)
 {
     const char *s = sample_sound();
     int32_t p = KNOB_PARAM(view);
+    smp_held h;
 
-    if (s && VALUE_SHOWN() && !TRIG_HELD() && (p == DESC_START || p == DESC_LENGTH))
-        smp_view_draw(b, s);
-    else
+    held_shown = 0;
+    if (!s || !VALUE_SHOWN() || (p != DESC_START && p != DESC_LENGTH)) {
         KNOB_DRAW(view, b);
+        return;
+    }
+    if (!TRIG_HELD()) {
+        smp_view_draw(b, s);
+        return;
+    }
+    find_held(p, s, &h);
+    if (!h.sound || (unsigned char)h.sound[MACHINE_AT] != SAMPLE_MACHINE) {
+        KNOB_DRAW(view, b);                     /* a sound lock of another machine */
+        return;
+    }
+    draw_view(b, h.sound, clamp_span(h.start), clamp_span(h.length));
+    held_shown = 1;
+}
+
+void smp_note_draw(void *view, smp_bitmap *b)
+{
+    if (!held_shown || !TRIG_HELD() || !VALUE_SHOWN())
+        NOTE_DRAW(view, b);
 }
 
 /* --- Cutoff's value ------------------------------------------------------------------------- */

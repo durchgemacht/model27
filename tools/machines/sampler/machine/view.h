@@ -15,9 +15,11 @@ typedef struct {
 /* The view of a SAMPLE sound: its sample's waveform with start and end marked, its name above. */
 void smp_view_draw(smp_bitmap *b, const char *sound);
 
-/* In place of the draw methods of MainScreenView and of the knob view (vtable entries +16). */
+/* In place of the draw methods of MainScreenView, of the knob view and of NoteVelocityView (vtable
+   entries +16). */
 void smp_main_draw(void *view, smp_bitmap *b);
 void smp_knob_draw(void *view, smp_bitmap *b);
+void smp_note_draw(void *view, smp_bitmap *b);
 
 /* Cutoff's value as text, -64..63 with 0 in the middle, when the selected track plays SAMPLE; the
    stock 0..127 otherwise (the object is SNARE's SWEEP's too). Installed into the object by

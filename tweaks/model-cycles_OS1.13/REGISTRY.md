@@ -6,7 +6,7 @@ Adresses : VA de l'OS 1.13 (la section 3 commence en `0x40000400`). Un mod qui v
 
 ## En bref
 
-- 290 tweaks, 32 183 écritures.
+- 290 tweaks, 32 184 écritures.
 - Masques de sprites libérables : 164 (35 960 o), dont 51 pris (17 808 o) et **113 libres (18 152 o)**.
 - Crochets sur l'OS : 115 adresses détournées, dont 70 à l'identique par des mods de familles différentes.
 - Pointeurs réécrits : 66 adresses. Écritures dans des octets 0xFF hors masques : 14 zones.
@@ -395,7 +395,7 @@ Code trop gros pour un masque, ajouté à la fin de l'image (`at`) et copié au 
 | macro | 25 | `0x401aa140` | 105 152 | `0x401c3c00` | `0x43000000` | 324 576 |  |
 | macro-acid | 25 | `0x401aa140` | 111 760 | `0x401c55d0` | `0x43000000` | 492 288 |  |
 | acid | 26 | `0x401aa140` | 11 380 | `0x401acdb4` | `0x43000000` | 221 928 |  |
-| sampler | 27 | `0x401aa140` | 40 508 | `0x401b3f7c` | `0x43000000` | 283 296 |  |
+| sampler | 27 | `0x401aa140` | 41 120 | `0x401b41e0` | `0x43000000` | 283 300 |  |
 | refmachine | 28 | `0x401aa140` | 6 868 | `0x401abc14` | `0x43000000` | 221 376 |  |
 | refmachine2 | 29 | `0x401aa140` | 10 224 | `0x401ac930` | `0x43000000` | 221 428 |  |
 | model-tg | 30 | `0x401aa140` | 87 936 | `0x401bf8c0` | `0x401aa140` | 87 936 |  |
@@ -748,7 +748,7 @@ Constantes 32 bits de l'OS (tables de fonctions, données) qui pointent maintena
 | `0x40100f98` | `40023d8c` | masque `0x4018d038` +0x0 | control-all-config |
 | `0x401016e4` | `40024e86` | masque `0x40184df8` +0x88 | lfo-plus |
 | `0x401016ec` | `400426fa` | masque `0x401780a8` +0xa2 | lfo-plus |
-| `0x40102578` | `400299de` | charge utile (mémoire) +0xc56 | refmachine2 |
+| `0x40102578` | `400299de` | charge utile (mémoire), 2 valeurs selon la combinaison | refmachine2, sampler |
 | `0x40118614` | `400ab6e8` | charge utile (mémoire) +0x31196 | sdvintage-exact |
 | `0x40118614` | `400ab6e8` | masque `0x4018a788` +0x0 | sdvintage-snare |
 | `0x4011862c` | `400ab3b0` | charge utile (mémoire) +0x31000 | sdvintage-exact |
@@ -820,7 +820,7 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | macro | 122 | 56 | 14 | 48 | 2 | 2 | 0 | 105 152 o | notes/36 |
 | macro-acid | 122 | 55 | 15 | 48 | 2 | 2 | 0 | 111 760 o | notes/36 |
 | acid | 122 | 56 | 14 | 48 | 2 | 2 | 0 | 11 380 o | notes/36 |
-| sampler | 126 | 55 | 18 | 51 | 1 | 1 | 0 | 40 508 o | notes/60 |
+| sampler | 127 | 55 | 18 | 52 | 1 | 1 | 0 | 41 120 o | notes/60 |
 | refmachine | 116 | 55 | 11 | 48 | 1 | 1 | 0 | 6 868 o | notes/65 |
 | refmachine2 | 127 | 55 | 18 | 52 | 1 | 1 | 0 | 10 224 o | notes/63 |
 | model-tg | 142 | 94 | 32 | 0 | 1 | 1 | 14 | 87 936 o | notes/36 |
@@ -918,5 +918,5 @@ A machine draws on its own tracks; when two machines are built together, their d
 |---|---|
 | knob | refmachine2 (REF2's tracks); sampler (SAMPLE's tracks) |
 | main | level-pan-values (every track): its own hooks, 0x400081f2 and 0x4001aa4e; refmachine2 (REF2's tracks); sampler (SAMPLE's tracks) |
-| note | refmachine2 (REF2's tracks) |
+| note | refmachine2 (REF2's tracks); sampler (SAMPLE's tracks) |
 

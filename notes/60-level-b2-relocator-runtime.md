@@ -494,3 +494,31 @@ half-finished step never blocks a build.
   flashed is §18's composed 0.11, byte for byte, the build played in digiemu.
 - With it the card's `tested` holds for the page's build of 0.11, as it did for 0.10 (§17).
 - The guide's Tested line, release 0.9, the sampler manifest's `tests.hardware` and the stamp `2026-10-26-02` say so.
+
+## 20. One-Shot 0.12 pinned: a held trig's view (2026-10-30)
+
+- **What changed upstream**: One-Shot 0.12 (`c32c49d`, tag `v0.12`) shows its whole view while Start or Length turns
+  with a trig held: the waveform of what the held trig plays, its start and end on the trig's locks, a sample lock's
+  sample and name (One-Shot's TECHNICAL.md §9). For that it takes a third vtable entry, NoteVelocityView's draw
+  (`0x40102578`), whose stock draw would cover the left half: `smp_note_draw` calls it except while the knob draw has
+  just drawn SAMPLE's view. `machine/os.h`, `view.c` and `view.h` differ from 0.11.
+- **Here**: the three files copied as they are. The manifest takes `view.note` (`smp_note_draw`, kept), claims the view
+  `note`, and its texts say what the view does. `view.note` is the point the dispatchers 0.3 and REF2 0.2 brought in
+  (notes/63 §22): SAMPLE alone writes its entry directly, SAMPLE next to REF2 goes through `dp_note`.
+- **`gen_sampler.py`**: pinned on v0.12. 127 writes (126 before: the new vtable entry), 34 606 bytes of code and
+  tables, 62 116 of variables, 41 120 bytes added to the image; 273 conflicts, as before. `compose.py --compare`:
+  writes, payload and symbols identical to `27-sampler.json`. With REF2 (`compose.py --machines sampler,refmachine2`)
+  the dispatchers take five points, `view.note` among them.
+- **Hashes**: SAMPLE alone `db7bde6a…` (`.syx` `a067ab59…` from `build.py -t sampler`), with Control All Config
+  `c469f1f0…`, with Digital Delay `30d2a1f2…`, with POTS `ffd5d966…`, all four `7abde1c9…`, SAMPLE with both effects
+  `1d7bc3b1…` (BUILD.md); the smoke test's pins:
+  127 writes and 41 120 bytes in the log line, the Model:Samples packings `6dc0c4c8…` (`_smp-os`) and `34be7dca…`
+  (`_cyc-os`), computed apart from the page with `build.py -t sampler` and `mods_for_samples.py`.
+- The card's text, the guide's SAMPLE section (a step for the held trig) and Tested line, release 0.17, stamp
+  `2026-10-30-01`.
+- **Tested**: host tests (One-Shot's `make machine-test` with and without the switches, its new `test_view_held`);
+  One-Shot's own image of 0.12 (the same code without `CM_SYMBOLS` and `SMP_SWITCHES`) in digiemu and on a
+  Model:Cycles by the maintainer (2026-10-30). Unicorn, run by the maintainer on this pin (2026-10-30, the venv of
+  notes/63 §22): `test_views.py` (now with `view.note`'s dispatcher: both methods in its table, each track's draw),
+  `test_compose.py`, `test_shortcuts.py`, `test_refchord.py`, `test_chordtables.py`, **ALL OK** `[FAIT en émulation]`.
+  The page's build on the device next. The card stays `tested`, as in §18.

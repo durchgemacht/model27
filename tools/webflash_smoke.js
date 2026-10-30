@@ -751,8 +751,8 @@ async function main() {
       await tickKey(w, doc, "sampler");
       const f = app.state.fw;
       check(app.state.buildKey === "sampler" && f && f.kind === "built" && f.sha === app.REF_MAINOS["sampler"] && f.modsRef
-        && /Composed sampler: sampler as machine 6, 126 writes, 40508 bytes added to the OS\./.test(text(doc, "log")),
-        "real OS: SAMPLE composed in the page (machine 6, 126 writes, 40 508 bytes), its MAIN OS REF_MAINOS[\"sampler\"], " +
+        && /Composed sampler: sampler as machine 6, 127 writes, 41120 bytes added to the OS\./.test(text(doc, "log")),
+        "real OS: SAMPLE composed in the page (machine 6, 127 writes, 41 120 bytes), its MAIN OS REF_MAINOS[\"sampler\"], " +
         "its tweak checked against REF_MODS");
     }
     if (SHARD_N === 1)
@@ -942,8 +942,8 @@ async function main() {
   // byte for byte those of tools/mods_for_samples.py for the same SAMPLE build (SHA-256 below: tools/build.py -t sampler,
   // then tools/mods_for_samples.py on its output).
   if (REAL_OS && REAL_SMP && MAIN) {
-    const MFS = { smp: "46f9acdbf07f56058fae84ef4beaa67556adae6de2c3f3b558fa927880cfaa45",
-                  cos: "0fecd30e68a26bc7de140a7087bcbde49783efea91433d18292059cfa9caef23" };
+    const MFS = { smp: "6dc0c4c84e14b61cca315a1def21ce2a8833f7f6bbf16511803ffee9c58d0bb9",
+                  cos: "34be7dca68ecf6d0d575d70688ab6231256e5be83df5d127adac9fe56f9eda89" };
     const env = await load({ devName: "Elektron Model:Samples", device: { id: 25, name: "Model Samples" } });
     const { w, doc, errors } = env;
     const app = w.MCFlasherApp;

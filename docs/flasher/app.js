@@ -31,28 +31,28 @@ const ELEKTRON_ST_DL = "https://www.elektron.se/support-downloads/syntakt";
 const REF_MAINOS = {
   // each card alone: each variant, each combination of real Syntakt engines
   "control-all-config": "eb70de0a330dc9c033db5c5fc5d8589c3356c94ad346a8d30840e03ecb90299d",
-  "sampler": "72b596dc5ce258dd1e5419c961310dd80a7e286b3ee86ec2ebf1bf4af8413f61",
+  "sampler": "db7bde6a9026b2ee6a1aad2e803b0450b0ced9886b36ad3f7add17273bf5acf5",
   "digidelay": "0ce37cf6882b11ac19d3782843d3588b73d9907eaaf8c5cc500cec051742e4ae",
   "pots": "4a1521cb90c1206e90fc243846081695008620fc0c657c2940dd19d55937f4dd",
   // every pair of cards the page lets you tick together
-  "control-all-config+sampler": "327cbd37f5b30d03b82b61ab3f20d28f688f47173f7251c1ee7a18782d3d9618",
+  "control-all-config+sampler": "c469f1f0ed18cbff45dbe193d2fe1ac6f39685f04e52cf5de014fe2f5f73dbce",
   "control-all-config+digidelay": "1571ba93fd41437c08a43c4ed5b1406c5ca76c89e5340ffd2073dbc6a67545d6",
   "control-all-config+pots": "fb3b998c09987463203a4f8366ceef51dd3a14e30e02f38be2b4b1cf7b85e758",
-  "sampler+digidelay": "5582b3dd81a490f9bb5f4cbc8c88815c63dacd62d0dff6054e342d797cea761e",
-  "sampler+pots": "8a68df7b3cbee13c13c1c65c8f39f3da61b4272318b188208d961631aaff9659",
+  "sampler+digidelay": "30d2a1f205a9c2225abffc10d7bb0d90f406717d21db6d8fa118090460685b19",
+  "sampler+pots": "ffd5d96693db4f9e2126154115683340283d0a39b8296b01aaf17aacb7007674",
   "digidelay+pots": "7e867f703d0146b6f1ea70cb049b473585a14b9fce7b9994c3135ffb9e6ff45c",
   // the largest combinations: every compatible card ticked, from each card, both ways, with and without the Syntakt engines, with and without each of the machines that join them
-  "control-all-config+sampler+digidelay+pots": "97242c243d98792dad4428d25ddc2b9a44de40cf8163bc798b3cccf73c557e09",
+  "control-all-config+sampler+digidelay+pots": "7abde1c9d0eae977afae1930c390770c92275cacaae635012cc65fd44b8a2961",
 };
 const REF_MODS = {
   "control-all-config": {"w": "b47aa26f4f855c750735a03eae7453847356c376f47a4010cf4f1a5bf316be5e"},
-  "sampler": {"w": "28853ad2da8ee02d992848e217296dd8c8083a2fd7b7cf1887069dd27b4f2a5c", "p": "bc301051b49d96187027131eed93aaa8d26255a96364697e1f0a5a7a31daa34b"},
+  "sampler": {"w": "e5c39e4de5a524af013d50d88a0563f34cdbca268a78be959e6e64e3bb4b1b3e", "p": "a7d4990f7fdcadf4988eba481c6a8b4fdaeab752c561b1d4e30c02d2f8d4fab5"},
   "digidelay": {"w": "3bf52cde4e512f188b62076d4afd59ff888e59c6544635510ab95316e91bdf96", "p": "b6ddafd224b5431469aeff3c942fe07b21ff6584aa3146313763677dc51c3261"},
   "pots": {"w": "7945ae8c8ec46561dce23026459b42f3ac8f04e9dfcdccc5787de1a573df1a2b", "p": "c7dfdf0bb79aa92c6fa421ed282267bcad02e68f6cbbf5e54d38b3d9558b9c60"},
-  "sampler+digidelay": {"w": "d7f3a2d8b9f8d65fe3624160bf761a794bde651a576d8cbf275786dcae7eea27", "p": "97268f2785ec89e6e472f6ccfd2f348953ffa6f3551fe26a0747c274ccaeb039"},
-  "sampler+pots": {"w": "32fa270241c56f701565ec4ec16b55eeb353805240e6be85373f5549315ed3af", "p": "a8eec4f3577330c4ed3105545b768bf6cd22551a4c113ea327dca203e2e6d87d"},
+  "sampler+digidelay": {"w": "abc268cdda3fdf53b95ec151a4897ebc0c86002df33b54f8a5288a838f5d1a49", "p": "2bce82a7d0250de7150946a5cdb78045df75fd7553b970503e20e45eb01ac112"},
+  "sampler+pots": {"w": "4a819e9d681c29797f35777d4e09e37bd59de86555aa45367320db158cd89627", "p": "c2d1bcb03867af5d6cfd2ab89c22c23ae93f4809b070cda5fece49cfecd3a01e"},
   "digidelay+pots": {"w": "467a1e5a69afab6d9026c105870beab9b0c34f3c078860ada1d9a20d01942fe1", "p": "deb2571e85cb53022bc70199ffbb4e1f97af4de34008b56f06a228ebf49864e3"},
-  "sampler+digidelay+pots": {"w": "9b92ac9c54fe9068b37787b6bd274812d8d5e06f071065643473ad745389acce", "p": "d3cfadc3dfeaeb126d208ebd73d021b282dfffb47f294dbb7fe918e8cc21e17f"},
+  "sampler+digidelay+pots": {"w": "1faaff7cf473ae5156244b6640e9ac148888e0f7c85d4c466736da2590d33690", "p": "a5270affaa260ab3ff721104e60a2a901cddeeabc91a09e7f47ba6d955df266d"},
 };
 
 // "Samples OS" tab: official Model:Samples OS 1.13 inside the official Model:Cycles container
@@ -815,7 +815,7 @@ const FEAT = {
       "clash_model-tg": "both change the same sound record functions of the firmware",
       "clash_track-filter": "both change the same sound record functions of the firmware",
       "clash_sample-preview": "both read sample files from the same PRESET browser, and sample preview needs Model-TG",
-      desc: "An extra machine after Chord: SAMPLE plays one sample from the +Drive per trig, the way the Model:Samples does (6-tap interpolation at 96 kHz, then the Cycles' own decimator and amp chain). Open the PRESET browser (FUNC + MACHINE) on a SAMPLE track and open a sample file: the sound takes its name and keeps the choice in the project, the kit and the preset; hold a step while you open one and the step gets it as a sound lock. COLOR = Start and SHAPE = Length (0 to 120 each; the trig ends at Start + Length), SWEEP = the Model:Samples' filter (lowpass to the left, off in the centre, highpass to the right, shown as -64 to 63), CONTOUR = Reso; DECAY, GATE and PUNCH as on Tone. Hold RETRIG and press PUNCH for Loop, GATE for Reverse: Loop plays Start to End again and again with a hard seam as on the Model:Samples (a single-cycle waveform loops without a step) until DECAY closes it, Reverse plays it backwards from the next trig; both are saved with the sound, and PUNCH's and GATE's LEDs show them while RETRIG is held. A trig that cuts a sounding note brings the new one in over 0.67 ms. The main screen shows the sample's name, with L and R while Loop and Reverse are on, and its waveform with the start and end marked. Stereo files play as mono, other sample rates keep their pitch.",
+      desc: "An extra machine after Chord: SAMPLE plays one sample from the +Drive per trig, the way the Model:Samples does (6-tap interpolation at 96 kHz, then the Cycles' own decimator and amp chain). Open the PRESET browser (FUNC + MACHINE) on a SAMPLE track and open a sample file: the sound takes its name and keeps the choice in the project, the kit and the preset; hold a step while you open one and the step gets it as a sound lock. COLOR = Start and SHAPE = Length (0 to 120 each; the trig ends at Start + Length), SWEEP = the Model:Samples' filter (lowpass to the left, off in the centre, highpass to the right, shown as -64 to 63), CONTOUR = Reso; DECAY, GATE and PUNCH as on Tone. Hold RETRIG and press PUNCH for Loop, GATE for Reverse: Loop plays Start to End again and again with a hard seam as on the Model:Samples (a single-cycle waveform loops without a step) until DECAY closes it, Reverse plays it backwards from the next trig; both are saved with the sound, and PUNCH's and GATE's LEDs show them while RETRIG is held. A trig that cuts a sounding note brings the new one in over 0.67 ms. The main screen shows the sample's name, with L and R while Loop and Reverse are on, and its waveform with the start and end marked; hold a trig and turn COLOR or SHAPE, and the whole screen shows that trig's waveform with the marks on its locks (a sample lock's own sample and name) until the value goes. Stereo files play as mono, other sample rates keep their pitch.",
       note: "Needs samples on the +Drive in the Model:Samples' format, what Elektron Transfer and One-Shot's upload page write. On a SAMPLE track, RETRIG + PUNCH and RETRIG + GATE flip Loop and Reverse instead of PUNCH and GATE; TRACK + PUNCH or GATE stays Control All. A project using SAMPLE needs a firmware with SAMPLE: set SAMPLE tracks back to an original machine before flashing another choice or the official OS. English only for now." },
     "chord-keys": { label: "Chord Keys",
       short: "On a CHORD track, TRIG 1–16 play the chords of your scale.",

@@ -1,12 +1,12 @@
 {
  "schema": "cycles-mod/0.1",
  "id": "sampler",
- "version": "0.11",
- "name": "SAMPLE machine: sampler for samples on the +Drive, one shot or loop, forward or reverse (Cycles One-Shot 0.11)",
- "description": "Plays a sample from the +Drive once per trig, or in a loop (RETRIG + PUNCH), forward or reverse (RETRIG + GATE): 6-tap polyphase at 96 kHz, the stock decimator, the amp chain set up like TONE, then the Model:Samples' filter. A loop goes round what Start and Length select with a hard seam, as on the Model:Samples, so a single cycle loops without a step; a trig that cuts a sounding note brings the new one in over 0.67 ms. The sample is chosen in the PRESET browser and saved with the sound, the switches too; the main screen shows the pattern's number, the track's number and level, the sample's name with L and R while the switches are on, and its waveform.",
+ "version": "0.12",
+ "name": "SAMPLE machine: sampler for samples on the +Drive, one shot or loop, forward or reverse (Cycles One-Shot 0.12)",
+ "description": "Plays a sample from the +Drive once per trig, or in a loop (RETRIG + PUNCH), forward or reverse (RETRIG + GATE): 6-tap polyphase at 96 kHz, the stock decimator, the amp chain set up like TONE, then the Model:Samples' filter. A loop goes round what Start and Length select with a hard seam, as on the Model:Samples, so a single cycle loops without a step; a trig that cuts a sounding note brings the new one in over 0.67 ms. The sample is chosen in the PRESET browser and saved with the sound, the switches too; the main screen shows the pattern's number, the track's number and level, the sample's name with L and R while the switches are on, and its waveform; with a trig held, turning Start or Length shows the whole view for that trig, its sample (a sample lock's own) and its locks on the waveform.",
  "license": "MIT",
  "credit": {"kind": "own", "who": "durchgemacht and Claude", "repo": "durchgemacht/cycles-one-shot"},
- "source": "https://github.com/durchgemacht/cycles-one-shot/tree/a874a1ccea1fe58022c67377ca939b24994b2160",
+ "source": "https://github.com/durchgemacht/cycles-one-shot/tree/c32c49d6e215bad00adda48b88ce71aeaeda545f",
  "device": "Model:Cycles",
  "os": "1.13",
  "order": 27,
@@ -25,7 +25,8 @@
    {"symbol": "cm_descriptor_base", "kind": "descriptor_base"}
   ],
   "symbols": {"update": "sampler_update", "render": "sampler_render"},
-  "keep": ["smp_hook_open", "smp_hook_save2", "smp_hook_save1", "smp_hook_load", "smp_hook_tick", "smp_main_draw", "smp_knob_draw"]
+  "keep": ["smp_hook_open", "smp_hook_save2", "smp_hook_save1", "smp_hook_load", "smp_hook_tick", "smp_main_draw", "smp_knob_draw",
+           "smp_note_draw"]
  },
  "uses": [
   {"point": "machine", "name": "SAMPLE", "image": 4, "decay_default": 127,
@@ -51,7 +52,9 @@
   {"point": "view.main", "vtable": {"at": "0x400ffe30", "stock_ptr": "0x4001b22a", "symbol": "smp_main_draw"},
    "why": "MainScreenView's draw method: the waveform on a SAMPLE track"},
   {"point": "view.knob", "vtable": {"at": "0x4010053c", "stock_ptr": "0x4001e40a", "symbol": "smp_knob_draw"},
-   "why": "the knob view's draw method"},
+   "why": "the knob view's draw method: SAMPLE's view while Start or Length turns, with a trig held for that trig and its locks"},
+  {"point": "view.note", "vtable": {"at": "0x40102578", "stock_ptr": "0x400299de", "symbol": "smp_note_draw"},
+   "why": "NoteVelocityView's draw method: it leaves the left half to SAMPLE's view while a held trig's Start or Length is shown, so the waveform keeps its 105 columns"},
   {"point": "memory.ram", "range": ["0x43800000", "0x46700000"], "why": "the sample pool, 47 MB"}
  ],
  "claims": {
@@ -61,7 +64,7 @@
   "formatters": [{"knob": "Cutoff", "object": 53, "replaces": "0x400456c8", "scope": "all",
                   "why": "an interface object has one formatter, and object 53 is also SNARE's SWEEP: smp_fmt_cutoff falls back to the stock one off SAMPLE's tracks and is put in only while the stock one is there (machine/view.c)"}],
   "gestures": [{"combo": "RETRIG + PUNCH", "meaning": "Loop"}, {"combo": "RETRIG + GATE", "meaning": "Reverse"}],
-  "views": ["main", "knob"]
+  "views": ["main", "knob", "note"]
  },
  "cost": {
   "emulation": {"status": "not measured with mcengine.py; One-Shot's README states about 800 instructions per track and block for the filter alone"},
@@ -80,7 +83,7 @@
   "conflicts_declared": [{"with": "sample-preview", "why": "plays sample files from the same browser and needs Model-TG"},
                          {"with": "sample-preview-st", "why": "the same, on Model-TG's base"}]
  },
- "tests": {"emulation": {"tool": "digiemu; tools/emu/test_compose.py and tools/emu/test_shortcuts.py (Unicorn, the OS's own code, notes/60 §14, notes/63 §18)", "date": "2026-10-26", "build": "the composed object registered by the registrar runtime, alone (as the web flasher builds it) and with refmachine and refmachine2: the composed 0.9, run by the maintainer, ALL OK (notes/60 §15); the composed 0.10, ALL OK on 2026-10-25 (§16); the composed 0.11 with the shortcut layer, alone, in digiemu (the maintainer, 2026-10-26: Loop, Reverse, the fade-in after a cut; notes/60 §18), and test_compose.py, test_shortcuts.py (SAMPLE's switches), test_views.py, test_refchord.py, test_chordtables.py, ALL OK on 2026-10-26"},
-           "hardware": {"date": "2026-10-26", "by": "maintainer", "build": "the composed 0.11 with the shortcut layer, flashed from the web flasher, 2026-10-26: Loop, Reverse, their LEDs and letters, a single cycle, a cut, the stock presses, a saved project (notes/60 §19); One-Shot 0.10's own build (the same code without CM_SYMBOLS), 2026-10-25, as One-Shot 0.9's on 2026-10-24; for 0.8, SAMPLE alone as the web flasher builds it (notes/60 §13) and as machine 6 next to refmachine (the pair, notes/60 §12), 2026-10-22; the composed 0.10 flashed from the web flasher, 2026-10-25 (notes/60 §17); the composed 0.9 never flashed (§15)"},
+ "tests": {"emulation": {"tool": "digiemu; tools/emu/test_compose.py and tools/emu/test_shortcuts.py (Unicorn, the OS's own code, notes/60 §14, notes/63 §18)", "date": "2026-10-30", "build": "the composed object registered by the registrar runtime, alone (as the web flasher builds it) and with refmachine and refmachine2: the composed 0.9, run by the maintainer, ALL OK (notes/60 §15); the composed 0.10, ALL OK on 2026-10-25 (§16); the composed 0.11 with the shortcut layer, alone, in digiemu (the maintainer, 2026-10-26: Loop, Reverse, the fade-in after a cut; notes/60 §18), and test_compose.py, test_shortcuts.py (SAMPLE's switches), test_views.py, test_refchord.py, test_chordtables.py, ALL OK on 2026-10-26; the composed 0.12 (view.note, its own entry alone and through the dispatcher next to REF2): test_views.py, test_compose.py, test_shortcuts.py, test_refchord.py, test_chordtables.py, ALL OK on 2026-10-30 (notes/60 §20); One-Shot 0.12's own build in digiemu, 2026-10-30"},
+           "hardware": {"date": "2026-10-30", "by": "maintainer", "build": "One-Shot 0.12's own build (the same code without CM_SYMBOLS and SMP_SWITCHES), 2026-10-30: the view of a held trig's locks, a sample lock, two trigs held; the composed 0.12 not yet; the composed 0.11 with the shortcut layer, flashed from the web flasher, 2026-10-26: Loop, Reverse, their LEDs and letters, a single cycle, a cut, the stock presses, a saved project (notes/60 §19); One-Shot 0.10's own build (the same code without CM_SYMBOLS), 2026-10-25, as One-Shot 0.9's on 2026-10-24; for 0.8, SAMPLE alone as the web flasher builds it (notes/60 §13) and as machine 6 next to refmachine (the pair, notes/60 §12), 2026-10-22; the composed 0.10 flashed from the web flasher, 2026-10-25 (notes/60 §17); the composed 0.9 never flashed (§15)"},
            "status": "tested"}
 }

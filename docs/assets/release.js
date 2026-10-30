@@ -7,6 +7,12 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.17", date: "2026-10-30", changes: [
+    { en: "SAMPLE now comes from Cycles One-Shot 0.12: hold a trig on a SAMPLE track and turn COLOR or SHAPE, and the whole screen shows that trig's waveform at full width, the lines on its Start and Length locks; a sample lock shows its own sample and name. The trig's note, velocity and length come back once the value goes; just holding a trig shows them as before",
+      fr: "SAMPLE vient maintenant de Cycles One-Shot 0.12 : tenez un trig sur une piste SAMPLE et tournez COLOR ou SHAPE, et tout l'écran montre la forme d'onde de ce trig sur toute sa largeur, les lignes sur ses locks de Start et de Length ; un sample lock montre son propre sample et son nom. La note, la vélocité et la longueur du trig reviennent dès que la valeur disparaît ; tenir un trig sans tourner les montre comme avant" },
+    { en: "One-Shot 0.12 was played in its own build in the digiemu emulator and on a Model:Cycles (2026-10-30); as this page builds it, not yet on the machine",
+      fr: "One-Shot 0.12 a été joué dans son propre build dans l'émulateur digiemu et sur un Model:Cycles (2026-10-30) ; tel que cette page le construit, pas encore sur la machine" },
+  ] },
   { version: "0.16", date: "2026-10-29", changes: [
     { en: "Digital Delay and POTS leave the machines more time: the stock delay and reverb now start reading their lines before the voices play, instead of the mixer waiting for that read afterwards, which Model-TG measured at about 4.5 % of every block. Model-TG's idea (TinyGregAudio, MIT). The same sound, checked block for block in an emulator, and played on a Model:Cycles from this page (2026-10-29): a busy project runs and sounds the same",
       fr: "Digital Delay et POTS laissent plus de temps aux machines : le delay et la reverb d'origine lancent maintenant la lecture de leurs lignes avant que les voix jouent, au lieu que le mixeur attende cette lecture après, ce que Model-TG a mesuré à environ 4,5 % de chaque bloc. Une idée de Model-TG (TinyGregAudio, MIT). Le même son, vérifié bloc par bloc en émulation, et joué sur un Model:Cycles depuis cette page (2026-10-29) : un projet chargé tourne et sonne pareil" },

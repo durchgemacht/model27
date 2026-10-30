@@ -1304,6 +1304,12 @@ The maintainer chose this over a waveform in the right half (half the columns) a
 - **One-Shot's own image with SAMPLE 0.12** (`739ee9bd…`, its three vtable entries written directly, no
   dispatcher): the maintainer played it in digiemu ("getestet, funktioniert") and on a Model:Cycles ("Gerät getestet,
   passt"), 2026-10-30.
-- **Left:** One-Shot 0.12 committed and tagged, then pinned here (`gen_sampler.py`, its manifest with `view.note` and
-  the claim), and `test_views.py` again for `view.note`'s dispatcher; a model27 build with SAMPLE 0.12 on the device.
+- **SAMPLE 0.12 pinned** (One-Shot `c32c49d`, tag `v0.12`; notes/60 §20): its manifest takes `view.note` and claims
+  the view, so `sampler,refmachine2` and `refmachine2,sampler` now put five points through the dispatchers, `view.note`
+  through `dp_note` with both methods in its table.
+- **`test_views.py` on that pin** (the maintainer, 2026-10-30, the same venv): **ALL OK** `[FAIT en émulation]`, now with
+  `view.note` through `dp_note` in `sampler,refmachine2`, `refmachine2,sampler` and `sampler,refmachine,refmachine2`:
+  the site, the table with SAMPLE's and REF2's methods at their machines, each track's draw; `test_compose.py`,
+  `test_shortcuts.py`, `test_refchord.py`, `test_chordtables.py` ALL OK too (notes/60 §20).
+- **Left:** the page's build of SAMPLE 0.12 on the device.
 
