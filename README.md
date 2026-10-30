@@ -23,8 +23,8 @@ Model:Cycles over USB. Modded-Cycles has since moved to a single OS with 2.0; mo
 together, so that a new machine fits next to the others. The rules a mod follows for that are the
 **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.5), written alongside.
 
-**Status: beta, release 0.20.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers six
-cards. Five are tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
+**Status: beta, release 0.21.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers six
+cards, all tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
 [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples on the +Drive,
 [Control All Config](https://github.com/durchgemacht/cycles-control-all-config), **Digital Delay**, the first
 effect: a second delay for the delay slot, chosen per pattern with TRACK + Delay Time, based on the digital delay of
@@ -33,7 +33,7 @@ own second effect: a delay whose repeats go down an old telephone line. The fift
 the percentages**, model27's own, puts the A:B conditions before the percentages on the knob, the five dots under the
 value following. The sixth, **Trig preview** by
 [drumkilla](https://github.com/drumkilla/elektron-model-tweaks), plays a held trig's step when you press PAGE with the
-sequencer stopped; tested on a Model:Cycles inside Model-TG, experimental in the page so far. The
+sequencer stopped. The
 [guide](https://durchgemacht.github.io/model27/guide/) explains them. Combining machines is proven with two internal
 reference machines: SAMPLE with the first one on a Model:Cycles; the second one, with a shortcut, and sharing the
 main screen, the knob view, the screen's tick and the browser with SAMPLE, in emulation so far, composed by the page

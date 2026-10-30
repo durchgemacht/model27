@@ -147,8 +147,8 @@ ALL_FEATURES = [
         "desc": "Sequenceur a l'arret (ou en pause), maintiens un pas et appuie sur PAGE : le pas joue avec sa note, "
                 "sa longueur et ses p-locks.",
         # drumkilla's tweak as he ships it since his 1.2.0 (notes/34 §6); tested on the Model:Cycles on 2026-10-04
-        # inside Model-TG, which carries the same code (notes/34 §5); experimental here until flashed from this page
-        "status": "experimental",
+        # inside Model-TG, which carries the same code (notes/34 §5), then flashed from this page on 2026-10-30 (§7)
+        "status": "tested",
         "credit": {"kind": "by", "who": "drumkilla", "repo": "drumkilla/elektron-model-tweaks"},
         "license": "LICENSE-elektron-model-tweaks",
         "variants": [

@@ -351,9 +351,9 @@ async function main() {
       && tpAll === "control-all-config,trig-preview,sampler+digidelay+pots,trig-cond-order" && sixOn && !chosen().length
       && doc.querySelector('#cat-seq #feat-trig-preview') && doc.querySelector('#features a[href$="#preview"]')
       && doc.querySelectorAll('input[name="var-trig-preview"]').length === 0
-      && /Experimental/.test(doc.querySelector("label[for=feat-trig-preview] .tag").textContent),
+      && /Tested/.test(doc.querySelector("label[for=feat-trig-preview] .tag").textContent),
       `Trig preview alone ${tpAlone}; with Control All Config ${tpCac}; with every card ${tpAll}, all ticked, no ` +
-      "clash; in Sequencer; no sub-choice; its guide link; tagged Experimental");
+      "clash; in Sequencer; no sub-choice; its guide link; tagged Tested");
     box("feat-sampler").click(); await wait(30);
     check(doc.querySelectorAll('input[name="var-sampler"]').length === 0, "SAMPLE: a machine card, no sub-choice");
     check(!!doc.getElementById("tab-samples") && doc.getElementById("panel-samples").hidden && doc.getElementById("drop2-wrap").hidden,

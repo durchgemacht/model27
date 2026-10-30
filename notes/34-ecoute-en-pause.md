@@ -172,3 +172,13 @@ renumérotées) ; la version 0.20 ; le tampon `2026-10-30-04` ; le README ; `too
 2. `[À FAIRE]` **Sur la machine**, flashé depuis la page avec toutes les cartes cochées : séquenceur arrêté, un trig tenu + PAGE
    sonne (aussi sur une piste SAMPLE avec des locks de Start et Length, et sur une piste mutée) ; en pause (PLAY pendant
    la lecture), pareil ; en lecture, PAGE tourne la page ; le trig reste.
+
+## 7. Testé depuis la page (30/10/2026, version 0.21)
+
+Commits `3048241` (la carte, §6) et `6175d7a`, poussés par le mainteneur (`git ls-remote` : `origin/main` = `6175d7a`) ;
+la page en ligne servait ces fichiers octet pour octet (tampon `2026-10-30-04`, dix fichiers comparés le 30/10/2026). Le
+mainteneur a flashé depuis la page et testé sur son Model:Cycles : « Passt ». Quelles cartes étaient cochées et quels
+points de la liste du §6.5 ont été essayés n'a pas été précisé.
+
+La carte passe à `tested` (`FEATURES`, la ligne *Testé* du guide, version 0.21, le README, le tampon `2026-10-30-05`,
+`tools/webflash_smoke.js`).

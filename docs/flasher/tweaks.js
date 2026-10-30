@@ -234,7 +234,7 @@ window.MC_TWEAKS = {
    "id": "trig-preview",
    "label": "Ecoute d'un pas (TRIG + PAGE)",
    "desc": "Sequenceur a l'arret (ou en pause), maintiens un pas et appuie sur PAGE : le pas joue avec sa note, sa longueur et ses p-locks.",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "by",
     "who": "drumkilla",
