@@ -91,7 +91,7 @@ CLAIM_TYPES = ("sound_slots", "record_slots", "saved", "descriptors", "formatter
 SOUND_SLOTS = range(0, 33)          # k 0-32 (STANDARD.md §5.2)
 RECORD_SLOTS = range(0, 32)         # the record's 16-bit slots at +28 + 2 * slot, as far as read (STANDARD.md §5.3)
 DESCRIPTORS = range(1, 5)           # the OS's unused descriptors, "Error" (STANDARD.md §3.1)
-VIEWS = ("main", "knob")
+VIEWS = ("main", "knob", "note")      # MainScreenView, the knob view, NoteVelocityView (STANDARD.md §3.1)
 
 _ALT = re.compile(r"([A-Z][A-Z-]*)(?: (\d+)(?:-(\d+))?)?")
 
@@ -656,9 +656,9 @@ def check_package(m, claims, shortcut_part):
                  for a, b in [u["range"]])
     if ram != sorted(claims.get("ram", [])):
         errors.append("claims.ram is not the RAM of its uses (memory.ram, memory.sram)")
-    views = sorted(u["point"][5:] for u in uses if u.get("point") in ("view.main", "view.knob"))
+    views = sorted(u["point"][5:] for u in uses if u.get("point") in ("view.main", "view.knob", "view.note"))
     if views != sorted(v for v, _s, _h in claims.get("views", [])):
-        errors.append("claims.views are not the views of its uses (view.main, view.knob)")
+        errors.append("claims.views are not the views of its uses (view.main, view.knob, view.note)")
     sc = shortcut_part["shortcut"] if shortcut_part else None
     for u in (u for u in uses if u.get("point") == "shortcut"):
         what = u.get("press", u.get("knob"))

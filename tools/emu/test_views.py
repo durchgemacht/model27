@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
-"""Proof of the dispatchers and of REF2's views and UI hooks (notes/63 §4, steps B4c and B4d) on the OS's own code:
-the main screen's and the knob view's draw methods, the screen's tick and the browser's file opening, which REF2
-takes as SAMPLE does, directly when it is the only machine that takes them and through the builder's dispatchers
-(tools/machines/dispatch/) when SAMPLE is in the build too.
+"""Proof of the dispatchers and of REF2's views and UI hooks (notes/63 §4, steps B4c and B4d, and §22) on the OS's own
+code: the main screen's, the knob view's and NoteVelocityView's draw methods, the screen's tick and the browser's file
+opening, which REF2 takes as SAMPLE does, directly when it is the only machine that takes them and through the
+builder's dispatchers (tools/machines/dispatch/) when SAMPLE takes them too. Which machine takes which point is read
+from the manifests: SAMPLE takes NoteVelocityView's draw from One-Shot 0.12 on, so with an older SAMPLE that point is
+REF2's own entry and its dispatcher is not tested.
 
 For each selection (by default: refmachine2; sampler,refmachine2; refmachine2,sampler; sampler,refmachine,refmachine2),
 on the official OS 1.13:
-  1. the sites: REF2 alone writes its two draws into MainScreenView's vtable entry (0x400ffe30) and the knob view's
-     (0x4010053c), and its tick and browser hook at 0x400075f0 and 0x400a6602, with no dispatcher; with SAMPLE, all
-     four go to the dispatchers, whose tables hold SAMPLE's and REF2's methods at their machines and nothing at the
-     others;
+  1. the sites: REF2 alone writes its three draws into MainScreenView's vtable entry (0x400ffe30), the knob view's
+     (0x4010053c) and NoteVelocityView's (0x40102578), and its tick and browser hook at 0x400075f0 and 0x400a6602,
+     with no dispatcher; with SAMPLE, every point both take goes to the dispatchers, whose tables hold SAMPLE's and
+     REF2's methods at their machines and nothing at the others, and a point only REF2 takes keeps REF2's entry;
   2. the dispatchers (builds with SAMPLE):
-     - the draws: for the selected track on every machine (stock, SAMPLE, REF, REF2, one past the last, 100), on a
-       track past 5 and without a project, each entry calls once, with the same arguments, the draw of that track's
-       machine or the stock draw, and the stack comes back;
+     - the draws (main screen, knob view, and NoteVelocityView where both take it): for the selected track on every
+       machine (stock, SAMPLE, REF, REF2, one past the last, 100), on a track past 5 and without a project, each entry
+       calls once, with the same arguments, the draw of that track's machine or the stock draw, and the stack comes
+       back;
      - the tick: every machine's tick, in machine order, then the stock getter 0x40076be4 once, whose answer it gives;
      - the browser: for the track the browser loads into on every machine, past 5 and without a project, the hook of
        that track's machine or the stock open (0x400a3052), with a0 (&result), a2 (the browser), d4 (the entry's
@@ -28,10 +31,13 @@ on the official OS 1.13:
      others outlined, the values below, without the stock knob view; for another parameter, with a trig held, without
      a value window or on another machine's track: the stock knob view once, with the same arguments, and the screen
      untouched;
-  5. REF2's tick: the getter's answer at every tick; a redraw of the main screen (View::setNeedsRedraw, 0x40076082) every
+  5. REF2's mark over a held trig: the stock NoteVelocityView draw once, with the same arguments, then on a REF2 track
+     with a trig held the 2 x 2 mark x 58..59, rows 3..4 turned over and nothing else; without a trig held or on
+     another machine's track the stock draw alone, the screen untouched;
+  6. REF2's tick: the getter's answer at every tick; a redraw of the main screen (View::setNeedsRedraw, 0x40076082) every
      16 ticks on a REF2 track, none on another track or with a value window open; the label's dot (x 120..121, rows
      49..50) lit after 16 ticks and dark again after 32;
-  6. REF2's browser hook: on a REF2 track, the entry's name asked of the browser's list (its method +16, with the
+  7. REF2's browser hook: on a REF2 track, the entry's name asked of the browser's list (its method +16, with the
      entry's index), the string destroyed, then the stock open with a0, a2, d4 and the stack as at the call; the label
      shows the name's first 10 characters for 6 redraws of that track, then OCT again; another track keeps OCT; on
      another machine's track, the stock open alone.
@@ -64,6 +70,8 @@ SELECTIONS = [["refmachine2"], ["sampler", "refmachine2"], ["refmachine2", "samp
               ["sampler", "refmachine", "refmachine2"]]
 MAIN_ENTRY, KNOB_ENTRY, TICK_SITE, OPEN_SITE = 0x400ffe30, 0x4010053c, 0x400075f0, 0x400a6602
 MAIN_DRAW, KNOB_DRAW, TICK_STOCK, OPEN_STOCK = 0x4001b22a, 0x4001e40a, 0x40076be4, 0x400a3052
+NOTE_ENTRY, NOTE_DRAW = 0x40102578, 0x400299de
+VTABLE_SITES = (MAIN_ENTRY, KNOB_ENTRY, NOTE_ENTRY)
 NEEDS_REDRAW, STRING_DROP = 0x40076082, 0x400f7d5c
 PROJECT, GROUP, SELECTED = 0x400cf866, 0x4000eb90, 0x40012412
 UI_STATE, VALUE_SHOWN, TRIG_HELD = 0x400cf9a8, 0x4006b704, 0x4006b736
@@ -76,11 +84,15 @@ INDEX, FILE, GETTER = 0x1234, b"KICK-HARD-01X", 0x5a
 W, H, PITCH = 128, 64, 2
 BAND = (64, 127, 44, 56)                 # the right half's free band: x0, x1, y0, y1
 DOT = ((120, 49), (121, 49), (120, 50), (121, 50))
+MARK = ((58, 3), (59, 3), (58, 4), (59, 4))
 BOX_LEFT, BOX_STEP, BOX_W, BOX_Y = 8, 24, 16, (20, 35)
 POINTS = {"main": (MAIN_ENTRY, 4, "smp_main_draw", "ref2_main_draw", "dp_main"),
           "knob": (KNOB_ENTRY, 28, "smp_knob_draw", "ref2_knob_draw", "dp_knob"),
           "tick": (TICK_SITE, 52, "smp_hook_tick", "ref2_hook_tick", "dp_tick"),
-          "open": (OPEN_SITE, 76, "smp_hook_open", "ref2_hook_open", "dp_open")}
+          "open": (OPEN_SITE, 76, "smp_hook_open", "ref2_hook_open", "dp_open"),
+          "note": (NOTE_ENTRY, 100, "smp_note_draw", "ref2_note_draw", "dp_note")}
+POINT_IDS = {"main": "view.main", "knob": "view.knob", "tick": "screen.tick", "open": "browser.open",
+             "note": "view.note"}
 REGS_IN = {mk.UC_M68K_REG_A0: RESULT, mk.UC_M68K_REG_A2: BROWSER_PP, mk.UC_M68K_REG_D4: INDEX}
 
 
@@ -123,7 +135,8 @@ def world(u, machine, track=0, project=True, value=False, trig=False, k28=0x100,
     stubs."""
     u.hooks = {PROJECT: ("project", PROJ if project else 0), GROUP: ("group", 0x93a70000), SELECTED: ("track", track),
                UI_STATE: ("ui", 0x93a80000), VALUE_SHOWN: ("value", int(value)), TRIG_HELD: ("trig", int(trig)),
-               MAIN_DRAW: ("main", 0), KNOB_DRAW: ("knob", 0), SOUND_FN: ("sound", SOUND), NEW: ("new", 0),
+               MAIN_DRAW: ("main", 0), KNOB_DRAW: ("knob", 0), NOTE_DRAW: ("note", 0), SOUND_FN: ("sound", SOUND),
+               NEW: ("new", 0),
                DELETE: ("delete", 0), TICK_STOCK: ("getter", GETTER), NEEDS_REDRAW: ("redraw", 0)}
     for t in range(6):
         u.uc.mem_write(PROJ + 212 + t * 68, struct.pack(">I", TRACK_VT))
@@ -191,44 +204,64 @@ def draws(u, names):
     return [(n, a[:2]) for n, a in u.calls if n in names]
 
 
+def takers(added, kind):
+    """The codes of the build's machines whose manifests take the point (POINT_IDS[kind]), in machine order."""
+    return [m["code"] for m in added
+            if any(u["point"] == POINT_IDS[kind] for u in TC.compose.load_manifest(m["code"])["uses"])]
+
+
+def method(code, kind):
+    """The method of SAMPLE or REF2 at a point."""
+    return POINTS[kind][{"sampler": 2, "refmachine2": 3}[code]]
+
+
 # --- 1. the sites -------------------------------------------------------------------------------------------------
 def site_tests(key, img, runtime, syms, added):
     u = VUI(img, runtime)
     smp = next((m["index"] for m in added if m["code"] == "sampler"), None)
 
     def at(site, sym):                                   # a vtable entry holds the address, a hook is a jsr to it
-        if site in (MAIN_ENTRY, KNOB_ENTRY):
+        if site in VTABLE_SITES:
             return u.u32(site) == syms[sym]
         return bytes(u.uc.mem_read(site, 6)) == b"\x4e\xb9" + struct.pack(">I", syms[sym])
     if smp is None:
         check(all(at(p[0], p[3]) for p in POINTS.values()) and "dp_main" not in syms,
-              f"{key}: REF2 alone: 0x400ffe30 -> ref2_main_draw, 0x4010053c -> ref2_knob_draw, 0x400075f0 jsr "
-              "ref2_hook_tick, 0x400a6602 jsr ref2_hook_open, no dispatcher")
+              f"{key}: REF2 alone: 0x400ffe30 -> ref2_main_draw, 0x4010053c -> ref2_knob_draw, 0x40102578 -> "
+              "ref2_note_draw, 0x400075f0 jsr ref2_hook_tick, 0x400a6602 jsr ref2_hook_open, no dispatcher")
         return
     data = syms["dp_data"]
     first, count = bytes(u.uc.mem_read(data, 2))
     ok = (first, count) == (6, len(added))
-    for _name, (site, table, smp_sym, ref2_sym, dp_sym) in POINTS.items():
+    shared, own = [], []
+    for kind, (site, table, _smp_sym, _ref2_sym, dp_sym) in POINTS.items():
+        who = takers(added, kind)
         got = struct.unpack(">6I", u.uc.mem_read(data + table, 24))
-        want = tuple(syms[{"sampler": smp_sym, "refmachine2": ref2_sym}[m["code"]]]
-                     if m["code"] in ("sampler", "refmachine2") else 0 for m in added) + (0,) * (6 - len(added))
-        ok &= at(site, dp_sym) and got == want
-    check(ok, f"{key}: 0x400ffe30, 0x4010053c, 0x400075f0 and 0x400a6602 -> dp_main, dp_knob, dp_tick, dp_open; their "
-              f"tables, machines 6..{5 + len(added)}: "
-              + ", ".join(m["name"] + " " + ("its methods" if m["code"] in ("sampler", "refmachine2") else "none")
-                          for m in added))
+        if len(who) > 1:
+            want = (tuple(syms[method(m["code"], kind)] if m["code"] in who else 0 for m in added)
+                    + (0,) * (6 - len(added)))
+            ok &= at(site, dp_sym) and got == want
+            shared.append(kind)
+        else:
+            ok &= len(who) == 1 and at(site, method(who[0], kind)) and got == (0,) * 6
+            own.append(f"{kind} {who[0] if who else '?'}'s own")
+    mine = ("sampler", "refmachine2")
+    check(ok, f"{key}: the points both take ({', '.join(shared)}) -> their dispatchers, their tables at machines "
+              f"6..{5 + len(added)}: " + ", ".join(m["name"] + (" its methods" if m["code"] in mine else " none")
+                                                    for m in added)
+              + (f"; {', '.join(own)} entry, its table empty" if own else ""))
 
 
 # --- 2. the dispatchers -------------------------------------------------------------------------------------------
 def dispatch_tests(key, img, runtime, syms, added):
-    names = {syms[p[i]]: p[i] for p in POINTS.values() for i in (2, 3)}
+    names = {syms[p[i]]: p[i] for p in POINTS.values() for i in (2, 3) if p[i] in syms}
     by_code = {m["code"]: m["index"] for m in added}
     u = VUI(img, runtime)
     cases = [(m, 0, True) for m in list(range(6)) + [m["index"] for m in added] + [TS.NM, 100]]
     cases += [(by_code["refmachine2"], 6, True), (by_code["refmachine2"], 0, False)]
     ok, seen = True, []
-    for kind, stock in (("main", "main"), ("knob", "knob")):
-        entry = POINTS[kind][0]
+    kinds = [k for k in ("main", "knob", "note") if len(takers(added, k)) > 1]
+    for kind in kinds:
+        entry, stock, who = POINTS[kind][0], kind, takers(added, kind)
         for machine, track, project in cases:
             world(u, machine, track, project)
             for a, n in names.items():
@@ -237,14 +270,15 @@ def dispatch_tests(key, img, runtime, syms, added):
             u.call(u.u32(entry), VIEW, BMP)
             got = draws(u, set(names.values()) | {stock})
             code = next((m["code"] for m in added if m["index"] == machine), None) if track < 6 and project else None
-            want = {"sampler": f"smp_{kind}_draw", "refmachine2": f"ref2_{kind}_draw"}.get(code, stock)
+            want = method(code, kind) if code in who else stock
             good = got == [(want, (VIEW, BMP))] and u.sp_ok and not u.bad
             ok &= good
             if not good:
                 seen.append(f"{kind} machine {machine} track {track} project {project}: {got}")
-    check(ok, f"{key}: the draws' dispatchers call the selected track's machine's draw (SAMPLE's, REF2's) or the stock "
-              f"draw, once with the same arguments, for machines 0..5, {', '.join(str(m['index']) for m in added)}, "
-              f"{TS.NM}, 100, track 6 and no project ({2 * len(cases)} cases)" + (f"; DIFFERENT {seen[:3]}" if seen else ""))
+    check(ok, f"{key}: the draws' dispatchers ({', '.join(kinds)}) call the selected track's machine's draw (SAMPLE's, "
+              f"REF2's) or the stock draw, once with the same arguments, for machines 0..5, "
+              f"{', '.join(str(m['index']) for m in added)}, {TS.NM}, 100, track 6 and no project "
+              f"({len(kinds) * len(cases)} cases)" + (f"; DIFFERENT {seen[:3]}" if seen else ""))
     # the tick: every machine's, in machine order, then the getter once
     world(u, by_code["refmachine2"])
     for a, n in names.items():
@@ -375,7 +409,38 @@ def knob_tests(key, img, runtime, syms, ref2, other, show):
                  f"window, and on machine {other}'s track")
 
 
-# --- 5. REF2's tick and the label's dot -----------------------------------------------------------------------------
+# --- 5. REF2's mark over a held trig --------------------------------------------------------------------------------
+def note_tests(key, img, runtime, syms, ref2, other, show):
+    u = VUI(img, runtime)
+    bitmap(u)
+    rng = random.Random(65)
+    fn = syms["ref2_note_draw"]
+    world(u, ref2, trig=True)
+    stock = picture(rng, band_dark=False)
+    u.uc.mem_write(FB, stock)
+    u.calls.clear()
+    u.call(fn, VIEW, BMP)
+    fb = screen(u)
+    diff = {(x, y) for x in range(W) for y in range(H) if lit(fb, x, y) != lit(stock, x, y)}
+    check(draws(u, {"note"}) == [("note", (VIEW, BMP))] and diff == set(MARK) and u.sp_ok and not u.bad,
+          f"{key}: REF2's NoteVelocityView draw with a trig held on a REF2 track: the stock draw once, then the mark "
+          f"x 58..59, rows 3..4 turned over, nothing else")
+    if show:
+        print("        the panel's lower right corner after REF2's draw (x 52..63, rows 0..8):")
+        print("\n".join("        " + l for l in ascii_screen(fb, 52, 64, 0, 9).splitlines()))
+    quiet = True
+    for machine, trig in ((ref2, False), (other, True), (0, True)):
+        world(u, machine, trig=trig)
+        stock = picture(rng, band_dark=False)
+        u.uc.mem_write(FB, stock)
+        u.calls.clear()
+        u.call(fn, VIEW, BMP)
+        quiet &= draws(u, {"note"}) == [("note", (VIEW, BMP))] and screen(u) == stock and u.sp_ok and not u.bad
+    check(quiet, f"{key}: the stock NoteVelocityView draw alone, the screen untouched, without a trig held and on "
+                 f"machine {other}'s or KICK's track")
+
+
+# --- 6. REF2's tick and the label's dot -----------------------------------------------------------------------------
 def tick_tests(key, img, runtime, syms, ref2, other, show):
     u = VUI(img, runtime)
     bitmap(u)
@@ -411,7 +476,7 @@ def tick_tests(key, img, runtime, syms, ref2, other, show):
         print("\n".join("        " + l for l in ascii_screen(pics[16], 64, 128, 44, 57).splitlines()))
 
 
-# --- 6. REF2's browser hook and the file's name ---------------------------------------------------------------------
+# --- 7. REF2's browser hook and the file's name ---------------------------------------------------------------------
 def open_tests(key, img, runtime, syms, ref2, other, show):
     u = VUI(img, runtime)
     bitmap(u)
@@ -460,7 +525,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cycles", required=True, help="official model-cycles_OS1.13.syx")
     ap.add_argument("--machines", action="append", help="one selection, ids comma-separated (repeat for several)")
-    ap.add_argument("--show", action="store_true", help="REF2's label, knob view, dot and file name in ASCII")
+    ap.add_argument("--show", action="store_true", help="REF2's label, knob view, mark, dot and file name in ASCII")
     args = ap.parse_args()
     selections = [[i.strip() for i in s.split(",") if i.strip()] for s in args.machines] if args.machines else SELECTIONS
     stock = T.main_os_from_syx(args.cycles)
@@ -485,6 +550,8 @@ def main():
         main_tests(key, img, runtime, syms, ref2, other, args.show)
         print("REF2's knob view")
         knob_tests(key, img, runtime, syms, ref2, other, args.show)
+        print("REF2's mark over a held trig")
+        note_tests(key, img, runtime, syms, ref2, other, args.show)
         print("REF2's tick")
         tick_tests(key, img, runtime, syms, ref2, other, args.show)
         print("REF2's browser hook")

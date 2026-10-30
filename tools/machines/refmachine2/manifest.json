@@ -1,9 +1,9 @@
 {
  "schema": "cycles-mod/0.1",
  "id": "refmachine2",
- "version": "0.1",
+ "version": "0.2",
  "name": "REF2 machine: model27's second reference machine, a triangle and noise through the stock chain",
- "description": "The template for a machine that uses everything the standard lets a machine use (notes/63). REF's contract with a triangle in place of REF's parabola (B4a); a shortcut, RETRIG + COLOR = Octave, -2 to +2, saved with the sound by the builder's shortcut layer (B4b); its own main screen label and knob view (B4c), and a tick that blinks the label's dot and a browser hook that shows the name of a file opened on its track (B4d), through the builder's dispatchers when SAMPLE takes the same points; two switches, RETRIG + PUNCH = Square and RETRIG + GATE = Tone open, flipped and saved in k 32 by the shortcut layer, read in the note's sound and shown left of the label (notes/63 §16). Never offered to users.",
+ "description": "The template for a machine that uses everything the standard lets a machine use (notes/63). REF's contract with a triangle in place of REF's parabola (B4a); a shortcut, RETRIG + COLOR = Octave, -2 to +2, saved with the sound by the builder's shortcut layer (B4b); its own main screen label and knob view (B4c), a mark over a held trig's note, velocity and length (notes/63 §22), and a tick that blinks the label's dot and a browser hook that shows the name of a file opened on its track (B4d), through the builder's dispatchers when SAMPLE takes the same points; two switches, RETRIG + PUNCH = Square and RETRIG + GATE = Tone open, flipped and saved in k 32 by the shortcut layer, read in the note's sound and shown left of the label (notes/63 §16). Never offered to users.",
  "license": "MIT",
  "credit": {"kind": "own", "who": "durchgemacht and Claude", "repo": "durchgemacht/model27"},
  "device": "Model:Cycles",
@@ -21,7 +21,7 @@
    {"symbol": "ref2_machine_index", "kind": "machine_index"}
   ],
   "symbols": {"update": "ref2_update", "render": "ref2_render"},
-  "keep": ["ref2_main_draw", "ref2_knob_draw", "ref2_hook_tick", "ref2_hook_open"]
+  "keep": ["ref2_main_draw", "ref2_knob_draw", "ref2_hook_tick", "ref2_hook_open", "ref2_note_draw"]
  },
  "uses": [
   {"point": "machine", "name": "REF2", "image": 4, "decay_default": 64,
@@ -41,14 +41,16 @@
    "why": "MainScreenView's draw method: the stock screen, then OCT and the Octave in its free band on a REF2 track"},
   {"point": "view.knob", "vtable": {"at": "0x4010053c", "stock_ptr": "0x4001e40a", "symbol": "ref2_knob_draw"},
    "why": "the knob view's draw method: the Octave as five boxes while RETRIG + COLOR turns it on a REF2 track"},
+  {"point": "view.note", "vtable": {"at": "0x40102578", "stock_ptr": "0x400299de", "symbol": "ref2_note_draw"},
+   "why": "NoteVelocityView's draw method: the held trig's note, velocity and length, then a 2 x 2 mark in the panel on a REF2 track"},
   {"point": "screen.tick", "hook": {"at": "0x400075f0", "stock": "4eb940076be4", "op": "jsr", "symbol": "ref2_hook_tick"},
    "why": "the screen's redraw, about 30 Hz: counts the ticks, and the label's dot blinks with them"},
   {"point": "browser.open", "hook": {"at": "0x400a6602", "stock": "4eb9400a3052", "op": "jsr", "symbol": "ref2_hook_open"},
    "why": "the browser reads the file it opens: on a REF2 track the label shows its name, then the stock open reads it"}
  ],
- "claims": {"sound_slots": [28, 32], "record_slots": [18, 28], "ram": [], "gestures": [{"combo": "RETRIG + COLOR", "situation": "params", "meaning": "Octave"}, {"combo": "RETRIG + PUNCH", "meaning": "Square"}, {"combo": "RETRIG + GATE", "meaning": "Tone open"}], "views": ["main", "knob"]},
+ "claims": {"sound_slots": [28, 32], "record_slots": [18, 28], "ram": [], "gestures": [{"combo": "RETRIG + COLOR", "situation": "params", "meaning": "Octave"}, {"combo": "RETRIG + PUNCH", "meaning": "Square"}, {"combo": "RETRIG + GATE", "meaning": "Tone open"}], "views": ["main", "knob", "note"]},
  "cost": {"emulation": {"status": "not measured"}, "device": {"status": "not measured"}},
  "stock_behaviour": {"changes": ["on its tracks, RETRIG held + PUNCH or GATE flips its switch instead of PUNCH or GATE, and their LEDs show its switches while RETRIG is held"], "fixes": [], "unchanged": ["other tracks and machines", "TRACK + PUNCH or GATE (Control All), with or without RETRIG"]},
  "compat": {"built_against": ["model27"], "requires": [], "conflicts_declared": []},
- "tests": {"emulation": {"tool": "tools/emu/test_compose.py, tools/emu/test_shortcuts.py and tools/emu/test_views.py (Unicorn, the OS's own code, notes/63 §10, §11.4, §12.4, §13.4, and the switches §18.4)", "date": "2026-10-26", "build": "alone, as machine 6 or 7 next to sampler, and as machine 8 of sampler, refmachine, refmachine2"}, "hardware": {"date": "2026-10-26", "by": "maintainer", "build": "sampler + refmachine2 from tools/compose.py (notes/63 §20.1, .syx 8d75e346, MAIN OS 6ee148f3): \"alles wie erwartet\", the list of notes/63 §20.2 (§20.4); REF2 alone and its browser hook not run"}, "status": "experimental"}
+ "tests": {"emulation": {"tool": "tools/emu/test_compose.py, tools/emu/test_shortcuts.py and tools/emu/test_views.py (Unicorn, the OS's own code, notes/63 §10, §11.4, §12.4, §13.4, and the switches §18.4)", "date": "2026-10-30, all three with REF2 0.2 and the dispatchers 0.3 (its mark over a held trig, notes/63 §22)", "build": "alone, as machine 6 or 7 next to sampler, and as machine 8 of sampler, refmachine, refmachine2"}, "hardware": {"date": "2026-10-26", "by": "maintainer", "build": "sampler + refmachine2 from tools/compose.py (notes/63 §20.1, .syx 8d75e346, MAIN OS 6ee148f3): \"alles wie erwartet\", the list of notes/63 §20.2 (§20.4); REF2 alone and its browser hook not run"}, "status": "experimental"}
 }

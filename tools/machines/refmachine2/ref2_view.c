@@ -1,6 +1,6 @@
-/* REF2's views and UI hooks (notes/63 §2, steps B4c and B4d): the template for a machine that draws on the main
-   screen and in the knob view, runs on the screen's tick and hears of the files the browser opens, next to another
-   machine that does too (SAMPLE).
+/* REF2's views and UI hooks (notes/63 §2, steps B4c and B4d, §22): the template for a machine that draws on the main
+   screen, in the knob view and over a held trig's note, runs on the screen's tick and hears of the files the browser
+   opens, next to another machine that does too (SAMPLE).
 
    - ref2_main_draw takes the place of MainScreenView's draw (vtable entry 0x400ffe30, stock 0x4001b22a). On a
      REF2 track it draws the stock main screen, then the Octave as "OCT +1" in the free band of its right half, with a
@@ -10,6 +10,9 @@
    - ref2_knob_draw takes the place of the knob view's draw (vtable entry 0x4010053c, stock 0x4001e40a). While
      RETRIG + COLOR turns the Octave on a REF2 track, it draws the Octave as five boxes, -2 to +2, the current one
      filled; any other value shows as before.
+   - ref2_note_draw takes the place of NoteVelocityView's draw (vtable entry 0x40102578, stock 0x400299de), which
+     shows a held trig's note, velocity and length over the left half while a trig is held: on a REF2 track it draws
+     that, then turns over a 2 x 2 mark in the panel's lower right corner, x 58..59, rows 3..4 (notes/63 §22).
    - ref2_hook_tick takes the place of jsr 0x40076be4 at 0x400075f0, in the screen's redraw (about 30 times a
      second): it counts the ticks, asks the main screen for a redraw when the dot changes on a REF2 track, and returns
      0x40076be4(view), the getter it replaces.
@@ -43,6 +46,7 @@ extern char ref2_machine_index[];
 /* The OS, as SAMPLE's machine/os.h reads it. */
 #define MAIN_DRAW(v, b)     ((void (*)(void *, void *))0x4001b22a)(v, b)
 #define KNOB_DRAW(v, b)     ((void (*)(void *, void *))0x4001e40a)(v, b)
+#define NOTE_DRAW(v, b)     ((void (*)(void *, void *))0x400299de)(v, b)      /* draws only while a trig is held */
 #define KNOB_PARAM(v)       (*(const s32 *)((const char *)(v) + 0x230))     /* the shown parameter's descriptor */
 #define UI_STATE()          ((void *(*)(void))0x400cf9a8)()
 #define VALUE_SHOWN()       (((char (*)(void *))0x4006b704)(UI_STATE()) != 0)   /* UIStates + 88 */
@@ -70,6 +74,8 @@ struct bitmap {
 #define DOT_X       120                     /* the dot: x 120..121, rows 49..50 */
 #define DOT_Y       49
 #define DOT_TICKS   16                      /* the dot changes every 16 ticks, about half a second */
+#define MARK_X      58                      /* the held trig's mark: x 58..59, rows 3..4, in NoteVelocityView's panel */
+#define MARK_Y      3
 #define NAME_DRAWS  6                       /* the opened file's name stays for 6 redraws, about 3 s */
 #define NAME_CHARS  10                      /* as many as the band holds */
 
@@ -224,6 +230,19 @@ void ref2_knob_draw(void *view, void *b)
 		octave_view(b, octave(s));
 	else
 		KNOB_DRAW(view, b);
+}
+
+void ref2_note_draw(void *view, void *b)
+{
+	struct bitmap *bm = b;
+	s32 x, y;
+
+	NOTE_DRAW(view, b);
+	if (!ref2_sound_of(selected_track()) || !TRIG_HELD())
+		return;
+	for (x = MARK_X; x <= MARK_X + 1; x++)
+		for (y = MARK_Y; y <= MARK_Y + 1; y++)
+			bm->words[x * bm->pitch + (y >> 5)] ^= 0x80000000u >> (y & 31);
 }
 
 /* --- the tick and the browser (step B4d) ------------------------------------------------------------------------ */

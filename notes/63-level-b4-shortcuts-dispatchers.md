@@ -194,6 +194,7 @@ joined the list as two switches on 2026-10-26 (§16 to §18; the standard's draf
 | `sound.record` | save v2 `0x4005afa0`, save v1 `0x4005b054`, load `0x4005aecc` (a `jmp` over their first 8 bytes) | `smp_after_save`, `smp_after_load` (today wrapped by `smp_hook_save2/1`, `smp_hook_load`) | the "around" wrapper once, then the "after" function of the sound's machine and the shortcut layer's |
 | `view.main` | vtable entry `0x400ffe30` (stock `0x4001b22a`) | `smp_main_draw` | the draw of the selected track's machine, otherwise the stock draw |
 | `view.knob` | vtable entry `0x4010053c` (stock `0x4001e40a`) | `smp_knob_draw` | the same |
+| `view.note` (since §22) | vtable entry `0x40102578` (stock `0x400299de`) | `smp_note_draw` (One-Shot 0.12) | the same |
 | `screen.tick` | `0x400075f0` (`jsr 0x40076be4`) | `smp_hook_tick` | append: every tick runs (SAMPLE loads samples whatever the track) |
 | `browser.open` | `0x400a6602` (`jsr 0x400a3052`) | `smp_hook_open` | the opened track's machine |
 
@@ -1262,3 +1263,47 @@ What the maintainer reports goes into a new section here, with the date.
   other proofs of §18.3 on 2026-10-26: **ALL OK** (notes/60 §18).
 - On the Model:Cycles (2026-10-26), SAMPLE alone flashed from the page: "passt", Loop and Reverse, their LEDs and
   letters, the stock presses and Control All as before, the switches kept by a saved project (notes/60 §19).
+
+## 22. NoteVelocityView, a fourth view point (2026-10-30)
+
+One-Shot 0.12 shows its whole view while Start or Length turns with a trig held: the held trig's locks on the
+waveform, a sound lock's sample and name (notes/60, One-Shot's TECHNICAL.md §9). The OS draws the held trig's note,
+velocity and length over the left half then, NoteVelocityView, after the knob view; to keep the waveform's 105
+columns, SAMPLE takes that view's draw too and leaves the screen as it is while it shows its view for a held trig.
+The maintainer chose this over a waveform in the right half (half the columns) and asked for the standard to grow
+(draft 0.7).
+
+- **The point `view.note`** `[FAIT]` (the OS 1.13's disassembly): entry +16 of NoteVelocityView's vtable
+  (`0x40102568`), `0x40102578`, the only reference to its draw `0x400299de`. The draw does nothing without a held trig
+  (`0x4006b736`); with one it fills columns 0..63 as the knob view's lit box, the note in the large font
+  (`0x401429ec`), `Vel:%4s` and `Len:%4s` in the small one. By machine, as `view.main` and `view.knob`.
+- **`view.knob` with a trig held.** Until draft 0.6 the standard asked a machine's knob draw to draw only without a
+  held trig. It may now draw with one, for its own parameter; it then finds the held trig's values as the knob view
+  does (One-Shot's `find_held`: `0x4006be48`'s order, entry +96 for a lock, +108 for a sound lock, +80 for a base
+  value, all at the addresses of One-Shot's `machine/os.h`).
+- **The dispatchers 0.3** (`tools/machines/dispatch/`): `dp_note`, its table at +100 of the data block, now 124 bytes.
+  `gen_parts.py` rebuilds `dispatch.o`; the shortcut layer's and the effect slots' objects come out byte for byte as
+  committed. The composers, Python and JavaScript, read the part's sites and needed no change; `tweaks.js` embeds the
+  new part.
+- **REF2 0.2** takes `view.note` too, so the point has two users before it is offered: the stock draw, then on a REF2
+  track with a trig held a 2 x 2 mark turned over at x 58..59, rows 3..4. `gen_refmachine.py` rewrites REF2's object
+  and tweak (127 writes); REF and REFC come out as committed.
+- **Claims:** `claims.py` knows the view `note`; a package that uses `view.note` claims it (REF2 does). The
+  self-test's three failures (SAMPLE × Model-TG, × the track filter, × REF2) are there at `5badf6a` already, unchanged.
+- **`test_views.py`** reads which machine takes which point from the manifests: a point both take goes through its
+  dispatcher, a point one takes keeps that one's entry. New: REF2's mark (§5 of its docstring). Until SAMPLE is pinned
+  at 0.12, `view.note` is REF2's own entry in every selection, and its dispatcher is not tested.
+- **The run** (the maintainer, 2026-10-30, `../.venv-emu/bin/python3 tools/emu/test_views.py --cycles …`): **ALL OK**
+  `[FAIT en émulation]`, the four default selections with SAMPLE 0.11: REF2's three draws, tick and browser hook at
+  their sites alone; with SAMPLE the four shared points through their dispatchers and `view.note` REF2's own entry,
+  its table empty; REF2's mark over a held trig and the stock draw alone elsewhere.
+- **`test_compose.py` and `test_shortcuts.py`** with the dispatchers 0.3 and REF2 0.2 (the maintainer, 2026-10-30,
+  the same venv): **ALL OK** `[FAIT en émulation]`, every default selection: the start-up, the registrar's mechanics
+  and the runtime against B1, the voice loop (REF2 sample for sample as machine 6, 7 and 8, SNARE as the stock OS);
+  the knob, descriptor 1, save and load, a machine change, the press and the LEDs.
+- **One-Shot's own image with SAMPLE 0.12** (`739ee9bd…`, its three vtable entries written directly, no
+  dispatcher): the maintainer played it in digiemu ("getestet, funktioniert") and on a Model:Cycles ("Gerät getestet,
+  passt"), 2026-10-30.
+- **Left:** One-Shot 0.12 committed and tagged, then pinned here (`gen_sampler.py`, its manifest with `view.note` and
+  the claim), and `test_views.py` again for `view.note`'s dispatcher; a model27 build with SAMPLE 0.12 on the device.
+
