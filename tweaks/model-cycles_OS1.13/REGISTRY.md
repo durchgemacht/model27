@@ -580,7 +580,7 @@ Instructions de l'OS remplacées par un détour (`jsr`, `jmp`, `bsr.l`, `bra.l`)
 | `0x4001f89a` | `4eb94005a5cc` | jsr | charge utile (mémoire), 2 cibles selon la combinaison | digidelay, pots | notes/68, notes/69 |
 | `0x40021f56` | `2f034e944879404a8cb8…` | jsr | charge utile (image) +0x4f16 | model-tg, model-tg-st | notes/31, notes/36 |
 | `0x4002249c` | `4eb940072490` | jsr | masque `0x4015c044` +0x28 `th_press` | trig-hold | notes/33 |
-| `0x400224ee` | `2f034eb9400724a0` | jmp | cave `0x401489fa` +0x0 | model-tg, model-tg-st, trig-preview | notes/31, notes/34, notes/36 |
+| `0x400224ee` | `2f034eb9400724a0` | jmp | cave `0x401489fa` +0x0 | model-tg, model-tg-st, trig-preview | notes/31, notes/36 |
 | `0x40022d44` | `4eb940072460` | jsr | masque `0x4015c044` +0x3a `th_hold` | trig-hold | notes/33 |
 | `0x40022da6` | `4eb94006b736` | jsr | masque `0x4015c044` +0x6c `th_release` | trig-hold | notes/33 |
 | `0x4002351a` | `2f024eb9400740ca` | jmp | cave `0x40148328` +0x0 | latching-mute, model-tg, model-tg-st | notes/31, notes/36 |
@@ -807,7 +807,7 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | mod | écritures | patchs | crochets | pointeurs | masques | redirections | caves | charge utile (image) | note |
 |---|---|---|---|---|---|---|---|---|---|
 | latching-mute | 8 | 3 | 1 | 0 | 0 | 0 | 4 |  |  |
-| trig-preview | 6 | 0 | 1 | 0 | 0 | 0 | 5 |  | notes/34 |
+| trig-preview | 6 | 0 | 1 | 0 | 0 | 0 | 5 |  |  |
 | browser-scroll | 5 | 1 | 0 | 0 | 0 | 0 | 4 |  |  |
 | 6ch-multiout | 29 | 25 | 4 | 0 | 0 | 0 | 0 |  |  |
 | 6ch-usbup | 25 | 12 | 7 | 0 | 5 | 1 | 0 |  | notes/36 |

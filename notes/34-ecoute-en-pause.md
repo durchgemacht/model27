@@ -103,3 +103,72 @@ Protocole proposé :
 2. Flasher le firmware corrigé, puis refaire la même séance : l'écoute doit marcher aussi après un arrêt du logiciel de
    musique.
 3. Contrôle : séquenceur en lecture, pas tenu + PAGE tourne toujours la page (comportement voulu par drumkilla).
+
+## 6. De retour dans le flasher (30/10/2026, version 0.20)
+
+**Demande du mainteneur** (30/10/2026) : une fonction « step listen », un trig tenu et une seconde touche (PAGE) pour
+entendre ce pas. C'est ce tweak. Il n'était plus proposé depuis que le flasher se limite à `OFFERED`
+(`tools/gen_flasher_tweaks.py`). Le mainteneur l'a fait revenir **tel quel**, crédité « by drumkilla », plutôt que de le
+réécrire : le Cycles Mod Standard n'a pas de paquet pour un mod qui n'est ni une machine ni un effet, et la seule chose
+qu'il en demande, la combinaison de touches, est déjà déclarée (`claims/claims.json`, « TRIG 1-16 + PAGE », grille).
+
+### 6.1 Le fichier de drumkilla, inchangé `[FAIT]`
+
+- drumkilla a repris la retouche du §3 dans sa version 1.2.0 (commit `ae13b41`, « Thanks to 18nelli for the fix ») ;
+  son `02-trig-preview.json` est le même à son commit `9807169` (HEAD de `main`, lu le 30/10/2026).
+- Notre fichier n'en différait plus que par une ligne de description (« Modded-Cycles change … »). Il est remplacé par le
+  sien, octet pour octet (SHA-256 `da5323cf…`, `PROVENANCE.md`) : mêmes écritures, même MAIN OS
+  (`-t trig-preview` : `b5733f5d…`, `BUILD.md`).
+- `30-model-tg.json` et `30-model-tg-st.json` contiennent exactement ses écritures (vérifié écriture par écriture) :
+  l'essai du §5 sur la machine porte sur le même code.
+
+### 6.2 Ce que fait son code `[FAIT]`
+
+Désassemblage de la cave `0x401489fa`–`0x40148b82`, après les tests du §1 :
+
+| Étape | Où | Quoi |
+|---|---|---|
+| Piste active | `0x40012412` | son numéro, puis ses données dans le pattern (`0x40a7887c` + 722 × piste) |
+| Probabilité | piste +719 | sauvée, mise à 100 |
+| Pour chaque pas tenu | `UIStates` +352 puis +348 (64 bits) | la condition du pas (+516 + pas) sauvée et mise à `0xFF`, l'événement construit par la vraie fonction du séquenceur `0x400548ce` (avec le kit `0x40a78888`), son champ +12 mis à 2, envoyé au moteur audio `0x40092116`, puis la condition remise |
+| Fin | `0x40148b52` | probabilité remise, l'octet +116 de la vue mis à 0, retour dans `consumeKeyEvent` en `0x40022ff4` avec d2 = 1 : la page ne tourne pas (§4) |
+
+Le pas sonne donc comme en lecture : sa note, sa longueur, ses p-locks et son sound lock passent par la même
+construction d'événement que le séquenceur.
+
+### 6.3 Avec les cartes proposées `[FAIT]`
+
+Contre `OFFERED` (`sampler`, `digidelay`, `pots`, `control-all-config`, `trig-cond-order`) :
+
+- `check_overlaps.py` : aucune écriture partagée, aucun claim en conflit ;
+- `build.py` construit `trig-preview` avec chacun de `sampler`, `digidelay`, `pots`, plus `control-all-config` et
+  `trig-cond-order` (sans refus d'octets `old`) ;
+- le crochet `0x400224ee` et la cave ne sont pris que par `trig-preview` et Model-TG (non proposé, `REGISTRY.md`) ;
+- SAMPLE et les effets se branchent sur les voix, le mixeur et les vues (`REGISTRY.md`, crochets), ni sur
+  `0x400548ce` ni sur `0x40092116`.
+
+`[HYP]` Sur une piste SAMPLE, le pas sonne avec ses locks (Start, Length, sample lock) comme en lecture : l'événement
+est celui du séquenceur. À vérifier sur la machine ; la preuve du §4 intercepte `0x40092116` et ne fait pas sonner de
+voix.
+
+### 6.4 Dans le flasher
+
+`trig-preview` rejoint `OFFERED` (section `seq`, crédit drumkilla, licence MIT servie avec la page) avec
+`"status": "experimental"` jusqu'au flash depuis la page ; ses textes en et fr dans `docs/flasher/app.js` (plus complets :
+sound lock, condition et probabilité, piste mutée, lecture) ; la section 7 du guide (`#preview`, les suivantes
+renumérotées) ; la version 0.20 ; le tampon `2026-10-30-04` ; le README ; `tools/webflash_smoke.js`. `REF_MAINOS` passe
+à 22 combinaisons : la carte seule donne `b5733f5d…`, avec toutes les autres cartes `de8c7662…`.
+
+### 6.5 Ce qui reste
+
+1. **Preuve, par le mainteneur** (Unicorn s'arrête dans le bac à sable de l'agent), trois lancements, SAMPLE et
+   Digital Delay ne se combinant qu'à travers le composeur. **TOUT OK pour les trois, le 30/10/2026**, dans le terminal
+   du mainteneur `[FAIT en émulation]` :
+   ```sh
+   ../_scratch/venv-mc/bin/python tools/emu/test_trig_preview.py --cycles firmware/model-cycles_OS1.13.syx --with sampler,control-all-config,trig-cond-order
+   ../_scratch/venv-mc/bin/python tools/emu/test_trig_preview.py --cycles firmware/model-cycles_OS1.13.syx --with digidelay,control-all-config,trig-cond-order
+   ../_scratch/venv-mc/bin/python tools/emu/test_trig_preview.py --cycles firmware/model-cycles_OS1.13.syx --with pots,control-all-config,trig-cond-order
+   ```
+2. `[À FAIRE]` **Sur la machine**, flashé depuis la page avec toutes les cartes cochées : séquenceur arrêté, un trig tenu + PAGE
+   sonne (aussi sur une piste SAMPLE avec des locks de Start et Length, et sur une piste mutée) ; en pause (PLAY pendant
+   la lecture), pareil ; en lecture, PAGE tourne la page ; le trig reste.

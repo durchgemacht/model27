@@ -5,8 +5,7 @@
  "description": [
   "With the sequencer stopped or paused, hold a step and press PAGE: the step sounds with its own note, length, p-locks and sound-lock.",
   "The page does not turn.",
-  "It sounds regardless of the trig condition and probability, and through a muted track. The trig is not erased.",
-  "Modded-Cycles change: paused counts as stopped (a MIDI Stop pauses the sequencer, which turned the page instead), notes/34."
+  "It sounds regardless of the trig condition and probability, and through a muted track. The trig is not erased."
  ],
  "device": "Model:Cycles",
  "os": "1.13",

@@ -9,7 +9,7 @@ Every tweak is written by a script and checked by its `--check`: `gen_<mod>.py`,
 `90`–`92` diagnostics), `gen_sdvintage*.py` and `gen_syntakt_machines.py` (`20`–`23`). `27-sampler.json` is written by `gen_sampler.py`, `28-refmachine.json` and `29-refmachine2.json` by `gen_refmachine.py` through
 `compose.py` (notes/59), both from the package's committed object placed by `relocate.py` and registered by the registrar runtime of `tools/machines/registrar/` (notes/60); a tweak `compose.py` emits for several machines is a build, kept out of this folder. A new tweak names its generator
 and its note in the last line of its `description`. Change the generator or its sources, rerun it, commit both.
-The exceptions are drumkilla's `01`–`03` (copied as-is, SHA-256 listed in `PROVENANCE.md`; `02` carries our 3-byte fix)
+The exceptions are drumkilla's `01`–`03` (copied as-is, SHA-256 listed in `PROVENANCE.md`; `02` is his 1.2.0, which took our 3-byte fix, notes/34 §6)
 and `10-6ch-multiout.json` (ms-multi-output's table).
 
 `device.json` holds the stock hashes (`.syx` and section 3) and `cave_refs_ok`, the hand-checked exceptions to the

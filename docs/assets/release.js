@@ -7,6 +7,12 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.20", date: "2026-10-30", changes: [
+    { en: "Trig preview is back (under Sequencer): with the sequencer stopped or paused, hold a trig and press PAGE, and the step sounds as the sequencer would play it, with its note, length, p-locks and sound lock, whatever its condition. While the sequencer plays, PAGE turns the page as before",
+      fr: "L'écoute d'un pas revient (dans Séquenceur) : séquenceur à l'arrêt ou en pause, maintenez un trig et appuyez sur PAGE, et le pas sonne comme le séquenceur le jouerait, avec sa note, sa longueur, ses p-locks et son sound lock, quelle que soit sa condition. Pendant la lecture, PAGE tourne la page comme avant" },
+    { en: "drumkilla's trig preview 1.2.0, unchanged, checked in an emulator on the OS's own code and tested on a Model:Cycles (2026-10-04) with the same code inside Model-TG; experimental here until flashed from this page. Goes with SAMPLE, Digital Delay, POTS, Trig conditions and Control All Config",
+      fr: "L'écoute d'un pas de drumkilla, version 1.2.0, inchangée, vérifiée en émulation sur le propre code de l'OS et testée sur un Model:Cycles (04/10/2026) avec le même code dans Model-TG ; expérimentale ici tant qu'elle n'a pas été flashée depuis cette page. Va avec SAMPLE, Digital Delay, POTS, Conditions de trig et Control All Config" },
+  ] },
   { version: "0.19", date: "2026-10-30", changes: [
     { en: "Trig conditions, A:B before the percentages, is tested as this page builds it: flashed from this page and played on a Model:Cycles (2026-10-30). Its card now shows Tested",
       fr: "Conditions de trig, A:B avant les pourcentages, est testée telle que cette page la construit : flashée depuis cette page et jouée sur un Model:Cycles (2026-10-30). Sa carte affiche maintenant Testé" },

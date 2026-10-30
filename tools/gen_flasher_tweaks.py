@@ -146,7 +146,9 @@ ALL_FEATURES = [
         "label": "Ecoute d'un pas (TRIG + PAGE)",
         "desc": "Sequenceur a l'arret (ou en pause), maintiens un pas et appuie sur PAGE : le pas joue avec sa note, "
                 "sa longueur et ses p-locks.",
-        "status": "tested",
+        # drumkilla's tweak as he ships it since his 1.2.0 (notes/34 §6); tested on the Model:Cycles on 2026-10-04
+        # inside Model-TG, which carries the same code (notes/34 §5); experimental here until flashed from this page
+        "status": "experimental",
         "credit": {"kind": "by", "who": "drumkilla", "repo": "drumkilla/elektron-model-tweaks"},
         "license": "LICENSE-elektron-model-tweaks",
         "variants": [
@@ -444,7 +446,7 @@ ALL_FEATURES = [
 # model27 offers a short list of cards. The other definitions above stay as they are, for the command-line build
 # (every tweak of tweaks/ is still built by tools/build.py) and so that merges from upstream apply cleanly; a card
 # comes back into the flasher by adding its id here, once it has been reviewed against the Cycles Mod Standard.
-OFFERED = ("sampler", "digidelay", "pots", "control-all-config", "trig-cond-order")
+OFFERED = ("sampler", "digidelay", "pots", "control-all-config", "trig-cond-order", "trig-preview")
 FEATURES = [f for f in ALL_FEATURES if f["id"] in OFFERED]
 _missing = set(OFFERED) - {f["id"] for f in FEATURES}
 if _missing:

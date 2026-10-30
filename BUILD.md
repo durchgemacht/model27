@@ -32,8 +32,9 @@ L'orchestration (`tools/build.py`) et les tables de patchs (`tweaks/`) sont prop
    ```
    Et les trois tweaks de [drumkilla](https://github.com/drumkilla/elektron-model-tweaks) (fichiers `01`–`03` de `tweaks/`,
    MIT) : `latching-mute`, `trig-preview`, `browser-scroll`. Notre build donne le **même MAIN OS, octet pour octet**, que leur
-   propre `tweak.py` (vérifié pour chacun et pour les trois ensemble), à une retouche près : depuis le 04/10/2026, `trig-preview`
-   accepte aussi le séquenceur en pause (3 octets, [note 34](notes/34-ecoute-en-pause.md)).
+   propre `tweak.py` (vérifié pour chacun et pour les trois ensemble). La retouche de `trig-preview` du 04/10/2026 (le séquenceur
+   en pause accepté, 3 octets, [note 34](notes/34-ecoute-en-pause.md)) est dans leur 1.2.0 : depuis le 30/10/2026, le fichier `02`
+   est le leur, inchangé (note 34 §6).
    ```sh
    python3 tools/build.py -i model-cycles_OS1.13.syx -t 6ch-usbup,latching-mute,trig-preview,browser-scroll
    ```
@@ -94,7 +95,7 @@ Les autres patchs n'ont pas de résultat connu-bon extérieur. Voici ce que donn
 | `sdvintage-snare` (v2, recalée sur le Syntakt) | `11049726efa102028f7365b0a672c8a244b98edcef5e7c8b5e0aafba369f60d3` |
 | `6ch-multiout,sdvintage-snare` | `80d0d717c5054f9277c2ddadb588e3578968cc1427610c7367ee408fa8ffd2de` |
 | `6ch-usbup,sdvintage-snare` | `9416ac0b7f0bffda6b91490aacf1b00f831196466f5f64dc87b3a3b63cbc9ccb` |
-| `latching-mute,trig-preview,browser-scroll` | `c6aea7e51d1caf3e9be4553f3a0c5b033592d804cb25226ef9df3fd19add8c08` (`tweak.py` de drumkilla, sans la retouche de note 34 : `71fef138…`) |
+| `latching-mute,trig-preview,browser-scroll` | `c6aea7e51d1caf3e9be4553f3a0c5b033592d804cb25226ef9df3fd19add8c08` (`tweak.py` de drumkilla avant sa 1.2.0, sans la retouche de note 34 : `71fef138…`) |
 | `6ch-usbup,latching-mute,trig-preview,browser-scroll` | `b8911cb1692476c266fdad6fae7bdabd824bd8976149cc5a2baae4dfb9252176` |
 
 | `sdvintage-exact` (avec `--syntakt Syntakt_OS1.42.syx`) | `8e2290a79fb1406ce65b3af3c5d3d95faade666e98eb8ecce0c0fa25fe87b15d` |
@@ -692,6 +693,8 @@ puis par le mode grille :
 python3 tools/emu/test_trig_preview.py --cycles model-cycles_OS1.13.syx \
     [--with 6ch-usbup,model-tg-st,syntakt-tg-sd-cp-toy-bits-swarm,arp,trig-hold --syntakt Syntakt_OS1.42.syx]
 ```
+Seul, `-t trig-preview` donne le MAIN OS `b5733f5ddcee498a0e3bb74587979789c76216ef5dc03bbe0771b401a9d01410`. Dans le flasher
+depuis la version 0.20 (note 34 §6) : ses combinaisons avec les autres cartes sont dans `REF_MAINOS` (`docs/flasher/app.js`).
 
 ### Variante `6ch-usbup`
 
