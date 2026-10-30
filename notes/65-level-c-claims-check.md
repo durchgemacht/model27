@@ -594,3 +594,26 @@ your recommendations for all six decisions).
     firmware"), which comes first, as decided (§11).
   - The check now asks `autoWhy()` directly, and verifies that it says nothing once the injected reason is gone.
   - The second run: ALL OK.
+
+## 16. The self-test after SAMPLE 0.11 (2026-10-30)
+
+- **Found**: from `aa2b5b1` (One-Shot 0.11 pinned, notes/60 §18) to `c7b1f46`, `claims.py --check` stayed ALL OK, but
+  `--self-test` failed three cases: SAMPLE × Model-TG, SAMPLE × the track filter, SAMPLE × REF2. Bisected on the
+  commits that touch the claims: `aa2b5b1~1` passes, `aa2b5b1` fails, and the SAMPLE 0.12 pin (`254c71b`, `d30c96f`)
+  changes nothing.
+- **Why** `[FAIT]`: since 0.11 SAMPLE declares two shortcuts (RETRIG + PUNCH / GATE), so its own tweak carries the
+  shortcut layer (notes/60 §18), and `tweak_claims()` gives it the layer's claims (§13.1). The three expectations were
+  written in C2, when SAMPLE had no shortcut, and were not updated.
+- **The computed side is right**: each new clash is SAMPLE's own, unchanged, plus the layer's, as §5.5 computes it.
+  - × Model-TG: k 25–27 and record slots 24–27 (SAMPLE's), plus record slots 28–29 (the layer's).
+  - × the track filter: record slot 27 (SAMPLE's), plus k 28–31, record slots 18 and 30–31, descriptors 1–4 (the
+    layer's, as in the case "the track filter × the shortcut layer").
+  - × REF2: the two tweaks each carry the layer, so they clash on its slots and descriptors. They are alternatives
+    anyway: their bytes conflict, and `27-sampler.json` lists `refmachine2`. The packages, each on its machine, still
+    do not clash, nor does a build of both with the layer.
+- **Changed**: the three cases in `claims.py`. The REF2 case is now two: the packages (no clash), and the tweaks (the
+  layer's slots). The self-test has 88 cases, ALL OK. No tweak, page file or build changes.
+- **Seen, not changed**: between two package tweaks that both carry the layer, the texts also list each machine's
+  shortcut against the other tweak's layer (`RETRIG + PUNCH against RETRIG + PUNCH/GATE`). `tweak_claims()` merges the
+  package's whole claims with the layer's, without `beyond_shortcuts()`. No verdict changes, since the layer's slots
+  clash anyway.

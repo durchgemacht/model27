@@ -879,12 +879,18 @@ def self_test():
     case("the track filter × Model-TG: record slot 27, MACHINES + SWEEP and + CONTOUR",
          clashes(real["track-filter"], real["model-tg"]) == [
              "record slots 27", "MACHINES + COLOR/SHAPE/SWEEP/CONTOUR against MACHINES + DECAY/SWEEP/CONTOUR"])
-    case("SAMPLE × Model-TG: k 25-27, record slots 24-27",
-         clashes(real["sampler"], real["model-tg"]) == ["k 25-27", "record slots 24-27"])
-    case("SAMPLE × the track filter: record slot 27",
-         clashes(real["sampler"], real["track-filter"]) == ["record slots 27"])
+    # SAMPLE's tweak carries the shortcut layer since One-Shot 0.11 (its switches, notes/60 §18): the layer's
+    # clashes add to its own (notes/65 §16)
+    case("SAMPLE × Model-TG: k 25-27, record slots 24-27, and the layer's 28-29",
+         clashes(real["sampler"], real["model-tg"]) == ["k 25-27", "record slots 24-29"])
+    case("SAMPLE × the track filter: record slot 27, and the layer's k 28-31, record slots 18, 30-31, descriptors",
+         clashes(real["sampler"], real["track-filter"]) == ["k 28-31", "record slots 18, 27, 30-31",
+                                                            "descriptors 1-4"])
     case("REF2 × arp: no clash (RETRIG + NOTES is another atom)", not clashes(real["refmachine2"], real["arp"]))
-    case("SAMPLE × REF2: no clash", not clashes(real["sampler"], real["refmachine2"]))
+    smp, ref2c = (resolve(package_claims(pkgs[p], pkgs), own_scope(pkgs[p])) for p in ("sampler", "refmachine2"))
+    case("SAMPLE × REF2, each on its machine: no clash", not clashes(smp, ref2c))
+    case("SAMPLE's tweak × REF2's: the slots of the layer each carries",
+         clashes(real["sampler"], real["refmachine2"])[:3] == clashes(layer, layer))
     octave, tune = (j({"gestures": [{"combo": "RETRIG + COLOR", "situation": "params", "meaning": x}]}, "package")
                     for x in ("Octave", "Tune"))
     case("two machines' RETRIG + COLOR do not clash", not clashes(resolve(octave, "a"), resolve(tune, "b")))
