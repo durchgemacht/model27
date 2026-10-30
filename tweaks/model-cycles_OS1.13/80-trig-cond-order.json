@@ -1,0 +1,42 @@
+{
+ "id": "trig-cond-order",
+ "order": 80,
+ "name": "Trig conditions in another order on the knob",
+ "description": [
+  "A trig held + CHANCE goes through the trig conditions as FILL, !FILL, PRE, !PRE, NEI, !NEI, 1st, !1st, then 1:2 to 8:8, then 1% to 99% (stock: the percentages before the A:B conditions).",
+  "Only the knob's order changes: a trig keeps the same condition code as in the stock OS, plays it and shows its name the same way, so patterns are the same with and without the tweak, both ways. The first turn on a trig without a condition still gives FILL; fast turns and FUNC step as many positions as the stock knob steps codes.",
+  "The five dots under the value follow the new order too, like a scroll bar of the list.",
+  "TrigParameterSet's \"value + delta\" method (its vtable entry) goes to the tweak's code for Trig Cond only; every other parameter keeps the stock method. A 6-byte detour in the value window (0x4001d91c) gives the dots the position in the new order instead of the code, for Trig Cond only.",
+  "Code and order in a freed 48x22 sprite mask (tools/sprites.py): 178 bytes at 0x40152d38. Written by tools/gen_trig_cond_order.py, notes/70."
+ ],
+ "device": "Model:Cycles",
+ "os": "1.13",
+ "section": 3,
+ "symbols": {
+  "tco_step": "0x40152d4a",
+  "tco_dots": "0x40152d82",
+  "tco_order": "0x40152daa"
+ },
+ "writes": [
+  {
+   "off": 120092,
+   "old": "2045e78ced88",
+   "new": "4eb940152d82"
+  },
+  {
+   "off": 758566,
+   "old": "40152d38",
+   "new": "4014b364"
+  },
+  {
+   "off": 1035800,
+   "old": "4000a980",
+   "new": "40152d4a"
+  },
+  {
+   "off": 1386808,
+   "old": "fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00fffffc00ffff",
+   "new": "41f940152daa72ff5281b030180066f84e757013b0af0008662a202f000ce080723fb280651e61d8202f0010e080d2806a027200703fb2806f02220071b01800e1884e754ef94000a9802045e78ced880c820000001366182f002f012005e080723fb28065066198e1892041221f201f4e7500010203040506071d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f08090a0b0c0d0e0f101112131415161718191a1b1c"
+  }
+ ]
+}

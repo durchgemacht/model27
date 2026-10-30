@@ -215,7 +215,7 @@ async function main() {
   let fail = 0;
   const check = (cond, msg) => { console.log((cond ? "  ok  " : "  FAIL ") + msg); if (!cond) fail++; };
 
-  // 1. Page loads cleanly, everything is wired; model27's four cards
+  // 1. Page loads cleanly, everything is wired; model27's five cards
   if (MAIN) {
     const { w, doc, errors } = await load();
     check(errors.length === 0, "loads without JS error " + (errors.length ? JSON.stringify(errors) : ""));
@@ -224,25 +224,27 @@ async function main() {
     const ids = w.MC_TWEAKS.tweaks.map((x) => x.id), cards = w.MC_TWEAKS.features;
     const smp = cards.find((f) => f.id === "sampler") || {}, dd = cards.find((f) => f.id === "digidelay") || {};
     const pots = cards.find((f) => f.id === "pots") || {};
-    check(ids.join() === "control-all-config" && cards.map((f) => f.id).join() === "control-all-config,sampler,digidelay,pots"
+    check(ids.join() === "control-all-config,trig-cond-order"
+      && cards.map((f) => f.id).join() === "control-all-config,sampler,digidelay,pots,trig-cond-order"
       && smp.package === "sampler" && !smp.variants && dd.package === "digidelay" && !dd.variants
       && pots.package === "pots" && !pots.variants
       && Object.keys(w.MC_TWEAKS.packages).join() === "sampler,digidelay,pots"
       && Object.keys(w.MC_TWEAKS.parts || {}).join() === "shortcuts,dispatch,fxslot"
       && w.MC_TWEAKS.registrar && w.MC_TWEAKS.registrar.schema === "model27-registrar-frame/0.1"
       && !cards.some((f) => f.engines || f.needs) && !w.MC_TWEAKS.tweaks.some((x) => x.append && x.append.syntakt),
-      "MC_TWEAKS: model27's four cards, Control All Config (its tweak), SAMPLE (a machine card), Digital Delay and POTS " +
-      "(effect cards): their packages, the registrar's frame and the parts, composed in the page, nothing that needs the " +
-      "Syntakt OS: " + ids.join());
+      "MC_TWEAKS: model27's five cards, Control All Config and Trig conditions (their tweaks), SAMPLE (a machine card), " +
+      "Digital Delay and POTS (effect cards): their packages, the registrar's frame and the parts, composed in the page, " +
+      "nothing that needs the Syntakt OS: " + ids.join());
     check(/build \d{4}-/.test(text(doc, "build-stamp")), "version stamp shown");
     const srcs = [...doc.querySelectorAll("script[src]")].map((x) => x.getAttribute("src"));
     check(["builder.js", "composer.js", "tweaks.js", "flasher.js", "app.js"].every((f) => srcs.some((x) => x.startsWith(f + "?")))
       && srcs.every((x) => x.endsWith("?v=" + w.MC_BUILD)), "scripts loaded with ?v=<build> (no stale cache): " + srcs.join());
     check(doc.getElementById("compat").hidden, "no compatibility banner in a good browser");
-    // display order: by section (Sounds & machines, then Live playing), FEATURES order inside a section; the build
-    // keeps FEATURES order (checked in 1b)
+    // display order: by section (Sounds & machines, Sequencer, then Live playing), FEATURES order inside a section;
+    // the build keeps FEATURES order (checked in 1b)
     const feats = [...doc.querySelectorAll("#features input[type=checkbox]")].map((c) => c.id);
-    check(feats.join() === "feat-sampler,feat-digidelay,feat-pots,feat-control-all-config", "4 feature rows, by section: " + JSON.stringify(feats));
+    check(feats.join() === "feat-sampler,feat-digidelay,feat-pots,feat-trig-cond-order,feat-control-all-config",
+      "5 feature rows, by section: " + JSON.stringify(feats));
     check(cards.every((f) => doc.querySelector(`#cat-${f.cat || "other"} #mod-${f.id} #feat-${f.id}`)),
       "every feature has a row in its section (cat)");
     const tagOfFeat = (f) => (f.status === "tested" ? "Tested" : "Experimental");
@@ -257,8 +259,10 @@ async function main() {
       && /\/LICENSE-PPPCCC\.txt$/.test(creditOf("digidelay")[1])
       && creditOf("control-all-config")[0] === "https://github.com/durchgemacht/cycles-control-all-config"
       && /\/LICENSE-Control-All-Config\.txt$/.test(creditOf("control-all-config")[1])
-      && !creditOf("pots").length && !doc.querySelector("label[for=feat-pots] .credit"),
-      "each row credits its author, with a link to the MIT license of the code it carries; POTS, model27's own, none: " +
+      && !creditOf("pots").length && !doc.querySelector("label[for=feat-pots] .credit")
+      && !creditOf("trig-cond-order").length && !doc.querySelector("label[for=feat-trig-cond-order] .credit"),
+      "each row credits its author, with a link to the MIT license of the code it carries; POTS and Trig conditions, " +
+      "model27's own, none: " +
       JSON.stringify(credits));
     const list = [...doc.querySelectorAll("#credits-list a")].map((a) => a.textContent);
     check(list.join() === "18nelli18/Modded-Cycles,scottmetoyer/ms-multi-output,drumkilla/elektron-model-tweaks,pichenettes/eurorack,RobinSchmidt/Open303,TinyGregAudio/Model-TG,gialloinfuso/PPPCCC-Model-Cycles-1.13-Mods,mischa85/elektron-firmware-tool,dagargo/elektroid,mxldyn/octamax",
@@ -313,6 +317,23 @@ async function main() {
       && /Tested/.test(doc.querySelector("label[for=feat-pots] .tag").textContent),
       `POTS alone ${potsAlone}; with Digital ${potsDd}, one composed tweak; with SAMPLE ${potsSmp}; with Control All ` +
       `Config too ${potsAll}, all ticked, no clash; no sub-choice; its guide link; tagged Tested`);
+    // Trig conditions: a tweak card, after the composed tweak of the machine and effect cards in the build
+    box("feat-trig-cond-order").click(); await wait(5);
+    const tcoAlone = chosen();
+    box("feat-control-all-config").click(); await wait(5);
+    const tcoCac = chosen();
+    for (const i of ["sampler", "digidelay", "pots"]) { box("feat-" + i).click(); await wait(5); }
+    const tcoAll = chosen();
+    const fiveOn = ["sampler", "digidelay", "pots", "control-all-config", "trig-cond-order"].every((i) => box("feat-" + i).checked)
+      && !doc.querySelector("#features .say.clash");
+    for (const i of ["trig-cond-order", "control-all-config", "sampler", "digidelay", "pots"]) { box("feat-" + i).click(); await wait(5); }
+    check(tcoAlone === "trig-cond-order" && tcoCac === "control-all-config,trig-cond-order"
+      && tcoAll === "control-all-config,sampler+digidelay+pots,trig-cond-order" && fiveOn && !chosen().length
+      && doc.querySelector('#cat-seq #feat-trig-cond-order') && doc.querySelector('#features a[href$="#trig-cond"]')
+      && doc.querySelectorAll('input[name="var-trig-cond-order"]').length === 0
+      && /Experimental/.test(doc.querySelector("label[for=feat-trig-cond-order] .tag").textContent),
+      `Trig conditions alone ${tcoAlone}; with Control All Config ${tcoCac}; with every card ${tcoAll}, all ticked, no ` +
+      "clash; in Sequencer; no sub-choice; its guide link; tagged Experimental");
     box("feat-sampler").click(); await wait(30);
     check(doc.querySelectorAll('input[name="var-sampler"]').length === 0, "SAMPLE: a machine card, no sub-choice");
     check(!!doc.getElementById("tab-samples") && doc.getElementById("panel-samples").hidden && doc.getElementById("drop2-wrap").hidden,

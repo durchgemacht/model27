@@ -304,6 +304,24 @@ composés : `7e867f703d0146b6f1ea70cb049b473585a14b9fce7b9994c3135ffb9e6ff45c` ;
 à 12 kHz avec un codec 8 bits (note 69 §23), testée sur un Model:Cycles (§23.6, `28cf64c0…`) ; depuis, la partie
 `fxslot` 0.4 lance la préparation des effets d'origine avant la boucle des voix (note 68 §21, l'idée de Model-TG),
 jouée sur un Model:Cycles depuis la page le 29/10/2026 : un projet chargé tourne et sonne pareil (§21.8).
+
+### Trig Cond dans un autre ordre
+
+`tweaks/model-cycles_OS1.13/80-trig-cond-order.json` est produit par `tools/gen_trig_cond_order.py`, qui assemble
+`tools/machines/trig_cond_order/trig_cond_order.S`, y écrit l'ordre (`ORDER`) et le pose dans le masque de sprite 48×22
+libéré `0x40152d38` ([note 70](notes/70-trig-cond-order.md)). Un trig tenu + CHANCE parcourt FILL … !1st, puis 1:2 …
+8:8, puis 1 % … 99 %, et les cinq points sous la valeur suivent cet ordre ; le code que garde le trig, que joue le séquenceur et qu'affiche l'écran reste celui de l'OS
+d'origine. La preuve fait tourner la méthode « valeur + pas » de `TrigParameterSet`, le pas du potard d'un trig tenu
+(`0x4001e268`) jusqu'à l'octet de la condition et les cinq points de la fenêtre de valeur (`0x4001d818`), d'origine
+et modifié :
+```sh
+python3 tools/gen_trig_cond_order.py --cycles model-cycles_OS1.13.syx [--check]
+python3 tools/emu/test_trig_cond_order.py --cycles model-cycles_OS1.13.syx \
+    [--with 6ch-usbup,model-tg-st,syntakt-tg-sd-cp-toy-bits-swarm,arp,trig-hold,tempo-max --syntakt Syntakt_OS1.42.syx]
+python3 tools/build.py -i model-cycles_OS1.13.syx -t trig-cond-order
+```
+MAIN OS patché, `trig-cond-order` seul : `018690231f705e49422a5032a36d1685637db2dd682c65942277759d7da351f1`
+(la première version, sans les points, `43562797…`).
 ### OS Cycles pour Model:Samples (et retour par USB)
 
 Pas un tweak : `tools/crossflash.py` met l'OS Cycles officiel dans le conteneur officiel du Model:Samples, en changeant les

@@ -373,6 +373,20 @@ ALL_FEATURES = [
         "package": "pots",
     },
     {
+        "id": "trig-cond-order",
+        "cat": "seq",
+        "label": "Trig conditions, A:B before the percentages",
+        "desc": "A trig held + CHANCE goes FILL ... !1st, then 1:2 ... 8:8, then 1% ... 99%, and the five dots under the "
+                "value follow that order. A trig keeps the same condition as on the stock OS.",
+        # model27's own (notes/70); tested on the Model:Cycles from the command line on 2026-10-30, the order and the
+        # five dots (notes/70 §9); experimental here until flashed from this page
+        "status": "experimental",
+        "credit": None,
+        "variants": [
+            {"file": "80-trig-cond-order", "label": None},
+        ],
+    },
+    {
         "id": "chord-keys",
         "cat": "live",
         "label": "Accords de gamme sur TRIG 1–16",
@@ -430,7 +444,7 @@ ALL_FEATURES = [
 # model27 offers a short list of cards. The other definitions above stay as they are, for the command-line build
 # (every tweak of tweaks/ is still built by tools/build.py) and so that merges from upstream apply cleanly; a card
 # comes back into the flasher by adding its id here, once it has been reviewed against the Cycles Mod Standard.
-OFFERED = ("sampler", "digidelay", "pots", "control-all-config")
+OFFERED = ("sampler", "digidelay", "pots", "control-all-config", "trig-cond-order")
 FEATURES = [f for f in ALL_FEATURES if f["id"] in OFFERED]
 _missing = set(OFFERED) - {f["id"] for f in FEATURES}
 if _missing:

@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-10-30-01">
-<link rel="stylesheet" href="../assets/guide.css?v=2026-10-30-01">
+<link rel="stylesheet" href="../assets/site.css?v=2026-10-30-02">
+<link rel="stylesheet" href="../assets/guide.css?v=2026-10-30-02">
 <script>try{var l=localStorage.getItem("mc-lang"),t=localStorage.getItem("mc-theme")}catch(e){}document.documentElement.lang=l||(/^fr\b/i.test(navigator.language||"")?"fr":"en");if(t)document.documentElement.setAttribute("data-theme",t)</script>
 </head>
 <body data-page="guide">
@@ -42,6 +42,7 @@
         <li><a href="#sampler">SAMPLE machine (Cycles One-Shot)</a></li>
         <li><a href="#digital-delay"><span data-l="en">Digital Delay (effect)</span><span data-l="fr">Digital Delay (effet)</span></a></li>
         <li><a href="#pots"><span data-l="en">POTS (effect)</span><span data-l="fr">POTS (effet)</span></a></li>
+        <li><a href="#trig-cond"><span data-l="en">Trig conditions, A:B before the percentages</span><span data-l="fr">Conditions de trig, A:B avant les pourcentages</span></a></li>
         <li><a href="#control-all"><span data-l="en">Control All, your choice of tracks</span><span data-l="fr">Control All : choix des pistes</span></a></li>
         <li><a href="#mods-on-samples"><span data-l="en">Mods on a Model:Samples</span><span data-l="fr">Des mods sur un Model:Samples</span></a></li>
         <li><a href="#samples"><span data-l="en">Samples OS</span><span data-l="fr">OS Samples</span></a></li>
@@ -155,8 +156,25 @@
         </dl>
       </section>
 
+      <section id="trig-cond">
+        <h2><span class="n">6</span><span data-l="en">Trig conditions, A:B before the percentages</span><span data-l="fr">Conditions de trig, A:B avant les pourcentages</span></h2>
+        <p class="by"><span data-l="en">model27's own · MIT license</span><span data-l="fr">propre à model27 · licence MIT</span></p>
+        <p class="lede"><span data-l="en">The trig conditions in another order on the knob: the A:B conditions come right after the named ones, the percentages last. The conditions themselves stay the same.</span><span data-l="fr">Les conditions de trig dans un autre ordre au potard : les conditions A:B viennent juste après les conditions nommées, les pourcentages en dernier. Les conditions elles-mêmes restent les mêmes.</span></p>
+        <ol>
+          <li><span data-l="en">Hold a <b>trig</b> and turn <b>CHANCE</b> to the right: FILL, !FILL, PRE, !PRE, NEI, !NEI, 1st, !1st, then 1:2, 2:2, 1:3 … 8:8, then 1% … 99%. To the left it goes back.</span><span data-l="fr">Maintenez un <b>trig</b> et tournez <b>CHANCE</b> vers la droite : FILL, !FILL, PRE, !PRE, NEI, !NEI, 1st, !1st, puis 1:2, 2:2, 1:3 … 8:8, puis 1 % … 99 %. Vers la gauche, on revient en arrière.</span></li>
+          <li><span data-l="en">The five dots under the value show where you are in that list: dot 1 from FILL to 3:3, dot 2 from 1:4 to 4:6, dot 3 from 5:6 to 3:8, dot 4 from 4:8 to 25%, dot 5 from 33% to 99%.</span><span data-l="fr">Les cinq points sous la valeur montrent où vous êtes dans cette liste : point 1 de FILL à 3:3, point 2 de 1:4 à 4:6, point 3 de 5:6 à 3:8, point 4 de 4:8 à 25 %, point 5 de 33 % à 99 %.</span></li>
+          <li><span data-l="en">Fast turns, <b>FUNC</b> + <b>CHANCE</b> and several trigs held at once work as on the stock OS, through the new order.</span><span data-l="fr">Les tours rapides, <b>FUNC</b> + <b>CHANCE</b> et plusieurs trigs tenus à la fois marchent comme sur l'OS d'origine, dans le nouvel ordre.</span></li>
+        </ol>
+        <dl class="facts">
+          <div><dt><span data-l="en">Patterns</span><span data-l="fr">Patterns</span></dt><dd><span data-l="en">a trig keeps the same condition as on the stock OS: the sequencer plays it and the screen names it as before. Patterns made with or without the mod are the same both ways, the official firmware included.</span><span data-l="fr">un trig garde la même condition que sur l'OS d'origine : le séquenceur la joue et l'écran la nomme comme avant. Les patterns faits avec ou sans le mod sont les mêmes dans les deux sens, firmware officiel compris.</span></dd></div>
+          <div><dt><span data-l="en">First turn</span><span data-l="fr">Premier tour</span></dt><dd><span data-l="en">a trig without a condition starts at FILL, as on the stock OS.</span><span data-l="fr">un trig sans condition commence à FILL, comme sur l'OS d'origine.</span></dd></div>
+          <div><dt><span data-l="en">Other mods</span><span data-l="fr">Autres mods</span></dt><dd><span data-l="en">goes with SAMPLE, Digital Delay, POTS and Control All Config.</span><span data-l="fr">va avec SAMPLE, Digital Delay, POTS et Control All Config.</span></dd></div>
+          <div><dt><span data-l="en">Experimental</span><span data-l="fr">Expérimental</span></dt><dd><span data-l="en">checked in an emulator on the OS's own code. Tested on a Model:Cycles from the command line (2026-10-30), the order and the five dots; not yet flashed from this page.</span><span data-l="fr">vérifié en émulation sur le propre code de l'OS. Testé sur un Model:Cycles depuis la ligne de commande (30/10/2026), l'ordre et les cinq points ; pas encore flashé depuis cette page.</span></dd></div>
+        </dl>
+      </section>
+
       <section id="control-all">
-        <h2><span class="n">6</span><span data-l="en">Control All, your choice of tracks</span><span data-l="fr">Control All : choix des pistes</span></h2>
+        <h2><span class="n">7</span><span data-l="en">Control All, your choice of tracks</span><span data-l="fr">Control All : choix des pistes</span></h2>
         <p class="by"><span data-l="en">By</span><span data-l="fr">Par</span> <a href="https://github.com/durchgemacht/cycles-control-all-config" target="_blank" rel="noopener">durchgemacht</a></p>
         <p class="lede"><span data-l="en">Leave single tracks out of Control All: with TRACK held, a knob changes only the tracks you chose.</span><span data-l="fr">Écartez des pistes de Control All : TRACK tenu, un potard ne change que les pistes que vous avez choisies.</span></p>
         <ol>
@@ -175,7 +193,7 @@
       </section>
 
       <section id="mods-on-samples">
-        <h2><span class="n">7</span><span data-l="en">Mods on a Model:Samples</span><span data-l="fr">Des mods sur un Model:Samples</span></h2>
+        <h2><span class="n">8</span><span data-l="en">Mods on a Model:Samples</span><span data-l="fr">Des mods sur un Model:Samples</span></h2>
         <p class="lede"><span data-l="en">A Model:Samples can run the Model:Cycles OS with the same mods as a Model:Cycles. Whatever the machine, the flasher always installs the Model:Cycles OS. With the <a href="#sampler">SAMPLE</a> machine ticked, it can play the samples already on the +Drive (not yet tried on a Model:Samples).</span><span data-l="fr">Un Model:Samples peut faire tourner l'OS du Model:Cycles avec les mêmes mods qu'un Model:Cycles. Quelle que soit la machine, le flasher installe toujours l'OS du Model:Cycles. Avec la machine <a href="#sampler">SAMPLE</a> cochée, il peut jouer les samples déjà sur le +Drive (pas encore essayé sur un Model:Samples).</span></p>
         <ol>
           <li><span data-l="en">Back up your samples and projects with Elektron Transfer, then close Transfer.</span><span data-l="fr">Sauvegardez vos samples et vos projets avec Elektron Transfer, puis fermez Transfer.</span></li>
@@ -199,7 +217,7 @@
       </section>
 
       <section id="samples">
-        <h2><span class="n">8</span><span data-l="en">Samples OS</span><span data-l="fr">OS Samples</span></h2>
+        <h2><span class="n">9</span><span data-l="en">Samples OS</span><span data-l="fr">OS Samples</span></h2>
         <p class="lede"><span data-l="en">The Model:Cycles starts as a Model:Samples: you load and play your own samples, managed with Elektron Transfer.</span><span data-l="fr">Le Model:Cycles démarre en Model:Samples : vous chargez et jouez vos propres samples, gérés avec Elektron Transfer.</span></p>
         <p><span data-l="en">The flasher puts the official Model:Samples OS inside your Model:Cycles firmware file:</span><span data-l="fr">Le flasher place l'OS officiel du Model:Samples dans le fichier firmware de votre Model:Cycles :</span></p>
         <dl class="layers fig">
@@ -233,13 +251,13 @@
       </section>
 
       <section id="stock">
-        <h2><span class="n">9</span><span data-l="en">Back to stock</span><span data-l="fr">Revenir à l'origine</span></h2>
+        <h2><span class="n">10</span><span data-l="en">Back to stock</span><span data-l="fr">Revenir à l'origine</span></h2>
         <p><span data-l="en">The <b>Official firmware</b> tab of the flasher sends your OS file unchanged, over USB, like a normal update. It is also a good rehearsal before a first mod: it checks the cable and the setup without changing anything.</span><span data-l="fr">L'onglet <b>Firmware officiel</b> du flasher renvoie votre fichier d'OS sans le modifier, par USB, comme une mise à jour normale. C'est aussi une bonne répétition avant un premier mod : elle vérifie le câble et l'installation sans rien changer.</span></p>
         <p><span data-l="en">With the SAMPLE machine, first set your SAMPLE tracks back to an original machine (Kick to Chord): the official OS doesn't have SAMPLE, and a project that still names it can freeze its MACHINES page.</span><span data-l="fr">Avec la machine SAMPLE, remettez d'abord vos pistes SAMPLE sur une machine d'origine (de Kick à Chord) : l'OS officiel n'a pas SAMPLE, et un projet qui la nomme encore peut geler sa page MACHINES.</span></p>
       </section>
 
       <section id="recovery">
-        <h2><span class="n">10</span><span data-l="en">Recovery</span><span data-l="fr">Secours</span></h2>
+        <h2><span class="n">11</span><span data-l="en">Recovery</span><span data-l="fr">Secours</span></h2>
         <p class="lede"><span data-l="en">If the Model:Cycles no longer starts, its startup menu can always reinstall the OS: it lives in an area that updates never write.</span><span data-l="fr">Si le Model:Cycles ne démarre plus, son menu de démarrage peut toujours réinstaller l'OS : il vit dans une zone que les mises à jour n'écrivent jamais.</span></p>
         <figure class="fig">
           <div data-device data-scenes="func @logo | func,mainvol | s4 @READY TO/>RECEIVE" data-ms="1300"></div>
@@ -253,7 +271,7 @@
       </section>
 
       <section id="trouble">
-        <h2><span class="n">11</span><span data-l="en">Troubleshooting</span><span data-l="fr">Dépannage</span></h2>
+        <h2><span class="n">12</span><span data-l="en">Troubleshooting</span><span data-l="fr">Dépannage</span></h2>
         <div class="faq">
           <details>
             <summary><span data-l="en">Nothing happens on the Model:Cycles screen</span><span data-l="fr">Rien ne se passe sur l'écran du Model:Cycles</span></summary>
@@ -320,8 +338,8 @@
   </div>
 </footer>
 
-<script src="../assets/release.js?v=2026-10-30-01"></script>
-<script src="../assets/cycles.js?v=2026-10-30-01"></script>
-<script src="../assets/site.js?v=2026-10-30-01"></script>
+<script src="../assets/release.js?v=2026-10-30-02"></script>
+<script src="../assets/cycles.js?v=2026-10-30-02"></script>
+<script src="../assets/site.js?v=2026-10-30-02"></script>
 </body>
 </html>

@@ -7,6 +7,12 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.18", date: "2026-10-30", changes: [
+    { en: "New card, Trig conditions, A:B before the percentages (under Sequencer): hold a trig and turn CHANCE, and the conditions come as FILL … !1st, then 1:2 … 8:8, then 1% … 99%; the five dots under the value follow that order. A trig keeps the same condition as on the stock OS, so patterns are the same with and without it",
+      fr: "Nouvelle carte, Conditions de trig, A:B avant les pourcentages (dans Séquenceur) : maintenez un trig et tournez CHANCE, et les conditions viennent dans l'ordre FILL … !1st, puis 1:2 … 8:8, puis 1 % … 99 % ; les cinq points sous la valeur suivent cet ordre. Un trig garde la même condition que sur l'OS d'origine : les patterns sont les mêmes avec et sans elle" },
+    { en: "model27's own, checked in an emulator on the OS's own code, and tested on a Model:Cycles from the command line (2026-10-30), the order and the dots; experimental here until flashed from this page. Goes with SAMPLE, Digital Delay, POTS and Control All Config",
+      fr: "Propre à model27, vérifiée en émulation sur le propre code de l'OS, et testée sur un Model:Cycles depuis la ligne de commande (2026-10-30), l'ordre et les points ; expérimentale ici tant qu'elle n'a pas été flashée depuis cette page. Va avec SAMPLE, Digital Delay, POTS et Control All Config" },
+  ] },
   { version: "0.17", date: "2026-10-30", changes: [
     { en: "SAMPLE now comes from Cycles One-Shot 0.12: hold a trig on a SAMPLE track and turn COLOR or SHAPE, and the whole screen shows that trig's waveform at full width, the lines on its Start and Length locks; a sample lock shows its own sample and name. The trig's note, velocity and length come back once the value goes; just holding a trig shows them as before",
       fr: "SAMPLE vient maintenant de Cycles One-Shot 0.12 : tenez un trig sur une piste SAMPLE et tournez COLOR ou SHAPE, et tout l'écran montre la forme d'onde de ce trig sur toute sa largeur, les lignes sur ses locks de Start et de Length ; un sample lock montre son propre sample et son nom. La note, la vélocité et la longueur du trig reviennent dès que la valeur disparaît ; tenir un trig sans tourner les montre comme avant" },

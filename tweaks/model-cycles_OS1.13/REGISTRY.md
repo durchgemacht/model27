@@ -6,10 +6,10 @@ Adresses : VA de l'OS 1.13 (la section 3 commence en `0x40000400`). Un mod qui v
 
 ## En bref
 
-- 290 tweaks, 32 184 écritures.
-- Masques de sprites libérables : 164 (35 960 o), dont 51 pris (17 808 o) et **113 libres (18 152 o)**.
-- Crochets sur l'OS : 115 adresses détournées, dont 70 à l'identique par des mods de familles différentes.
-- Pointeurs réécrits : 66 adresses. Écritures dans des octets 0xFF hors masques : 14 zones.
+- 291 tweaks, 32 188 écritures.
+- Masques de sprites libérables : 164 (35 960 o), dont 52 pris (18 000 o) et **112 libres (17 960 o)**.
+- Crochets sur l'OS : 116 adresses détournées, dont 70 à l'identique par des mods de familles différentes.
+- Pointeurs réécrits : 67 adresses. Écritures dans des octets 0xFF hors masques : 14 zones.
 - Charges utiles ajoutées après l'OS : 269 tweaks ; place restante au §3.
 - Declared claims (notes/65): 16 holders; the saved data in §6, the key combinations in §8, the descriptors, formatters, p-lock rows and MIDI in §9, the views in §10.
 
@@ -43,11 +43,11 @@ Les masques d'un groupe sont identiques octet pour octet et chacun n'est désign
 | `0x401904b4` | `0x400ac784` | pris (370/376 o) | multiline-browser (370 o) |
 | `0x40192734` | `0x400ac2b2` | pris (318/376 o) | trigless-dim (318 o) |
 
-### 48×22 : 42 masques de 192 o (copie gardée `0x4014b364`) : 4 pris, 38 libres (7 296 o)
+### 48×22 : 42 masques de 192 o (copie gardée `0x4014b364`) : 5 pris, 37 libres (7 104 o)
 
 | masque | constante | état | mods (octets écrits) |
 |---|---|---|---|
-| `0x40152d38` | `0x400b9726` | libre | |
+| `0x40152d38` | `0x400b9726` | pris (178/192 o) | trig-cond-order (178 o) |
 | `0x401592bc` | `0x400b7404` | libre | |
 | `0x4015943c` | `0x400b73e4` | libre | |
 | `0x4015f38c` | `0x400b504a` | libre | |
@@ -573,6 +573,7 @@ Instructions de l'OS remplacées par un détour (`jsr`, `jmp`, `bsr.l`, `bra.l`)
 | `0x4001d25e` | `4eb940016086` | jsr | masque `0x4018a788` +0x1a | arp | notes/32 |
 | `0x4001d5a2` | `20522f032f02` | jmp | masque `0x4018b9c8` +0x5c `cac_loop2` | control-all-config | notes/58 |
 | `0x4001d6f8` | `20522668007c` | jmp | masque `0x4018b9c8` +0x38 `cac_loop1` | control-all-config | notes/58 |
+| `0x4001d91c` | `2045e78ced88` | jsr | masque `0x40152d38` +0x4a `tco_dots` | trig-cond-order | notes/70 |
 | `0x4001e4ca` | `4eb94000b22a` | jsr | masque `0x40183118` +0x13c `ck_shape_name` | chord-keys | notes/42 |
 | `0x4001e8da` | `202f0020226a0068` | jsr | charge utile (mémoire), 29 cibles selon la combinaison | acid, acid-tg, macro, macro-acid, macro-acid-tg, macro-tg, refmachine, refmachine2, sampler, sdvintage-7th, syntakt-* (32/32), syntakt-*-acid (31/31), syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31), syntakt-tg-* (33/33), syntakt-tg-*-acid (31/31), syntakt-tg-*-macro (31/31), syntakt-tg-*-macro-acid (31/31), syntakt-vintage | notes/18, notes/31, notes/36, notes/43, notes/54, notes/60, notes/63, notes/65 |
 | `0x4001ebd2` | `205248780020` | jmp | masque `0x4018b9c8` +0x80 `cac_loop3` | control-all-config | notes/58 |
@@ -739,6 +740,7 @@ Constantes 32 bits de l'OS (tables de fonctions, données) qui pointent maintena
 | `0x400fd170` | `4000a70e` | masque `0x40179730` +0xf8 | chord-keys |
 | `0x400fd174` | `4000a66a` | masque `0x40185968` +0xba | chord-keys |
 | `0x400fd190` | `4000ba7a` | masque `0x401784e8` +0x6c | lfo-plus |
+| `0x400fd218` | `4000a980` | masque `0x40152d38` +0x12 | trig-cond-order |
 | `0x400ff9cc` | `4001a0d2` | masque `0x40185018` +0x0 | chord-keys |
 | `0x400ffe30` | `4001b22a` | charge utile (mémoire), 2 valeurs selon la combinaison | refmachine2, sampler |
 | `0x4010053c` | `4001e40a` | charge utile (mémoire), 2 valeurs selon la combinaison | refmachine2, sampler |
@@ -851,6 +853,7 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | midi-live-both | 6 | 0 | 4 | 0 | 1 | 1 | 0 |  | notes/53 |
 | lfo-plus | 30 | 0 | 12 | 4 | 7 | 7 | 0 |  | notes/56 |
 | pots | 9 | 0 | 7 | 0 | 1 | 1 | 0 | 11 832 o | notes/69 |
+| trig-cond-order | 4 | 0 | 1 | 1 | 1 | 1 | 0 |  | notes/70 |
 
 ## 8. Key combinations (declared claims, notes/65)
 
