@@ -331,9 +331,9 @@ async function main() {
       && tcoAll === "control-all-config,sampler+digidelay+pots,trig-cond-order" && fiveOn && !chosen().length
       && doc.querySelector('#cat-seq #feat-trig-cond-order') && doc.querySelector('#features a[href$="#trig-cond"]')
       && doc.querySelectorAll('input[name="var-trig-cond-order"]').length === 0
-      && /Experimental/.test(doc.querySelector("label[for=feat-trig-cond-order] .tag").textContent),
+      && /Tested/.test(doc.querySelector("label[for=feat-trig-cond-order] .tag").textContent),
       `Trig conditions alone ${tcoAlone}; with Control All Config ${tcoCac}; with every card ${tcoAll}, all ticked, no ` +
-      "clash; in Sequencer; no sub-choice; its guide link; tagged Experimental");
+      "clash; in Sequencer; no sub-choice; its guide link; tagged Tested");
     box("feat-sampler").click(); await wait(30);
     check(doc.querySelectorAll('input[name="var-sampler"]').length === 0, "SAMPLE: a machine card, no sub-choice");
     check(!!doc.getElementById("tab-samples") && doc.getElementById("panel-samples").hidden && doc.getElementById("drop2-wrap").hidden,

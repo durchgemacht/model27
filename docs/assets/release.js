@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.19", date: "2026-10-30", changes: [
+    { en: "Trig conditions, A:B before the percentages, is tested as this page builds it: flashed from this page and played on a Model:Cycles (2026-10-30). Its card now shows Tested",
+      fr: "Conditions de trig, A:B avant les pourcentages, est testée telle que cette page la construit : flashée depuis cette page et jouée sur un Model:Cycles (2026-10-30). Sa carte affiche maintenant Testé" },
+  ] },
   { version: "0.18", date: "2026-10-30", changes: [
     { en: "New card, Trig conditions, A:B before the percentages (under Sequencer): hold a trig and turn CHANCE, and the conditions come as FILL … !1st, then 1:2 … 8:8, then 1% … 99%; the five dots under the value follow that order. A trig keeps the same condition as on the stock OS, so patterns are the same with and without it",
       fr: "Nouvelle carte, Conditions de trig, A:B avant les pourcentages (dans Séquenceur) : maintenez un trig et tournez CHANCE, et les conditions viennent dans l'ordre FILL … !1st, puis 1:2 … 8:8, puis 1 % … 99 % ; les cinq points sous la valeur suivent cet ordre. Un trig garde la même condition que sur l'OS d'origine : les patterns sont les mêmes avec et sans elle" },

@@ -19,7 +19,7 @@ emulation `tools/emu/test_trig_cond_order.py`. Addresses: VAs of OS 1.13.
   ones. The first turn on a trig without a condition still gives FILL; a fast turn or FUNC steps as many positions
   as the stock knob steps codes.
 - Status: **tested on the machine (2026-10-30, §9)**, with the dots' fix (§8); proven in emulation (ALL OK, §6, §8.2).
-  A card in the web flasher since release 0.18, experimental there until flashed from the page (§10).
+  A card in the web flasher since release 0.18, tested as the page builds it since release 0.19 (§11).
 
 ## 1. What a trig keeps, and who reads it `[FAIT]`
 
@@ -180,5 +180,13 @@ The maintainer asked for a card. `trig-cond-order` joins `OFFERED` (`tools/gen_f
 credit, `"status": "experimental"` until flashed from the page), its texts in `docs/flasher/app.js` (en, fr), the
 guide's section 6 (the ones after it renumbered), release 0.18, the stamp `2026-10-30-02`, the README. `REF_MAINOS`
 now holds 16 combinations: the card alone gives `018690231f…`, the MAIN OS tested from the command line (§9); with
-every other card `6788885f…`. No exclusion with the four other cards (no shared byte, no claim). `[À FAIRE]` flash it
-from the page, then `tested`.
+every other card `6788885f…`. No exclusion with the four other cards (no shared byte, no claim). Committed as
+`b1fdf53`, pushed by the maintainer; the live page served that commit's flasher, guide and release files byte for
+byte (2026-10-30).
+
+## 11. Tested from the page (2026-10-30, release 0.19)
+
+The maintainer flashed a build of the live page (`b1fdf53`, stamp `2026-10-30-02`) and tested it on their
+Model:Cycles: « getestet mit build von der live site. passt ». The card becomes `tested` (`FEATURES`, the guide's
+*Tested* line, release 0.19, the README, stamp `2026-10-30-03`). The proof with the other mods (§7) is still open; the
+page's build with every card is in `REF_MAINOS` and its smoke test.

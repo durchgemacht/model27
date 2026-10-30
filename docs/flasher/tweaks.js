@@ -226,7 +226,7 @@ window.MC_TWEAKS = {
    "id": "trig-cond-order",
    "label": "Trig conditions, A:B before the percentages",
    "desc": "A trig held + CHANCE goes FILL ... !1st, then 1:2 ... 8:8, then 1% ... 99%, and the five dots under the value follow that order. A trig keeps the same condition as on the stock OS.",
-   "status": "experimental",
+   "status": "tested",
    "credit": null,
    "cat": "seq",
    "variants": [

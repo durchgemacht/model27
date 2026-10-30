@@ -379,8 +379,8 @@ ALL_FEATURES = [
         "desc": "A trig held + CHANCE goes FILL ... !1st, then 1:2 ... 8:8, then 1% ... 99%, and the five dots under the "
                 "value follow that order. A trig keeps the same condition as on the stock OS.",
         # model27's own (notes/70); tested on the Model:Cycles from the command line on 2026-10-30, the order and the
-        # five dots (notes/70 §9); experimental here until flashed from this page
-        "status": "experimental",
+        # five dots (notes/70 §9), then flashed from this page the same day (§11)
+        "status": "tested",
         "credit": None,
         "variants": [
             {"file": "80-trig-cond-order", "label": None},
