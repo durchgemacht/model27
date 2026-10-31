@@ -267,7 +267,7 @@ python3 tools/build.py -i model-cycles_OS1.13.syx -t control-all-config
 `tweaks/model-cycles_OS1.13/39-digidelay.json` est produit par `tools/gen_digidelay.py`, qui compile
 `tools/machines/digidelay/digidelay.c` (le delay numérique des mods PPPCCC de gialloinfuso, 2.0.0, MIT, porté en C pas à
 pas) et le compose seul avec `tools/compose.py` : un effet de l'emplacement du delay, avec la partie `fxslot`
-([note 68](notes/68-fx-slots.md) §14 à §19). TRACK + Delay Time choisit l'effet du pattern (octets 29 à 31 de son
+([note 68](notes/68-fx-slots.md) §14 à §19). PATTERN + Delay Time choisit l'effet du pattern (TRACK + Delay Time jusqu'à fxslot 0.4) (octets 29 à 31 de son
 en-tête) ; la ligne de 1 Mio est celle de l'emplacement, dans les variables de la charge utile. La preuve fait tourner le
 vrai code du mixer, du gestionnaire des potards, du chargement et de l'initialisation des en-têtes de pattern, d'origine
 et modifié, et compte la charge ; avec `--pppccc`, le son contre le code même de PPPCCC :
@@ -277,10 +277,11 @@ python3 tools/emu/test_fxslot.py --cycles model-cycles_OS1.13.syx \
     [--pppccc PPPCCC-Model-Cycles-1.13-Mods/patches/06-delay-fx.json]
 python3 tools/build.py -i model-cycles_OS1.13.syx -t digidelay
 ```
-MAIN OS patché, `digidelay` seul : `0ce37cf6882b11ac19d3782843d3588b73d9907eaaf8c5cc500cec051742e4ae`, celui que la page
-compose, avec la partie `fxslot` 0.4, qui lance la préparation des effets d'origine avant la boucle des voix (note 68
-§21, l'idée de Model-TG), jouée sur un Model:Cycles depuis la page le 29/10/2026 (§21.8) ; le build joué le 27/10/2026
-était `4fb4eac7…`.
+MAIN OS patché, `digidelay` seul : `0eb57c92fd47423831022384ec09ba08dd341fc82586780ccdfad722b3dfaa8f`, celui que la page
+compose, avec la partie `fxslot` 0.5 (PATTERN + Delay Time, la carte des touches du 31/10/2026 ; pas encore jouée sur un
+Model:Cycles). Avec `fxslot` 0.4, qui lance la préparation des effets d'origine avant la boucle des voix (note 68 §21,
+l'idée de Model-TG), jouée sur un Model:Cycles depuis la page le 29/10/2026 (§21.8) : `0ce37cf6…` ; le build joué le
+27/10/2026 était `4fb4eac7…`.
 
 ### POTS (effet)
 
@@ -299,9 +300,10 @@ python3 tools/emu/test_fxslot.py --cycles model-cycles_OS1.13.syx --machines pot
 python3 tools/build.py -i model-cycles_OS1.13.syx -t pots
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,digidelay,pots   # avec Digital et SAMPLE
 ```
-MAIN OS patché, `pots` seul : `4a1521cb90c1206e90fc243846081695008620fc0c657c2940dd19d55937f4dd` ; `digidelay` et `pots`
-composés : `7e867f703d0146b6f1ea70cb049b473585a14b9fce7b9994c3135ffb9e6ff45c` ; avec SAMPLE 0.12 (`sampler`, `digidelay`,
-`pots`) : `1d7bc3b1333e76f45685f7fe5a54c482d43b66a0dfb1819b90fda65cfef3ed18`, ceux que la page compose. La ligne tourne
+MAIN OS patché, `pots` seul : `2bc636dde8d9507f2e2a62ddba947593afc109e9e70661c6d2f2dbd751c84540` ; `digidelay` et `pots`
+composés : `1c467d0a76737c728ba2f5607211d8ed5ef254e65ace621278c1e6835f74bdcc` ; avec SAMPLE 0.12 (`sampler`, `digidelay`,
+`pots`) : `dfa3781b959f84f1548935dd48ffa85770107dae5fa9f9610cd80db2336fe762`, ceux que la page compose avec `fxslot` 0.5
+(PATTERN + Delay Time ; avec 0.4 : `4a1521cb…`, `7e867f70…`, `1d7bc3b1…`). La ligne tourne
 à 12 kHz avec un codec 8 bits (note 69 §23), testée sur un Model:Cycles (§23.6, `28cf64c0…`) ; depuis, la partie
 `fxslot` 0.4 lance la préparation des effets d'origine avant la boucle des voix (note 68 §21, l'idée de Model-TG),
 jouée sur un Model:Cycles depuis la page le 29/10/2026 : un projet chargé tourne et sonne pareil (§21.8).

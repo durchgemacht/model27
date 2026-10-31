@@ -27,7 +27,7 @@ together, so that a new machine fits next to the others. The rules a mod follows
 cards, all tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
 [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples on the +Drive,
 [Control All Config](https://github.com/durchgemacht/cycles-control-all-config), **Digital Delay**, the first
-effect: a second delay for the delay slot, chosen per pattern with TRACK + Delay Time, based on the digital delay of
+effect: a second delay for the delay slot, chosen per pattern with PATTERN + Delay Time, based on the digital delay of
 [gialloinfuso's PPPCCC mods](https://github.com/gialloinfuso/PPPCCC-M-S-Mods), and **POTS**, model27's
 own second effect: a delay whose repeats go down an old telephone line. The fifth, **Trig conditions, A:B before
 the percentages**, model27's own, puts the A:B conditions before the percentages on the knob, the five dots under the

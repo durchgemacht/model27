@@ -980,8 +980,8 @@ def dispatch_layer(img, part, mans, syms_of, at, code_end, first):
 
 def fx_layer(img, part, effects, syms_of, at, code_end, desc_used):
     """The effect slots of this build (notes/68 §2, §11, §14; steps F1, F2 and F2b): for each slot that has an effect,
-    the mixer's call of the stock effect goes to the part, and so does the handler's call at TRACK + a knob
-    (0x4001f89a), where TRACK + Delay Time / Reverb Size step through the slot's effects, and the pattern header's
+    the mixer's call of the stock effect goes to the part, and so does the encoder handler's question whether TRACK
+    is held (0x4001f886), where PATTERN + Delay Time / Reverb Size step through the slot's effects, and the pattern header's
     loader and initializer (0x4005b4b0, 0x4006155e), which keep the pattern's choice. The data block after the part's code lists each
     slot's effects by id (entry 0 the stock effect, with its process and reset), the names and formatters of the slot's
     two parameters for each entry (the stock ones read from the image), the descriptor tables the names go into (the

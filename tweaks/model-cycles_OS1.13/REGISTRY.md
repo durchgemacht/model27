@@ -529,8 +529,8 @@ Code trop gros pour un masque, ajouté à la fin de l'image (`at`) et copié au 
 | refchord | 34 | `0x401aa140` | 984 | `0x401aa518` | `0x43000000` | 221 192 |  |
 | acid-tg | 35 | `0x401bf8c0` | 11 792 | `0x401c26d0` | `0x46700000` | 221 928 | model-tg-st |
 | chordtables | 36 | `0x401aa140` | 5 848 | `0x401ab818` | `0x43000000` | 222 292 |  |
-| digidelay | 39 | `0x401aa140` | 3 792 | `0x401ab010` | `0x43000000` | 1 269 784 |  |
-| pots | 70 | `0x401aa140` | 11 832 | `0x401acf78` | `0x43000000` | 483 676 |  |
+| digidelay | 39 | `0x401aa140` | 3 820 | `0x401ab02c` | `0x43000000` | 1 269 784 |  |
+| pots | 70 | `0x401aa140` | 11 860 | `0x401acf94` | `0x43000000` | 483 676 |  |
 | syntakt-meter | 90 | `0x401aa140` | 269 056 | `0x401ebc40` | `0x43000000` | 269 056 |  |
 | syntakt-tg-meter | 91 | `0x401bf8c0` | 243 472 | `0x401fafd0` | `0x46700000` | 269 056 | model-tg-st |
 | syntakt-tg-profile | 92 | `0x401bf8c0` | 243 904 | `0x401fb180` | `0x46700000` | 269 056 | model-tg-st |
@@ -577,7 +577,7 @@ Instructions de l'OS remplacées par un détour (`jsr`, `jmp`, `bsr.l`, `bra.l`)
 | `0x4001e4ca` | `4eb94000b22a` | jsr | masque `0x40183118` +0x13c `ck_shape_name` | chord-keys | notes/42 |
 | `0x4001e8da` | `202f0020226a0068` | jsr | charge utile (mémoire), 29 cibles selon la combinaison | acid, acid-tg, macro, macro-acid, macro-acid-tg, macro-tg, refmachine, refmachine2, sampler, sdvintage-7th, syntakt-* (32/32), syntakt-*-acid (31/31), syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31), syntakt-tg-* (33/33), syntakt-tg-*-acid (31/31), syntakt-tg-*-macro (31/31), syntakt-tg-*-macro-acid (31/31), syntakt-vintage | notes/18, notes/31, notes/36, notes/43, notes/54, notes/60, notes/63, notes/65 |
 | `0x4001ebd2` | `205248780020` | jmp | masque `0x4018b9c8` +0x80 `cac_loop3` | control-all-config | notes/58 |
-| `0x4001f89a` | `4eb94005a5cc` | jsr | charge utile (mémoire), 2 cibles selon la combinaison | digidelay, pots | notes/68, notes/69 |
+| `0x4001f886` | `487800024e94` | jsr | charge utile (mémoire), 2 cibles selon la combinaison | digidelay, pots | notes/68, notes/69 |
 | `0x40021f56` | `2f034e944879404a8cb8…` | jsr | charge utile (image) +0x4f16 | model-tg, model-tg-st | notes/31, notes/36 |
 | `0x4002249c` | `4eb940072490` | jsr | masque `0x4015c044` +0x28 `th_press` | trig-hold | notes/33 |
 | `0x400224ee` | `2f034eb9400724a0` | jmp | cave `0x401489fa` +0x0 | model-tg, model-tg-st, trig-preview | notes/31, notes/36 |
@@ -838,7 +838,7 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | refchord | 9 | 0 | 6 | 1 | 1 | 1 | 0 | 984 o | notes/66 |
 | acid-tg | 114 | 50 | 15 | 47 | 1 | 1 | 0 | 11 792 o | notes/54 |
 | chordtables | 9 | 0 | 6 | 1 | 1 | 1 | 0 | 5 848 o | notes/66 |
-| digidelay | 9 | 0 | 7 | 0 | 1 | 1 | 0 | 3 792 o | notes/68 |
+| digidelay | 9 | 0 | 7 | 0 | 1 | 1 | 0 | 3 820 o | notes/68 |
 | arp | 14 | 0 | 6 | 0 | 4 | 4 | 0 |  | notes/32 |
 | trig-hold | 5 | 0 | 3 | 0 | 1 | 1 | 0 |  | notes/33 |
 | tempo-max | 12 | 12 | 0 | 0 | 0 | 0 | 0 |  | notes/38 |
@@ -852,7 +852,7 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | midi-both | 3 | 3 | 0 | 0 | 0 | 0 | 0 |  | notes/53 |
 | midi-live-both | 6 | 0 | 4 | 0 | 1 | 1 | 0 |  | notes/53 |
 | lfo-plus | 30 | 0 | 12 | 4 | 7 | 7 | 0 |  | notes/56 |
-| pots | 9 | 0 | 7 | 0 | 1 | 1 | 0 | 11 832 o | notes/69 |
+| pots | 9 | 0 | 7 | 0 | 1 | 1 | 0 | 11 860 o | notes/69 |
 | trig-cond-order | 4 | 0 | 1 | 1 | 1 | 1 | 0 |  | notes/70 |
 
 ## 8. Key combinations (declared claims, notes/65)

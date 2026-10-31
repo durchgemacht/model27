@@ -1318,3 +1318,42 @@ how it runs with the new build: « Läuft, klingt gleich » (it runs, it sounds 
 was flashed was not said, nor whether the interface feels lighter: the saving itself (about 4.5 % of a block by
 Model-TG's measure) is not measured here, only that nothing broke and nothing changed in the sound. Digital Delay and
 POTS keep their Tested tag; release 0.16 says so, stamp 2026-10-29-06.
+
+## 22. PATTERN instead of TRACK (2026-10-31, `fxslot` 0.5)
+
+The maintainer's key map of 2026-10-31 gives each level a held key: PATTERN for the pattern, MACHINES for the track's
+machine, RETRIG for a track filter (the key map's own note will come with its release). The effect belongs to the
+pattern, so its choice moves from TRACK + Delay Time / Reverb Size (§9) to **PATTERN + Delay Time / Reverb Size**;
+TRACK + these knobs edits as without TRACK again, as in the stock OS (§8.4). No alias.
+
+- **What the stock OS does with PATTERN held** `[FAIT]` (code, and the maintainer's test): a press arms the pattern
+  selection (PatternAndBankSelectView's case 3 at `0x40020ad0`; PATTERN is key 3, `tools/claims.py`); a knob turn
+  reaches ParameterPageView's encoder handler, which first disarms it (`0x4006bb22(UIStates, 0)` at `0x4001f50c`: the
+  LED goes out) and then edits as without PATTERN. « PATTERN halten: LED leuchtet; sobald man einen Regler dreht, geht
+  die LED aus und der Regler wird normal verarbeitet. »
+- **The site:** `0x4001f886`, where the handler asks whether TRACK is held (`pea 2 ; jsr (a4)`, a4 = isKeyHeld
+  `0x4007faf4`), reached on every turn after the popup is set up. `fx_keys` replaces the 6 bytes: with PATTERN held,
+  `fx_step(d3, -38(fp))` (the descriptor, the step the handler loads into d4 just after); when it takes the turn, the
+  handler's end at `0x4001f96a` with d4 = 0, as `fx_track` did; otherwise isKeyHeld(2) with the stack the handler
+  expects (the argument where the replaced pea put it, which the handler's `addq.l #4,sp` pops). The disarm before
+  stays, so releasing PATTERN opens nothing. `0x4001f89a` keeps its stock `jsr 0x4005a5cc`. No tweak of the folder
+  writes `0x4001f886..0x4001f88b`.
+- **Changed:** `fxslot` 0.5 (`entries.S`, `fxslot.c`'s comment, `part.json`: the site, the root `fx_keys`, the claim
+  `PATTERN + REVERB-SIZE/DELAY-TIME` with what it replaces), `fxslot.o` 1 700 bytes (1 672 before); `39-digidelay.json`
+  and `70-pots.json` regenerated; `REGISTRY.md`, `tweaks.js`, `REF_MAINOS` / `REF_MODS`; the card texts, the guide's two
+  steps, the README and BUILD.md (the new MAIN OS hashes: Digital Delay alone `0eb57c92…`, POTS alone `2bc636dd…`).
+- **Proof:** `test_fxslot.py`'s sites (`0x4001f886` → `jsr fx_keys`, `0x4001f89a` stock) and gesture section, which now
+  calls `fx_keys` as the handler does, with the frame's step and the OS's key bitmap: PATTERN + another descriptor or a
+  slot without an effect, and Delay Time / Reverb Size without PATTERN (nothing held, TRACK held): isKeyHeld(2)'s
+  answer, the stack and registers as the handler expects, no detent counted; the model's steps with PATTERN held (the
+  first four with TRACK held too). `--dry` ALL OK here (157 checks); the Unicorn run is the maintainer's (SIGILL in the
+  agent's sandbox). Web: `webcompose_check.sh` identical, `webbuild_check.sh`, `webflash_check.sh` OK; the smoke test
+  needs npm from the network (the maintainer's terminal).
+- **Run by the maintainer, 2026-10-31:** the full `test_fxslot.py` (every default selection), in their terminal:
+  « all ok » `[FAIT en émulation]`. The flasher's smoke test (`webflash_smoke.sh` with both official files), in
+  their terminal the same day: « all ok ».
+- **Tested on the Model:Cycles (2026-10-31):** the maintainer flashed the branch's two builds, every card the flasher
+  offers (SAMPLE, Digital Delay, POTS, Control All Config, Trig Condition Order, Trig Preview; MAIN OS `286e0bb9…`)
+  and Digital Delay with POTS (`1c467d0a…`, the page's), with the checks of PATTERN + Delay Time, the LED and the
+  release, TRACK and FUNC on the knob, pattern changes and other knobs under PATTERN: « Passt ».
+- Not yet: the release with the rest of the key map.

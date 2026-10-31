@@ -1,9 +1,9 @@
 {
  "schema": "model27-part/0.1",
  "id": "fxslot",
- "version": "0.4",
- "name": "Effect slots: the mixer's delay and reverb go to the effect the pattern chose with TRACK + Delay Time / Reverb Size",
- "description": "A part of model27's builder, not a machine (notes/68 §2, §9, §11, §14; steps F1, F2 and F2b): built once into fxslot.o by tools/gen_parts.py, added by tools/compose.py to a build in which a package is an effect. The mixer's call of the delay (0x4005699c) or of the reverb (0x40056a2c), for each slot that has an effect in the build, goes to the part, which runs the effect the playing pattern chose for that slot or the stock one, and names the slot's parameters after it; TRACK + Delay Time / Reverb Size (0x4001f89a, reached only while TRACK is held) steps the shown pattern's choice through the slot's effects. The choice is kept in the pattern header's bytes 29 to 31, which the OS saves but neither loads nor initializes: the part copies them in the loader (0x4005b4b0) and sets the stock effects in a new pattern (0x4006155e). The composer writes the data block (each slot's effects by id, entry 0 the stock effect; their parameters' names and formatters) right after the part's code. A slot without an effect keeps its stock call, and the gesture its stock meaning there. Since 0.4 (notes/68 §21) the effects' per-block setup 0x4005802e runs before the voice loop (0x4005981e) instead of in the output stage (0x400567d8), so the delay line's read on the eDMA, which the output stage waits for, runs while the voices render: Model-TG's idea (TinyGregAudio, MIT).",
+ "version": "0.5",
+ "name": "Effect slots: the mixer's delay and reverb go to the effect the pattern chose with PATTERN + Delay Time / Reverb Size",
+ "description": "A part of model27's builder, not a machine (notes/68 §2, §9, §11, §14; steps F1, F2 and F2b): built once into fxslot.o by tools/gen_parts.py, added by tools/compose.py to a build in which a package is an effect. The mixer's call of the delay (0x4005699c) or of the reverb (0x40056a2c), for each slot that has an effect in the build, goes to the part, which runs the effect the playing pattern chose for that slot or the stock one, and names the slot's parameters after it; PATTERN + Delay Time / Reverb Size steps the shown pattern's choice through the slot's effects (the encoder handler's question whether TRACK is held, 0x4001f886, asks for PATTERN first; since 0.5, the key map of 2026-10-31: up to 0.4 TRACK + knob at 0x4001f89a). The choice is kept in the pattern header's bytes 29 to 31, which the OS saves but neither loads nor initializes: the part copies them in the loader (0x4005b4b0) and sets the stock effects in a new pattern (0x4006155e). The composer writes the data block (each slot's effects by id, entry 0 the stock effect; their parameters' names and formatters) right after the part's code. A slot without an effect keeps its stock call, and the gesture its stock meaning there. Since 0.4 (notes/68 §21) the effects' per-block setup 0x4005802e runs before the voice loop (0x4005981e) instead of in the output stage (0x400567d8), so the delay line's read on the eDMA, which the output stage waits for, runs while the voices render: Model-TG's idea (TinyGregAudio, MIT).",
  "license": "MIT",
  "build": {
   "sources": ["fxslot.c", "entries.S"],
@@ -13,7 +13,7 @@
              "-Werror"],
   "defines": {},
   "objects": ["fxslot.o"],
-  "roots": ["fx_delay", "fx_reverb", "fx_track", "fx_load", "fx_init", "fx_early", "fx_late"],
+  "roots": ["fx_delay", "fx_reverb", "fx_keys", "fx_load", "fx_init", "fx_early", "fx_late"],
   "patch_points": [{"symbol": "fx_data", "kind": "fx_data"}]
  },
  "slots": {
@@ -22,7 +22,7 @@
   "fx.reverb": {"hook": "0x40056a2c", "stock": "4eb9400579c4", "symbol": "fx_reverb", "stock_fn": "0x400579c4",
                 "descriptors": [39, 40], "formatters": ["0x40045a68", "0x4004e00e"]}
  },
- "track": {"hook": "0x4001f89a", "stock": "4eb94005a5cc", "symbol": "fx_track"},
+ "track": {"hook": "0x4001f886", "stock": "487800024e94", "symbol": "fx_keys"},
  "load": {"hook": "0x4005b4b0", "stock": "156b00260026", "symbol": "fx_load"},
  "init": {"hook": "0x4006155e", "stock": "420011400026", "symbol": "fx_init"},
  "early": {"hook": "0x4005981e", "stock": "4eb9400a7d4a", "symbol": "fx_early"},
@@ -34,7 +34,10 @@
  "pattern": {"id_at": {"fx.delay": 29, "fx.reverb": 30}, "check_at": 31, "check": "0x5a + byte 29 + byte 30",
              "root": "0x40fe4228", "playing": "0x40a7887c", "shown": "0x4000f208"},
  "ids": {"stock": 0, "first": 1, "last": 239, "reference": [240, 255]},
- "claims": {"saved": [{"where": "pattern, header +29", "bytes": 3}]},
+ "claims": {"saved": [{"where": "pattern, header +29", "bytes": 3}],
+            "gestures": [{"combo": "PATTERN + REVERB-SIZE/DELAY-TIME", "situation": "params",
+                          "meaning": "the shown pattern's effect in the reverb or delay slot",
+                          "replaces": "the knob's edit while PATTERN is held; the pattern selection is disarmed as in the stock OS"}]},
  "cost": {"emulation": {
   "stock": {"fx.delay": {"first": 2659, "max": 2659, "mean": 2659}, "fx.reverb": {"first": 8205, "max": 8205, "mean": 8205}},
   "overhead": {"fx.delay": {"effect": 87, "silence": 2659, "stock": 81, "switch": 199}, "fx.reverb": {"effect": 86, "silence": 8205, "stock": 80, "switch": 197}},

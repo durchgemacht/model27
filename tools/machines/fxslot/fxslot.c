@@ -16,7 +16,7 @@
  * that writes its lines from its buffers (0x400573fa, 0x40057942) writes silence while it does not play; the effect
  * that starts gets its reset, if it has one.
  *
- * fx_step, the gesture (entries.S's fx_track): TRACK + Delay Time (descriptor 37) or TRACK + Reverb Size (39), on a
+ * fx_step, the gesture (entries.S's fx_keys): PATTERN + Delay Time (descriptor 37) or PATTERN + Reverb Size (39), on a
  * slot that has an effect in this build. Four detents in one direction make one step; the count starts again after a
  * change of direction or of slot, or 0.4 s without a detent (the DMA timer 0, 135.168 MHz). A step moves the shown
  * pattern's choice (0x4000f208 on the singleton, its header object at +44, the header at that object's +16) to the

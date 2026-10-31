@@ -10,13 +10,17 @@
  *              P + 432, notes/68 §1.2, §8.1). They call fx_run(slot, out, in, params), which runs the effect the
  *              device has chosen for the slot, or the stock one, and return to the mixer. d2-d7/a2-a6 are kept (C
  *              ABI), as the stock effects keep them.
- *   fx_track   jsr from 0x4001f89a in place of jsr 0x4005a5cc, in ParameterPageView's encoder handler (0x4001f4f0),
- *              reached only while TRACK is held (notes/68 §8.4): 4(sp) is the descriptor under the knob, the caller's
- *              d4 the step (16 bits, signed), fp the handler's frame. fx_step(descriptor, step) takes TRACK + Delay
- *              Time (descriptor 37) and TRACK + Reverb Size (39) when the build has an effect in that slot; the
- *              handler then ends at 0x4001f96a with d4 = 0, its return value after Control All too: no edit, no
- *              Control All, and the popup it has already set up (0x4001f708..0x4001f76e) shows the slot's parameter
- *              under the chosen effect's name. Anything else: the stock call, jmp 0x4005a5cc with its argument.
+ *   fx_keys    jsr from 0x4001f886 in place of pea 2 ; jsr (a4), where ParameterPageView's encoder handler (0x4001f4f0)
+ *              asks whether TRACK is held (a4 = isKeyHeld 0x4007faf4), on every knob turn that reaches it: d3 is the
+ *              descriptor under the knob, -38(fp) the step (16 bits, signed), fp the handler's frame. With PATTERN held
+ *              (key 3, the key map of 2026-10-31), fx_step(descriptor, step) takes PATTERN + Delay Time (descriptor 37)
+ *              and PATTERN + Reverb Size (39) when the build has an effect in that slot; the handler then ends at
+ *              0x4001f96a with d4 = 0, its return value after Control All too: no edit, and the popup it has already
+ *              set up (0x4001f708..0x4001f76e) shows the slot's parameter under the chosen effect's name. The handler
+ *              has disarmed the pattern selection before (0x4001f50c), as on any knob turn, so releasing PATTERN opens
+ *              nothing. Anything else: isKeyHeld(2) as the handler asked, with the stack it expects (its addq.l #4,sp
+ *              after the call pops the argument the replaced pea pushed). Up to 0.4 the gesture was TRACK + knob, at
+ *              0x4001f89a; TRACK + Delay Time / Reverb Size edits as without TRACK again, as in the stock OS.
  *   fx_load    jsr from 0x4005b4b0 in place of move.b 38(a3),38(a2), in the pattern header's loader (0x4005b3b4) after
  *              its last field: a2 the working pattern's header, a3 the saved one's, d0 = 1 its return value. Copies
  *              byte 38 as the loader did, then fx_hdr_load(a2, a3) the effects' bytes; the loader goes on at
@@ -54,19 +58,28 @@ fx_reverb:
 	lea	16(%sp), %sp
 	rts
 
-	.section .text.fx_track, "ax"
+	.section .text.fx_keys, "ax"
 	.p2align 2
-	.globl	fx_track
-fx_track:
-	move.l	%d4, -(%sp)			/* the step */
-	move.l	8(%sp), -(%sp)			/* the descriptor */
+	.globl	fx_keys
+fx_keys:
+	pea	3				/* PATTERN */
+	jsr	0x4007faf4			/* isKeyHeld */
+	addq.l	#4, %sp
+	tst.l	%d0
+	beq.s	2f
+	mvs.w	-38(%fp), %d0			/* the step */
+	move.l	%d0, -(%sp)
+	move.l	%d3, -(%sp)			/* the descriptor under the knob */
 	jsr	fx_step
 	addq.l	#8, %sp
 	tst.l	%d0
-	bne.s	1f
-	jmp	0x4005a5cc			/* not the slots' gesture: the stock call, with its argument */
-1:	moveq	#0, %d4				/* the handler's return value, as after Control All */
+	beq.s	2f
+	moveq	#0, %d4				/* the handler's return value, as after Control All */
 	jmp	0x4001f96a			/* its end: restores its registers from fp and returns */
+2:	move.l	(%sp), %a1			/* not the slots' gesture: the return address */
+	move.l	#2, (%sp)			/* TRACK's code, where the replaced pea put it */
+	move.l	%a1, -(%sp)
+	jmp	0x4007faf4			/* isKeyHeld(2), returning to the handler */
 
 	.section .text.fx_load, "ax"
 	.p2align 2

@@ -131,7 +131,7 @@ tools/machines/chordtables/   CHORD Tables (notes/66): an extension of CHORD, RE
                               tools/gen_chordtables.py builds it into 36-chordtables.json; tools/wavetable.py turns a
                               wavetable WAV into its files (32 frames of 256, harmonics 1-40), --self-test
 tools/machines/fxslot/        the effect slots, a part (notes/68): the mixer's delay and reverb go to the effect the playing
-                              pattern chose there (bytes 29-31 of its header, TRACK + Delay Time / Reverb Size), each slot
+                              pattern chose there (bytes 29-31 of its header, PATTERN + Delay Time / Reverb Size), each slot
                               with a line of its own; compose.py adds it to the builds whose packages are effects
 tools/machines/digidelay/     Digital Delay (notes/68 §18): PPPCCC's digital delay as an effect of the delay slot (id 1);
                               tools/gen_digidelay.py builds it into 39-digidelay.json; refdelay/, refreverb/: the slots'

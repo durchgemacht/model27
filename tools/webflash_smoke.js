@@ -515,7 +515,7 @@ async function main() {
     // search: only from 20 mods
     check(feats.length < 20 && box("mod-find").hidden, `no search field with ${feats.length} mods (it appears from 20)`);
     // the Effects section says what its cards share; Details come in paragraphs
-    check(/Hold TRACK and turn Delay Time or Reverb Size/.test(textOf(doc, "#grp-effect .grp-sub")) && !doc.querySelector("#grp-mod .grp-sub")
+    check(/Hold PATTERN and turn Delay Time or Reverb Size/.test(textOf(doc, "#grp-effect .grp-sub")) && !doc.querySelector("#grp-mod .grp-sub")
       && doc.querySelectorAll("#det-pots > p").length === 2 && doc.querySelectorAll("#det-sampler > p").length === 2,
       "the Effects section's one line; Details in paragraphs");
     check(errors.length === 0, "no JS error in the mod picker " + (errors.length ? JSON.stringify(errors) : ""));

@@ -345,7 +345,7 @@ ALL_FEATURES = [
         "cat": "sound",
         "label": "Digital Delay (effect)",
         "desc": "A second delay for the delay slot: bright and clean, up to 5.4 s, each repeat a little thinner in the "
-                "lows. Hold TRACK and turn Delay Time to switch the pattern's delay between the stock Delay and "
+                "lows. Hold PATTERN and turn Delay Time to switch the pattern's delay between the stock Delay and "
                 "Digital; Time and Fdbk keep their knobs.",
         # PPPCCC's digital delay (2.0.0) ported to an effect package, their sound bit for bit in emulation; tested
         # on the Model:Cycles on 2026-10-27 from the command line, then flashed from this page alone and with SAMPLE
@@ -362,7 +362,7 @@ ALL_FEATURES = [
         "cat": "sound",
         "label": "POTS (effect)",
         "desc": "A delay whose repeats go down an old telephone line: each pass darker and narrower, a little out of "
-                "tune, fading and now and then dropping out, with a coarse grain on the tail. Hold TRACK and turn "
+                "tune, fading and now and then dropping out, with a coarse grain on the tail. Hold PATTERN and turn "
                 "Delay Time to switch the pattern's delay between the stock Delay, Digital and POTS; Time and Fdbk "
                 "keep their knobs.",
         # model27's own (notes/69), its sound settled in a float prototype; bit for bit its host build in emulation;

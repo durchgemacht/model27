@@ -9,7 +9,8 @@ digidelay,refreverb; sampler,digidelay,refreverb; pots; sampler,pots,refreverb),
   1. start-up: the bootstrap's own aPLib depacker reads the grown OS back; the boot hook copies the payload and clears
      the BSS;
   2. the sites: the mixer's call of each slot that has an effect (0x4005699c, 0x40056a2c) -> jsr fx_delay / fx_reverb,
-     a slot without one keeps its stock call; the handler's call at TRACK + a knob (0x4001f89a) -> jsr fx_track; the
+     a slot without one keeps its stock call; the encoder handler's question whether TRACK is held (0x4001f886, pea 2 ;
+     jsr (a4)) -> jsr fx_keys, its call at TRACK + a knob (0x4001f89a) stock again (fxslot 0.5, the key map); the
      pattern header's loader (0x4005b4b0) -> jsr fx_load, its initializer (0x4006155e) -> jsr fx_init; an
      effects-only build writes nothing else but the payload's boot (no registrar); the slots' lines (§16): one per slot
      whose effects ask for one, 16-aligned at the start of the payload's variables, as large as the largest effect
@@ -30,9 +31,11 @@ digidelay,refreverb; sampler,digidelay,refreverb; pots; sampler,pots,refreverb),
        reset, then its return the model's, bit for bit, the rest of the SRAM the stock OS's; a pattern change to a
        pattern with the stock effects (the stock names back), then back, the effect starting from its reset;
      - every call keeping d2-d7/a2-a6 and the stack, no access outside memory;
-  4. the gesture (fx_track, as the handler calls it, with the handler's frame): a descriptor that is not the slot's
-     knob, or a slot without an effect: the stock call, its answer; TRACK + Delay Time / Reverb Size: the handler's
-     end with 0, its registers back from its frame; four detents in one direction for a step, the count starting
+  4. the gesture (fx_keys, as the handler calls it at 0x4001f886, with the handler's frame and the OS's key bitmap):
+     PATTERN not held, a descriptor that is not the slot's knob, or a slot without an effect: isKeyHeld(2) as the
+     handler asked, its answer (TRACK held or not), the stack as the replaced pea left it, the caller's registers;
+     TRACK + Delay Time alone: the same (the stock path, which edits as without TRACK); PATTERN + Delay Time / Reverb
+     Size, also with TRACK held: the handler's end with 0, its registers back from its frame; four detents in one direction for a step, the count starting
      again on a change of direction, of slot, or after 0.4 s of the DMA timer; the steps stopping at the ends of the
      table; at each change the shown pattern's header (the ids, the check byte, written with the interrupts masked)
      and one call of its notify, the parameters' names and group in both descriptor tables and their formatters, no
@@ -127,7 +130,9 @@ SLOTS = {"delay": dict(site=0x4005699c, stock=0x40057488, entry="fx_delay", out=
          "reverb": dict(site=0x40056a2c, stock=0x400579c4, entry="fx_reverb", out=0x8000bb90, params=432, rec=4,
                         desc=(39, 40))}
 ORDER = ("delay", "reverb")                                 # the slots' order in the data block
-TRACK_SITE, HANDLER_END, STOCK_TEST = 0x4001f89a, 0x4001f96a, 0x4005a5cc
+KEYS_SITE, TRACK_CALL, HANDLER_END, STOCK_TEST = 0x4001f886, 0x4001f89a, 0x4001f96a, 0x4005a5cc
+STEP_AT = -38                                               # the handler's step, a word at fp - 38 (0x4001f88e)
+KEY_INDEX, KEY_BITMAP, KEY_CODE = 0x4010ae5c, 0x40f95744, {"TRACK": 2, "PATTERN": 3}   # isKeyHeld 0x4007faf4
 SAVE = 0x400449b8                                           # writes the settings block to the flash: never called
 BUS = 0x8000b990                                            # the send bus, the effects' input (notes/68 §1.1)
 TAPS, LINES, WRITE = 0x4005802e, 0x40057942, 0x400573fa     # what the mixer calls around the effects
@@ -363,13 +368,15 @@ def site_tests(key, stock, tweak, img, runtime, slots, only_effects, desc_used):
             check(got == jsr(syms[s["entry"]]), f"{key}: {s['site']:#x} -> jsr {s['entry']} ({syms[s['entry']]:#x})")
         else:
             check(got == jsr(s["stock"]), f"{key}: {s['site']:#x} keeps jsr {s['stock']:#x}: no effect in the {name} slot")
-    for site, entry in ((TRACK_SITE, "fx_track"), (LOAD_SITE, "fx_load"), (INIT_SITE, "fx_init"),
+    got = img[TRACK_CALL - compose.BASE:TRACK_CALL - compose.BASE + 6]
+    check(got == jsr(STOCK_TEST), f"{key}: {TRACK_CALL:#x} keeps jsr {STOCK_TEST:#x}: TRACK + a knob as in the stock OS")
+    for site, entry in ((KEYS_SITE, "fx_keys"), (LOAD_SITE, "fx_load"), (INIT_SITE, "fx_init"),
                         (EARLY_SITE, "fx_early"), (LATE_SITE, "fx_late")):
         got = img[site - compose.BASE:site - compose.BASE + 6]
         check(got == jsr(syms[entry]), f"{key}: {site:#x} -> jsr {entry} ({syms[entry]:#x})")
     sites = {compose.BASE + w["off"] for w in tweak["writes"]}
     if only_effects:
-        want = BOOT_SITES | {SLOTS[n]["site"] for n in slots} | {TRACK_SITE, LOAD_SITE, INIT_SITE, EARLY_SITE,
+        want = BOOT_SITES | {SLOTS[n]["site"] for n in slots} | {KEYS_SITE, LOAD_SITE, INIT_SITE, EARLY_SITE,
                                                                   LATE_SITE}
         check(sites == want, f"{key}: {len(sites)} writes, the slots', the gesture's, the header's, the setup's and "
               "the payload's boot only "
@@ -676,8 +683,8 @@ class StepModel:
 
 
 class Gesture:
-    """fx_track, called as the encoder handler calls it at 0x4001f89a, with the handler's frame; the patterns linked as
-    the OS links them, the shown one chosen by the bench (0x4006a96c), the header's notify counted (0x400d0f6c)."""
+    """fx_keys, called as the encoder handler calls it at 0x4001f886, with the handler's frame and the held keys in the
+    OS's key bitmap; the patterns linked as the OS links them, the shown one chosen by the bench (0x4006a96c), the header's notify counted (0x400d0f6c)."""
 
     def __init__(self, img, runtime, syms):
         self.u = t7.UI(img, runtime)
@@ -699,34 +706,40 @@ class Gesture:
     def show(self, n):
         self.u.hooks[SHOWN_IDX] = ("selected", n)
 
-    def track(self, desc, step, now=0):
-        """(taken, d0, registers as expected)"""
+    def track(self, desc, step, now=0, keys=("PATTERN",)):
+        """(taken, d0, registers as expected): a knob turn as the handler meets 0x4001f886, with these keys held"""
         uc, u = self.u.uc, self.u
         uc.mem_write(TIMER, struct.pack(">I", now & 0xffffffff))
+        for name, code in KEY_CODE.items():     # the bits isKeyHeld reads, through its index table
+            idx = struct.unpack(">i", self.read(KEY_INDEX + 4 * code, 4))[0]
+            at, bit = KEY_BITMAP + (idx >> 3), 1 << (idx & 7)
+            b = self.read(at, 1)[0]
+            uc.mem_write(at, bytes([b | bit if name in keys else b & ~bit & 0xff]))
         fp, old_fp = 0x93000100, 0x93000400
         saved = [0x6b6b0000 + i for i in range(len(FRAME))]
         uc.mem_write(fp - 84, struct.pack(">10I", *saved))
+        uc.mem_write(fp + STEP_AT, struct.pack(">h", step))
         uc.mem_write(fp, struct.pack(">II", old_fp, t7.STOP))
         sp = t7.STACK - 0x400
-        uc.mem_write(sp, struct.pack(">II", t7.STOP, desc))
+        uc.mem_write(sp, struct.pack(">II", t7.STOP, 0x5a5a5a5a))
         uc.reg_write(mk.UC_M68K_REG_A7, sp)
         uc.reg_write(mk.UC_M68K_REG_A6, fp)
         live = [0x3c3c0000 + i for i in range(len(FRAME))]
-        live[FRAME.index(mk.UC_M68K_REG_D4)] = step & 0xffffffff
+        live[FRAME.index(mk.UC_M68K_REG_D3)] = desc
         for r, v in zip(FRAME, live):
             uc.reg_write(r, v)
         before = self.exits
         u.calls.clear()
         u.bad.clear()
-        uc.emu_start(self.syms["fx_track"], t7.STOP, count=200_000)
+        uc.emu_start(self.syms["fx_keys"], t7.STOP, count=200_000)
         taken = self.exits > before
         d0 = uc.reg_read(mk.UC_M68K_REG_D0)
         regs = [uc.reg_read(r) for r in FRAME]
-        a6 = uc.reg_read(mk.UC_M68K_REG_A6)
+        a6, a7 = uc.reg_read(mk.UC_M68K_REG_A6), uc.reg_read(mk.UC_M68K_REG_A7)
         if taken:                                # the handler's end: its registers from its frame, its return 0
-            ok = d0 & 0xff == 0 and regs == saved and a6 == old_fp and uc.reg_read(mk.UC_M68K_REG_A7) == fp + 8
-        else:                                    # the stock call: the caller's registers, d4 the step
-            ok = regs == live and a6 == fp and uc.reg_read(mk.UC_M68K_REG_A7) == sp + 4
+            ok = d0 & 0xff == 0 and regs == saved and a6 == old_fp and a7 == fp + 8
+        else:                                    # isKeyHeld(2) as asked: the caller's registers, the pea's argument on top
+            ok = regs == live and a6 == fp and a7 == sp and struct.unpack(">I", self.read(sp, 4))[0] == 2
         ok &= uc.reg_read(mk.UC_M68K_REG_SR) & 0x700 == 0      # the interrupt level back
         return taken, d0, ok and not u.bad
 
@@ -755,7 +768,6 @@ def names_now(read, k, desc_used):
 
 def gesture_tests(key, img, runtime, syms, blk, slots, desc_used):
     g = Gesture(img, runtime, syms)
-    stock_ui = t7.UI(img, runtime)
     tables = [blk.table(k) for k in range(2)]
     model = StepModel(tables, [0, 0])
     # descriptors that are not the gesture's, and slots without an effect: the stock call
@@ -763,9 +775,16 @@ def gesture_tests(key, img, runtime, syms, blk, slots, desc_used):
     ok = True
     for desc in others:
         taken, d0, regs = g.track(desc, 1)
-        ok &= not taken and regs and d0 == stock_ui.call(STOCK_TEST, desc) and not g.u.calls
-    check(ok, f"{key}: descriptors {', '.join(map(str, others))}: the stock call 0x4005a5cc, its answer, the caller's "
-          "registers kept, nothing read or written")
+        ok &= not taken and regs and d0 == 0 and not g.u.calls
+    check(ok, f"{key}: PATTERN + descriptors {', '.join(map(str, others))}: isKeyHeld(2) as the handler asked, its "
+          "answer 0, the stack as after the replaced pea, the caller's registers kept, nothing read or written")
+    ok = True
+    for n in slots:
+        for keys, want in (((), 0), (("TRACK",), 1)):
+            taken, d0, regs = g.track(SLOTS[n]["desc"][0], 1, 0, keys)
+            ok &= not taken and regs and d0 == want and not g.u.calls and g.acc() == 0
+    check(ok, f"{key}: Delay Time / Reverb Size without PATTERN (nothing held, TRACK held): the stock path, "
+          "isKeyHeld(2)'s answer (0, 1), no detent counted, nothing read or written")
     # the steps, on the shown pattern, which plays (pattern 0, its header never written), against the model
     now, events = 0, []
     for n in slots:
@@ -778,10 +797,11 @@ def gesture_tests(key, img, runtime, syms, blk, slots, desc_used):
         dd, dr = SLOTS["delay"]["desc"][0], SLOTS["reverb"]["desc"][0]
         events += [(dd, -1, 0)] * 2 + [(dr, -1, 0)] * 2 + [(dd, -1, 0)] * 2 + [(dd, -1, 0)] * 2
     mismatch, changes, bad_regs, bad_names, bad_hdr, bad_notify, saves = [], 0, 0, 0, 0, 0, 0
-    for j, (desc, step, gap) in enumerate(events):
+    events[:4] = [e + (("PATTERN", "TRACK"),) for e in events[:4]]    # TRACK held as well: PATTERN still steps
+    for j, (desc, step, gap, *held) in enumerate(events):
         now = (now + 1000 + gap) & 0xffffffff
         want = model(desc, step, now)
-        taken, _d0, regs = g.track(desc, step, now)
+        taken, _d0, regs = g.track(desc, step, now, *held)
         raw = g.header(0)
         if taken != (want != "stock") or choice(raw) != model.cur or g.acc() != model.acc:
             mismatch.append(f"event {j} ({desc}, {step:+d}): header {raw.hex()} acc {g.acc()}, "
@@ -798,7 +818,8 @@ def gesture_tests(key, img, runtime, syms, blk, slots, desc_used):
         else:
             bad_notify += g.count("notify") != 0
     check(not mismatch, f"{key}: {len(events)} detents, the gesture as the model: four in one direction for a step, "
-          "the count again after a change of direction, of slot or a pause, the ends of the table"
+          "the count again after a change of direction, of slot or a pause, the ends of the table (the first four "
+          "with TRACK held too)"
           + (f"; {'; '.join(mismatch[:3])}" if mismatch else ""))
     check(not bad_regs, f"{key}: each detent ends the handler with 0, its registers back from its frame, the "
           "interrupt level back")
