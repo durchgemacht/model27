@@ -890,8 +890,16 @@ The stock combinations, as far as they are read:
 | TRACK + PITCH/DECAY/COLOR/SHAPE/SWEEP/CONTOUR | params | Control All | notes/63 §1.2 |
 | LFO + PITCH/DECAY/COLOR/SHAPE/SWEEP/CONTOUR | params | the parameter becomes the LFO's destination | notes/63 §1.2 |
 | TRIG 1-16 + PITCH/DECAY/COLOR/SHAPE/SWEEP/CONTOUR | params | parameter lock | notes/63 §1.3 |
+| FUNC + DELAY-SEND/REVERB-SEND/LFO-SPEED/VOLUME-DIST/SWING/CHANCE | params | fine adjust | notes/68 §8.2 |
+| FUNC + REVERB-SIZE/DELAY-TIME | params | Reverb Tone, Delay Fdbk | notes/68 §8.2 |
+| TRACK + REVERB-SIZE/DELAY-TIME | params | edits as without TRACK (no Control All) | notes/68 §8.4 |
+| TRIG 1-16 + SWING/CHANCE | params | Trig Nudge, Trig Cond | notes/68 §8.2 |
+| PATTERN + PITCH/DECAY/COLOR/SHAPE/SWEEP/CONTOUR/DELAY-SEND/REVERB-SEND/LFO-SPEED/VOLUME-DIST/SWING/CHANCE/REVERB-SIZE/DELAY-TIME | params | disarms the pattern selection (its LED goes out), then edits as without PATTERN | 0x4001f50c; the maintainer's test, 2026-10-31 |
+| PATTERN + TRIG 1-16 | any | chooses the next pattern | 0x40020a8c |
+| PATTERN | any | arms the pattern selection | 0x40020ad0 |
+| MACHINES | any | opens the MACHINES list, which passes PUNCH, GATE and every knob but LEVEL/DATA on | 0x4001ca1e, 0x400a292c, 0x400a28b4 |
 | TRACK + PUNCH/GATE | any | Control All of PUNCH and GATE | STANDARD.md §5.4 |
-| PUNCH/GATE | any | switches PUNCH or GATE on the selected track; a held RETRIG is not read | notes/63 §15.1 |
+| PUNCH/GATE | any | switches PUNCH or GATE on the selected track; a held RETRIG or MACHINES is not read | notes/63 §15.1; the MACHINES list passes them on (0x400a292c) |
 | FUNC + PUNCH/GATE | any | opens a view | notes/63 §15.1 |
 | FUNC + TRACK | any | the Track Setup menu | STANDARD.md §5.4 |
 | FUNC + MACHINES | any | the PRESET browser | STANDARD.md §5.4 |

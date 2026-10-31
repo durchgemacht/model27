@@ -45,12 +45,16 @@ SCHEMA = "model27-claims/0.1"
 
 # --- the vocabulary -------------------------------------------------------------------------------------------------
 
-# Keys, by isKeyHeld's logical code (0x4007faf4, notes/63 §1.1); None for a key whose code is not traced yet.
-KEYS = {"FUNC": 1, "TRACK": 2, "RETRIG": 4, "MACHINES": 5, "PUNCH": 6, "GATE": 7, "LFO": 8, "RECORD": 9, "PLAY": 10,
-        "STOP": 11, "PAGE": None, "PATTERN": None}
+# Keys, by isKeyHeld's logical code (0x4007faf4, notes/63 §1.1); None for a key whose code is not traced yet. PATTERN
+# is 3: MainScreenView's jump table 0x4001c100 and PatternAndBankSelectView's case 3 (0x40020ad0), which marks it held.
+KEYS = {"FUNC": 1, "TRACK": 2, "PATTERN": 3, "RETRIG": 4, "MACHINES": 5, "PUNCH": 6, "GATE": 7, "LFO": 8, "RECORD": 9,
+        "PLAY": 10, "STOP": 11, "PAGE": None}
 TRIGS = 16                          # TRIG 1-16, codes 16 to 31
-# Knobs, by their number in the knob -> descriptor lookup 0x4001e814 (notes/63 §1.2); DATA is LEVEL/DATA, not traced.
-KNOBS = {"PITCH": 2, "DECAY": 3, "COLOR": 4, "SHAPE": 5, "SWEEP": 6, "CONTOUR": 7, "DATA": None}
+# Knobs, by their number in the knob -> descriptor lookup 0x4001e814 (notes/63 §1.2; 8 to 15: notes/68 §8.2, where
+# FUNC turns REVERB-SIZE and DELAY-TIME into Reverb Tone and Delay Fdbk); DATA is LEVEL/DATA, not traced.
+KNOBS = {"PITCH": 2, "DECAY": 3, "COLOR": 4, "SHAPE": 5, "SWEEP": 6, "CONTOUR": 7, "DELAY-SEND": 8, "REVERB-SEND": 9,
+         "LFO-SPEED": 10, "VOLUME-DIST": 11, "SWING": 12, "CHANCE": 13, "REVERB-SIZE": 14, "DELAY-TIME": 15,
+         "DATA": None}
 # Actions that are neither a key press nor a knob turn.
 OTHER = {"NOTES": "notes played, on the pads or on the TRIG keys in keyboard mode",
          "DATA-PRESS": "a press on the LEVEL/DATA knob"}
@@ -63,6 +67,8 @@ TWEAK_MACHINES = ("MACRO", "ACID")  # the machines the folder's tweaks add (note
 # The stock OS's own combinations, as far as they are read. A mod that takes one says what it replaces ("replaces");
 # step C2 refuses a claim on one without it (notes/65 §11). hyp: not read in the code.
 KNOB_LIST = "PITCH/DECAY/COLOR/SHAPE/SWEEP/CONTOUR"
+OTHER_KNOBS = "DELAY-SEND/REVERB-SEND/LFO-SPEED/VOLUME-DIST/SWING/CHANCE"
+FX_KNOBS = "REVERB-SIZE/DELAY-TIME"
 STOCK = (
     {"combo": f"FUNC + {KNOB_LIST}", "situation": "params", "meaning": "fine adjust", "source": "notes/63 §1.2"},
     {"combo": f"TRACK + {KNOB_LIST}", "situation": "params", "meaning": "Control All", "source": "notes/63 §1.2"},
@@ -70,9 +76,23 @@ STOCK = (
      "source": "notes/63 §1.2"},
     {"combo": f"TRIG 1-16 + {KNOB_LIST}", "situation": "params", "meaning": "parameter lock",
      "source": "notes/63 §1.3"},
+    {"combo": f"FUNC + {OTHER_KNOBS}", "situation": "params", "meaning": "fine adjust", "source": "notes/68 §8.2"},
+    {"combo": f"FUNC + {FX_KNOBS}", "situation": "params", "meaning": "Reverb Tone, Delay Fdbk",
+     "source": "notes/68 §8.2"},
+    {"combo": f"TRACK + {FX_KNOBS}", "situation": "params", "meaning": "edits as without TRACK (no Control All)",
+     "source": "notes/68 §8.4"},
+    {"combo": "TRIG 1-16 + SWING/CHANCE", "situation": "params", "meaning": "Trig Nudge, Trig Cond",
+     "source": "notes/68 §8.2"},
+    {"combo": f"PATTERN + {KNOB_LIST}/{OTHER_KNOBS}/{FX_KNOBS}", "situation": "params",
+     "meaning": "disarms the pattern selection (its LED goes out), then edits as without PATTERN",
+     "source": "0x4001f50c; the maintainer's test, 2026-10-31"},
+    {"combo": "PATTERN + TRIG 1-16", "meaning": "chooses the next pattern", "source": "0x40020a8c"},
+    {"combo": "PATTERN", "meaning": "arms the pattern selection", "source": "0x40020ad0"},
+    {"combo": "MACHINES", "meaning": "opens the MACHINES list, which passes PUNCH, GATE and every knob but LEVEL/DATA on",
+     "source": "0x4001ca1e, 0x400a292c, 0x400a28b4"},
     {"combo": "TRACK + PUNCH/GATE", "meaning": "Control All of PUNCH and GATE", "source": "STANDARD.md §5.4"},
-    {"combo": "PUNCH/GATE", "meaning": "switches PUNCH or GATE on the selected track; a held RETRIG is not read",
-     "source": "notes/63 §15.1"},
+    {"combo": "PUNCH/GATE", "meaning": "switches PUNCH or GATE on the selected track; a held RETRIG or MACHINES is "
+     "not read", "source": "notes/63 §15.1; the MACHINES list passes them on (0x400a292c)"},
     {"combo": "FUNC + PUNCH/GATE", "meaning": "opens a view", "source": "notes/63 §15.1"},
     {"combo": "FUNC + TRACK", "meaning": "the Track Setup menu", "source": "STANDARD.md §5.4"},
     {"combo": "FUNC + MACHINES", "meaning": "the PRESET browser", "source": "STANDARD.md §5.4"},
@@ -859,6 +879,13 @@ def self_test():
     case("GATE is key 7 (notes/63 §15.1), RETRIG + PUNCH/GATE two atoms held by RETRIG",
          KEYS["GATE"] == 7 and atoms("RETRIG + PUNCH/GATE") == [(frozenset({"RETRIG"}), "GATE"),
                                                                 (frozenset({"RETRIG"}), "PUNCH")])
+    case("PATTERN is key 3, PATTERN + REVERB-SIZE/DELAY-TIME two atoms held by PATTERN",
+         KEYS["PATTERN"] == 3 and atoms("PATTERN + REVERB-SIZE/DELAY-TIME") == [
+             (frozenset({"PATTERN"}), "DELAY-TIME"), (frozenset({"PATTERN"}), "REVERB-SIZE")])
+    case("knobs 8 to 15 have words, in panel order",
+         [KNOBS[w] for w in ("DELAY-SEND", "REVERB-SEND", "LFO-SPEED", "VOLUME-DIST", "SWING", "CHANCE",
+                             "REVERB-SIZE", "DELAY-TIME")] == list(range(8, 16)))
+    case("refused: a knob held (REVERB-SIZE + PITCH)", raises(atoms, "REVERB-SIZE + PITCH"))
 
     # --- the rules (C2): the cases of notes/65 §2 and §7 on the folder's real claims, then synthetic ones
     def j(claims, kind="tweak"):
@@ -915,6 +942,17 @@ def self_test():
     case("FUNC + PITCH with replaces: allowed", not own_errors(lofi))
     case("FUNC + PITCH in menu:RETRIG: not the stock one", not own_errors(
         j({"gestures": [{"combo": "FUNC + PITCH", "situation": "menu:RETRIG"}]})))
+    # the key map of 2026-10-31: PATTERN + a knob disarms the pattern selection in the stock OS, so the effect choice
+    # there says what it replaces; MACHINES + a knob and RETRIG + a knob have no stock meaning
+    fxpat = {"combo": "PATTERN + REVERB-SIZE/DELAY-TIME", "situation": "params", "meaning": "the slot's effect"}
+    case("refused: PATTERN + DELAY-TIME without replaces", bool(own_errors(j({"gestures": [fxpat]}))))
+    case("PATTERN + DELAY-TIME with replaces: allowed", not own_errors(
+        j({"gestures": [dict(fxpat, replaces="the knob's edit; the selection is still disarmed")]})))
+    case("refused: TRACK + DELAY-TIME without replaces", bool(own_errors(
+        j({"gestures": [{"combo": "TRACK + DELAY-TIME", "situation": "params"}]}))))
+    case("MACHINES + COLOR and RETRIG + PITCH: no stock meaning", not own_errors(
+        j({"gestures": [{"combo": "MACHINES + COLOR", "situation": "params"},
+                        {"combo": "RETRIG + PITCH", "situation": "params"}]})))
     ref2 = pkgs["refmachine2"]
     case("a build of REF2 and the layer: no clash", not check_build(build_holders([ref2], sc_part)))
     case("a build of SAMPLE, REF2 and the layer: no clash",
