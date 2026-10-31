@@ -18,7 +18,7 @@ labels: enhancement
 **For a machine: the Gen 1 rules** (README, "Stability first")
 
 - [ ] Four knobs of its own; DECAY, GATE and PUNCH work as on the stock machines
-- [ ] Extra values, if any, only on RETRIG held + COLOR, SHAPE, SWEEP or CONTOUR (four at most)
+- [ ] Extra values, if any, only on MACHINES held + COLOR, SHAPE, SWEEP or CONTOUR (four at most)
 - Places in the OS it uses besides its voice (main screen, knob view, screen tick, browser, saving the sound, or none):
 - What does not fit, or open questions:
 

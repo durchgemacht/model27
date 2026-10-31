@@ -10,7 +10,8 @@ digidelay,refreverb; sampler,digidelay,refreverb; pots; sampler,pots,refreverb),
      the BSS;
   2. the sites: the mixer's call of each slot that has an effect (0x4005699c, 0x40056a2c) -> jsr fx_delay / fx_reverb,
      a slot without one keeps its stock call; the encoder handler's question whether TRACK is held (0x4001f886, pea 2 ;
-     jsr (a4)) -> jsr fx_keys, its call at TRACK + a knob (0x4001f89a) stock again (fxslot 0.5, the key map); the
+     jsr (a4)) -> jsr fx_keys, its call at TRACK + a knob (0x4001f89a) stock again (fxslot 0.5, the key map); a release
+     of PATTERN that opens no window (0x40020dca) -> jsr fx_release (0.6); the
      pattern header's loader (0x4005b4b0) -> jsr fx_load, its initializer (0x4006155e) -> jsr fx_init; an
      effects-only build writes nothing else but the payload's boot (no registrar); the slots' lines (§16): one per slot
      whose effects ask for one, 16-aligned at the start of the payload's variables, as large as the largest effect
@@ -42,6 +43,9 @@ digidelay,refreverb; sampler,digidelay,refreverb; pots; sampler,pots,refreverb),
      save of the settings (0x400449b8); a shown pattern that is not the playing one: its header and its notify only,
      the names those of what plays; an id the build does not hold moves to the first effect; no singleton: nothing;
      all of it against a model of the steps;
+     Then PatternAndBankSelectView's key handler from 0x40020dca to its end, stock and with fx_release: PATTERN
+     released after a knob disarmed the selection leaves its wait (+124) at 1 in the stock OS, at 0 with the part,
+     everything else alike (notes/68 §23);
   5. the pattern (as tools/emu/probe_chord_storage.py, notes/42 §4): the stock loader (0x4005b3b4) and initializer
      (0x40061526) leave bytes 29 to 31 as the buffer held them, the header's copy (0x4005b4c4) keeps its 64 bytes;
      with fx_load, a header loads as the stock OS loads it plus bytes 29 to 31 when their check holds, the stock
@@ -140,6 +144,8 @@ P = 0x40710000                                              # the parameter bloc
 QUIET, QUIET_OUT = 0x40720000, 0x40721000                   # the stock engine's silence and its thrown-away return
 HDR = 29                                                    # the header's bytes: the delay's id, the reverb's, check
 LOAD_SITE, INIT_SITE = 0x4005b4b0, 0x4006155e               # in the header's loader and initializer (notes/68 §14)
+RELEASE_SITE, RELEASE_END = 0x40020dca, 0x400212c6         # PATTERN released, no window; the key handler's end (§23)
+UI_STATES, DISARM, WAITING = 0x400cf9a8, 0x4006bb22, 124   # the UI state's getter, its arm/disarm, the view's wait
 ROOT_PTR, PLAYING_PTR = 0x40fe4228, 0x40a7887c              # the patterns' singleton, the playing pattern (notes/42 §5)
 SHOWN_OK, SHOWN_IDX, NOTIFY = 0x400cfd0e, 0x4006a96c, 0x400d0f6c   # in 0x4000f208's path; where the notify ends
 PATTERN_VT, HEADER_VT = 0x400fda54, 0x400fd8c0              # the pattern object's vtable, its header object's
@@ -370,13 +376,13 @@ def site_tests(key, stock, tweak, img, runtime, slots, only_effects, desc_used):
             check(got == jsr(s["stock"]), f"{key}: {s['site']:#x} keeps jsr {s['stock']:#x}: no effect in the {name} slot")
     got = img[TRACK_CALL - compose.BASE:TRACK_CALL - compose.BASE + 6]
     check(got == jsr(STOCK_TEST), f"{key}: {TRACK_CALL:#x} keeps jsr {STOCK_TEST:#x}: TRACK + a knob as in the stock OS")
-    for site, entry in ((KEYS_SITE, "fx_keys"), (LOAD_SITE, "fx_load"), (INIT_SITE, "fx_init"),
+    for site, entry in ((KEYS_SITE, "fx_keys"), (RELEASE_SITE, "fx_release"), (LOAD_SITE, "fx_load"), (INIT_SITE, "fx_init"),
                         (EARLY_SITE, "fx_early"), (LATE_SITE, "fx_late")):
         got = img[site - compose.BASE:site - compose.BASE + 6]
         check(got == jsr(syms[entry]), f"{key}: {site:#x} -> jsr {entry} ({syms[entry]:#x})")
     sites = {compose.BASE + w["off"] for w in tweak["writes"]}
     if only_effects:
-        want = BOOT_SITES | {SLOTS[n]["site"] for n in slots} | {KEYS_SITE, LOAD_SITE, INIT_SITE, EARLY_SITE,
+        want = BOOT_SITES | {SLOTS[n]["site"] for n in slots} | {KEYS_SITE, RELEASE_SITE, LOAD_SITE, INIT_SITE, EARLY_SITE,
                                                                   LATE_SITE}
         check(sites == want, f"{key}: {len(sites)} writes, the slots', the gesture's, the header's, the setup's and "
               "the payload's boot only "
@@ -863,6 +869,40 @@ def gesture_tests(key, img, runtime, syms, blk, slots, desc_used):
           + (f"; {[(hex(pc), hex(a)) for pc, a in g.unprotected[:3]]}" if g.unprotected else ""))
 
 
+def release_tests(key, stock, img, runtime):
+    """PatternAndBankSelectView's key handler from 0x40020dca, where PATTERN is released without opening the selection's
+    window, to its end, stock and with fx_release: the view's other bytes, the calls and the registers the same; its
+    +124 (waiting for a pattern) left at 1 by the stock OS, 0 with the part (notes/68 §23)."""
+    view, uis, vec = 0x93800000, 0x93900000, 0x93801000
+    out = {}
+    for name, im, rt in (("stock", stock, b""), ("part", img, runtime)):
+        res = []
+        for waiting in (1, 0):
+            u = t7.UI(im, rt)
+            u.hooks = {UI_STATES: ("ui", uis), DISARM: ("disarm", 0)}
+            body = bytearray(0x200)
+            body[WAITING] = waiting
+            struct.pack_into(">II", body, 128, vec, vec + 4)     # one element: not a chain of patterns
+            u.uc.mem_write(view, bytes(body))
+            regs = {mk.UC_M68K_REG_A2: view, mk.UC_M68K_REG_A3: UI_STATES, mk.UC_M68K_REG_D2: 0x2222,
+                    mk.UC_M68K_REG_D3: 0x3333, mk.UC_M68K_REG_A4: 0x4444, mk.UC_M68K_REG_A7: t7.STACK - 0x400}
+            for r, v in regs.items():
+                u.uc.reg_write(r, v)
+            u.uc.emu_start(RELEASE_SITE, RELEASE_END, count=10_000)
+            after = bytes(u.uc.mem_read(view, 0x200))
+            res.append((after, [(n, a[:2]) for n, a in u.calls], [u.uc.reg_read(r) for r in sorted(regs)],
+                        u.uc.reg_read(mk.UC_M68K_REG_PC) == RELEASE_END and not u.bad))
+        out[name] = res
+    (s1, s0), (p1, p0) = out["stock"], out["part"]
+    same = lambda a, b: a[0][:WAITING] + a[0][WAITING + 1:] == b[0][:WAITING] + b[0][WAITING + 1:] and a[1:] == b[1:]
+    check(s1[0][WAITING] == 1 and p1[0][WAITING] == 0 and same(s1, p1) and s1[3] and p1[3]
+          and s1[1] == [("ui", s1[1][0][1]), ("disarm", (uis, 0))],
+          f"{key}: PATTERN released after a knob disarmed the selection (0x40020dca): the stock OS leaves its wait (+124) at "
+          "1, the part clears it; the disarm, the view's other bytes, the registers and the end the same")
+    check(s0[0][WAITING] == p0[0][WAITING] == 0 and same(s0, p0) and s0[3] and p0[3],
+          f"{key}: the same release with the wait already 0: stock and part alike")
+
+
 # --- 5. the pattern: the header's loader, initializer, save and load -------------------------------------------------
 def storage_tests(key, stock, img, runtime):
     s, p = t7.UI(stock), t7.UI(img, runtime)
@@ -1339,6 +1379,7 @@ def main():
         audio_tests(key, stock, img, runtime, tweak, syms, blk, slots, args.blocks, desc_used)
         print("the gesture")
         gesture_tests(key, img, runtime, syms, blk, slots, desc_used)
+        release_tests(key, stock, img, runtime)
         print("the pattern")
         storage_tests(key, stock, img, runtime)
         print("the cost")

@@ -370,8 +370,8 @@ def web_part(pid):
     lay = relocate.layout(path.read_bytes(), roots[0], roots[1], roots[2:], pid)
     out = {"id": pid, "version": p["version"], "roots": roots, "patch_points": b["patch_points"],
            "data": p["data"], "bundle": relocate.bundle(lay, roots)}
-    for key in ("sites", "shortcut", "slots", "track", "load", "init", "early", "late", "formatter_sites", "int_format",
-                "cost"):
+    for key in ("sites", "shortcut", "slots", "track", "release", "load", "init", "early", "late", "formatter_sites",
+                "int_format", "cost"):
         if key in p:                         # the effect slots' (notes/68) besides the shortcut layer's and dispatchers'
             out[key] = p[key]
     if "claims" in p:                        # notes/65: what the part claims, in tools/claims.py's to_json form
@@ -801,7 +801,7 @@ def shortcut_uses(mans, part):
 
 def shortcut_presses(mans, part):
     """The switches the machines declare ("shortcut" with "press" in their uses), checked against the builder's list
-    (notes/63 §16): one byte per machine, bit 0 RETRIG + PUNCH, bit 1 RETRIG + GATE. A switch has no name, range or
+    (notes/63 §16): one byte per machine, bit 0 MACHINES + PUNCH, bit 1 MACHINES + GATE. A switch has no name, range or
     formatter: the machine shows it, if it wants, and reads it in k 32 of its note's sound."""
     sc = part["shortcut"]
     out = []
@@ -897,17 +897,18 @@ def shortcut_layer(img, part, mans, syms_of, uses, at, code_end, first, descn=No
     for s in sites["record"]:
         writes.append({"off": int(s["at"], 16) - BASE, "old": s["stock"],
                        "new": (bytes.fromhex("4ef9") + g7.be32(syms[s["symbol"]]) + bytes.fromhex("4e71")).hex()})
-    if any(presses):                         # the press and the LEDs, only in the builds with a switch (notes/63 §16)
-        for s in sites["press"]:
-            va = int(s["at"], 16)
-            if img[va - BASE:va - BASE + 6] != bytes.fromhex(s["stock"]):
-                sys.exit(f"!! {va:#x}: {s['stock']} expected, {img[va - BASE:va - BASE + 6].hex()} found")
-            for m in mans:
-                if any("hook" in u and int(u["hook"]["at"], 16) == va for u in m["uses"]):
-                    sys.exit(f"!! {m['id']}: hooks {va:#x}, which the shortcut layer takes for the switches")
-            op = {"jmp": "4ef9", "jsr": "4eb9"}[s["op"]]
-            writes.append({"off": va - BASE, "old": s["stock"],
-                           "new": (bytes.fromhex(op) + g7.be32(syms[s["symbol"]])).hex()})
+    # MACHINES as a modifier on the machines' tracks (the key map, the layer's 0.4), in every build with the layer;
+    # the press and the LEDs, only in the builds with a switch (notes/63 §16)
+    for s in sites.get("keys", []) + (sites["press"] if any(presses) else []):
+        va = int(s["at"], 16)
+        if img[va - BASE:va - BASE + 6] != bytes.fromhex(s["stock"]):
+            sys.exit(f"!! {va:#x}: {s['stock']} expected, {img[va - BASE:va - BASE + 6].hex()} found")
+        for m in mans:
+            if any("hook" in u and int(u["hook"]["at"], 16) == va for u in m["uses"]):
+                sys.exit(f"!! {m['id']}: hooks {va:#x}, which the shortcut layer takes")
+        op = {"jmp": "4ef9", "jsr": "4eb9"}[s["op"]]
+        writes.append({"off": va - BASE, "old": s["stock"],
+                       "new": (bytes.fromhex(op) + g7.be32(syms[s["symbol"]])).hex()})
     out = {r: syms[r] for r in roots}
     out.update({pp["symbol"]: values[pp["kind"]] for pp in b["patch_points"]})
     info = dict(id=part["id"], code_at=at, code=len(code), data_at=data_at, data=len(data), shortcuts=len(uses),
@@ -981,7 +982,8 @@ def dispatch_layer(img, part, mans, syms_of, at, code_end, first):
 def fx_layer(img, part, effects, syms_of, at, code_end, desc_used):
     """The effect slots of this build (notes/68 §2, §11, §14; steps F1, F2 and F2b): for each slot that has an effect,
     the mixer's call of the stock effect goes to the part, and so does the encoder handler's question whether TRACK
-    is held (0x4001f886), where PATTERN + Delay Time / Reverb Size step through the slot's effects, and the pattern header's
+    is held (0x4001f886), where PATTERN + Delay Time / Reverb Size step through the slot's effects, the release of
+    PATTERN that opens no window (0x40020dca), which ends the selection's wait, and the pattern header's
     loader and initializer (0x4005b4b0, 0x4006155e), which keep the pattern's choice. The data block after the part's code lists each
     slot's effects by id (entry 0 the stock effect, with its process and reset), the names and formatters of the slot's
     two parameters for each entry (the stock ones read from the image), the descriptor tables the names go into (the
@@ -1048,7 +1050,7 @@ def fx_layer(img, part, effects, syms_of, at, code_end, desc_used):
     blob = code + bytes(data_at - at - len(code)) + blob_data
     writes, taken = [], set()
     sites = [s for name, s in slots.items() if by_slot[name]]
-    sites += [part["track"], part["load"], part["init"], part["early"], part["late"]] if effects else []
+    sites += [part["track"], part["release"], part["load"], part["init"], part["early"], part["late"]] if effects else []
     for s in sites:
         va, old = int(s["hook"], 16), bytes.fromhex(s["stock"])
         if img[va - BASE:va - BASE + len(old)] != old:

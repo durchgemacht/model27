@@ -21,6 +21,15 @@
  *              nothing. Anything else: isKeyHeld(2) as the handler asked, with the stack it expects (its addq.l #4,sp
  *              after the call pops the argument the replaced pea pushed). Up to 0.4 the gesture was TRACK + knob, at
  *              0x4001f89a; TRACK + Delay Time / Reverb Size edits as without TRACK again, as in the stock OS.
+ *   fx_release jsr from 0x40020dca in place of move.l 132(a2),d0 ; moveq #7,d1, in PatternAndBankSelectView's key
+ *              handler (0x40020a7a) where PATTERN is released without opening the selection's window: a2 the view.
+ *              Clears its +124 ("waiting for a pattern", set by the press) and runs the two instructions. Without it,
+ *              PATTERN held + a knob (which disarms the selection, 0x4001f50c) + release leaves the selection waiting
+ *              while nothing shows it, and its pad method (0x40020060) then takes every pad press: the pad neither
+ *              plays nor selects, the selection arms and PATTERN's LED lights (the maintainer, 2026-10-31). The stock
+ *              OS does the same after PATTERN + any knob; the effect gesture made it common. The three ways here
+ *              (0x40020bda, 0x40020be2, 0x40020bea) are all releases of PATTERN, and in the two others +124 is 0
+ *              already. Since 0.6.
  *   fx_load    jsr from 0x4005b4b0 in place of move.b 38(a3),38(a2), in the pattern header's loader (0x4005b3b4) after
  *              its last field: a2 the working pattern's header, a3 the saved one's, d0 = 1 its return value. Copies
  *              byte 38 as the loader did, then fx_hdr_load(a2, a3) the effects' bytes; the loader goes on at
@@ -80,6 +89,15 @@ fx_keys:
 	move.l	#2, (%sp)			/* TRACK's code, where the replaced pea put it */
 	move.l	%a1, -(%sp)
 	jmp	0x4007faf4			/* isKeyHeld(2), returning to the handler */
+
+	.section .text.fx_release, "ax"
+	.p2align 2
+	.globl	fx_release
+fx_release:
+	clr.b	124(%a2)			/* the selection no longer waits */
+	move.l	132(%a2), %d0			/* the instructions replaced */
+	moveq	#7, %d1
+	rts
 
 	.section .text.fx_load, "ax"
 	.p2align 2

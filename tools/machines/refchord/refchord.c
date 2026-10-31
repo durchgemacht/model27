@@ -4,7 +4,7 @@
    proves the builder's extensions before CHORD Tables uses them, and is never offered to users. It extends CHORD,
    machine 5, and changes nothing that sounds or shows:
 
-   - a shortcut, RETRIG + SWEEP = Wavetable, 0 to 64, declared in the manifest: the builder's shortcut layer shows it
+   - a shortcut, MACHINES + SWEEP = Wavetable, 0 to 64, declared in the manifest: the builder's shortcut layer shows it
      on CHORD's tracks and saves it in k 30 (record slot 30), as CHORD Tables will read it; REFC only counts;
    - rc_setup takes the place of jsr 0x400a8080 at 0x400ab15e, the one call through which CHORD's update gets its two
      frames (notes/66 §1.1): it counts, then calls the stock function with the same arguments (v, p);

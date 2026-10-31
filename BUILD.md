@@ -277,11 +277,12 @@ python3 tools/emu/test_fxslot.py --cycles model-cycles_OS1.13.syx \
     [--pppccc PPPCCC-Model-Cycles-1.13-Mods/patches/06-delay-fx.json]
 python3 tools/build.py -i model-cycles_OS1.13.syx -t digidelay
 ```
-MAIN OS patché, `digidelay` seul : `0eb57c92fd47423831022384ec09ba08dd341fc82586780ccdfad722b3dfaa8f`, celui que la page
-compose, avec la partie `fxslot` 0.5 (PATTERN + Delay Time, la carte des touches du 31/10/2026 ; pas encore jouée sur un
-Model:Cycles). Avec `fxslot` 0.4, qui lance la préparation des effets d'origine avant la boucle des voix (note 68 §21,
-l'idée de Model-TG), jouée sur un Model:Cycles depuis la page le 29/10/2026 (§21.8) : `0ce37cf6…` ; le build joué le
-27/10/2026 était `4fb4eac7…`.
+MAIN OS patché, `digidelay` seul : `280f662b39263d5c77f841a2e699dcff71bf6833712df5d411e7f2afec82425b`, celui que la page
+compose, avec la partie `fxslot` 0.6 (PATTERN + Delay Time, la carte des touches du 31/10/2026, et l'attente de la
+sélection de patterns terminée au relâchement de PATTERN, note 68 §23 ; avec 0.5, jouée sur un Model:Cycles le
+31/10/2026 : `0eb57c92…`). Avec `fxslot` 0.4, qui lance la préparation des effets d'origine avant la boucle des voix
+(note 68 §21, l'idée de Model-TG), jouée sur un Model:Cycles depuis la page le 29/10/2026 (§21.8) : `0ce37cf6…` ; le
+build joué le 27/10/2026 était `4fb4eac7…`.
 
 ### POTS (effet)
 
@@ -300,13 +301,14 @@ python3 tools/emu/test_fxslot.py --cycles model-cycles_OS1.13.syx --machines pot
 python3 tools/build.py -i model-cycles_OS1.13.syx -t pots
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,digidelay,pots   # avec Digital et SAMPLE
 ```
-MAIN OS patché, `pots` seul : `2bc636dde8d9507f2e2a62ddba947593afc109e9e70661c6d2f2dbd751c84540` ; `digidelay` et `pots`
-composés : `1c467d0a76737c728ba2f5607211d8ed5ef254e65ace621278c1e6835f74bdcc` ; avec SAMPLE 0.12 (`sampler`, `digidelay`,
-`pots`) : `dfa3781b959f84f1548935dd48ffa85770107dae5fa9f9610cd80db2336fe762`, ceux que la page compose avec `fxslot` 0.5
-(PATTERN + Delay Time ; avec 0.4 : `4a1521cb…`, `7e867f70…`, `1d7bc3b1…`). La ligne tourne
-à 12 kHz avec un codec 8 bits (note 69 §23), testée sur un Model:Cycles (§23.6, `28cf64c0…`) ; depuis, la partie
-`fxslot` 0.4 lance la préparation des effets d'origine avant la boucle des voix (note 68 §21, l'idée de Model-TG),
-jouée sur un Model:Cycles depuis la page le 29/10/2026 : un projet chargé tourne et sonne pareil (§21.8).
+MAIN OS patché, `pots` seul : `19ef3b58909ae07f070a948623dd58c426917280b9287c5cc154563e52ca2385` ; `digidelay` et `pots`
+composés : `b37a17848ea281fc15467f9388238eb55d257de4b757c4a24803b50ff6f236b2` ; avec SAMPLE 0.12 (`sampler`,
+`digidelay`, `pots`) : `8042e1f61982a86133d4f361796cbafed9e2238dad05ba685c17f2632f46376b`, ceux que la page compose avec
+`fxslot` 0.6 (PATTERN + Delay Time, note 68 §23) et la couche de raccourcis 0.4 (MACHINES, note 63 §24) ; avec `fxslot`
+0.4 et la couche 0.2 : `4a1521cb…`, `7e867f70…`, `1d7bc3b1…`). La ligne tourne à 12 kHz avec un codec 8 bits (note 69
+§23), testée sur un Model:Cycles (§23.6, `28cf64c0…`) ; depuis, la partie `fxslot` 0.4 lance la préparation des effets
+d'origine avant la boucle des voix (note 68 §21, l'idée de Model-TG), jouée sur un Model:Cycles depuis la page le
+29/10/2026 : un projet chargé tourne et sonne pareil (§21.8).
 
 ### Trig Cond dans un autre ordre
 

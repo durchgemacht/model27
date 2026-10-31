@@ -1357,3 +1357,37 @@ TRACK + these knobs edits as without TRACK again, as in the stock OS (§8.4). No
   and Digital Delay with POTS (`1c467d0a…`, the page's), with the checks of PATTERN + Delay Time, the LED and the
   release, TRACK and FUNC on the knob, pattern changes and other knobs under PATTERN: « Passt ».
 - Not yet: the release with the rest of the key map.
+
+## 23. PATTERN released: the selection's wait ends (2026-10-31, `fxslot` 0.6)
+
+The maintainer, after K2 on the machine: « nachdem ich samples ausgewählt habe und spuren gewechselt […] wollte ich mit
+[track]+[t1-t6] tracks auswählen aber das hat nicht reagiert; dabei hat dann plötzlich der pattern button geleuchtet »;
+then, with the steps below: « kann ich reproduzieren ».
+
+- **Why** `[FAIT]` (code): PatternAndBankSelectView's PATTERN case (`0x40020ad0`) sets its `+124` ("waiting for a
+  pattern") at a fresh press, `!UIStates+389`, and arms the selection (`0x4006bb22(UIStates, 1)`, `0x40020b8c`). A knob
+  turn disarms it (`0x4001f50c`, §22) but leaves `+124`. The release without arm goes to `0x40020dca`, which only
+  disarms again: the selection keeps waiting while nothing shows it, and the observer (`0x400206c6`) keeps it so
+  (`+0x90 || +124`). The view's pad method (vtable `+0x44`, `0x40020060`, the event class of PadsView's `0x4001d180`)
+  then takes every pad event: a press sets `+120` and `UIStates+392` (the track of a per-track pattern change) and arms
+  the selection, so the pad neither plays nor selects, PATTERN's LED lights, and the TRIG keys then pick patterns
+  (`0x40020bfc`, only while armed). The stock OS does the same after PATTERN + any knob; the effect gesture made it the
+  usual case.
+- **Steps that show it** (the maintainer reproduced them): hold PATTERN, turn Delay Time, release PATTERN; press a pad:
+  no sound, PATTERN's LED lights; then a TRIG changes the pattern.
+- **The fix:** `fx_release` at `0x40020dca` (`move.l 132(a2),d0 ; moveq #7,d1` → `jsr fx_release`): `clr.b 124(a2)`,
+  then the two instructions; the next one (`sub.l 128(a2),d0`) sets the flags. The only jumps there are PATTERN's
+  releases (`0x40020bda` not armed, `0x40020be2` a pattern already chosen, `0x40020bea` not waiting); in the two last
+  ones a TRIG press (`0x40020c74`) or nothing had set `+124` to 0 already. No tweak of the folder writes
+  `0x40020dca..0x40020dcf`. In every build with an effect, so PATTERN + PITCH no longer leaves the wait either.
+- **Changed:** `fxslot` 0.6 (`entries.S`, `part.json`: the site `release`, the root, the claim's `replaces`); both
+  composers write the site (`compose.py`, `composer.js`; `web_part` carries it to the page); `39-digidelay.json`,
+  `70-pots.json`, `REGISTRY.md`, `tweaks.js`, `REF_MAINOS` / `REF_MODS`, BUILD.md (Digital Delay alone `280f662b…`,
+  POTS alone `19ef3b58…`).
+- **Proof:** `test_fxslot.py`'s sites (`0x40020dca` → `jsr fx_release`) and, after the gesture, the key handler's own
+  code from `0x40020dca` to its end (`0x400212c6`), stock and with the part, with a waiting view: the stock OS leaves
+  `+124` at 1, the part clears it; the disarm, the view's other bytes and the registers the same; with `+124` already 0,
+  both alike. `--dry` ALL OK here (166). **Run by the maintainer, 2026-10-31:** the full `test_fxslot.py` and the
+  smoke test, « all ok » `[FAIT en émulation]`. **Tested on the Model:Cycles (2026-10-31)** with the four builds of
+  K3: a pad after PATTERN + Delay Time (or PITCH) plays, PATTERN's LED stays out, TRACK + T1–T6 selects, the pattern
+  selection as before: « alles getestet. passt. »

@@ -1313,3 +1313,81 @@ The maintainer chose this over a waveform in the right half (half the columns) a
   `test_shortcuts.py`, `test_refchord.py`, `test_chordtables.py` ALL OK too (notes/60 §20).
 - **Left:** the page's build of SAMPLE 0.12 on the device.
 
+
+## 23. MACHINES instead of RETRIG (2026-10-31, the layer's 0.3)
+
+The maintainer's key map of 2026-10-31 gives each level a held key: PATTERN for the pattern (the effect slots, notes/68
+§22), MACHINES for the track's machine, RETRIG for a track filter (still to build). A machine's values and switches
+belong to its level, so the layer's key moves from RETRIG to **MACHINES**: MACHINES + COLOR/SHAPE/SWEEP/CONTOUR for the
+values, MACHINES + PUNCH/GATE for the switches. RETRIG is no longer read by the layer: RETRIG + a knob and RETRIG +
+PUNCH/GATE do what they do in the stock OS again. No alias. Decided with it: per build, a machine's knob values or the
+track filter, since both need k 28–31, record slots 28–31 and descriptors 1–4; the switches (k 32 bits 8–9) are not
+concerned.
+
+- **What the stock OS does with MACHINES held** `[FAIT]` (code reading): a fresh press without FUNC and without a held
+  trig opens the MACHINES list (`0x4001ca1e`: `new 0xd0`, constructor `0x400a22b0`, vtable `0x40117920`). The list's key
+  method (`0x400a292c`) takes codes 12 and 32 and passes everything else to `0x40075f3c`, which only knows FUNC + RECORD /
+  PLAY / STOP: PUNCH and GATE reach MainScreenView and switch as without MACHINES. Its encoder method (`0x400a28b4`)
+  takes encoder 1 only (`0x4006f6ce`) and passes the others, so the knob lookup at `0x401005a8` sees MACHINES held, as
+  the Modded-Cycles track filter used on the machine (notes/47 §3.2).
+- **The change:** `shortcuts.S`'s key code, `K_LEVEL` = 5 (MACHINES) instead of `K_RETRIG` = 4, at the three places
+  that asked for it (`sc_knob`, `sc_press`, `sc_leds`): three bytes of code, nothing else. `part.json` 0.3 (key, name,
+  claims `MACHINES + COLOR/SHAPE/SWEEP/CONTOUR` and `MACHINES + PUNCH/GATE`); the shortcut uses of SAMPLE, REF2, REFC and
+  CHORD Tables and their claims; `27-sampler.json`, `29-refmachine2.json`, `34-refchord.json`, `36-chordtables.json`,
+  `REGISTRY.md`, `tweaks.js`, `REF_MAINOS` / `REF_MODS` regenerated; the guide's SAMPLE steps and table, the README,
+  the issue template, PROVENANCE, the AGENTS map, comments in the machines' sources (their objects unchanged).
+- **Claims:** the layer's MACHINES + knobs now meet the Modded-Cycles track filter's and Model-TG's MACHINES + knobs
+  (command line only, both already clashing with SAMPLE's tweak through the slots): the self-test lists them; a
+  shortcut declared on RETRIG is refused.
+- **Proofs:** `test_shortcuts.py` and `test_refchord.py` hold MACHINES where they held RETRIG, and RETRIG alone is one
+  of the cases that must give the stock answer (the knob), the stock press and the stock LEDs. Checks here: claims,
+  overlaps, registry, flasher data, parts, the generators, py_compile, webcompose (identical), webbuild, webflash.
+  **Run by the maintainer, 2026-10-31:** `test_shortcuts.py`, `test_refchord.py` and `test_chordtables.py` ALL OK
+  `[FAIT en émulation]`. The smoke test's first run failed twice, on the two hashes of SAMPLE packed for a Model:Samples
+  that `webflash_smoke.js` keeps (`MFS`): SAMPLE's bytes changed with the layer, and `tools/mods_for_samples.py` on
+  `build.py -t sampler` gives exactly what the page built (`1a467928…` on its own OS, `73565065…` on the Cycles OS);
+  the two hashes updated; the rerun in the maintainer's terminal: « all ok ».
+- **On the machine (2026-10-31):** MACHINES + PUNCH / GATE flips SAMPLE's switches, PUNCH's and GATE's LEDs show
+  them and L and R appear on the screen; from the waveform the MACHINES list hid them, which §24 answers.
+
+## 24. MACHINES as a held key on the machines' tracks (2026-10-31, the layer's 0.4)
+
+The maintainer, testing §23 on the machine (SAMPLE): the switches work, the LEDs show them, L and R appear on the
+screen, but « machine drücken und halten funktioniert gerade wie ein toggle zwischen den beiden ansichten „wellenform“
+und „machine auswählen“ »: from the waveform, holding MACHINES opens the list over L and R. Asked for a way, they chose
+the modifier (« A: Modifier »).
+
+- **The stock OS** `[FAIT]`: MainScreenView's MACHINES case toggles the list on a fresh press without FUNC and without a
+  held trig (`0x4001ca1e` → `0x4001ca2a`: a new list pushed with the controller's `0x40077da8(…, 1)`, which looks for a
+  view of the same type among the controller's views (its list at `+20`, nodes `+0` next, `+8` view) and removes it
+  instead when there is one); the release goes to the default (`0x4001c608`). FUNC + MACHINES and MACHINES with a held
+  trig go to `0x4001c996` (the PRESET browser) before.
+- **The change:** `sc_mach` at `0x4001ca1e` (`move.l d3,-(sp) ; jsr (a3) ; addq.l #4,sp` → `jsr sc_mach`, every build
+  with the layer). On a track whose machine declared a switch or a knob shortcut (`sc_level`: its byte of presses, or
+  one of its four shortcut names), a press that would open the list (`sc_open`: no view with the list's vtable
+  `0x40117920` among MainScreenView's controller's views, `+44`) sets `sc_data+0x12` (waiting), clears `+0x13` (used)
+  and ends the handler as taken (`0x4001c2a8`); the release opens it when nothing marked `+0x13` in between; a press
+  with the list open closes it at once, as on the stock OS. `sc_press` (a switch flipped) and `sc_knob` (a shortcut's
+  descriptor returned) set `+0x13`. Elsewhere `sc_mach` answers as the stock test did. `sc_track` now leaves -1 in d0
+  when the track's machine is not in the table. The two bytes were padding of the data block, written 0 by both
+  composers. `part.json` 0.4: the site list `keys`, which both composers write in every build with the layer, the root,
+  the data offsets, the claim on the stock `MACHINES` with what it replaces.
+- **Proof:** `test_shortcuts.py` §10: MainScreenView's key handler from `0x4001c252` on the OS's own code, stock and
+  with the layer, for every machine of the selection, stock machines and machines the build does not have, the list in
+  the controller's views or not, a shortcut used in between or not: on REF2's and SAMPLE's tracks a press is taken and
+  the release opens the list unless something acted; with the list open the press closes it; FUNC + MACHINES and a held
+  trig reach the PRESET browser; every other machine goes where the stock OS goes; registers and stack kept. And that a
+  switch flipped and a shortcut turned mark the hold. REFC's build (a knob shortcut, no switch) writes the site too.
+  Checks here: claims, overlaps, registry, flasher data, parts, the generators, py_compile, webcompose (identical),
+  webbuild, webflash; the smoke test's two hashes of SAMPLE for a Model:Samples updated (`ebd45e9d…`, `935e377c…`,
+  `tools/mods_for_samples.py` on `build.py -t sampler`), and its line for SAMPLE composed in the page (128 writes,
+  41 360 bytes; the maintainer's first run failed there), and `test_refchord.py`'s writes of REFC alone, which
+  now hold `0x4001ca1e` (the maintainer's first run: « 1 FAILED: refchord: 10 writes … (0x4001ca1e) »). **Run by the
+  maintainer, 2026-10-31:** `test_shortcuts.py`, `test_refchord.py` and `test_chordtables.py` ALL OK, the smoke test
+  ALL OK `[FAIT en émulation]`.
+- **Tested on the Model:Cycles (2026-10-31):** the four builds of `build/k3-device/` (every card the flasher offers;
+  Digital Delay with POTS; SAMPLE alone; SAMPLE with REF2), with §23's and this section's checks: « alles getestet.
+  passt. »
+- **What changes for a player:** on SAMPLE's (and REF2's) tracks the list opens when MACHINES is let go, a moment later
+  than before; holding MACHINES and turning LEVEL to pick a machine needs a tap first there (LEVEL turned while MACHINES
+  waits changes the track's level, as with the list closed). Stock tracks unchanged.

@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-"""Proof of the machine shortcuts (notes/63 §3, step B4b) and of the switches (notes/63 §16, §17) on the OS's own
-code: the shortcut layer that tools/compose.py adds to a build whose machines declare a shortcut
-(tools/machines/shortcuts/), with REF2's RETRIG + COLOR = Octave, -2 to +2, RETRIG + PUNCH = Square and RETRIG +
-GATE = Tone open, and SAMPLE's RETRIG + PUNCH = Loop and RETRIG + GATE = Reverse (since One-Shot 0.11, notes/63 §21).
+"""Proof of the machine shortcuts (notes/63 §3, step B4b) and of the switches (notes/63 §16, §17) on the OS's own code:
+the shortcut layer that tools/compose.py adds to a build whose machines declare a shortcut (tools/machines/shortcuts/),
+with REF2's MACHINES + COLOR = Octave, -2 to +2, MACHINES + PUNCH = Square and MACHINES + GATE = Tone open, and SAMPLE's
+MACHINES + PUNCH = Loop and MACHINES + GATE = Reverse (since One-Shot 0.11, notes/63 §21). The key held is MACHINES
+since the layer's 0.3 (the key map of 2026-10-31); RETRIG, the key up to 0.2, is among the cases that give the stock
+answer.
 
 For each selection (by default: refmachine2; sampler,refmachine2; refmachine2,sampler; sampler,refmachine,refmachine2),
 on the official OS 1.13:
-  1. the sites: the knob lookup's entry in ParameterPageView's vtable (0x401005a8) and the three sound record
-     functions jump into the layer; with SAMPLE in the build, its record wrappers are the next of the chain and their
-     own jumps are not written; jmp sc_press at 0x4001ac4a and jsr sc_leds at 0x4001cc86, REF2's and SAMPLE's bytes
-     of presses 3 (and in a build whose machines declare no switch, REFC's, both sites stock and every byte of presses 0);
-  2. the knob, through the vtable entry and the OS's own key test: RETRIG held + COLOR on a REF2 track gives
-     descriptor 1; every other knob, every other machine (stock, SAMPLE, REF, one the build does not have), RETRIG
+  1. the sites: the knob lookup's entry in ParameterPageView's vtable (0x401005a8) and the three sound record functions
+     jump into the layer; with SAMPLE in the build, its record wrappers are the next of the chain and their own jumps
+     are not written; jmp sc_press at 0x4001ac4a and jsr sc_leds at 0x4001cc86, REF2's and SAMPLE's bytes of presses 3
+     (and in a build whose machines declare no switch, REFC's, both sites stock and every byte of presses 0);
+  2. the knob, through the vtable entry and the OS's own key test: MACHINES held + COLOR on a REF2 track gives
+     descriptor 1; every other knob, every other machine (stock, SAMPLE, REF, one the build does not have), MACHINES
      not held, or FUNC, TRACK, LFO or a trig held with it, give the stock lookup's answer; the stock lookup is called
      once each time with the same arguments, and the stack comes back;
   3. descriptor 1: k 28, -2..+2 as 8.8, default 0, no CC and no NRPN, "Octave" / "OCT", still machine -1, the rest
@@ -31,17 +33,23 @@ on the official OS 1.13:
      are read in the note's sound (CUR_SNDS[t] + 84) before the copy of its 66 bytes (0x800015ae + 66 t + 64); a
      switch flipped while a note plays acts from the next block; REF ignores k 32;
   8. the press (0x4001ac4a, called with the view and parameter 44 PUNCH or 45 GATE, as MainScreenView's key handler
-     calls it): RETRIG held, TRACK not, on a REF2 or SAMPLE track flips bit 8 or 9 of k 32 in the track's sound, asks once for
-     a new LED frame (0x400760ba with the view) and switches nothing (0x4001abe2 not called), without asking whether
-     a trig is held (0x4006b736 not called);
-     every other case (no key, TRACK, TRACK + RETRIG, another machine, no project, no sound, another parameter) calls
-     what the stock OS calls with the same arguments and leaves k 32; d2..d7 and a2..a6 and the stack come back;
-  9. the LEDs: MainScreenView's LED method from 0x4001cc80 to its second LED (0x4001ccc2), with PUNCH and GATE of
-     the selected track in d2 and d0: RETRIG held, TRACK not, on a REF2 or SAMPLE track, LED 19 and 20 show the switches
-     (state 2 on, 1 off); every other case lights them as the stock OS; d5 leaves as the stock code leaves it there,
-     the other registers kept.
-Not covered here: that the sound found through the project's track is the one in CUR_SNDS[t], that a RETRIG press
-and release redraw the LEDs, and whether the project keeps a switch alone (notes/63 §17.2, §17.5: the device).
+     calls it): MACHINES held, TRACK not, on a REF2 or SAMPLE track flips bit 8 or 9 of k 32 in the track's sound, asks
+     once for a new LED frame (0x400760ba with the view) and switches nothing (0x4001abe2 not called), without asking
+     whether a trig is held (0x4006b736 not called); every other case (no key, RETRIG, TRACK, TRACK + MACHINES, another
+     machine, no project, no sound, another parameter) calls what the stock OS calls with the same arguments and leaves
+     k 32; d2..d7 and a2..a6 and the stack come back;
+  9. the LEDs: MainScreenView's LED method from 0x4001cc80 to its second LED (0x4001ccc2), with PUNCH and GATE of the
+     selected track in d2 and d0: MACHINES held, TRACK not, on a REF2 or SAMPLE track, LED 19 and 20 show the switches
+     (state 2 on, 1 off); every other case lights them as the stock OS; d5 leaves as the stock code leaves it there, the
+     other registers kept.
+  10. MACHINES as the level's key (the layer's 0.4): MainScreenView's key handler from its MACHINES case (0x4001c252),
+     stock and with the layer, for every machine, the MACHINES list open or not, a shortcut or switch used in between or
+     not: on a track of a machine with a shortcut or a switch a press that would open the list is taken and the release
+     opens it unless something acted; a press with the list open closes it at once; FUNC + MACHINES and a held trig go
+     to the PRESET browser; every other machine as the stock OS; registers and stack kept; a switch flipped and a
+     shortcut turned mark the hold, a knob turned without MACHINES does not.
+Not covered here: that the sound found through the project's track is the one in CUR_SNDS[t], that a MACHINES press and
+release redraw the LEDs, and whether the project keeps a switch alone (notes/63 §17.2, §17.5: the device).
 
 Needs Unicorn and numpy (pip install unicorn numpy); Unicorn's JIT does not run inside a sandbox that forbids it (it
 stops with SIGILL at the first memory map): run it in a normal terminal.
@@ -54,6 +62,7 @@ import struct
 import sys
 
 import numpy as np
+from unicorn import UC_HOOK_CODE
 from unicorn import m68k_const as mk
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -74,7 +83,8 @@ KNOB_ENTRY, LOOKUP, KEY_HELD = 0x401005a8, 0x4001e814, 0x4007faf4
 KEY_TABLE, KEY_BITS = 0x4010ae5c, 0x40f95744
 TRACK_MACHINE, UI_STATE, TRIG_HELD = 0x4001e318, 0x400cf9a8, 0x4006b736
 UI_OBJ, FMT_INT, RANGE, SET_VALUE, BUILDER = 0x40a71754, 0x400456c8, 0x4005a65a, 0x4000b274, 0x4005a274
-FUNC, TRACK, RETRIG, LFO = 1, 2, 4, 8
+FUNC, TRACK, RETRIG, MACHINES, LFO = 1, 2, 4, 5, 8
+LAYER = MACHINES                    # the layer's key since 0.3 (the key map of 2026-10-31); RETRIG up to 0.2
 SAVE2, SAVE1, LOAD = 0x4005afa0, 0x4005b054, 0x4005aecc
 STOCK_HEAD = "4feffff448d71c00"
 SOUND, RECORD, VIEW, OBJ = 0x91100000, 0x91200000, 0x90200000, 0x93700000
@@ -89,6 +99,10 @@ PUNCH_P, GATE_P, K32, BIT = 44, 45, 84, {44: 0x100, 45: 0x200}
 CUR_SNDS, TARGETS = 0x800017ec, 0x800015ae
 SND, FLIP = 0x40781000, 20     # a sound in the engine's memory; the block a switch flips at
 KEPT = [getattr(mk, f"UC_M68K_REG_{r}") for r in ("D2", "D3", "D4", "D5", "D6", "D7", "A2", "A3", "A4", "A5", "A6")]
+# MACHINES as the level's key (the layer's 0.4): MainScreenView's MACHINES case, where it goes, the list's views
+MACH_CASE, MACH_SITE, MACHINES_VT, CONTROLLER = 0x4001c252, 0x4001ca1e, 0x40117920, 0x93d00000
+MACH_STOPS = {0x4001ca2a: "toggle", 0x4001c2a8: "taken", 0x4001c608: "pass", 0x4001c996: "browser"}
+EVENT, PENDING, USED = 0x93d10000, 0x12, 0x13
 
 
 class UI(t7.UI):
@@ -122,7 +136,7 @@ class UI(t7.UI):
         self.uc.mem_write(KEY_BITS + (bit >> 3), bytes([v]))
 
     def keys(self, held):
-        for c in (FUNC, TRACK, RETRIG, LFO):
+        for c in (FUNC, TRACK, RETRIG, MACHINES, LFO):
             self.hold(c, c in held)
 
 
@@ -146,14 +160,14 @@ def knob(u, machine, knob_, trig=0):
 def knob_tests(key, img, runtime, ref2, machines):
     u = UI(img, runtime)
     ok = True
-    for c in (FUNC, TRACK, RETRIG, LFO):
+    for c in (FUNC, TRACK, RETRIG, MACHINES, LFO):
         u.hold(c, True)
         ok &= u.call(KEY_HELD, c) == 1
         u.hold(c, False)
         ok &= u.call(KEY_HELD, c) == 0
-    check(ok, f"{key}: the OS's key test (0x4007faf4) sees FUNC, TRACK, RETRIG and LFO held, then released")
+    check(ok, f"{key}: the OS's key test (0x4007faf4) sees FUNC, TRACK, RETRIG, MACHINES and LFO held, then released")
     got, fwd = {}, True
-    for held in ((), (RETRIG,), (RETRIG, FUNC), (RETRIG, TRACK), (RETRIG, LFO), (FUNC,), (LFO,)):
+    for held in ((), (LAYER,), (LAYER, FUNC), (LAYER, TRACK), (LAYER, LFO), (FUNC,), (LFO,), (RETRIG,)):
         u.keys(held)
         for trig in (0, 1):
             for m in machines:
@@ -161,11 +175,12 @@ def knob_tests(key, img, runtime, ref2, machines):
                     got[held, trig, m, k], ok_ = knob(u, m, k, trig)
                     fwd &= ok_
     u.keys(())
-    want = {c: 1 if c[0] == (RETRIG,) and not c[1] and c[2] == ref2 and c[3] == 4 else STOCK_ANSWER for c in got}
+    want = {c: 1 if c[0] == (LAYER,) and not c[1] and c[2] == ref2 and c[3] == 4 else STOCK_ANSWER for c in got}
     bad = [c for c in got if got[c] != want[c]]
-    check(not bad, f"{key}: descriptor 1 for RETRIG + COLOR on REF2 (machine {ref2}) only; the stock answer for the 15 "
-                   f"other knobs, machines {', '.join(str(s32(m)) for m in machines if m != ref2)}, no key, and FUNC, "
-                   f"TRACK, LFO or a trig held with RETRIG ({len(got)} cases)" + (f"; DIFFERENT {bad[:4]}" if bad else ""))
+    check(not bad, f"{key}: descriptor 1 for MACHINES + COLOR on REF2 (machine {ref2}) only; the stock answer for the "
+                   f"15 other knobs, machines {', '.join(str(s32(m)) for m in machines if m != ref2)}, no key, FUNC, "
+                   f"TRACK, LFO or a trig held with MACHINES, and RETRIG alone ({len(got)} cases)"
+                   + (f"; DIFFERENT {bad[:4]}" if bad else ""))
     check(fwd, f"{key}: the stock lookup called once per call with the same arguments; the stack comes back; no access "
                "outside memory")
 
@@ -179,9 +194,9 @@ def descriptor_tests(key, img, runtime, ref2):
     ndesc = 76 + 5 * TS.N
     table = lambda: [bytes(u.uc.mem_read(gs.DESCN + 0x38 * i, 0x38)) for i in range(ndesc)]
     before = table()
-    u.hold(RETRIG, True)
+    u.hold(LAYER, True)
     d, ok = knob(u, ref2, 4)
-    u.hold(RETRIG, False)
+    u.hold(LAYER, False)
     after = table()
     f, f0 = struct.unpack(">14i", after[1]), struct.unpack(">14i", before[1])
     names = (u.cstr(f[11] & 0xffffffff), u.cstr(f[13] & 0xffffffff))
@@ -230,9 +245,9 @@ def maps(u):
 
 def table_tests(key, img, runtime, ref2):
     a, b = UI(img, runtime), UI(img, runtime)
-    b.hold(RETRIG, True)
+    b.hold(LAYER, True)
     knob(b, ref2, 4)                                 # descriptor 1 installed before the tables are built
-    b.hold(RETRIG, False)
+    b.hold(LAYER, False)
     a.hooks, b.hooks = {}, {}
     a.call(BUILDER)
     b.call(BUILDER)
@@ -385,7 +400,7 @@ def press(u, held, t, machine, k32, param, **kw):
 def press_tests(key, stock, img, runtime, ref2, machines, switchers):
     a, b = UI(stock), UI(img, runtime)
     cases, bad, acted = 0, [], 0
-    helds = ((), (RETRIG,), (TRACK,), (RETRIG, TRACK), (RETRIG, FUNC))
+    helds = ((), (LAYER,), (TRACK,), (LAYER, TRACK), (LAYER, FUNC), (RETRIG,))
     for held in helds:
         for m in machines:
             for t in (0, 3, 5):
@@ -394,7 +409,7 @@ def press_tests(key, stock, img, runtime, ref2, machines, switchers):
                         ca, ka, oka = press(a, held, t, m, k32, param)
                         cb, kb, okb = press(b, held, t, m, k32, param)
                         cases += 1
-                        act = RETRIG in held and TRACK not in held and m in switchers and param in BIT
+                        act = LAYER in held and TRACK not in held and m in switchers and param in BIT
                         if act:
                             acted += 1
                             good = cb == [("leds", (VIEW,))] and kb == k32 ^ BIT[param] and okb
@@ -402,7 +417,7 @@ def press_tests(key, stock, img, runtime, ref2, machines, switchers):
                             good = cb == ca and kb == ka == k32 and okb and oka
                         if not good:
                             bad.append((held, s32(m), t, hex(k32), param, cb, ca, hex(kb)))
-    check(not bad and acted, f"{key}: the press (0x4001ac4a): RETRIG held, TRACK not, on a track of a machine with "
+    check(not bad and acted, f"{key}: the press (0x4001ac4a): MACHINES held, TRACK not, on a track of a machine with "
                              f"switches (machines {sorted(switchers)}): "
                              f"bit 8 (PUNCH) or 9 (GATE) of k 32 flipped, one LED frame asked with the view, no stock "
                              f"switch ({acted} cases); every other case calls what the stock OS calls ({cases} cases "
@@ -410,12 +425,12 @@ def press_tests(key, stock, img, runtime, ref2, machines, switchers):
                              f"come back" + (f"; DIFFERENT {bad[:3]}" if bad else ""))
     edge = []
     for kw in ({"has_project": False}, {"has_sound": False}):
-        ca, ka, oka = press(a, (RETRIG,), 0, ref2, 0, PUNCH_P, **kw)
-        cb, kb, okb = press(b, (RETRIG,), 0, ref2, 0, PUNCH_P, **kw)
+        ca, ka, oka = press(a, (LAYER,), 0, ref2, 0, PUNCH_P, **kw)
+        cb, kb, okb = press(b, (LAYER,), 0, ref2, 0, PUNCH_P, **kw)
         edge.append(cb == ca and kb == ka and okb and oka)
     a.keys(())
     b.keys(())
-    check(all(edge), f"{key}: RETRIG + PUNCH without a project, or without a sound for the track: the stock press")
+    check(all(edge), f"{key}: MACHINES + PUNCH without a project, or without a sound for the track: the stock press")
     # the stock switch itself: without TRACK once on the selected track, with TRACK on all six (Control All)
     _, _, _ = press(a, (), 3, ref2, 0, PUNCH_P)
     one = [c for c in a.calls if c[0] == "switch"]
@@ -448,7 +463,7 @@ def leds(u, held, t, machine, k32, punch, gate):
 def led_tests(key, stock, img, runtime, ref2, machines, switchers):
     a, b = UI(stock), UI(img, runtime)
     cases, bad, acted = 0, [], 0
-    for held in ((), (RETRIG,), (TRACK,), (RETRIG, TRACK)):
+    for held in ((), (LAYER,), (TRACK,), (LAYER, TRACK), (RETRIG,)):
         for m in machines:
             for k32 in (0, 0x100, 0x200, 0x300):
                 for punch in (0, 0x100):
@@ -456,7 +471,7 @@ def led_tests(key, stock, img, runtime, ref2, machines, switchers):
                         ga, ra, oka = leds(a, held, 3, m, k32, punch, gate)
                         gb, rb, okb = leds(b, held, 3, m, k32, punch, gate)
                         cases += 1
-                        if RETRIG in held and TRACK not in held and m in switchers:
+                        if LAYER in held and TRACK not in held and m in switchers:
                             acted += 1
                             want = [(0x13, 2 if k32 & 0x100 else 1), (0x14, 2 if k32 & 0x200 else 1)]
                             # d5 holds what lit GATE's LED; every other register as the stock code leaves it
@@ -471,7 +486,7 @@ def led_tests(key, stock, img, runtime, ref2, machines, switchers):
     stock_ok = all(leds(a, (), 3, ref2, 0, p, g)[0] == [(0x13, 2 if p else 1), (0x14, 2 if g else 1)]
                    for p in (0, 0x100) for g in (0, 0x100))
     check(not bad and acted and stock_ok,
-          f"{key}: the LEDs (0x4001cbfe from 0x4001cc80): RETRIG held, TRACK not, on a track of a machine with "
+          f"{key}: the LEDs (0x4001cbfe from 0x4001cc80): MACHINES held, TRACK not, on a track of a machine with "
           f"switches (machines {sorted(switchers)}), LED 19 and 20 show "
           f"the switches of k 32 ({acted} cases); every other case as the stock OS, which shows PUNCH and GATE "
           f"({cases} cases in all); the other registers kept" + (f"; DIFFERENT {bad[:3]}" if bad else ""))
@@ -543,6 +558,82 @@ def voice_tests(key, tweak, img, runtime, added, blocks):
             check(np.array_equal(y0, y1) and ok, f"{key}: REF (machine {m['index']}) ignores k 32, sample for sample")
 
 
+def mach(u, flags, machine, opened, trig=0):
+    """MainScreenView's key handler from its MACHINES case (0x4001c252) with an event of these flags (bit 0 pressed,
+    bit 1 FUNC), the selected track's machine, the MACHINES list among the controller's views or not, and a held trig
+    or not: where it goes (MACH_STOPS), the registers d2..d7, a2..a6 and the stack as they came, memory in bounds."""
+    u.hooks = project(u, 0, machine, 0)
+    u.hooks[TRIG_HELD] = ("trig", trig)
+    u.uc.mem_write(VIEW + 44, struct.pack(">I", CONTROLLER))
+    head, other, node, view_o, view_m = CONTROLLER + 20, CONTROLLER + 0x100, CONTROLLER + 0x200, CONTROLLER + 0x300, \
+        CONTROLLER + 0x400
+    u.uc.mem_write(view_o, struct.pack(">I", 0x40100860))          # another view in the list: the pattern selection
+    u.uc.mem_write(view_m, struct.pack(">I", MACHINES_VT))
+    u.uc.mem_write(other, struct.pack(">III", node if opened else head, 0, view_o))
+    u.uc.mem_write(node, struct.pack(">III", head, 0, view_m))
+    u.uc.mem_write(head, struct.pack(">I", other))
+    u.uc.mem_write(EVENT, bytes(32))
+    u.uc.mem_write(EVENT + 16, struct.pack(">I", flags))
+    vals = [0x5a5a0000 + i for i in range(len(KEPT))]
+    vals[KEPT.index(mk.UC_M68K_REG_D3)], vals[KEPT.index(mk.UC_M68K_REG_A2)] = EVENT, VIEW
+    for r, v in zip(KEPT, vals):
+        u.uc.reg_write(r, v)
+    sp = t7.STACK - 0x400
+    u.uc.reg_write(mk.UC_M68K_REG_A7, sp)
+    u.bad.clear()
+    got = []
+
+    def stop(uc, addr, size, ud):
+        if addr in MACH_STOPS:
+            got.append(MACH_STOPS[addr])
+            uc.emu_stop()
+    h = u.uc.hook_add(UC_HOOK_CODE, stop)
+    u.uc.emu_start(MACH_CASE, 0x90000000, count=200_000)
+    u.uc.hook_del(h)
+    regs = [u.uc.reg_read(r) & 0xffffffff for r in KEPT]
+    mine = {KEPT.index(mk.UC_M68K_REG_D2), KEPT.index(mk.UC_M68K_REG_A3)}   # the case's own: the test's answer, the test
+    ok = all(regs[i] == vals[i] for i in range(len(KEPT)) if i not in mine) and u.uc.reg_read(mk.UC_M68K_REG_A7) == sp \
+        and not u.bad
+    return (got[0] if got else None), ok
+
+
+def mach_tests(key, stock, img, runtime, data, machines, layer):
+    """MACHINES as the level's key (the layer's 0.4, the key map of 2026-10-31), on the OS's own key handler, stock
+    and with the layer: on the tracks of a machine with a shortcut or a switch, a press that would open the MACHINES
+    list opens nothing and is taken, the release opens it unless a shortcut or a switch acted in between; a press
+    while the list is open closes it at once; FUNC + MACHINES and MACHINES with a held trig go to the PRESET browser as
+    before; every other machine as the stock OS. Then that the press of a switch and the knob of a shortcut mark the
+    hold."""
+    a, b = UI(stock), UI(img, runtime)
+    press_f, release_f, func_f = 1, 0, 3
+    bad, cases = [], 0
+    for m in machines:
+        for opened in (False, True):
+            for used in (False, True):
+                b.uc.mem_write(data + PENDING, bytes(2))
+                seq_a = [mach(a, press_f, m, opened), mach(a, release_f, m, opened)]
+                pa = mach(b, press_f, m, opened)
+                if used:
+                    b.uc.mem_write(data + USED, b"\x01")
+                ra = mach(b, release_f, m, opened)
+                seq_b = [pa, ra]
+                want = [w for w, _ in seq_a]
+                if m in layer and not opened:
+                    want = ["taken", "pass" if used else "toggle"]
+                cases += 1
+                if [w for w, _ in seq_b] != want or not all(ok for _, ok in seq_a + seq_b):
+                    bad.append((s32(m), opened, used, [w for w, _ in seq_b], want))
+            for flags, trig in ((func_f, 0), (press_f, 1)):
+                cases += 1
+                if mach(a, flags, m, opened, trig)[0] != "browser" or mach(b, flags, m, opened, trig)[0] != "browser":
+                    bad.append((s32(m), opened, flags, trig))
+    check(not bad, f"{key}: MACHINES (0x4001c252): on machines {sorted(s32(m) for m in layer)} a press that would open "
+                   "the list is taken, the release opens it unless a shortcut or a switch acted; a press with the list "
+                   "open closes it at once; FUNC + MACHINES and a held trig: the PRESET browser; the other machines as "
+                   f"the stock OS ({cases} cases; registers and stack kept)" + (f"; DIFFERENT {bad[:3]}" if bad else ""))
+    return b
+
+
 def no_switch_tests(stock):
     """A build whose machines declare no switch (REFC, the reference extension of CHORD: one knob shortcut): the
     layer is there, the press and the LEDs stay stock, every byte of presses is 0."""
@@ -553,6 +644,9 @@ def no_switch_tests(stock):
     n = u.uc.mem_read(data + 0x11, 1)[0]
     check(all(sites) and bytes(u.uc.mem_read(data + 0x14, 8)) == bytes(8) and n >= 1 and info["part"]["switches"] == 0,
           f"refchord: no switch declared: 0x4001ac4a and 0x4001cc86 stock, the layer's {n} byte(s) of presses 0")
+    syms = {k: int(v, 16) for k, v in tweak["symbols"].items()}
+    check(bytes(u.uc.mem_read(MACH_SITE, 6)).hex() == f"4eb9{syms['sc_mach']:08x}",
+          "refchord: 0x4001ca1e -> jsr sc_mach: MACHINES is the level's key with a knob shortcut alone too")
 
 
 def main():
@@ -614,6 +708,25 @@ def main():
         press_tests(key, stock, img, runtime, ref2, machines, switchers)
         print("the LEDs")
         led_tests(key, stock, img, runtime, ref2, machines, switchers)
+        print("MACHINES, the level's key")
+        check(bytes(u.uc.mem_read(MACH_SITE, 6)).hex() == f"4eb9{syms['sc_mach']:08x}",
+              f"{key}: 0x4001ca1e -> jsr sc_mach")
+        layer = switchers | {ref2}
+        mb = mach_tests(key, stock, img, runtime, syms["sc_data"], machines, layer)
+        mb.uc.mem_write(syms["sc_data"] + PENDING, bytes(2))
+        press(mb, (LAYER,), 0, ref2, 0, PUNCH_P)
+        flipped = mb.uc.mem_read(syms["sc_data"] + USED, 1)[0]
+        mb.uc.mem_write(syms["sc_data"] + PENDING, bytes(2))
+        mb.keys((LAYER,))
+        knob(mb, ref2, 4)
+        turned = mb.uc.mem_read(syms["sc_data"] + USED, 1)[0]
+        mb.uc.mem_write(syms["sc_data"] + PENDING, bytes(2))
+        mb.keys(())
+        knob(mb, ref2, 6)
+        other = mb.uc.mem_read(syms["sc_data"] + USED, 1)[0]
+        check(flipped == 1 and turned == 1 and other == 0,
+              f"{key}: a switch flipped (MACHINES + PUNCH on REF2) and a shortcut turned (MACHINES + COLOR) mark the hold; "
+              "SWEEP turned without MACHINES does not")
     print("\na build with no switch")
     no_switch_tests(stock)
     print("\nALL OK" if not t7.FAIL else f"\n{len(t7.FAIL)} FAILED: " + "; ".join(t7.FAIL[:6]))

@@ -4,11 +4,11 @@
 
    - ref2_main_draw takes the place of MainScreenView's draw (vtable entry 0x400ffe30, stock 0x4001b22a). On a
      REF2 track it draws the stock main screen, then the Octave as "OCT +1" in the free band of its right half, with a
-     dot that blinks with the tick, and left of it the switches that are on (notes/63 §16): "S" Square (RETRIG +
-     PUNCH), "O" Tone open (RETRIG + GATE), "SO" both; for a few redraws after the browser opened a file on that
+     dot that blinks with the tick, and left of it the switches that are on (notes/63 §16): "S" Square (MACHINES +
+     PUNCH), "O" Tone open (MACHINES + GATE), "SO" both; for a few redraws after the browser opened a file on that
      track, the file's name instead.
    - ref2_knob_draw takes the place of the knob view's draw (vtable entry 0x4010053c, stock 0x4001e40a). While
-     RETRIG + COLOR turns the Octave on a REF2 track, it draws the Octave as five boxes, -2 to +2, the current one
+     MACHINES + COLOR turns the Octave on a REF2 track, it draws the Octave as five boxes, -2 to +2, the current one
      filled; any other value shows as before.
    - ref2_note_draw takes the place of NoteVelocityView's draw (vtable entry 0x40102578, stock 0x400299de), which
      shows a held trig's note, velocity and length over the left half while a trig is held: on a REF2 track it draws
@@ -38,7 +38,7 @@ typedef uint32_t u32;
 /* The build's machine number for REF2, a patch point the composer resolves (its value is the symbol's address). */
 extern char ref2_machine_index[];
 #define REF2_MACHINE    ((s32)(long)ref2_machine_index)
-#define OCT_DESCRIPTOR  1                   /* RETRIG + COLOR, the builder's first shortcut (notes/63 §3.2) */
+#define OCT_DESCRIPTOR  1                   /* MACHINES + COLOR, the builder's first shortcut (notes/63 §3.2) */
 #define SOUND_OCT       76                  /* sound: k 28, the Octave, 8.8, signed */
 #define SOUND_SW        84                  /* sound: k 32, the switches: 0x100 Square, 0x200 Tone open */
 #define MACHINE_AT      38                  /* sound: k 9's high byte, the machine */

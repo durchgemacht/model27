@@ -7,8 +7,8 @@ official OS.**
   combination, put together when you build. Nothing is pre-built, and no machine rules out another.
 - **What goes together is checked.** Every mod declares what it touches; the builder checks each build and stops one
   that would write the same bytes or use the same memory, instead of making a firmware.
-- **It still plays like a Model:Cycles.** Extra values sit on one fixed set of shortcuts, RETRIG + a knob, and
-  on/off switches on RETRIG + PUNCH or GATE, the same on every machine and saved with the sound.
+- **It still plays like a Model:Cycles.** Extra values sit on one fixed set of shortcuts, MACHINES + a knob, and
+  on/off switches on MACHINES + PUNCH or GATE, the same on every machine and saved with the sound.
 - **Tested means played on a real Model:Cycles.** Before a mod reaches the flasher, it runs in an emulator on the
   Model:Cycles' own code. Its card says Experimental until it has been played on the device, and Tested after.
 - **Your files stay yours.** The firmware is built in your browser from your own official OS file, nothing is
@@ -55,8 +55,8 @@ machines get in. These are **Gen 1 machines**, as the
 [Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard) describes them today:
 
 - four knobs of their own, with DECAY, GATE and PUNCH working as on the stock machines;
-- up to four extra parameters, all on the same fixed shortcuts (RETRIG held + COLOR, SHAPE, SWEEP or CONTOUR),
-  and up to two on/off switches (RETRIG held + PUNCH or GATE), identical on every machine and saved with the sound;
+- up to four extra parameters, all on the same fixed shortcuts (MACHINES held + COLOR, SHAPE, SWEEP or CONTOUR),
+  and up to two on/off switches (MACHINES held + PUNCH or GATE), identical on every machine and saved with the sound;
 - they only hook into the parts of the OS the builder already knows how to share.
 
 The result still plays like a Model:Cycles. This is all at an early stage, and it will keep evolving. If more
@@ -78,15 +78,18 @@ manifest that says what it touches, and the builder composes the packages you ti
 
 ## Shortcuts are predefined
 
-A machine does not choose its own key combinations. model27 gives a fixed list, today **RETRIG held + COLOR, SHAPE,
-SWEEP or CONTOUR**: up to four extra values on the machine's tracks, and **RETRIG held + PUNCH or GATE**: up to two
-switches, on or off. For a value, the machine declares its name, range and default in its manifest; the builder
-handles the keys, shows the value and saves it with the sound, and the machine only reads it. A switch flips on the
-press, instead of PUNCH or GATE on that machine's tracks; while RETRIG is held, PUNCH's and GATE's lights show the
-switches, and the machine shows them on the screen if it wants. Each machine gives a shortcut its own meaning, so
-two machines can use the same one without meeting. The list will probably grow, most likely by FUNC + the same four
-knobs. For now shortcut values and switches cannot be p-locked or used as LFO destinations, and no card on the page
-uses a shortcut yet.
+A machine does not choose its own key combinations. model27 gives a fixed list, today **MACHINES held + COLOR, SHAPE,
+SWEEP or CONTOUR**: up to four extra values on the machine's tracks, and **MACHINES held + PUNCH or GATE**: up to two
+switches, on or off. For a value, the machine declares its name, range and default in its manifest; the builder handles
+the keys, shows the value and saves it with the sound, and the machine only reads it. A switch flips on the press,
+instead of PUNCH or GATE on that machine's tracks; while MACHINES is held, PUNCH's and GATE's lights show the switches,
+and the machine shows them on the screen if it wants. On such a machine's tracks MACHINES is a held key: a tap still
+opens the machine list, when you let go of it, and holding it for a shortcut leaves the list closed. Each machine gives
+a shortcut its own meaning, so two machines can use the same one without meeting. For now shortcut values and switches
+cannot be p-locked or used as LFO destinations; SAMPLE's Loop and Reverse are the only switches on the page.
+
+The held key says what a combination works on: **PATTERN** the pattern (PATTERN + Delay Time / Reverb Size chooses its
+effects), **MACHINES** the track's machine (its values and switches above). No mod gets a held key of its own.
 
 ## The conditions, roughly
 

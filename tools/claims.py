@@ -88,8 +88,8 @@ STOCK = (
      "source": "0x4001f50c; the maintainer's test, 2026-10-31"},
     {"combo": "PATTERN + TRIG 1-16", "meaning": "chooses the next pattern", "source": "0x40020a8c"},
     {"combo": "PATTERN", "meaning": "arms the pattern selection", "source": "0x40020ad0"},
-    {"combo": "MACHINES", "meaning": "opens the MACHINES list, which passes PUNCH, GATE and every knob but LEVEL/DATA on",
-     "source": "0x4001ca1e, 0x400a292c, 0x400a28b4"},
+    {"combo": "MACHINES", "meaning": "opens the MACHINES list, which passes PUNCH, GATE and every knob but LEVEL/DATA "
+     "on", "source": "0x4001ca1e, 0x400a292c, 0x400a28b4"},
     {"combo": "TRACK + PUNCH/GATE", "meaning": "Control All of PUNCH and GATE", "source": "STANDARD.md §5.4"},
     {"combo": "PUNCH/GATE", "meaning": "switches PUNCH or GATE on the selected track; a held RETRIG or MACHINES is "
      "not read", "source": "notes/63 §15.1; the MACHINES list passes them on (0x400a292c)"},
@@ -855,27 +855,29 @@ def self_test():
     twice = [{"ids": ["macro"], "source": "a", "claims": {}}, {"ids": ["macro*"], "source": "b", "claims": {}}]
     case("claims.json refused: a tweak in two entries",
          bool(check_file({"schema": SCHEMA, "entries": twice}, ids, pkgs)))
-    sc = {"shortcut": {"key": "RETRIG", "knobs": ["COLOR", "SHAPE", "SWEEP", "CONTOUR"], "descriptors": [1, 2, 3, 4],
+    sc = {"shortcut": {"key": "MACHINES", "knobs": ["COLOR", "SHAPE", "SWEEP", "CONTOUR"], "descriptors": [1, 2, 3, 4],
                        "sound_slots": [28, 29, 30, 31], "record_slots": [28, 29, 30, 31]}}
-    m = {"uses": [{"point": "shortcut", "key": "RETRIG", "knob": "COLOR"}, {"point": "view.main"}]}
-    c = normalize({"sound_slots": [28], "record_slots": [28], "gestures": ["RETRIG + COLOR"], "views": ["main"]},
+    m = {"uses": [{"point": "shortcut", "key": "MACHINES", "knob": "COLOR"}, {"point": "view.main"}]}
+    c = normalize({"sound_slots": [28], "record_slots": [28], "gestures": ["MACHINES + COLOR"], "views": ["main"]},
                   "package")[0]
     case("a shortcut with its combination and slots passes", not check_package(m, c, sc))
     c2 = normalize({"sound_slots": [28], "record_slots": [29], "gestures": [], "views": []}, "package")[0]
     case("a shortcut without its combination, record slot and view is refused", len(check_package(m, c2, sc)) == 3)
     sc["shortcut"].update(presses=["PUNCH", "GATE"], press_sound_slot=32, press_record_slot=18)
-    mp = {"uses": [{"point": "shortcut", "key": "RETRIG", "press": "GATE"}]}
-    cp = normalize({"sound_slots": [32], "record_slots": [18], "gestures": ["RETRIG + GATE"]}, "package")[0]
+    mp = {"uses": [{"point": "shortcut", "key": "MACHINES", "press": "GATE"}]}
+    cp = normalize({"sound_slots": [32], "record_slots": [18], "gestures": ["MACHINES + GATE"]}, "package")[0]
     case("a switch with its combination, k 32 and record slot 18 passes", not check_package(mp, cp, sc))
-    case("a switch claiming RETRIG + PUNCH instead of GATE is refused",
-         len(check_package(mp, normalize({"sound_slots": [32], "record_slots": [18], "gestures": ["RETRIG + PUNCH"]},
+    case("a switch claiming MACHINES + PUNCH instead of GATE is refused",
+         len(check_package(mp, normalize({"sound_slots": [32], "record_slots": [18], "gestures": ["MACHINES + PUNCH"]},
                                          "package")[0], sc)) == 1)
-    case("a press off the list (RETRIG + LFO) is refused",
-         check_package({"uses": [{"point": "shortcut", "key": "RETRIG", "press": "LFO"}]}, cp, sc)
-         == ["shortcut RETRIG + LFO is not on the builder's list"])
+    case("a press off the list (MACHINES + LFO) is refused",
+         check_package({"uses": [{"point": "shortcut", "key": "MACHINES", "press": "LFO"}]}, cp, sc)
+         == ["shortcut MACHINES + LFO is not on the builder's list"])
     case("a press with a knob is refused",
-         len(check_package({"uses": [{"point": "shortcut", "key": "RETRIG", "press": "GATE", "knob": "COLOR"}]},
+         len(check_package({"uses": [{"point": "shortcut", "key": "MACHINES", "press": "GATE", "knob": "COLOR"}]},
                            cp, sc)) == 1)
+    case("a shortcut on the old key, RETRIG, is refused",
+         bool(check_package({"uses": [{"point": "shortcut", "key": "RETRIG", "press": "GATE"}]}, cp, sc)))
     case("GATE is key 7 (notes/63 §15.1), RETRIG + PUNCH/GATE two atoms held by RETRIG",
          KEYS["GATE"] == 7 and atoms("RETRIG + PUNCH/GATE") == [(frozenset({"RETRIG"}), "GATE"),
                                                                 (frozenset({"RETRIG"}), "PUNCH")])
@@ -908,20 +910,25 @@ def self_test():
              "record slots 27", "MACHINES + COLOR/SHAPE/SWEEP/CONTOUR against MACHINES + DECAY/SWEEP/CONTOUR"])
     # SAMPLE's tweak carries the shortcut layer since One-Shot 0.11 (its switches, notes/60 §18): the layer's
     # clashes add to its own (notes/65 §16)
-    case("SAMPLE × Model-TG: k 25-27, record slots 24-27, and the layer's 28-29",
-         clashes(real["sampler"], real["model-tg"]) == ["k 25-27", "record slots 24-29"])
-    case("SAMPLE × the track filter: record slot 27, and the layer's k 28-31, record slots 18, 30-31, descriptors",
-         clashes(real["sampler"], real["track-filter"]) == ["k 28-31", "record slots 18, 27, 30-31",
-                                                            "descriptors 1-4"])
+    case("SAMPLE × Model-TG: k 25-27, record slots 24-27, the layer's 28-29, and since the key map the layer's "
+         "MACHINES + knobs against Model-TG's",
+         clashes(real["sampler"], real["model-tg"]) == [
+             "k 25-27", "record slots 24-29",
+             "MACHINES + COLOR/SHAPE/SWEEP/CONTOUR against MACHINES + DECAY/SWEEP/CONTOUR"])
+    case("SAMPLE × the track filter: record slot 27, the layer's k 28-31, record slots 18, 30-31, descriptors, and "
+         "since the key map both MACHINES + knobs",
+         clashes(real["sampler"], real["track-filter"]) == [
+             "k 28-31", "record slots 18, 27, 30-31", "descriptors 1-4",
+             "MACHINES + COLOR/SHAPE/SWEEP/CONTOUR against MACHINES + COLOR/SHAPE/SWEEP/CONTOUR"])
     case("REF2 × arp: no clash (RETRIG + NOTES is another atom)", not clashes(real["refmachine2"], real["arp"]))
     smp, ref2c = (resolve(package_claims(pkgs[p], pkgs), own_scope(pkgs[p])) for p in ("sampler", "refmachine2"))
     case("SAMPLE × REF2, each on its machine: no clash", not clashes(smp, ref2c))
     case("SAMPLE's tweak × REF2's: the slots of the layer each carries",
          clashes(real["sampler"], real["refmachine2"])[:3] == clashes(layer, layer))
-    octave, tune = (j({"gestures": [{"combo": "RETRIG + COLOR", "situation": "params", "meaning": x}]}, "package")
+    octave, tune = (j({"gestures": [{"combo": "MACHINES + COLOR", "situation": "params", "meaning": x}]}, "package")
                     for x in ("Octave", "Tune"))
-    case("two machines' RETRIG + COLOR do not clash", not clashes(resolve(octave, "a"), resolve(tune, "b")))
-    case("one machine's two meanings of RETRIG + COLOR do", bool(clashes(resolve(octave, "a"), resolve(tune, "a"))))
+    case("two machines' MACHINES + COLOR do not clash", not clashes(resolve(octave, "a"), resolve(tune, "b")))
+    case("one machine's two meanings of MACHINES + COLOR do", bool(clashes(resolve(octave, "a"), resolve(tune, "a"))))
     lofi = j({"gestures": [{"combo": "FUNC + PITCH", "situation": "params", "meaning": "lo-fi", "replaces": "FINE"}]})
     case("the same claim twice is allowed", not clashes(lofi, lofi))
     fa, fb = (resolve(j({"formatters": [{"knob": "X", "object": 53, "replaces": "0x400456c8"}]}, "package"), x)
@@ -929,8 +936,12 @@ def self_test():
     case("two formatters on one interface object clash, whatever their scopes", bool(clashes(fa, fb)))
     chord = j({"sound_slots": [{"slots": [25, 25], "scope": "machine:CHORD"}]})
     case("k 25 on CHORD's tracks × SAMPLE's k 25: no clash", not clashes(chord, real["sampler"]))
-    menu = j({"gestures": [{"combo": "RETRIG + COLOR", "situation": "menu:RETRIG", "meaning": "a probe"}]})
-    case("RETRIG + COLOR in menu:RETRIG × the layer's in params: no clash", not clashes(menu, layer))
+    menu = j({"gestures": [{"combo": "MACHINES + COLOR", "situation": "menu:RETRIG", "meaning": "a probe"}]})
+    case("MACHINES + COLOR in menu:RETRIG × the layer's in params: no clash", not clashes(menu, layer))
+    case("the layer's key is MACHINES since the key map (part shortcuts 0.3)",
+         sc_part["shortcut"]["key"] == "MACHINES" and not clashes(layer, j({"gestures": [
+             {"combo": "RETRIG + COLOR/SHAPE/SWEEP/CONTOUR", "situation": "params", "meaning": "a probe"},
+             {"combo": "RETRIG + PUNCH/GATE", "meaning": "a probe"}]})))
     va, vb = j({"views": ["main"]}), j({"views": [{"view": "main", "how": "a probe"}]})
     case("two drawings of one view: a warning, not a clash",
          not clashes(va, vb) and view_warnings(va, vb) == ["view main"])

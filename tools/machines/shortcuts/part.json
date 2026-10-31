@@ -1,9 +1,9 @@
 {
  "schema": "model27-part/0.1",
  "id": "shortcuts",
- "version": "0.2",
- "name": "Machine shortcuts: RETRIG + COLOR, SHAPE, SWEEP or CONTOUR, and RETRIG + PUNCH or GATE as switches, on an added machine's tracks, saved with the sound",
- "description": "A part of model27's builder, not a machine (notes/63 §3, the switches §16): assembled once into shortcuts.o by tools/gen_parts.py, added by tools/compose.py to a build in which a machine declares a shortcut. The knob lookup's vtable entry and the three sound record functions jump into it, and when a machine declares a press, the function PUNCH's and GATE's presses call and MainScreenView's LED method too; the composer writes the data block (the machines' presses and shortcuts, the next of the record chain) right after its code, and a package's own wrapper on a record function (SAMPLE's) becomes the next of the chain instead of a hook of its own.",
+ "version": "0.4",
+ "name": "Machine shortcuts: MACHINES + COLOR, SHAPE, SWEEP or CONTOUR, and MACHINES + PUNCH or GATE as switches, on an added machine's tracks, saved with the sound",
+ "description": "A part of model27's builder, not a machine (notes/63 §3, the switches §16): assembled once into shortcuts.o by tools/gen_parts.py, added by tools/compose.py to a build in which a machine declares a shortcut. The knob lookup's vtable entry and the three sound record functions jump into it, and when a machine declares a press, the function PUNCH's and GATE's presses call and MainScreenView's LED method too; the composer writes the data block (the machines' presses and shortcuts, the next of the record chain) right after its code, and a package's own wrapper on a record function (SAMPLE's) becomes the next of the chain instead of a hook of its own. Since 0.3 the key held is MACHINES (the key map of 2026-10-31: MACHINES is the level of the track's machine); up to 0.2 it was RETRIG, which the layer no longer reads. Since 0.4 MACHINES is a modifier on the tracks of a machine with a shortcut or a switch: MainScreenView's MACHINES case (0x4001ca1e, in every build with the layer) opens the MACHINES list on the release instead of the press, and only when no shortcut or switch acted while it was held; a press while the list is open closes it at once.",
  "license": "MIT",
  "build": {
   "sources": ["shortcuts.S"],
@@ -11,11 +11,11 @@
   "cflags": ["-mcpu=54418"],
   "defines": {},
   "objects": ["shortcuts.o"],
-  "roots": ["sc_knob", "sc_save2", "sc_save1", "sc_load", "sc_press", "sc_leds"],
+  "roots": ["sc_knob", "sc_save2", "sc_save1", "sc_load", "sc_press", "sc_leds", "sc_mach"],
   "patch_points": [{"symbol": "sc_data", "kind": "shortcut_data"}]
  },
  "shortcut": {
-  "key": "RETRIG",
+  "key": "MACHINES",
   "knobs": ["COLOR", "SHAPE", "SWEEP", "CONTOUR"],
   "descriptors": [1, 2, 3, 4],
   "sound_slots": [28, 29, 30, 31],
@@ -37,16 +37,26 @@
   "press": [
    {"at": "0x4001ac4a", "stock": "4feffff47201", "op": "jmp", "symbol": "sc_press"},
    {"at": "0x4001cc86", "stock": "2a004a8257c0", "op": "jsr", "symbol": "sc_leds"}
+  ],
+  "keys": [
+   {
+    "at": "0x4001ca1e",
+    "stock": "2f034e93588f",
+    "op": "jsr",
+    "symbol": "sc_mach"
+   }
   ]
  },
- "data": {"next": 0, "descn": 12, "first": 16, "count": 17, "presses": 20, "entries": 28, "entry_size": 24,
+ "data": {"next": 0, "descn": 12, "first": 16, "count": 17, "presses": 20, "entries": 28, "entry_size": 24, "pending": 18, "used": 19,
           "max_machines": 8},
  "claims": {
   "sound_slots": [28, 29, 30, 31, 32],
   "record_slots": [18, 28, 29, 30, 31],
   "descriptors": [1, 2, 3, 4],
-  "gestures": [{"combo": "RETRIG + COLOR/SHAPE/SWEEP/CONTOUR", "situation": "params",
+  "gestures": [{"combo": "MACHINES + COLOR/SHAPE/SWEEP/CONTOUR", "situation": "params",
                 "meaning": "the shortcut of the track's machine"},
-               {"combo": "RETRIG + PUNCH/GATE", "meaning": "the switch of the track's machine"}]
+               {"combo": "MACHINES + PUNCH/GATE", "meaning": "the switch of the track's machine"},
+               {"combo": "MACHINES", "meaning": "on the tracks of a machine with a shortcut or a switch, the MACHINES list opens on the release, unless a shortcut or a switch acted",
+                "replaces": "the toggle of the MACHINES list on the press (a press while it is open still closes it at once)"}]
  }
 }

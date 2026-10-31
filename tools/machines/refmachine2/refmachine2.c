@@ -3,10 +3,10 @@
    The template for a machine that uses everything the Cycles Mod Standard lets a machine use, as REF is the
    template for the smallest one. Step B4a (notes/63 §7): a second package with REF's contract and code, a
    triangle in place of REF's parabola so that the two are told apart by ear and in the proofs. Step B4b: a
-   shortcut, RETRIG + COLOR = Octave (-2 to +2), declared in the manifest; the builder's shortcut layer shows and
+   shortcut, MACHINES + COLOR = Octave (-2 to +2), declared in the manifest; the builder's shortcut layer shows and
    saves it in k 28, and this code only reads it. Step B4c: the main screen label and the knob view, in
-   ref2_view.c. Step B4d adds a handler on the tick and the browser. The switches (notes/63 §16): RETRIG +
-   PUNCH = Square, RETRIG + GATE = Tone open, declared in the manifest; the shortcut layer flips them in k 32 of
+   ref2_view.c. Step B4d adds a handler on the tick and the browser. The switches (notes/63 §16): MACHINES +
+   PUNCH = Square, MACHINES + GATE = Tone open, declared in the manifest; the shortcut layer flips them in k 32 of
    the track's sound (bits 8 and 9) and saves them, and this code reads them in the sound the note plays, every
    block, so that a switch acts at once. Never offered to users.
 
@@ -20,8 +20,8 @@
 
    Sound: a triangle (no table) mixed with white noise, through a one-pole lowpass. COLOR = Tone (the
    lowpass, 127 = open), SHAPE = Noise (0 = triangle only, 127 = noise only), SWEEP = Detune (-1 .. +1
-   semitone, 64 = none), CONTOUR = Level, RETRIG + COLOR = Octave (-2 .. +2, 0 = none), RETRIG + PUNCH =
-   Square (the triangle becomes a square), RETRIG + GATE = Tone open (the lowpass is left out). PITCH, FINE and
+   semitone, 64 = none), CONTOUR = Level, MACHINES + COLOR = Octave (-2 .. +2, 0 = none), MACHINES + PUNCH =
+   Square (the triangle becomes a square), MACHINES + GATE = Tone open (the lowpass is left out). PITCH, FINE and
    the trig's note set the pitch as on every machine: PITCH - 64 + note + FINE (+-2 semitones), then 12 semitones
    per octave. DECAY, GATE and PUNCH are the stock amp chain.
    Plain C99, no libc, no float, no 64-bit arithmetic. */
@@ -48,8 +48,8 @@ typedef int16_t s16;
 #define TARGETS(t)  ((const char *)0x800015ae + 66 * (t))
 #define SOUND_K32   84
 #define TARGETS_K32 64
-#define SW_SQUARE   0x100                           /* RETRIG + PUNCH */
-#define SW_OPEN     0x200                           /* RETRIG + GATE */
+#define SW_SQUARE   0x100                           /* MACHINES + PUNCH */
+#define SW_OPEN     0x200                           /* MACHINES + GATE */
 
 #define V32(o)      (*(s32 *)(v + (o)))
 #define P16(o)      (*(const s16 *)(p + (o)))
@@ -133,7 +133,7 @@ void ref2_update(s32 pmod, char *v, const char *p)
 	note = pmod < 0 ? 0 : (pmod > (127 << 16) ? 127 << 16 : pmod);
 	tune = ((s32)P16(0x14) << 8) + (((s32)P16(0x22) - 0x4000) << 3) - (64 << 16)
 	       + (((s32)P16(0x1a) - 0x4000) << 2);
-	oct = (s32)P16(0x38) >> 8;                      /* k 28: RETRIG + COLOR, -2 .. +2 (the shortcut layer clamps it) */
+	oct = (s32)P16(0x38) >> 8;                      /* k 28: MACHINES + COLOR, -2 .. +2 (the shortcut layer clamps it) */
 	oct = oct < -2 ? -2 : (oct > 2 ? 2 : oct);
 	tune += oct * (12 << 16);
 	note += tune;

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Proof of the builder's extensions of a stock machine (notes/66 §3, step W2) on the OS's own code, with REFC, the
-reference extension of CHORD (tools/machines/refchord/): a shortcut, RETRIG + SWEEP = Wavetable (k 30, 0 to 64), and
+reference extension of CHORD (tools/machines/refchord/): a shortcut, MACHINES + SWEEP = Wavetable (k 30, 0 to 64), and
 two hooks that count, on CHORD's call for its frames (0x400ab15e) and on the screen's tick (0x400075f0).
 
 For each selection (by default: refchord; refchord,sampler; sampler,refchord; sampler,refchord,refmachine2), on the
@@ -11,8 +11,8 @@ official OS 1.13:
      entry and the three record functions -> the shortcut layer, SAMPLE's wrappers next in its chain; the layer's
      tables from machine 5 (CHORD), on the descriptor table the OS uses: the stock one without an added machine, the
      registrar's copy with one; REFC alone writes nothing of the registrar's;
-  3. the knob, through the vtable entry and the OS's own key test: RETRIG held + SWEEP on a CHORD track gives
-     descriptor 3; REF2's RETRIG + COLOR descriptor 1 on its machine; every other knob, machine, key or held trig
+  3. the knob, through the vtable entry and the OS's own key test: MACHINES held + SWEEP on a CHORD track gives
+     descriptor 3; REF2's MACHINES + COLOR descriptor 1 on its machine; every other knob, machine, key or held trig
      the stock lookup's answer;
   4. descriptor 3: k 30, 0..64 as 8.8, default 0, no CC and no NRPN, "Wavetable" / "WAVE", still machine -1, the rest
      of the table untouched; the OS's range getter and value setter; interface object 3 shows "0".."64";
@@ -52,12 +52,13 @@ import test_shortcuts as S          # noqa: E402
 from test_sdvintage_7th import check, SCRATCH  # noqa: E402
 
 SELECTIONS = [["refchord"], ["refchord", "sampler"], ["sampler", "refchord"], ["sampler", "refchord", "refmachine2"]]
-CHORD, SWEEP_KNOB, DESC = 5, 6, 3            # machine 5; knob 6 = SWEEP; RETRIG + SWEEP is the layer's descriptor 3
+CHORD, SWEEP_KNOB, DESC = 5, 6, 3            # machine 5; knob 6 = SWEEP; MACHINES + SWEEP is the layer's descriptor 3
 K30, MAX = 30, 64
 SETUP, CALL_AT, TICK_AT, GETTER = 0x400a8080, 0x400ab15e, 0x400075f0, 0x40076be4   # CHORD's setup, its call, the tick
 ALONE_SITES = {0x400004b2, 0x400075f0, 0x4005aecc, 0x4005afa0, 0x4005b054, 0x400ab15e, 0x400b1106, 0x401005a8,
-               0x4016cae8}               # the boot hook, the tick, the records, CHORD's call, the stub's mask and room,
-                                          # the knob lookup's entry: REFC alone, nothing of the registrar's
+               0x4016cae8, 0x4001ca1e}   # the boot hook, the tick, the records, CHORD's call, the stub's mask and room,
+                                          # the knob lookup's entry, MACHINES' case (the layer's 0.4): REFC alone,
+                                          # nothing of the registrar's
 VIEW = S.VIEW
 
 
@@ -103,7 +104,8 @@ def knob_tests(key, img, runtime, added):
     ref2 = next((m["index"] for m in added if m["code"] == "refmachine2"), None)
     machines = [0, 1, 2, 3, 4, CHORD] + [m["index"] for m in added] + [6 + len(added), 100, 0xffffffff]
     got, fwd = {}, True
-    for held in ((), (S.RETRIG,), (S.RETRIG, S.FUNC), (S.RETRIG, S.TRACK), (S.RETRIG, S.LFO), (S.FUNC,), (S.LFO,)):
+    for held in ((), (S.LAYER,), (S.LAYER, S.FUNC), (S.LAYER, S.TRACK), (S.LAYER, S.LFO), (S.FUNC,), (S.LFO,),
+                 (S.RETRIG,)):
         u.keys(held)
         for trig in (0, 1):
             for m in machines:
@@ -113,15 +115,15 @@ def knob_tests(key, img, runtime, added):
     u.keys(())
 
     def want(held, trig, m, k):
-        if held == (S.RETRIG,) and not trig:
+        if held == (S.LAYER,) and not trig:
             if m == CHORD and k == SWEEP_KNOB:
                 return DESC
             if ref2 is not None and m == ref2 and k == 4:
                 return 1
         return S.STOCK_ANSWER
     bad = [c for c in got if got[c] != want(*c)]
-    check(not bad, f"{key}: descriptor 3 for RETRIG + SWEEP on CHORD (machine 5) only"
-          + (f", descriptor 1 for RETRIG + COLOR on REF2 (machine {ref2})" if ref2 else "")
+    check(not bad, f"{key}: descriptor 3 for MACHINES + SWEEP on CHORD (machine 5) only"
+          + (f", descriptor 1 for MACHINES + COLOR on REF2 (machine {ref2})" if ref2 else "")
           + f"; the stock answer for every other knob, machine, key and held trig ({len(got)} cases)"
           + (f"; DIFFERENT {bad[:4]}" if bad else ""))
     check(fwd, f"{key}: the stock lookup called once per call with the same arguments; the stack comes back")
@@ -137,9 +139,9 @@ def descriptor_tests(key, img, runtime, added):
     ndesc = 76 + 5 * len(added)
     table = lambda: [bytes(u.uc.mem_read(at_ + 0x38 * i, 0x38)) for i in range(ndesc)]
     before = table()
-    u.hold(S.RETRIG, True)
+    u.hold(S.LAYER, True)
     d, ok = S.knob(u, CHORD, SWEEP_KNOB)
-    u.hold(S.RETRIG, False)
+    u.hold(S.LAYER, False)
     after = table()
     f, f0 = struct.unpack(">14i", after[DESC]), struct.unpack(">14i", before[DESC])
     names = (u.cstr(f[11] & 0xffffffff), u.cstr(f[13] & 0xffffffff))

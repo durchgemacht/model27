@@ -5,8 +5,8 @@
  *
  *   sc_knob  entry +0x7c of ParameterPageView's vtable (0x401005a8; stock 0x4001e814, the knob -> descriptor lookup,
  *            which holds the registrar's knob_vec). The OS's three calls go through it: a knob turned (0x4001f6ee),
- *            TRACK + knob (0x4001d716), the popup at a track change (0x4001f090) (notes/47 §3.2). RETRIG held + COLOR,
- *            SHAPE, SWEEP or CONTOUR, on a track whose machine declared a shortcut on that knob, gives that
+ *            TRACK + knob (0x4001d716), the popup at a track change (0x4001f090) (notes/47 §3.2). MACHINES held +
+ *            COLOR, SHAPE, SWEEP or CONTOUR, on a track whose machine declared a shortcut on that knob, gives that
  *            shortcut's descriptor (1 to 4, the OS's unused "Error" ones), its fields and formatter written first.
  *            Anything else gives the stock answer, and so does a held FUNC (fine adjust), TRACK (Control All), LFO
  *            (its destination) or trig (a p-lock), so that a shortcut value is never p-locked or an LFO destination
@@ -20,25 +20,35 @@
  *            k 0, where the stock load puts slot 18 and which nothing uses, cleared (load).
  *   sc_press jmp from 0x4001ac4a, over its first 6 bytes (lea -12(sp),sp ; moveq #1,d1): the function PUNCH's and
  *            GATE's presses call (0x4001c2d2, 0x4001caa2), (view, parameter 44 or 45), which switches PUNCH or GATE
- *            on the selected track, or on all six with TRACK held (Control All). RETRIG held, TRACK not, on a track
+ *            on the selected track, or on all six with TRACK held (Control All). MACHINES held, TRACK not, on a track
  *            whose machine declared that press: flips the machine's switch, asks for a new LED frame and returns to
  *            the caller, PUNCH or GATE left as they were. Anything else: the 6 bytes, then the stock body.
  *   sc_leds  jsr from 0x4001cc86, over 6 bytes (move.l d0,d5 ; tst.l d2 ; seq d0) of MainScreenView's LED method,
  *            where d2 holds PUNCH and d0 GATE of the selected track (d4) and d0's byte then picks LED 19's state.
- *            RETRIG held, TRACK not, on a track whose machine declared a press: that key's LED shows the machine's
+ *            MACHINES held, TRACK not, on a track whose machine declared a press: that key's LED shows the machine's
  *            switch instead. Returns with d5 and d0's byte as the 6 bytes leave them.
+ *   sc_mach  jsr from 0x4001ca1e, over 6 bytes (move.l d3,-(sp) ; jsr (a3) ; addq.l #4,sp) of MainScreenView's MACHINES
+ *            case (0x4001c252): a3 the "fresh press" test (0x400724a0), d3 the event, a2 the view; the stock code then
+ *            toggles the MACHINES list on d0 != 0 (0x4001ca2a: opens it, or closes it when it is open, 0x40077da8 with
+ *            its flag) and passes the event on otherwise (0x4001c608). Reached on a fresh press without FUNC and
+ *            without a held trig, and on every other MACHINES event. Since 0.4 (the key map of 2026-10-31: MACHINES
+ *            held is the level of the track's machine), on a track whose machine declared a shortcut or a switch, a
+ *            press that would open the list opens nothing yet and ends the handler as taken (0x4001c2a8); the release
+ *            opens it when no shortcut or switch acted while MACHINES was held. A press while the list is open closes
+ *            it at once, as on the stock OS. Elsewhere, the stock test's answer: the stock toggle on the press.
  *
  * The four values live in k 28..31 of the sound (+76..+83) and record slots 28..31 (+84..+91), for every sound: they
  * mean what the track's machine says (notes/63 §3.2). The descriptors 1 to 4 keep the machine -1 of the stock ones,
  * so that the tables built at boot (rows, CC, NRPN, LFO destinations) leave them out; a machine change resets only
  * the five parameters of the machine's record (0x40014072), so the values stay (notes/63 §9, notes/64 §3). The
- * switches live in k 32 of the sound (+84): bit 8 RETRIG + PUNCH, bit 9 RETRIG + GATE, and in record slot 18 (+64)
+ * switches live in k 32 of the sound (+84): bit 8 MACHINES + PUNCH, bit 9 MACHINES + GATE, and in record slot 18 (+64)
  * (notes/63 §16.4). A machine reads them in the sound its note plays, not in its parameters, which the OS smooths.
  *
  * sc_data, filled by the composer (part.json, "data"):
  *   +0x00 next of save2, +0x04 next of save1, +0x08 next of load (0 = the stock body)
  *   +0x0c the descriptor table the OS uses (the build's moved copy)
- *   +0x10 first machine (byte), +0x11 number of machines (byte)
+ *   +0x10 first machine (byte), +0x11 number of machines (byte), +0x12 a MACHINES press waits for its release, +0x13
+ *         a shortcut or a switch acted while it was held (both 0 at boot, written by sc_mach, sc_knob, sc_press)
  *   +0x14 per machine, one byte: the presses it declared, bit 0 PUNCH, bit 1 GATE (8 machines at most)
  *   +0x1c per machine, per knob COLOR, SHAPE, SWEEP, CONTOUR, 24 bytes: long name, short name, minimum, maximum,
  *         default (8.8), formatter; a long name of 0: no shortcut on that knob
@@ -49,7 +59,7 @@
 	.equ	KEY_HELD, 0x4007faf4		/* (logical key code) -> 1 while the key is held */
 	.equ	K_FUNC, 1
 	.equ	K_TRACK, 2
-	.equ	K_RETRIG, 4
+	.equ	K_LEVEL, 5			/* MACHINES, the layer's key since 0.3 (the key map of 2026-10-31); RETRIG, 4, up to 0.2 */
 	.equ	K_LFO, 8
 	.equ	UI_STATE, 0x400cf9a8		/* the UI's state */
 	.equ	TRIG_HELD, 0x4006b736		/* (state) -> non-zero byte while a trig is held (+356) */
@@ -69,6 +79,13 @@
 	.equ	MACHINE_AT, 38			/* sound: k 9's high byte, the machine */
 	.equ	SWITCHES_AT, 84			/* sound: k 32, the switches */
 	.equ	PRESS_BODY, 0x4001ac50		/* 0x4001ac4a after the 6 bytes sc_press takes */
+	.equ	PENDING, 0x12			/* sc_data: a MACHINES press waits for its release */
+	.equ	USED, 0x13			/* sc_data: a shortcut or a switch acted while MACHINES was held */
+	.equ	KEY_RELEASED, 0x40072470	/* (event) -> 1 for a release */
+	.equ	KEY_TAKEN, 0x4001c2a8		/* MainScreenView's key handler: d2 = 1 (taken), its end */
+	.equ	MACHINES_VT, 0x40117920	/* the MACHINES list's vtable */
+	.equ	CONTROLLER_AT, 44		/* MainScreenView: its controller, whose views are a list at +20 (node: +0 next, +8 view) */
+	.equ	VIEWS_AT, 20
 	.equ	VIEW_LEDS, 0x400760ba		/* (view): its LEDs changed, redo the LED frame (notes/58 §3) */
 
 	.globl	sc_knob, sc_save2, sc_save1, sc_load, sc_press, sc_leds
@@ -90,7 +107,7 @@ sc_knob:
 	moveq	#3, %d0
 	cmp.l	%d2, %d0
 	bcs.w	9f
-	pea	K_RETRIG
+	pea	K_LEVEL
 	jsr	KEY_HELD
 	addq.l	#4, %sp
 	tst.l	%d0
@@ -158,6 +175,7 @@ sc_knob:
 	move.l	20(%a0), %d0
 	move.l	%d0, 0x20(%a1)			/* the formatter */
 	clr.l	0x2c(%a1)			/* no special drawing (the "Error" picture) */
+	move.b	#1, USED(%a2)			/* MACHINES acted as a modifier */
 	move.l	%d3, %d4
 9:	move.l	%d4, %d0
 	movem.l	(%sp), %d2-%d4/%a2
@@ -249,7 +267,7 @@ sc_press:
 	moveq	#1, %d0
 	cmp.l	%d2, %d0
 	bcs.w	8f
-	pea	K_RETRIG
+	pea	K_LEVEL
 	jsr	KEY_HELD
 	addq.l	#4, %sp
 	tst.l	%d0
@@ -267,6 +285,8 @@ sc_press:
 	mvz.w	SWITCHES_AT(%a0), %d1
 	bchg	%d2, %d1
 	move.w	%d1, SWITCHES_AT(%a0)
+	lea	sc_data, %a1
+	move.b	#1, USED(%a1)			/* MACHINES acted as a modifier */
 	move.l	8(%sp), -(%sp)			/* the view: PUNCH's or GATE's LED follows */
 	jsr	VIEW_LEDS
 	addq.l	#4, %sp
@@ -285,7 +305,7 @@ sc_press:
 sc_leds:
 	move.l	%d0, %d5			/* GATE */
 	move.l	%d3, -(%sp)
-	pea	K_RETRIG
+	pea	K_LEVEL
 	jsr	KEY_HELD
 	addq.l	#4, %sp
 	tst.l	%d0
@@ -367,5 +387,93 @@ sc_track:
 	move.l	(%sp)+, %d2
 	rts
 8:	moveq	#0, %d1
+	moveq	#-1, %d0			/* no machine of the table (sc_level) */
 	move.l	(%sp)+, %d2
+	rts
+
+/* jsr from 0x4001ca1e in MainScreenView's MACHINES case (see the head of this file): d0 for the stock code's
+ * tst.b d0 (toggle the list or not), or the handler's end as taken. Keeps d2..d7, a2..a6. */
+	.globl	sc_mach
+sc_mach:
+	move.l	%d3, -(%sp)
+	jsr	(%a3)				/* the stock test: a fresh press? */
+	addq.l	#4, %sp
+	tst.b	%d0
+	beq.s	5f
+	bsr.w	sc_level			/* the selected track's machine has a shortcut or a switch? */
+	tst.l	%d0
+	beq.s	1f
+	bsr.w	sc_open				/* the list open: the press closes it, as on the stock OS */
+	tst.l	%d0
+	bne.s	1f
+	lea	sc_data, %a1
+	move.b	#1, PENDING(%a1)		/* the list waits for the release */
+	clr.b	USED(%a1)
+	addq.l	#4, %sp
+	jmp	KEY_TAKEN			/* the press taken, nothing toggled */
+1:	lea	sc_data, %a1
+	clr.b	PENDING(%a1)
+	moveq	#1, %d0				/* the stock toggle, at once */
+	rts
+5:	move.l	%d3, -(%sp)
+	jsr	KEY_RELEASED
+	addq.l	#4, %sp
+	lea	sc_data, %a1
+	tst.b	%d0
+	beq.s	7f
+	tst.b	PENDING(%a1)
+	beq.s	7f
+	clr.b	PENDING(%a1)
+	tst.b	USED(%a1)
+	bne.s	7f
+	moveq	#1, %d0				/* released, nothing acted: the toggle now */
+	rts
+7:	moveq	#0, %d0				/* as the stock test answered: no toggle */
+	rts
+
+/* -> d0 1 when the selected track's machine declared a switch or a shortcut on a knob, else 0. */
+sc_level:
+	bsr.w	sc_selected
+	bsr.w	sc_track			/* d1 its presses, d0 its index in the table or -1 */
+	tst.l	%d1
+	bne.s	2f
+	tst.l	%d0
+	bmi.s	1f
+	lsl.l	#2, %d0
+	mulu.w	#ENTRY, %d0
+	lea	sc_data, %a0
+	lea	ENTRIES(%a0,%d0.l), %a0		/* its four shortcuts */
+	moveq	#3, %d1
+3:	tst.l	(%a0)
+	bne.s	2f
+	lea	ENTRY(%a0), %a0
+	subq.l	#1, %d1
+	bpl.s	3b
+1:	moveq	#0, %d0
+	rts
+2:	moveq	#1, %d0
+	rts
+
+/* a2 MainScreenView -> d0 1 when the MACHINES list is among its controller's views, else 0. */
+sc_open:
+	move.l	CONTROLLER_AT(%a2), %d0
+	beq.s	3f
+	movea.l	%d0, %a0
+	lea	VIEWS_AT(%a0), %a1		/* the list's head node */
+	movea.l	(%a1), %a0
+1:	cmpa.l	%a1, %a0
+	beq.s	3f
+	move.l	8(%a0), %d0			/* the node's view */
+	beq.s	2f
+	movea.l	%d0, %a1
+	move.l	(%a1), %d0			/* its vtable */
+	cmpi.l	#MACHINES_VT, %d0
+	beq.s	4f
+	movea.l	CONTROLLER_AT(%a2), %a1
+	lea	VIEWS_AT(%a1), %a1
+2:	movea.l	(%a0), %a0
+	bra.s	1b
+3:	moveq	#0, %d0
+	rts
+4:	moveq	#1, %d0
 	rts

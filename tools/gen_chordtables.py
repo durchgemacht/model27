@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generates the tweak of CHORD Tables alone: 36-chordtables.json (notes/66).
 
-CHORD Tables (tools/machines/chordtables/) extends the stock CHORD machine instead of adding one: RETRIG + SWEEP picks
+CHORD Tables (tools/machines/chordtables/) extends the stock CHORD machine instead of adding one: MACHINES + SWEEP picks
 a wavetable, 0 the stock one, 1 to 64 the files /Wavetables/01 to /Wavetables/64 on the +Drive, loaded on the screen's
 tick. This generator compiles the package's sources with the manifest's recipe into its committed object
 (tools/machines/chordtables/chordtables.o, ld -r of the objects: notes/60 §2), then composes it alone through

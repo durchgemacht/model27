@@ -107,8 +107,8 @@ tools/machines/registrar/     registrar.S, the runtime: the detours of the added
                               frame.json, what every build of n machines writes, filled per build by composer.js
 tools/gen_parts.py            Level B, steps B4b and B4c: builds the builder's parts (tools/machines/<id>/part.json) into
                               their committed objects, --check compares (notes/63 §3 to §5)
-tools/machines/shortcuts/     the shortcut layer, a part (notes/63 §3): RETRIG + COLOR / SHAPE / SWEEP / CONTOUR on an
-                              added machine's tracks, saved with the sound, and since 0.2 RETRIG + PUNCH / GATE as two
+tools/machines/shortcuts/     the shortcut layer, a part (notes/63 §3): MACHINES + COLOR / SHAPE / SWEEP / CONTOUR on an
+                              added machine's tracks, saved with the sound, and since 0.2 MACHINES + PUNCH / GATE as two
                               switches in k 32 (§16, §17); compose.py adds it only to the builds whose machines declare
                               a shortcut, and chains a package's record wrapper (SAMPLE's) behind it
 tools/machines/dispatch/      the dispatchers, a part (notes/63 §4): a vtable entry or hook two packages take (the main
@@ -117,15 +117,15 @@ tools/machines/dispatch/      the dispatchers, a part (notes/63 §4): a vtable e
                               only the dispatchers a build needs
 tools/machines/refmachine/    the reference machine: the smallest added machine, proves the composer, never offered
 tools/machines/refmachine2/   the second reference machine (notes/63): grows into the template that uses every point a
-                              machine may use (its shortcut, Octave on RETRIG + COLOR, since B4b; its main screen label
+                              machine may use (its shortcut, Octave on MACHINES + COLOR, since B4b; its main screen label
                               and knob view, since B4c; a tick that blinks the label's dot and a browser hook that shows
                               the opened file's name, since B4d; through the dispatchers next to SAMPLE; Square and Tone
-                              open on RETRIG + PUNCH / GATE, read in the note's sound, since §17); never offered
+                              open on MACHINES + PUNCH / GATE, read in the note's sound, since §17); never offered
 tools/machines/refchord/      the reference extension of a stock machine (notes/66 §3, W2): "machine.stock" CHORD instead
-                              of an added machine, RETRIG + SWEEP on CHORD's tracks and two hooks that count; proves the
+                              of an added machine, MACHINES + SWEEP on CHORD's tracks and two hooks that count; proves the
                               builder's extensions (the tables by machine from 5, a build with nothing registered);
                               never offered
-tools/machines/chordtables/   CHORD Tables (notes/66): an extension of CHORD, RETRIG + SWEEP picks a wavetable from
+tools/machines/chordtables/   CHORD Tables (notes/66): an extension of CHORD, MACHINES + SWEEP picks a wavetable from
                               /Wavetables/01..64 on the +Drive (loader on the tick, RAM claim 0x43400000..0x43700000;
                               since 0.2 the frames CHORD plays come from a pool in the stock table's SRAM, notes/66 §19);
                               tools/gen_chordtables.py builds it into 36-chordtables.json; tools/wavetable.py turns a

@@ -6,9 +6,9 @@ Adresses : VA de l'OS 1.13 (la section 3 commence en `0x40000400`). Un mod qui v
 
 ## En bref
 
-- 291 tweaks, 32 188 écritures.
+- 291 tweaks, 32 194 écritures.
 - Masques de sprites libérables : 164 (35 960 o), dont 52 pris (18 000 o) et **112 libres (17 960 o)**.
-- Crochets sur l'OS : 116 adresses détournées, dont 70 à l'identique par des mods de familles différentes.
+- Crochets sur l'OS : 118 adresses détournées, dont 72 à l'identique par des mods de familles différentes.
 - Pointeurs réécrits : 67 adresses. Écritures dans des octets 0xFF hors masques : 14 zones.
 - Charges utiles ajoutées après l'OS : 269 tweaks ; place restante au §3.
 - Declared claims (notes/65): 16 holders; the saved data in §6, the key combinations in §8, the descriptors, formatters, p-lock rows and MIDI in §9, the views in §10.
@@ -395,9 +395,9 @@ Code trop gros pour un masque, ajouté à la fin de l'image (`at`) et copié au 
 | macro | 25 | `0x401aa140` | 105 152 | `0x401c3c00` | `0x43000000` | 324 576 |  |
 | macro-acid | 25 | `0x401aa140` | 111 760 | `0x401c55d0` | `0x43000000` | 492 288 |  |
 | acid | 26 | `0x401aa140` | 11 380 | `0x401acdb4` | `0x43000000` | 221 928 |  |
-| sampler | 27 | `0x401aa140` | 41 120 | `0x401b41e0` | `0x43000000` | 283 300 |  |
+| sampler | 27 | `0x401aa140` | 41 360 | `0x401b42d0` | `0x43000000` | 283 300 |  |
 | refmachine | 28 | `0x401aa140` | 6 868 | `0x401abc14` | `0x43000000` | 221 376 |  |
-| refmachine2 | 29 | `0x401aa140` | 10 224 | `0x401ac930` | `0x43000000` | 221 428 |  |
+| refmachine2 | 29 | `0x401aa140` | 10 464 | `0x401aca20` | `0x43000000` | 221 428 |  |
 | model-tg | 30 | `0x401aa140` | 87 936 | `0x401bf8c0` | `0x401aa140` | 87 936 |  |
 | model-tg-st | 30 | `0x401aa140` | 87 936 | `0x401bf8c0` | `0x401aa140` | 87 936 |  |
 | syntakt-tg-bits | 31 | `0x401bf8c0` | 234 548 | `0x401f8cf4` | `0x46700000` | 264 448 | model-tg-st |
@@ -526,11 +526,11 @@ Code trop gros pour un masque, ajouté à la fin de l'image (`at`) et copié au 
 | syntakt-tg-toy-swarm-macro-acid | 31 | `0x401bf8c0` | 246 774 | `0x401fbcb6` | `0x46700000` | 492 288 | model-tg-st |
 | macro-acid-tg | 32 | `0x401bf8c0` | 112 092 | `0x401dae9c` | `0x46700000` | 492 288 | model-tg-st |
 | macro-tg | 32 | `0x401bf8c0` | 105 564 | `0x401d951c` | `0x46700000` | 324 576 | model-tg-st |
-| refchord | 34 | `0x401aa140` | 984 | `0x401aa518` | `0x43000000` | 221 192 |  |
+| refchord | 34 | `0x401aa140` | 1 224 | `0x401aa608` | `0x43000000` | 221 192 |  |
 | acid-tg | 35 | `0x401bf8c0` | 11 792 | `0x401c26d0` | `0x46700000` | 221 928 | model-tg-st |
-| chordtables | 36 | `0x401aa140` | 5 848 | `0x401ab818` | `0x43000000` | 222 292 |  |
-| digidelay | 39 | `0x401aa140` | 3 820 | `0x401ab02c` | `0x43000000` | 1 269 784 |  |
-| pots | 70 | `0x401aa140` | 11 860 | `0x401acf94` | `0x43000000` | 483 676 |  |
+| chordtables | 36 | `0x401aa140` | 6 088 | `0x401ab908` | `0x43000000` | 222 292 |  |
+| digidelay | 39 | `0x401aa140` | 3 832 | `0x401ab038` | `0x43000000` | 1 269 784 |  |
+| pots | 70 | `0x401aa140` | 11 872 | `0x401acfa0` | `0x43000000` | 483 676 |  |
 | syntakt-meter | 90 | `0x401aa140` | 269 056 | `0x401ebc40` | `0x43000000` | 269 056 |  |
 | syntakt-tg-meter | 91 | `0x401bf8c0` | 243 472 | `0x401fafd0` | `0x46700000` | 269 056 | model-tg-st |
 | syntakt-tg-profile | 92 | `0x401bf8c0` | 243 904 | `0x401fb180` | `0x46700000` | 269 056 | model-tg-st |
@@ -568,6 +568,7 @@ Instructions de l'OS remplacées par un détour (`jsr`, `jmp`, `bsr.l`, `bra.l`)
 | `0x4001ac7a` | `2f022f034e92` | jmp | masque `0x4018bb48` +0x0 `cac_loop4` | control-all-config | notes/58 |
 | `0x4001b22a` | `4e56ffc048d73cfc` | jmp | masque `0x4018f4b4` +0x78 | level-pan-values | notes/44 |
 | `0x4001c3dc` | `4eb940025798` | jsr | masque `0x40173848` +0xa8 `lfo_ctor` | lfo-plus | notes/56 |
+| `0x4001ca1e` | `2f034e93588f` | jsr | charge utile (mémoire), 4 cibles selon la combinaison | chordtables, refchord, refmachine2, sampler | notes/60, notes/63, notes/66 |
 | `0x4001cb3e` | `4eb94002d138` | jsr | masque `0x40179730` +0x0 `ck_ui_menu_ctor` | chord-keys | notes/42 |
 | `0x4001cc86` | `2a004a8257c0` | jsr | charge utile (mémoire), 2 cibles selon la combinaison | refmachine2, sampler | notes/60, notes/63 |
 | `0x4001d25e` | `4eb940016086` | jsr | masque `0x4018a788` +0x1a | arp | notes/32 |
@@ -578,6 +579,7 @@ Instructions de l'OS remplacées par un détour (`jsr`, `jmp`, `bsr.l`, `bra.l`)
 | `0x4001e8da` | `202f0020226a0068` | jsr | charge utile (mémoire), 29 cibles selon la combinaison | acid, acid-tg, macro, macro-acid, macro-acid-tg, macro-tg, refmachine, refmachine2, sampler, sdvintage-7th, syntakt-* (32/32), syntakt-*-acid (31/31), syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31), syntakt-tg-* (33/33), syntakt-tg-*-acid (31/31), syntakt-tg-*-macro (31/31), syntakt-tg-*-macro-acid (31/31), syntakt-vintage | notes/18, notes/31, notes/36, notes/43, notes/54, notes/60, notes/63, notes/65 |
 | `0x4001ebd2` | `205248780020` | jmp | masque `0x4018b9c8` +0x80 `cac_loop3` | control-all-config | notes/58 |
 | `0x4001f886` | `487800024e94` | jsr | charge utile (mémoire), 2 cibles selon la combinaison | digidelay, pots | notes/68, notes/69 |
+| `0x40020dca` | `202a00847207` | jsr | charge utile (mémoire), 2 cibles selon la combinaison | digidelay, pots | notes/68, notes/69 |
 | `0x40021f56` | `2f034e944879404a8cb8…` | jsr | charge utile (image) +0x4f16 | model-tg, model-tg-st | notes/31, notes/36 |
 | `0x4002249c` | `4eb940072490` | jsr | masque `0x4015c044` +0x28 `th_press` | trig-hold | notes/33 |
 | `0x400224ee` | `2f034eb9400724a0` | jmp | cave `0x401489fa` +0x0 | model-tg, model-tg-st, trig-preview | notes/31, notes/36 |
@@ -822,9 +824,9 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | macro | 122 | 56 | 14 | 48 | 2 | 2 | 0 | 105 152 o | notes/36 |
 | macro-acid | 122 | 55 | 15 | 48 | 2 | 2 | 0 | 111 760 o | notes/36 |
 | acid | 122 | 56 | 14 | 48 | 2 | 2 | 0 | 11 380 o | notes/36 |
-| sampler | 127 | 55 | 18 | 52 | 1 | 1 | 0 | 41 120 o | notes/60 |
+| sampler | 128 | 55 | 19 | 52 | 1 | 1 | 0 | 41 360 o | notes/60 |
 | refmachine | 116 | 55 | 11 | 48 | 1 | 1 | 0 | 6 868 o | notes/65 |
-| refmachine2 | 127 | 55 | 18 | 52 | 1 | 1 | 0 | 10 224 o | notes/63 |
+| refmachine2 | 128 | 55 | 19 | 52 | 1 | 1 | 0 | 10 464 o | notes/63 |
 | model-tg | 142 | 94 | 32 | 0 | 1 | 1 | 14 | 87 936 o | notes/36 |
 | model-tg-st | 142 | 94 | 32 | 0 | 1 | 1 | 14 | 87 936 o | notes/31 |
 | syntakt-tg-* (33 tweaks) | 117–119 | 51 | 17–19 | 47 | 1 | 1 | 0 | 227 760–243 904 o | notes/31, notes/36 |
@@ -835,10 +837,10 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | macro-tg | 114 | 50 | 15 | 47 | 1 | 1 | 0 | 105 564 o | notes/43 |
 | sample-preview | 11 | 0 | 3 | 0 | 4 | 4 | 0 |  | notes/46 |
 | sample-preview-st | 11 | 0 | 3 | 0 | 4 | 4 | 0 |  | notes/46 |
-| refchord | 9 | 0 | 6 | 1 | 1 | 1 | 0 | 984 o | notes/66 |
+| refchord | 10 | 0 | 7 | 1 | 1 | 1 | 0 | 1 224 o | notes/66 |
 | acid-tg | 114 | 50 | 15 | 47 | 1 | 1 | 0 | 11 792 o | notes/54 |
-| chordtables | 9 | 0 | 6 | 1 | 1 | 1 | 0 | 5 848 o | notes/66 |
-| digidelay | 9 | 0 | 7 | 0 | 1 | 1 | 0 | 3 820 o | notes/68 |
+| chordtables | 10 | 0 | 7 | 1 | 1 | 1 | 0 | 6 088 o | notes/66 |
+| digidelay | 10 | 0 | 8 | 0 | 1 | 1 | 0 | 3 832 o | notes/68 |
 | arp | 14 | 0 | 6 | 0 | 4 | 4 | 0 |  | notes/32 |
 | trig-hold | 5 | 0 | 3 | 0 | 1 | 1 | 0 |  | notes/33 |
 | tempo-max | 12 | 12 | 0 | 0 | 0 | 0 | 0 |  | notes/38 |
@@ -852,7 +854,7 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | midi-both | 3 | 3 | 0 | 0 | 0 | 0 | 0 |  | notes/53 |
 | midi-live-both | 6 | 0 | 4 | 0 | 1 | 1 | 0 |  | notes/53 |
 | lfo-plus | 30 | 0 | 12 | 4 | 7 | 7 | 0 |  | notes/56 |
-| pots | 9 | 0 | 7 | 0 | 1 | 1 | 0 | 11 860 o | notes/69 |
+| pots | 10 | 0 | 8 | 0 | 1 | 1 | 0 | 11 872 o | notes/69 |
 | trig-cond-order | 4 | 0 | 1 | 1 | 1 | 1 | 0 |  | notes/70 |
 
 ## 8. Key combinations (declared claims, notes/65)
@@ -864,18 +866,19 @@ The combinations each mod answers: the held keys, then one action, in the words 
 | FUNC + DATA-PRESS | menu:MIDI-PORTS | midi-live-both | adds the Cycles' own MIDI to THRU, or takes it away |  |
 | FUNC + PITCH | params | macro, macro-acid, macro-acid-tg, macro-tg, syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31), syntakt-tg-*-macro (31/31), syntakt-tg-*-macro-acid (31/31) (MACRO's tracks) | FINE as lo-fi RATE / BITS | FINE, the fine adjust of PITCH |
 | LFO | page:LFO | lfo-plus | LFO 2, 3 and 4, then the page closes | closes the LFO page |
+| MACHINES | any | shortcuts (part) | on the tracks of a machine with a shortcut or a switch, the MACHINES list opens on the release, unless a shortcut or a switch acted | the toggle of the MACHINES list on the press (a press while it is open still closes it at once) |
+| MACHINES + COLOR | params | refmachine2 (REF2's tracks) | Octave |  |
+| MACHINES + COLOR/SHAPE/SWEEP/CONTOUR | params | shortcuts (part) | the shortcut of the track's machine |  |
 | MACHINES + COLOR/SHAPE/SWEEP/CONTOUR | params | track-filter | Filter Env / Env Decay / Filter Cutoff / Filter Reso |  |
 | MACHINES + DECAY/SWEEP/CONTOUR | params | model-tg, model-tg-st | Attack / Filter / Resonance |  |
-| RETRIG + COLOR | params | refmachine2 (REF2's tracks) | Octave |  |
-| RETRIG + COLOR/SHAPE/SWEEP/CONTOUR | params | shortcuts (part) | the shortcut of the track's machine |  |
-| RETRIG + GATE | any | refmachine2 (REF2's tracks) | Tone open |  |
-| RETRIG + GATE | any | sampler (SAMPLE's tracks) | Reverse |  |
+| MACHINES + GATE | any | refmachine2 (REF2's tracks) | Tone open |  |
+| MACHINES + GATE | any | sampler (SAMPLE's tracks) | Reverse |  |
+| MACHINES + PUNCH | any | refmachine2 (REF2's tracks) | Square |  |
+| MACHINES + PUNCH | any | sampler (SAMPLE's tracks) | Loop |  |
+| MACHINES + PUNCH/GATE | any | shortcuts (part) | the switch of the track's machine |  |
+| MACHINES + SWEEP | params | chordtables (CHORD's tracks) | Wavetable |  |
+| MACHINES + SWEEP | params | refchord (CHORD's tracks) | Wavetable |  |
 | RETRIG + NOTES | any | arp | an arpeggio of the held notes when Arp is not OFF | the retrig |
-| RETRIG + PUNCH | any | refmachine2 (REF2's tracks) | Square |  |
-| RETRIG + PUNCH | any | sampler (SAMPLE's tracks) | Loop |  |
-| RETRIG + PUNCH/GATE | any | shortcuts (part) | the switch of the track's machine |  |
-| RETRIG + SWEEP | params | chordtables (CHORD's tracks) | Wavetable |  |
-| RETRIG + SWEEP | params | refchord (CHORD's tracks) | Wavetable |  |
 | RETRIG + TRIG 1-16 | keys | chord-keys (CHORD's tracks) | the same chords, never retrigged (the note helper 0x40019e7a gets retrig -1) | the retrig |
 | TRACK + FUNC | any | latching-mute | latches the mute mode |  |
 | TRACK + TRIG 1-6 | any | control-all-config | takes the track out of Control All, or back |  |

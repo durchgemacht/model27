@@ -9,7 +9,7 @@ LICENSE-One-Shot), taken as is from https://github.com/durchgemacht/cycles-one-s
 patch points SAMPLE_MACHINE and DESC_START symbols behind CM_SYMBOLS in pool.h and view.c, and gave each assembly
 file a section of its own, for builders like this one; 0.9 split the bar above the waveform into the pattern's
 number and the sample's name; 0.10 puts a column on the left with the pattern's number, the track's number and its
-level; 0.11 loops and plays in reverse on two switches, RETRIG + PUNCH and RETRIG + GATE, which it reads only when
+level; 0.11 loops and plays in reverse on two switches, MACHINES + PUNCH and MACHINES + GATE (RETRIG up to the layer's 0.2), which it reads only when
 built with SMP_SWITCHES, as the manifest builds it here; 0.12 shows the whole view for a held trig while Start or
 Length turns, its locks marked, and so takes NoteVelocityView's draw too), with the same paths as there: src/ the sound core
 (6-tap polyphase interpolation at 96 kHz, the Model:Samples' filter), machine/ the bridge to the voice loop, the
@@ -119,8 +119,8 @@ def build_tweak(img, check=False):
             "the PRESET browser (FUNC + MACHINE) and saved with the sound; stereo files play as mono, other rates at",
             "their pitch. COLOR = Start, SHAPE = Length (0..120 each, as on the Model:Samples; the trig ends at",
             "Start + Length), SWEEP = Cutoff (-64 .. 63: lowpass below 0, off at 0, highpass above), CONTOUR = Reso;",
-            "DECAY, GATE and PUNCH: the stock amp chain. RETRIG + PUNCH = Loop (a hard seam, as on the",
-            "Model:Samples), RETRIG + GATE = Reverse (from the next trig), two switches of the builder's shortcut",
+            "DECAY, GATE and PUNCH: the stock amp chain. MACHINES + PUNCH = Loop (a hard seam, as on the",
+            "Model:Samples), MACHINES + GATE = Reverse (from the next trig), two switches of the builder's shortcut",
             "layer (notes/63 §16), saved with the sound. A trig that cuts a sounding note brings the new one in over",
             "0.67 ms. On a SAMPLE track the main screen shows a column with the pattern's number, the track's number",
             "and its level, the sample's name with L and R while the switches are on, and the waveform with the start",

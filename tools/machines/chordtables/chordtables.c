@@ -1,7 +1,7 @@
 /* CHORD Tables: the stock CHORD machine of the Model:Cycles OS 1.13 plays wavetables from the +Drive (notes/66).
 
    An extension of CHORD (machine 5), not an added machine: the builder's shortcut layer gives CHORD's tracks
-   RETRIG + SWEEP = Wavetable, 0 to 64, kept in k 30 and saved with the sound; 0 is the stock table. SWEEP still
+   MACHINES + SWEEP = Wavetable, 0 to 64, kept in k 30 and saved with the sound; 0 is the stock table. SWEEP still
    moves through the table's frames.
 
    - cw_setup takes the place of jsr 0x400a8080 at 0x400ab15e, the one call through which CHORD's update gets its
@@ -79,7 +79,7 @@ typedef uint8_t u8;
 #define TICK_STOCK      ((u32 (*)(void *))0x40076be4)
 
 /* --- the tables --------------------------------------------------------------------------------------------------- */
-#define TABLES          64                          /* RETRIG + SWEEP 1..64: /Wavetables/01 .. 64 */
+#define TABLES          64                          /* MACHINES + SWEEP 1..64: /Wavetables/01 .. 64 */
 #define FRAMES          32                          /* SWEEP >> 10 reaches 0..31; pointer 32 repeats 31 */
 #define FRAME_LEN       257
 #define POINTERS        (FRAMES + 1)

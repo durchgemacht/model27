@@ -356,7 +356,7 @@ function shortcutUses(packages, part) {
 }
 
 // compose.shortcut_presses(): the switches each machine declares (notes/63 §16), one byte per machine, bit 0
-// RETRIG + PUNCH, bit 1 RETRIG + GATE.
+// MACHINES + PUNCH, bit 1 MACHINES + GATE.
 function shortcutPresses(packages, part) {
   const sc = part.shortcut;
   return packages.map((p) => {
@@ -435,16 +435,17 @@ function shortcutLayer(mainOs, part, packages, symsOf, uses, at, codeEnd, first,
   for (const s of sites.record)
     writes.push({ off: parseInt(s.at, 16) - BASE, old: s.stock,
                   new: hex(concat(bytesOf(0x4e, 0xf9), be32(symbols[s.symbol]), bytesOf(0x4e, 0x71))) });
-  if (presses.some((v) => v))                     // the press and the LEDs, only in the builds with a switch
-    for (const s of sites.press) {
-      const va = parseInt(s.at, 16), here = hex(mainOs.subarray(va - BASE, va - BASE + 6));
-      if (here !== s.stock) throw new Error(`${hx(va)}: ${s.stock} expected, ${here} found`);
-      for (const p of packages)
-        if (p.uses.some((u) => "hook" in u && parseInt(u.hook.at, 16) === va))
-          throw new Error(`${p.id}: hooks ${hx(va)}, which the shortcut layer takes for the switches`);
-      const op = { jmp: bytesOf(0x4e, 0xf9), jsr: bytesOf(0x4e, 0xb9) }[s.op];
-      writes.push({ off: va - BASE, old: s.stock, new: hex(concat(op, be32(symbols[s.symbol]))) });
-    }
+  // MACHINES as a modifier on the machines' tracks (the key map, the layer's 0.4), in every build with the layer; the
+  // press and the LEDs, only in the builds with a switch
+  for (const s of (sites.keys || []).concat(presses.some((v) => v) ? sites.press : [])) {
+    const va = parseInt(s.at, 16), here = hex(mainOs.subarray(va - BASE, va - BASE + 6));
+    if (here !== s.stock) throw new Error(`${hx(va)}: ${s.stock} expected, ${here} found`);
+    for (const p of packages)
+      if (p.uses.some((u) => "hook" in u && parseInt(u.hook.at, 16) === va))
+        throw new Error(`${p.id}: hooks ${hx(va)}, which the shortcut layer takes`);
+    const op = { jmp: bytesOf(0x4e, 0xf9), jsr: bytesOf(0x4e, 0xb9) }[s.op];
+    writes.push({ off: va - BASE, old: s.stock, new: hex(concat(op, be32(symbols[s.symbol]))) });
+  }
   const switches = presses.reduce((n, v) => n + (v & 1) + ((v >> 1) & 1), 0);
   return { blob: concat(code, new Uint8Array(dataAt - at - code.length), data), symbols, writes, skip,
            info: { id: part.id, code_at: at, code: code.length, data_at: dataAt, data: data.length, shortcuts: uses.length,
@@ -553,7 +554,7 @@ function fxLayer(mainOs, part, effects, symsOf, at, codeEnd, descStock, descUsed
   const { code, symbols } = placePart(part, at, codeEnd, { fx_data: dataAt });
   const writes = [], skip = new Set();
   const sites = Object.entries(slots).filter(([n]) => bySlot[n].length).map(([, s]) => s)
-    .concat(effects.length ? [part.track, part.load, part.init, part.early, part.late] : []);
+    .concat(effects.length ? [part.track, part.release, part.load, part.init, part.early, part.late] : []);
   for (const s of sites) {
     const va = parseInt(s.hook, 16), here = hex(mainOs.subarray(va - BASE, va - BASE + s.stock.length / 2));
     if (here !== s.stock) throw new Error(`${hx(va)}: ${s.stock} expected, ${here} found`);
