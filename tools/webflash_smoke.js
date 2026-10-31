@@ -150,7 +150,7 @@ function fakeDevice(opts, reply) {
   return dev;
 }
 
-async function load({ midi = true, ports = true, inputs = true, busy = false, secure = true, lang = "en", devName = "Elektron Model:Cycles", device = {} } = {}) {
+async function load({ midi = true, ports = true, inputs = true, busy = false, secure = true, lang = "en", devName = "Elektron Model:Cycles", device = {}, query = "" } = {}) {
   const errors = [];
   const vc = new VirtualConsole();
   vc.on("jsdomError", (e) => errors.push("jsdomError: " + ((e.detail && e.detail.message) || e.message || e)));
@@ -160,7 +160,7 @@ async function load({ midi = true, ports = true, inputs = true, busy = false, se
   let access = null, devOut = null, devIn = null;
   const html = fs.readFileSync(path.join(FLASH, "index.html"), "utf8");
   const dom = new JSDOM(html, {
-    url: pathToFileURL(path.join(FLASH, "index.html")).href,
+    url: pathToFileURL(path.join(FLASH, "index.html")).href + query,
     runScripts: "dangerously", resources: LOCAL_ONLY, virtualConsole: vc,
     beforeParse(window) {
       Object.defineProperty(window, "isSecureContext", { value: secure, configurable: true });
@@ -240,35 +240,39 @@ async function main() {
     const srcs = [...doc.querySelectorAll("script[src]")].map((x) => x.getAttribute("src"));
     check(["builder.js", "composer.js", "tweaks.js", "flasher.js", "app.js"].every((f) => srcs.some((x) => x.startsWith(f + "?")))
       && srcs.every((x) => x.endsWith("?v=" + w.MC_BUILD)), "scripts loaded with ?v=<build> (no stale cache): " + srcs.join());
-    check(doc.getElementById("compat").hidden, "no compatibility banner in a good browser");
+    check(!doc.getElementById("compat") && doc.getElementById("dl-note").hidden && !doc.getElementById("step-connect").hidden
+      && !doc.getElementById("ack-row").hidden && /^Flash$/.test(text(doc, "h4s")),
+      "a good browser: no banner, the connection step and the flash step, no download-only note");
     // display order: by section (Sounds & machines, Sequencer, then Live playing), FEATURES order inside a section;
     // the build keeps FEATURES order (checked in 1b)
     const feats = [...doc.querySelectorAll("#features input[type=checkbox]")].map((c) => c.id);
     check(feats.join() === "feat-sampler,feat-digidelay,feat-pots,feat-trig-preview,feat-trig-cond-order,feat-control-all-config",
       "6 feature rows, by section: " + JSON.stringify(feats));
-    check(cards.every((f) => doc.querySelector(`#cat-${f.cat || "other"} #mod-${f.id} #feat-${f.id}`)),
-      "every feature has a row in its section (cat)");
-    const tagOfFeat = (f) => (f.status === "tested" ? "Tested" : "Experimental");
-    const tags = cards.map((f) => f.id + ":" + doc.querySelector(`label[for=feat-${f.id}] .tag`).textContent);
-    check(tags.join() === cards.map((f) => f.id + ":" + tagOfFeat(f)).join(), "rows tagged as tested or not: " + tags.join());
+    const KIND = { sampler: "machine", digidelay: "effect", pots: "effect" };
+    check(cards.every((f) => doc.querySelector(`#grp-${KIND[f.id] || "mod"} #mod-${f.id} #feat-${f.id}`)),
+      "every card in its section: SAMPLE in Machines, Digital Delay and POTS in Effects, the others in Mods");
+    // tested is the rule and goes unsaid on a card; only the exceptions carry a tag
+    const tags = cards.map((f) => f.id + ":" + ((doc.querySelector(`#mod-${f.id} .tag`) || {}).textContent || "-"));
+    check(tags.join() === cards.map((f) => f.id + ":" + (f.status === "tested" ? "-" : "Experimental")).join(),
+      "only the experimental cards carry a tag: " + tags.join());
     check(doc.getElementById("drop3-wrap").hidden, "no Syntakt drop zone: no card needs the Syntakt OS");
     const credits = [...doc.querySelectorAll("#features .credit a")].map((a) => a.href);
-    const creditOf = (id) => [...doc.querySelectorAll(`label[for=feat-${id}] .credit a`)].map((a) => a.href);
-    check(credits.length === 8
+    const creditOf = (id) => [...doc.querySelectorAll(`#mod-${id} .credit a`)].map((a) => a.href);
+    check(credits.length === 10
       && creditOf("sampler")[0] === "https://github.com/durchgemacht/cycles-one-shot" && /\/LICENSE-One-Shot\.txt$/.test(creditOf("sampler")[1])
-      && creditOf("digidelay")[0] === "https://github.com/gialloinfuso/PPPCCC-Model-Cycles-1.13-Mods"
+      && creditOf("digidelay")[0] === "https://github.com/gialloinfuso/PPPCCC-M-S-Mods"
       && /\/LICENSE-PPPCCC\.txt$/.test(creditOf("digidelay")[1])
       && creditOf("control-all-config")[0] === "https://github.com/durchgemacht/cycles-control-all-config"
       && /\/LICENSE-Control-All-Config\.txt$/.test(creditOf("control-all-config")[1])
       && creditOf("trig-preview")[0] === "https://github.com/drumkilla/elektron-model-tweaks"
       && /\/LICENSE-elektron-model-tweaks\.txt$/.test(creditOf("trig-preview")[1])
-      && !creditOf("pots").length && !doc.querySelector("label[for=feat-pots] .credit")
-      && !creditOf("trig-cond-order").length && !doc.querySelector("label[for=feat-trig-cond-order] .credit"),
-      "each row credits its author, with a link to the MIT license of the code it carries; POTS and Trig conditions, " +
-      "model27's own, none: " +
+      && creditOf("pots").join() === "https://github.com/durchgemacht/model27" && !doc.querySelector("#features label .credit")
+      && creditOf("trig-cond-order").join() === "https://github.com/durchgemacht/model27",
+      "each card credits its author (outside its label: the link doesn't tick it), with a link to the MIT license of the code it carries; POTS and Trig conditions, " +
+      "model27's own, link the model27 repository: " +
       JSON.stringify(credits));
     const list = [...doc.querySelectorAll("#credits-list a")].map((a) => a.textContent);
-    check(list.join() === "18nelli18/Modded-Cycles,scottmetoyer/ms-multi-output,drumkilla/elektron-model-tweaks,pichenettes/eurorack,RobinSchmidt/Open303,TinyGregAudio/Model-TG,gialloinfuso/PPPCCC-Model-Cycles-1.13-Mods,mischa85/elektron-firmware-tool,dagargo/elektroid,mxldyn/octamax",
+    check(list.join() === "18nelli18/Modded-Cycles,scottmetoyer/ms-multi-output,drumkilla/elektron-model-tweaks,pichenettes/eurorack,RobinSchmidt/Open303,TinyGregAudio/Model-TG,gialloinfuso/PPPCCC-M-S-Mods,mischa85/elektron-firmware-tool,dagargo/elektroid,mxldyn/octamax",
       "credits section lists Modded-Cycles first, then the 9 repositories it builds on");
     const lic = [...doc.querySelectorAll("#credits a")].map((a) => a.href).filter((h) => /LICENSE|NOTICES/.test(h));
     check(lic.join() === "https://github.com/18nelli18/Modded-Cycles/blob/main/LICENSE,https://github.com/durchgemacht/model27/blob/main/THIRD-PARTY-NOTICES.md",
@@ -317,9 +321,9 @@ async function main() {
     check(potsAlone === "pots" && potsDd === "digidelay+pots" && potsSmp === "sampler+digidelay+pots"
       && potsAll === "control-all-config,sampler+digidelay+pots" && fourOn && !chosen().length
       && doc.querySelector('#features a[href$="#pots"]') && doc.querySelectorAll('input[name="var-pots"]').length === 0
-      && /Tested/.test(doc.querySelector("label[for=feat-pots] .tag").textContent),
+      && !doc.querySelector("#mod-pots .tag"),
       `POTS alone ${potsAlone}; with Digital ${potsDd}, one composed tweak; with SAMPLE ${potsSmp}; with Control All ` +
-      `Config too ${potsAll}, all ticked, no clash; no sub-choice; its guide link; tagged Tested`);
+      `Config too ${potsAll}, all ticked, no clash; no sub-choice; its guide link; tested, so no tag`);
     // Trig conditions: a tweak card, after the composed tweak of the machine and effect cards in the build
     box("feat-trig-cond-order").click(); await wait(5);
     const tcoAlone = chosen();
@@ -332,11 +336,11 @@ async function main() {
     for (const i of ["trig-cond-order", "control-all-config", "sampler", "digidelay", "pots"]) { box("feat-" + i).click(); await wait(5); }
     check(tcoAlone === "trig-cond-order" && tcoCac === "control-all-config,trig-cond-order"
       && tcoAll === "control-all-config,sampler+digidelay+pots,trig-cond-order" && fiveOn && !chosen().length
-      && doc.querySelector('#cat-seq #feat-trig-cond-order') && doc.querySelector('#features a[href$="#trig-cond"]')
+      && doc.querySelector('#grp-mod #feat-trig-cond-order') && doc.querySelector('#features a[href$="#trig-cond"]')
       && doc.querySelectorAll('input[name="var-trig-cond-order"]').length === 0
-      && /Tested/.test(doc.querySelector("label[for=feat-trig-cond-order] .tag").textContent),
+      && !doc.querySelector("#mod-trig-cond-order .tag"),
       `Trig conditions alone ${tcoAlone}; with Control All Config ${tcoCac}; with every card ${tcoAll}, all ticked, no ` +
-      "clash; in Sequencer; no sub-choice; its guide link; tagged Tested");
+      "clash; in Mods; no sub-choice; its guide link; tested, so no tag");
     // Trig preview: a tweak card, in FEATURES order between Control All Config and the composed tweak
     box("feat-trig-preview").click(); await wait(5);
     const tpAlone = chosen();
@@ -349,11 +353,11 @@ async function main() {
     for (const i of ["trig-preview", "control-all-config", "sampler", "digidelay", "pots", "trig-cond-order"]) { box("feat-" + i).click(); await wait(5); }
     check(tpAlone === "trig-preview" && tpCac === "control-all-config,trig-preview"
       && tpAll === "control-all-config,trig-preview,sampler+digidelay+pots,trig-cond-order" && sixOn && !chosen().length
-      && doc.querySelector('#cat-seq #feat-trig-preview') && doc.querySelector('#features a[href$="#preview"]')
+      && doc.querySelector('#grp-mod #feat-trig-preview') && doc.querySelector('#features a[href$="#preview"]')
       && doc.querySelectorAll('input[name="var-trig-preview"]').length === 0
-      && /Tested/.test(doc.querySelector("label[for=feat-trig-preview] .tag").textContent),
+      && !doc.querySelector("#mod-trig-preview .tag"),
       `Trig preview alone ${tpAlone}; with Control All Config ${tpCac}; with every card ${tpAll}, all ticked, no ` +
-      "clash; in Sequencer; no sub-choice; its guide link; tagged Tested");
+      "clash; in Mods; no sub-choice; its guide link; tested, so no tag");
     box("feat-sampler").click(); await wait(30);
     check(doc.querySelectorAll('input[name="var-sampler"]').length === 0, "SAMPLE: a machine card, no sub-choice");
     check(!!doc.getElementById("tab-samples") && doc.getElementById("panel-samples").hidden && doc.getElementById("drop2-wrap").hidden,
@@ -361,21 +365,14 @@ async function main() {
     check(/Load your official OS file/.test(text(doc, "missing")), "flash button says what is missing: " + text(doc, "missing"));
     check(doc.getElementById("flash").disabled, "flash button disabled without a file");
 
-    // language switch
-    doc.querySelector('.lang button[data-lang="fr"]').click();
-    await wait(20);
-    check(/Que voulez-vous installer/.test(text(doc, "h1s")) && doc.documentElement.lang === "fr", "FR switch translates the page");
-    check(/Control All : choix des pistes/.test(text(doc, "features")) && /SAMPLE machine \(Cycles One-Shot\)/.test(text(doc, "features"))
-      && /Digital Delay \(effet\)/.test(text(doc, "features")) && /POTS \(effet\)/.test(text(doc, "features"))
-      && /Écoute d'un pas/.test(text(doc, "features")) && /par drumkilla/.test(text(doc, "features"))
-      && /par durchgemacht/.test(text(doc, "features")) && /Testé/.test(text(doc, "features"))
+    // English only: no language switch; the cards by their names, their credits and guide links
+    const names = [...doc.querySelectorAll("#features .nm")].map((e) => e.textContent);
+    check(!doc.querySelector(".lang") && doc.documentElement.lang === "en" && /new tricks/.test(text(doc, "h1s"))
+      && names.join() === "SAMPLE,Digital Delay,POTS,Trig Preview,Trig Condition Order,Control All Config"
+      && /by drumkilla/.test(text(doc, "features")) && /by durchgemacht/.test(text(doc, "features"))
       && doc.querySelector('#features a[href$="#control-all"]') && doc.querySelector('#features a[href$="#sampler"]'),
-      "FR switch translates the cards (SAMPLE's texts are in English only), their credits and tags, with their guide links");
-    check(/Crédits/.test(text(doc, "credits")) && /boîte à outils/.test(text(doc, "credits")) && /publié sous licence MIT/.test(text(doc, "credits")),
-      "FR switch translates the credits section");
+      "English only, no language switch; the cards by their names: " + names.join());
     box("feat-sampler").click(); await wait(5);
-    doc.querySelector('.lang button[data-lang="en"]').click();
-    await wait(20);
 
     // Connection: USB only, fast method by default, classic as the fallback
     check(doc.querySelectorAll('input[name="method"]').length === 0 && !doc.getElementById("howto-midi")
@@ -402,15 +399,10 @@ async function main() {
     doc.getElementById("m-fast").click();
     await wait(20);
     check(/pick the port named/i.test(text(doc, "midi-status")) && w.MCFlasherApp.state.dev.state === "noinput", "fast, another port (output only) -> warning");
-    doc.querySelector('.lang button[data-lang="fr"]').click();
-    await wait(20);
-    check(/Rapide \(USB\)/.test(text(doc, "m-fast")) && /Fermez Elektron Transfer/.test(text(doc, "howto-fast")), "FR: method and steps translated");
-    doc.querySelector('.lang button[data-lang="en"]').click();
-    await wait(20);
   }
 
-  // 1b. The mod picker: sections, build order, Details, folding, the selection bar, conflicts with Undo, focus,
-  // search, French
+  // 1b. The cards: three sections, build order, Details, the bar and Continue, the two screens, the way back to the
+  // official firmware, conflicts with Undo, focus, search; what the main page leaves out, and flasher/?samples
   if (MAIN) {
     const { w, doc, errors } = await load();
     const app = w.MCFlasherApp;
@@ -418,80 +410,95 @@ async function main() {
     const box = (id) => doc.getElementById(id);
     const click = async (el) => { el.click(); await wait(5); };
     const ids = () => app.chosenTweaks().map((x) => x.id).join();
-    const clearAll = async () => { const b = doc.querySelector("#mod-sel [data-clear]"); if (b) await click(b); };
+    const clearAll = async () => {
+      for (const id of [...doc.querySelectorAll("#features input[type=checkbox]:checked")].map((c) => c.id)) await click(box(id));
+    };
     const sections = [...doc.querySelectorAll("#features section.grp")].map((g) => g.id.slice(4));
-    check(sections.join() === app.CATS.filter((c) => feats.some((f) => (f.cat || "other") === c)).join() && !box("cat-other"),
-      "sections in CATS order, no « Other mods » while every mod has a cat: " + sections.join());
-    check([...doc.querySelectorAll("#cats a[data-cat]")].map((a) => a.dataset.cat).join() === sections.join()
-      && doc.querySelector('#cats a[data-cat="live"]').getAttribute("href") === "#cat-live", "one chip per section, linking to it");
+    check(sections.join() === "machine,effect,mod" && /Machines/.test(textOf(doc, "#grp-h-machine"))
+      && /Effects/.test(textOf(doc, "#grp-h-effect")) && /Mods/.test(textOf(doc, "#grp-h-mod")) && !box("cats").children.length,
+      "three sections, Machines, Effects, Mods, no section chips: " + sections.join());
     // the build keeps FEATURES order whatever the display order
     await click(box("feat-sampler"));
     await click(box("feat-control-all-config"));
     check(ids() === "control-all-config,sampler", "build order unchanged (Control All Config ticked after SAMPLE): " + ids());
-    check(/2 mods/.test(text(doc, "mod-live")) && doc.querySelector('#cats a[data-cat="sound"] .led.on')
-      && doc.querySelector('#cats a[data-cat="live"] .led.on'), "screen readers hear the count; the LED of a section with a ticked mod lights");
-    await click(box("feat-sampler"));
-    check(!doc.querySelector('#cats a[data-cat="sound"] .led.on') && doc.querySelector('#cats a[data-cat="live"] .led.on'),
-      "the LED of a section with no ticked mod is off");
+    check(/2 mods/.test(text(doc, "mod-live")) && box("mod-sampler").classList.contains("on")
+      && box("mod-control-all-config").classList.contains("on") && !box("mod-pots").classList.contains("on"),
+      "screen readers hear the count; a picked card is marked (its box ticked)");
     await clearAll();
-    // a mod without a cat lands in « Other mods », at the end
+    // a mod without a cat still shows, in Mods
     const cac = feats.find((f) => f.id === "control-all-config"), cacCat = cac.cat;
     delete cac.cat;
-    app.applyLang("en");
-    check(!!doc.querySelector("#cat-other #feat-control-all-config") && /Other mods/.test(textOf(doc, "#cat-other .grp-h"))
-      && [...doc.querySelectorAll("#features section.grp")].pop().id === "cat-other", "a mod without cat goes to « Other mods », last");
+    app.applyTexts();
+    check(!!doc.querySelector("#grp-mod #feat-control-all-config"), "a mod without cat still shows, in Mods");
     cac.cat = cacCat;
-    app.applyLang("en");
-    // Details: opens and closes, doesn't tick, holds the guide link
+    app.applyTexts();
+    // Details: opens and closes, doesn't tick, holds the guide link; the card takes the whole row
     await click(box("more-control-all-config"));
     const opened = !box("det-control-all-config").hidden && box("more-control-all-config").getAttribute("aria-expanded") === "true"
       && !box("feat-control-all-config").checked && !!doc.querySelector('#det-control-all-config a[href$="#control-all"]')
-      && /Status/.test(text(doc, "det-control-all-config"));
+      && /Good to know/.test(text(doc, "det-control-all-config")) && !/Status/.test(text(doc, "det-control-all-config"))
+      && box("mod-control-all-config").classList.contains("open")
+      && /Close/.test(textOf(doc, "#more-control-all-config"));
     await click(box("more-control-all-config"));
-    check(opened && box("det-control-all-config").hidden && box("more-control-all-config").getAttribute("aria-expanded") === "false",
-      "Details opens the drawer (description, status, guide link) without ticking, and closes it");
-    // folding a section; a folded section still names its ticked mods; its chip unfolds it
+    check(opened && box("det-control-all-config").hidden && box("more-control-all-config").getAttribute("aria-expanded") === "false"
+      && !box("mod-control-all-config").classList.contains("open"),
+      "Details opens the card to the whole row (description, Good to know, guide link; no status) without ticking, and closes it");
+    // a ticked card keeps its height: Good to know stays in Details
     await click(box("feat-control-all-config"));
-    await click(box("grp-h-live"));
-    const folded = box("grp-live").hidden && box("grp-h-live").getAttribute("aria-expanded") === "false"
-      && /Control All/.test(textOf(doc, "#cat-live .grp-sel"));
-    await click(doc.querySelector('#cats a[data-cat="live"]'));
-    check(folded && !box("grp-live").hidden, "a folded section names its ticked mods, its chip unfolds it");
-    await clearAll();
-    // the selection bar
-    check(/No mod ticked yet/.test(text(doc, "mod-sel")) && !doc.querySelector("#mod-sel .sel-next"), "selection bar, empty");
+    check(!doc.querySelector("#mod-control-all-config .ext > .say") && box("det-control-all-config").hidden,
+      "ticking a card adds nothing to it (Good to know only in Details)");
+    await click(box("feat-control-all-config"));
+    // the bar
+    const nx = () => doc.querySelector("#mod-sel .sel-next");
+    check(/Pick a card to start/.test(text(doc, "mod-sel")) && nx().classList.contains("empty") && !nx().disabled,
+      "end of the cards, nothing picked: a dashed \"Pick a card to start\"");
+    await click(nx());
+    check(!box("step-choose").hidden && box("screen-install").hidden && doc.activeElement && doc.activeElement.id === "feat-sampler",
+      "\"Pick a card to start\" stays on the cards and puts the first one in focus");
     await click(box("feat-control-all-config"));
     await click(box("feat-sampler"));
-    const counts = textOf(doc, "#mod-sel .sel-c");
-    check(/2 mods/.test(counts) && doc.querySelectorAll("#mod-sel .chip").length === 2
-      && doc.querySelector("#mod-sel a.sel-next").getAttribute("href") === "#step-file", "selection bar: " + counts);
-    await click(doc.querySelector('#mod-sel [data-off="sampler"]'));
-    check(ids() === "control-all-config" && !box("feat-sampler").checked && doc.activeElement && doc.activeElement.dataset.off === "control-all-config",
-      "× on a chip unticks the mod, the focus goes to the next ×");
+    const go = textOf(doc, "#mod-sel .sel-next");
+    check(/Install 2 mods/.test(go) && !nx().classList.contains("empty") && /SAMPLE/.test(textOf(doc, "#mod-sel .sel-names"))
+      && /Control All/.test(textOf(doc, "#mod-sel .sel-names")) && !nx().disabled,
+      "end of the cards: the names, then " + go.trim());
+    // Continue: the install screen, its step 1 names the cards; Change goes back with the choice kept
+    await click(doc.querySelector("#mod-sel .sel-next"));
+    const inst = box("step-choose").hidden && !box("screen-install").hidden && /SAMPLE/.test(text(doc, "picked"))
+      && /Control All/.test(text(doc, "picked")) && doc.activeElement && doc.activeElement.id === "install-h";
+    await click(box("back"));
+    check(inst && !box("step-choose").hidden && box("screen-install").hidden && ids() === "control-all-config,sampler",
+      "Continue opens the install screen, its step 1 names the cards; Change goes back, the choice kept");
+    // back to the official firmware: the install screen with the stock OS; Change, the cards again
+    await click(box("go-restore"));
+    const rest = app.state.mode === "restore" && !box("screen-install").hidden && /Official firmware \(unchanged\)/.test(text(doc, "picked"));
+    await click(box("back"));
+    check(rest && app.state.mode === "mods" && !box("step-choose").hidden,
+      "Back to the official firmware: the install screen with the stock OS; Change returns to the cards");
     await clearAll();
-    check(ids() === "" && /No mod ticked yet/.test(text(doc, "mod-sel")), "« Untick all » empties the selection");
+    check(ids() === "" && /Pick a card to start/.test(text(doc, "mod-sel")), "unticking the cards brings back \"Pick a card to start\"");
+    // what the main page leaves out stays in the page, hidden: the tabs, the machine picker, the classic method, Advanced
+    check(box("mode-tabs").hidden && box("mach-box").hidden && box("methods").hidden && box("advanced").hidden
+      && !!box("tab-samples") && !!box("mach-smp") && !!box("m-slow") && !!box("pace") && app.state.method === "fast",
+      "main page: no tabs, no machine picker, no classic method, no Advanced; all still in the page");
     // notes/65 C4: a reason computed from the claims, said where no hand-written one exists. SAMPLE has its own (its
-    // "clash"), so the page's function is asked directly, in English and in French
-    const reasons = w.MC_TWEAKS.clash_reasons, hooks = w.MCFlasherApp, lang = hooks.state.lang;
+    // "clash"), so the page's function is asked directly
+    const reasons = w.MC_TWEAKS.clash_reasons, hooks = w.MCFlasherApp;
     w.MC_TWEAKS.clash_reasons = { "control-all-config|sampler": [["combo", "TRACK + TRIG 1-6"]] };
     const whyEn = hooks.autoWhy({ id: "sampler" }, { id: "control-all-config" });
-    hooks.state.lang = "fr";
-    const whyFr = hooks.autoWhy({ id: "sampler" }, { id: "control-all-config" });
-    hooks.state.lang = lang;
     w.MC_TWEAKS.clash_reasons = reasons;
     check(reasons && typeof reasons === "object" && !Array.isArray(reasons)
-      && whyEn === "both use the buttons TRACK + TRIG 1-6" && whyFr === "les deux utilisent les touches TRACK + TRIG 1-6"
+      && whyEn === "both use the buttons TRACK + TRIG 1-6"
       && hooks.autoWhy({ id: "sampler" }, { id: "control-all-config" }) === "",
-      `a computed reason where no hand-written one exists, in English and in French: ${whyEn} / ${whyFr}`);
+      `a computed reason where no hand-written one exists: ${whyEn}`);
     // a conflict injected between the two cards (they do go together), said before ticking, then Undo
     cac.excludes = ["sampler"];
     await click(box("feat-sampler"));
-    const said = /Doesn't go with the mod “SAMPLE machine \(Cycles One-Shot\)”/.test(textOf(doc, "#mod-control-all-config .say.clash"))
+    const said = /Doesn't go with the mod “SAMPLE”/.test(textOf(doc, "#mod-control-all-config .say.clash"))
       && /Doesn't go with/.test(textOf(doc, "#det-control-all-config")) && !doc.querySelector("#mod-sampler .say.clash");
     await click(box("feat-control-all-config"));
     const swapped = ids() === "control-all-config"
-      && /The mod “SAMPLE machine \(Cycles One-Shot\)” was unticked/.test(textOf(doc, "#mod-control-all-config .say.swap"))
-      && /The mod “SAMPLE machine \(Cycles One-Shot\)” was unticked/.test(textOf(doc, "#mod-sel .sel-msg"));
+      && /The mod “SAMPLE” was unticked/.test(textOf(doc, "#mod-control-all-config .say.swap"))
+      && /The mod “SAMPLE” was unticked/.test(textOf(doc, "#mod-sel .sel-msg"));
     await click(doc.querySelector("#mod-control-all-config [data-undo]"));
     check(said && swapped && ids() === "sampler" && !box("feat-control-all-config").checked && !doc.querySelector(".say.swap")
       && doc.activeElement && doc.activeElement.id === "feat-control-all-config",
@@ -507,16 +514,27 @@ async function main() {
     await clearAll();
     // search: only from 20 mods
     check(feats.length < 20 && box("mod-find").hidden, `no search field with ${feats.length} mods (it appears from 20)`);
-    // French
-    app.applyLang("fr");
-    await click(box("feat-control-all-config"));
-    check(/Jeu en live/.test(textOf(doc, "#cat-live .grp-h")) && /Sons et machines/.test(textOf(doc, "#cat-sound .grp-h"))
-      && /Votre sélection/.test(text(doc, "mod-sel")) && /Détails/.test(textOf(doc, "#more-control-all-config"))
-      && /1 mod/.test(textOf(doc, "#mod-sel .sel-c")) && /Rubriques/.test(box("cats").getAttribute("aria-label")),
-      "FR: sections, selection bar, Details");
-    await clearAll();
-    app.applyLang("en");
+    // the Effects section says what its cards share; Details come in paragraphs
+    check(/Hold TRACK and turn Delay Time or Reverb Size/.test(textOf(doc, "#grp-effect .grp-sub")) && !doc.querySelector("#grp-mod .grp-sub")
+      && doc.querySelectorAll("#det-pots > p").length === 2 && doc.querySelectorAll("#det-sampler > p").length === 2,
+      "the Effects section's one line; Details in paragraphs");
     check(errors.length === 0, "no JS error in the mod picker " + (errors.length ? JSON.stringify(errors) : ""));
+  }
+  // flasher/?samples: the tabs and the machine picker come back
+  if (MAIN) {
+    const { w, doc, errors } = await load({ query: "?samples" });
+    const box = (id) => doc.getElementById(id);
+    const shown = !box("mode-tabs").hidden && !box("mach-box").hidden && box("methods").hidden && box("advanced").hidden;
+    box("tab-samples").click(); await wait(5);
+    const off = box("panel-samples").querySelector(".go-next").disabled;
+    box("samples-ack").click(); await wait(5);
+    const on = !box("panel-samples").querySelector(".go-next").disabled;
+    box("panel-samples").querySelector(".go-next").click(); await wait(5);
+    const inst = !box("screen-install").hidden && /Model:Samples OS \(for Model:Cycles\)/.test(text(doc, "picked"));
+    box("back").click(); await wait(5);
+    check(shown && off && on && inst && w.MCFlasherApp.state.mode === "samples" && errors.length === 0,
+      "?samples: tabs and machine picker shown, no classic method; Samples OS: Continue once ticked, then its install screen; " +
+      "Change keeps the tab");
   }
 
 
@@ -556,23 +574,44 @@ async function main() {
     check(/refuses a Model:Cycles firmware/.test(text(doc, "midi-status")), "classic: Model:Samples port -> warning about the way back");
   }
 
-  // 2. No Web MIDI (Firefox / Safari) -> clear banner
+  // 2. No Web MIDI (Firefox / Safari) -> the download only, and why
   if (MAIN) {
-    const { doc } = await load({ midi: false });
-    check(!doc.getElementById("compat").hidden && /Chrome, Edge or Opera/.test(text(doc, "compat")), "no Web MIDI -> banner");
-    check(doc.getElementById("allow").disabled, "no Web MIDI -> Allow button disabled");
+    const { w, doc, errors } = await load({ midi: false });
+    const $ = (id) => doc.getElementById(id);
+    check(!$("compat") && $("step-connect").hidden && $("ack-row").hidden && $("flash").parentElement.hidden && $("trouble").hidden
+      && $("n4").textContent === "3" && /^Download$/.test(text(doc, "h4s")) && !$("dl-note").hidden
+      && /Chrome, Edge or Opera/.test(text(doc, "dl-note")) && /Elektron Transfer/.test(text(doc, "dl-note"))
+      && $("alt").hidden && /Load your official OS file/.test(text(doc, "missing")) && errors.length === 0,
+      "no Web MIDI: no banner, no connection step; step 3 is the download, says why and waits for the OS file");
+    if (SYNTH) {
+      // the synthetic OS stands in for the official one, as in 5: once built, the download is offered, nothing else
+      const raw = new Uint8Array(fs.readFileSync(path.join(SYNTH, "synth.syx")));
+      const meta = JSON.parse(fs.readFileSync(path.join(SYNTH, "meta.json")));
+      const app = w.MCFlasherApp;
+      w.MC_TWEAKS.device.section_sha256 = meta.section_sha256;
+      w.MC_TWEAKS.device.stock_syx_sha256 = w.MCBuilder.hex(w.MCBuilder.sha256(raw));
+      for (const k of Object.keys(app.REF_MAINOS)) delete app.REF_MAINOS[k];
+      $("feat-control-all-config").click();
+      app.loadOs(raw, "synth.syx");
+      await settle(w);
+      check(app.state.fw && app.state.fw.kind === "built" && !$("alt").hidden && !$("download").classList.contains("secondary")
+        && $("download").getAttribute("download") === app.state.fw.name && !text(doc, "missing") && $("summary").hidden
+        && errors.length === 0, "no Web MIDI, firmware built: the download, as the step's one button");
+    }
   }
 
-  // 3. Insecure context (file://) -> clear banner
+  // 3. Insecure context (file://) -> the download only, and why
   if (MAIN) {
     const { doc } = await load({ secure: false });
-    check(/secure page/i.test(text(doc, "compat")), "file:// -> banner: " + text(doc, "compat").slice(0, 40));
+    check(/secure page/i.test(text(doc, "dl-note")) && doc.getElementById("step-connect").hidden,
+      "not a secure page: the download only, and why: " + text(doc, "dl-note").slice(0, 40));
   }
 
-  // 4. French browser -> French page
+  // 4. French browser -> the page stays in English (the flasher is English only)
   if (MAIN) {
     const { doc } = await load({ lang: "fr-FR" });
-    check(doc.documentElement.lang === "fr" && /Flasher Model:Cycles/.test(text(doc, "step-flash") + doc.title), "fr-FR browser -> French page");
+    check(doc.documentElement.lang === "en" && /^Flasher · model27$/.test(doc.title) && /Flash the Model:Cycles/.test(text(doc, "step-flash")),
+      "fr-FR browser -> the English page");
   }
 
   // 5. Build from a synthetic OS, then flash, then stop
@@ -880,10 +919,6 @@ async function main() {
     await untilSent(w);
     check(app.state.finished === "ok" && same(env7.dev.received, app.state.fw.raw) && env7.dev.bad.length === 0
       && /restarts as a Model:Samples/.test(text(doc, "result")), "fast: the Samples OS build reaches the Model:Cycles byte for byte");
-    doc.querySelector('.lang button[data-lang="fr"]').click();
-    await wait(20);
-    check(/OS Samples/.test(text(doc, "tab-samples")) && doc.getElementById("drop2-title").textContent === "model-samples_OS1.13.syx",
-      "FR: tab translated, loaded file name kept");
     check(errors.length === 0, "no JS error in the Samples OS flow " + (errors.length ? JSON.stringify(errors) : ""));
   }
 
@@ -952,7 +987,7 @@ async function main() {
     noRest(w);
     doc.getElementById("allow").click();
     await wait(150);
-    const seen = () => [text(doc, "flash"), text(doc, "midi-status"), doc.querySelector('[data-i18n-html="hf1"]').textContent,
+    const seen = () => [text(doc, "flash"), text(doc, "midi-status"), doc.querySelector('[data-i18n-html="hf"]').textContent,
       doc.querySelector('[data-i18n-html="hu3"]').textContent].join(" | ");
     check(/Flash the Model:Cycles/.test(seen()) && /Connect the Model:Cycles/.test(seen()) && /port named “Model:Cycles”/.test(seen())
       && !/Model:Samples/.test(seen()), "Mods tab, Model:Cycles: step 3 names the Model:Cycles: " + text(doc, "midi-status"));
@@ -970,10 +1005,6 @@ async function main() {
       check(new RegExp("Flash the " + dev).test(seen()) && new RegExp("the " + dev, "i").test(text(doc, "midi-status"))
         && new RegExp("port named “" + port + "”").test(seen()), `Samples OS tab, ${d}: names the ${dev}, port “${port}”`);
     }
-    app.applyLang("fr");
-    await wait(20);
-    check(/Flasher le Model:Samples/.test(text(doc, "flash")) && /le Model:Samples/i.test(text(doc, "midi-status")), "in French too: " + text(doc, "midi-status"));
-    app.applyLang("en");
     app.setMode("mods");
     doc.getElementById("mach-cyc").click();
     await wait(20);
@@ -995,9 +1026,9 @@ async function main() {
       && doc.getElementById("mach-cyc").getAttribute("aria-checked") === "true", "Mods tab: Model:Cycles by default, no Samples pane");
     doc.getElementById("mach-smp").click();
     await wait(20);
-    check(!doc.getElementById("mach-pane").hidden && /Tested/.test(text(doc, "mach-pane")) && !doc.getElementById("drop2-wrap").hidden
+    check(!doc.getElementById("mach-pane").hidden && /Mods on a Model:Samples/.test(text(doc, "mach-pane")) && !doc.getElementById("drop2-wrap").hidden
       && /Load both official OS files/.test(text(doc, "h2s")) && !doc.getElementById("mach-w-smp").hidden
-      && doc.getElementById("mach-w-cos").hidden, "Model:Samples on its OS: pane tagged tested, second drop zone");
+      && doc.getElementById("mach-w-cos").hidden, "Model:Samples on its OS: its pane, second drop zone");
     app.loadOs(cyc, "model-cycles_OS1.13.syx");
     doc.getElementById("feat-sampler").click();
     await settle(w);
@@ -1053,11 +1084,6 @@ async function main() {
     check(f && !f.machine && f.raw[4] === 0x11 && f.sha === app.REF_MAINOS["sampler"] && doc.getElementById("mach-pane").hidden
       && doc.getElementById("drop2-wrap").hidden && /choose it in step 1/.test(text(doc, "midi-status")),
       "Model:Cycles again: plain build; a Model:Samples answering is told to pick it in step 1");
-    doc.querySelector('.lang button[data-lang="fr"]').click();
-    doc.getElementById("mach-smp").click();
-    await settle(w);
-    check(/sous son OS/.test(text(doc, "mach-smp")) && /Des mods sur un Model:Samples/.test(text(doc, "mach-pane"))
-      && /Emballé pour votre Model:Samples/.test(text(doc, "file-status")), "FR: machine picker and status translated");
     app.setMachine("cyc");                                         // remembered by the page: leave the default for the next sections
     check(errors.length === 0, "no JS error in the mods-on-Model:Samples flow " + (errors.length ? JSON.stringify(errors) : ""));
   }

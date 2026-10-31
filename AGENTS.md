@@ -75,8 +75,8 @@ maintained by 18nelli18; model27 is not affiliated with it, and never speaks for
 - **French** stays where Modded-Cycles wrote it (`notes/`, `BUILD.md`, `FLASH.md`, `dossier-technique.md`,
   `PROVENANCE.md`, the existing tweaks and tools) until a file is rewritten for another reason; do not translate
   files just to translate them.
-- **Both, side by side**: everything users see on the site (flasher cards, guide, release notes, home page), as
-  `en`/`fr` pairs or `data-l="en"`/`data-l="fr"` spans. Never add one language without the other.
+- **The site is English only** (the maintainer's decision of 31/10/2026): flasher, guide, home page and release notes;
+  no French there, no `data-l` spans, no EN/FR switch.
 - User-facing text speaks to musicians: what the mod does on the machine, which buttons to press, its limits. No
   addresses or jargon there; those belong in the notes.
 
@@ -186,10 +186,10 @@ Follow the shape of the last ones (tempo-max: commits `5997b4a`, `14fb9fa`, `6e5
    MAIN OS SHA-256 of the main combinations.
 5. **Put it in the flasher**: add it to `FEATURES` in `tools/gen_flasher_tweaks.py` (`"status": "experimental"`, and
    its section `cat`), regenerate `docs/flasher/tweaks.js`, regenerate `REF_MAINOS` and `REF_MODS` with
-   `tools/ref_mainos.py`, add its row texts (`FEAT` en + fr: `label`, `short`, `desc`) and guide anchor (`GUIDE_OF`) in
+   `tools/ref_mainos.py`, add its card texts (`FEAT`: `label`, `short`, `desc`) and guide anchor (`GUIDE_OF`) in
    `docs/flasher/app.js`, update the lists checked by `tools/webflash_smoke.js`. See `docs/AGENTS.md`.
-6. **Document it for users**: a guide section in `docs/guide/index.html` (en + fr, buttons to press, limits), a new
-   release at the top of `docs/assets/release.js` (en + fr), bump the `MC_BUILD` / `?v=` stamp on the pages, a row
+6. **Document it for users**: a guide section in `docs/guide/index.html` (buttons to press, limits), a new
+   release at the top of `docs/assets/release.js`, bump the `MC_BUILD` / `?v=` stamp on the pages, a row
    in the mod table of `README.md`.
 7. **Validate** (below), then propose the commit and tell the maintainer what to test on the machine.
 8. **After their test**: a small follow-up commit flips the status to `tested` (generator `FEATURES`, `tweaks.js`,

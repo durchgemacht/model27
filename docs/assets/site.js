@@ -1,31 +1,13 @@
-/* model27 (from Modded-Cycles) — shared page behaviour: language, version, the Model:Cycles drawings and the
- * small demos of the guide. Each part runs only if its elements are on the page.
- * The flasher handles its own language switch (app.js); here it only gets the version. */
+/* model27 (from Modded-Cycles) — shared page behaviour: theme, version, the Model:Cycles drawings and the
+ * small demos of the guide. Each part runs only if its elements are on the page. The site is in English only
+ * (2026-10-31). */
 (function () {
 "use strict";
 
 const root = document.documentElement;
-const page = document.body.getAttribute("data-page") || "";
 const $$ = (sel, el) => Array.from((el || document).querySelectorAll(sel));
 const D = window.MCDevice;
 const reduced = D ? D.reduced() : false;
-
-// ---------------------------------------------------------------------------
-// Language (same storage key as the flasher)
-// ---------------------------------------------------------------------------
-const lang = () => (root.lang === "fr" ? "fr" : "en");
-
-function setLang(l) {
-  root.lang = l === "fr" ? "fr" : "en";
-  try { localStorage.setItem("mc-lang", root.lang); } catch (e) { /* private mode */ }
-  $$(".lang button[data-lang]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === root.lang)));
-  renderRelease();
-}
-
-if (page !== "flasher") {
-  $$(".lang button[data-lang]").forEach((b) => b.addEventListener("click", () => setLang(b.dataset.lang)));
-  setLang(lang());
-}
 
 // ---------------------------------------------------------------------------
 // Theme: follows the system until the moon/sun button is used, then remembers the choice
@@ -34,9 +16,9 @@ if (page !== "flasher") {
 const darkMQ = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 const theme = () => root.getAttribute("data-theme") || (darkMQ && darkMQ.matches ? "dark" : "light");
 function paintTheme() {
-  const fr = root.lang === "fr", dark = theme() === "dark";
+  const dark = theme() === "dark";
   $$(".theme-btn").forEach((b) => {
-    b.setAttribute("aria-label", dark ? (fr ? "Mode clair" : "Light mode") : (fr ? "Mode sombre" : "Dark mode"));
+    b.setAttribute("aria-label", dark ? "Light mode" : "Dark mode");
     b.title = b.getAttribute("aria-label");
   });
 }
@@ -47,7 +29,6 @@ $$(".theme-btn").forEach((b) => b.addEventListener("click", () => {
   paintTheme();
 }));
 if (darkMQ && darkMQ.addEventListener) darkMQ.addEventListener("change", paintTheme);
-new MutationObserver(paintTheme).observe(root, { attributes: true, attributeFilter: ["lang"] });
 paintTheme();
 
 // ---------------------------------------------------------------------------
@@ -55,7 +36,7 @@ paintTheme();
 // ---------------------------------------------------------------------------
 function fmtDate(iso) {
   try {
-    return new Date(iso + "T12:00:00Z").toLocaleDateString(lang() === "fr" ? "fr-FR" : "en-GB",
+    return new Date(iso + "T12:00:00Z").toLocaleDateString("en-GB",
       { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
   } catch (e) { return iso; }
 }
@@ -70,17 +51,16 @@ function renderRelease() {
     el.innerHTML = "";
     if (!rel.changes.length) {
       const p = document.createElement("p");
-      p.textContent = lang() === "fr" ? "Première version : rien à comparer pour l'instant."
-        : "First release: nothing to compare with yet.";
+      p.textContent = "First release: nothing to compare with yet.";
       el.appendChild(p);
       return;
     }
     const p = document.createElement("p");
-    p.textContent = (lang() === "fr" ? "Changements depuis la " : "Changes since ") + (rels[1] ? rels[1].version : "");
+    p.textContent = "Changes since " + (rels[1] ? rels[1].version : "");
     const ul = document.createElement("ul");
     rel.changes.forEach((c) => {
       const li = document.createElement("li");
-      li.textContent = c[lang()] || c.en;
+      li.textContent = c.en;
       ul.appendChild(li);
     });
     el.append(p, ul);
@@ -178,7 +158,7 @@ $$("[data-hold]").forEach((box) => {
   };
   const paint = (d) => {
     fill.style.width = (Math.min(d, FULL) * 100 / FULL).toFixed(2) + "%";
-    out.textContent = (d / 1000).toFixed(2).replace(".", lang() === "fr" ? "," : ".") + " s";
+    out.textContent = (d / 1000).toFixed(2) + " s";
   };
   function press(e) {
     if (down) return;

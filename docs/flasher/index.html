@@ -4,21 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Flasher · model27</title>
-<meta name="description" content="Install mods on the Elektron Model:Cycles or Model:Samples from your browser, over USB in about 30 seconds (Web MIDI). No firmware is provided or uploaded: you bring your own official OS file.">
-<meta name="theme-color" content="#f7f6f2" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#15161d" media="(prefers-color-scheme: dark)">
+<meta name="description" content="Install mods on the Elektron Model:Cycles from your browser, over USB in about 30 seconds (Web MIDI). No firmware is provided or uploaded: you bring your own official OS file.">
+<meta name="theme-color" content="#d7dbe0">
 <link rel="icon" href="../assets/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-10-30-05">
-<link rel="stylesheet" href="style.css?v=2026-10-30-05">
-<script>try{var l=localStorage.getItem("mc-lang"),t=localStorage.getItem("mc-theme")}catch(e){}document.documentElement.lang=l||(/^fr\b/i.test(navigator.language||"")?"fr":"en");if(t)document.documentElement.setAttribute("data-theme",t)</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="../assets/site.css?v=2026-10-31-10">
+<link rel="stylesheet" href="style.css?v=2026-10-31-10">
+<!-- the flasher is in English only (2026-10-31), and light only for now: its dark theme (style.css) waits for a
+     second pass, so the page pins the light one and hides the switch; the other pages keep their own theme -->
+<script>document.documentElement.setAttribute("data-theme","light")</script>
 </head>
 <body data-page="flasher">
 <script>
   // Version stamp: an old date means the browser serves a cached copy -> hard reload.
-  window.MC_BUILD = "2026-10-30-05";
+  window.MC_BUILD = "2026-10-31-10";
   window.addEventListener("error", function (e) {
     var b = document.getElementById("errbar");
     if (!b) return;
@@ -35,32 +36,27 @@
     <a href="../guide/">Guide</a>
     <a href="https://github.com/durchgemacht/model27" target="_blank" rel="noopener">GitHub</a>
   </nav>
-  <div class="lang" role="group" aria-label="Language"><button type="button" data-lang="en" aria-pressed="true">EN</button>/<button type="button" data-lang="fr" aria-pressed="false">FR</button></div>
-  <button type="button" class="theme-btn" aria-label="Dark mode"><svg class="moon" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 12.2A7 7 0 0 1 7.8 3.5a7 7 0 1 0 8.7 8.7z"/></svg><svg class="sun" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.8v2M10 16.2v2M1.8 10h2M16.2 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4"/></svg></button>
+  <button type="button" class="theme-btn" aria-label="Dark mode" hidden><svg class="moon" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 12.2A7 7 0 0 1 7.8 3.5a7 7 0 1 0 8.7 8.7z"/></svg><svg class="sun" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.8v2M10 16.2v2M1.8 10h2M16.2 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4"/></svg></button>
 </header>
 
 <main class="wrap fl">
-  <div class="fl-head">
-    <h1 data-i18n="title">Model:Cycles Flasher</h1>
-    <div>
-      <p data-i18n="tagline">Install mods on your Elektron Model:Cycles or Model:Samples, right from your browser.</p>
-      <p class="ver"><span data-l="en">Version</span><span data-l="fr">Version</span> <span data-rel="version">1.0</span> · <a href="../#version"><span data-l="en">what's new</span><span data-l="fr">nouveautés</span></a> · <a href="../guide/"><span data-l="en">guide</span><span data-l="fr">guide</span></a></p>
-    </div>
-  </div>
-
   <div id="errbar" class="alert bad" hidden></div>
-  <div id="compat" class="alert bad" role="alert" hidden></div>
 
-  <!-- 1. Choose -->
-  <section class="step" id="step-choose" aria-labelledby="h1s">
-    <header><span class="num">1</span><h2 id="h1s" data-i18n="s1">What do you want to install?</h2></header>
-    <div class="step-body">
-      <div class="seg" role="tablist" aria-label="Mode">
-        <button type="button" role="tab" id="tab-mods" aria-selected="true" aria-controls="panel-mods" data-i18n="tab_mods">Mods</button>
-        <button type="button" role="tab" id="tab-restore" aria-selected="false" aria-controls="panel-restore" data-i18n="tab_restore">Official firmware</button>
-        <button type="button" role="tab" id="tab-samples" aria-selected="false" aria-controls="panel-samples" data-i18n="tab_samples">Samples OS</button>
-      </div>
-      <div id="panel-mods" role="tabpanel" aria-labelledby="tab-mods">
+  <!-- Screen 1: choose the cards -->
+  <section class="screen" id="step-choose" aria-labelledby="h1s">
+    <div class="fl-head">
+      <h1 id="h1s" tabindex="-1" data-i18n="title">Teach your Cycles new tricks</h1>
+      <p data-i18n="tagline">New machines, effects and mods for your Model:Cycles. Pick what you like and install it over USB in about 30 seconds.</p>
+    </div>
+    <!-- Official firmware and Samples OS as tabs, and the machine picker: only on flasher/?samples (the guide links
+         there), the main page offers the Model:Cycles alone (SAMPLES_UI in app.js) -->
+    <div class="seg" role="tablist" aria-label="Mode" id="mode-tabs" hidden>
+      <button type="button" role="tab" id="tab-mods" aria-selected="true" aria-controls="panel-mods" data-i18n="tab_mods">Mods</button>
+      <button type="button" role="tab" id="tab-restore" aria-selected="false" aria-controls="panel-restore" data-i18n="tab_restore">Official firmware</button>
+      <button type="button" role="tab" id="tab-samples" aria-selected="false" aria-controls="panel-samples" data-i18n="tab_samples">Samples OS</button>
+    </div>
+    <div id="panel-mods" role="tabpanel" aria-labelledby="tab-mods">
+      <div id="mach-box" hidden>
         <p class="mach-q" id="mach-q" data-i18n="mach_q">Your machine</p>
         <div class="seg sub" role="radiogroup" aria-labelledby="mach-q">
           <button type="button" role="radio" id="mach-cyc" aria-checked="true" data-i18n="mach_cyc">Model:Cycles</button>
@@ -68,7 +64,7 @@
           <button type="button" role="radio" id="mach-cos" aria-checked="false" data-i18n="mach_cos">Model:Samples, already on the Cycles OS</button>
         </div>
         <div id="mach-pane" class="mach-pane" hidden>
-          <p class="samples-head"><span data-i18n="mach_title">Mods on a Model:Samples</span><span class="tag ok" data-i18n="tested">Tested</span></p>
+          <p class="samples-head"><span data-i18n="mach_title">Mods on a Model:Samples</span></p>
           <p class="panel-text" data-i18n="mach_text"></p>
           <ul class="warn-list">
             <li id="mach-w-smp" data-i18n="mach_w_smp"></li>
@@ -83,163 +79,175 @@
           <p class="note mach-credit" data-i18n="mach_credit"></p>
           <label class="check"><input id="mach-ack" type="checkbox"><span data-i18n="cos_ack">I have backed up my samples and projects with Elektron Transfer, and I keep the official Model:Samples OS file for the way back.</span></label>
         </div>
-        <p class="mods-lede" data-i18n-html="mods_note"></p>
-        <div class="find" id="mod-find" hidden>
-          <svg class="mag" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.8"/><path d="M13 13l4.5 4.5"/></svg>
-          <label class="vh" for="mod-q" data-i18n="search_label">Search the mods</label>
-          <input id="mod-q" type="search" autocomplete="off" spellcheck="false">
-          <button type="button" class="clr" id="mod-q-clr" hidden>×</button>
-        </div>
-        <p class="found" id="mod-found" aria-live="polite" hidden></p>
-        <ul class="cats" id="cats"></ul>
-        <div id="features"></div>
-        <div class="sel" id="mod-sel" role="region" aria-labelledby="sel-title"></div>
-        <p class="vh" id="mod-live" aria-live="polite"></p>
-        <div id="mod-sel-end" aria-hidden="true"></div>
       </div>
-      <div id="panel-restore" role="tabpanel" aria-labelledby="tab-restore" hidden>
-        <p class="panel-text" data-i18n-html="restore_text"></p>
-        <p class="note" data-i18n-html="restore_from_samples"></p>
+      <div class="find" id="mod-find" hidden>
+        <svg class="mag" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.8"/><path d="M13 13l4.5 4.5"/></svg>
+        <label class="vh" for="mod-q" data-i18n="search_label">Search the mods</label>
+        <input id="mod-q" type="search" autocomplete="off" spellcheck="false">
+        <button type="button" class="clr" id="mod-q-clr" hidden>×</button>
       </div>
-      <div id="panel-samples" role="tabpanel" aria-labelledby="tab-samples" hidden>
-        <div class="seg sub" role="radiogroup" aria-label="Machine">
-          <button type="button" role="radio" id="smp-dir-cyc" aria-checked="true" data-i18n="smp_dir_cyc">Model:Cycles → Samples OS</button>
-          <button type="button" role="radio" id="smp-dir-smp" aria-checked="false" data-i18n="smp_dir_smp">Model:Samples → Cycles OS</button>
-          <button type="button" role="radio" id="smp-dir-back" aria-checked="false" data-i18n="smp_dir_back">Model:Samples: back to its OS</button>
-        </div>
-        <div id="smp-pane-cyc">
-          <p class="samples-head"><span data-i18n="samples_title">Turn your Model:Cycles into a Model:Samples</span><span class="tag ok" data-i18n="tested">Tested</span></p>
-          <p class="panel-text" data-i18n="samples_text"></p>
-          <ul class="warn-list">
-            <li data-i18n="samples_w1"></li>
-            <li data-i18n-html="samples_w2"></li>
-            <li data-i18n="samples_w3"></li>
-          </ul>
-          <label class="check"><input id="samples-ack" type="checkbox"><span data-i18n="samples_ack">I have a MIDI interface for the way back (to the Model:Cycles MIDI IN).</span></label>
-        </div>
-        <div id="smp-pane-smp" hidden>
-          <p class="samples-head"><span data-i18n="cos_title">Turn your Model:Samples into a Model:Cycles</span><span class="tag exp" data-i18n="experimental">Experimental</span></p>
-          <p class="panel-text" data-i18n="cos_text"></p>
-          <ul class="warn-list">
-            <li data-i18n="cos_w1"></li>
-            <li data-i18n="cos_w5"></li>
-            <li data-i18n-html="cos_w2"></li>
-            <li data-i18n="cos_w3"></li>
-            <li data-i18n="xos_reset"></li>
-            <li data-i18n-html="cos_w4"></li>
-          </ul>
-          <p class="note" data-i18n="cos_mods"></p>
-          <label class="check"><input id="cos-ack" type="checkbox"><span data-i18n="cos_ack">I have backed up my samples and projects with Elektron Transfer, and I keep the official Model:Samples OS file for the way back.</span></label>
-        </div>
-        <div id="smp-pane-back" hidden>
-          <p class="samples-head"><span data-i18n="sback_title">Give your Model:Samples its own OS back</span><span class="tag exp" data-i18n="experimental">Experimental</span></p>
-          <p class="panel-text" data-i18n="sback_text"></p>
-          <ul class="warn-list">
-            <li data-i18n="sback_w1"></li>
-            <li data-i18n-html="sback_w2"></li>
-            <li data-i18n="xos_reset"></li>
-          </ul>
-        </div>
+      <p class="found" id="mod-found" aria-live="polite" hidden></p>
+      <ul class="cats" id="cats" hidden></ul>
+      <div id="features"></div>
+      <div class="sel" id="mod-sel" role="region" aria-labelledby="sel-title"></div>
+      <p class="vh" id="mod-live" aria-live="polite"></p>
+      <!-- the way back, quietly at the end of the cards, above the footer -->
+      <p class="restore-row" id="restore-row"><button type="button" class="lnk" id="go-restore" data-i18n="go_restore">Back to the official firmware</button>
+        <span data-i18n="go_restore_sub">Installs your OS file unchanged. Also a safe first try of your cable and setup.</span></p>
+    </div>
+    <div id="panel-restore" role="tabpanel" aria-labelledby="tab-restore" hidden>
+      <p class="panel-text" data-i18n-html="restore_text"></p>
+      <p class="note" data-i18n-html="restore_from_samples"></p>
+      <p class="next-row"><button type="button" class="btn go-next" data-i18n="sel_next">Continue</button></p>
+    </div>
+    <div id="panel-samples" role="tabpanel" aria-labelledby="tab-samples" hidden>
+      <div class="seg sub" role="radiogroup" aria-label="Machine">
+        <button type="button" role="radio" id="smp-dir-cyc" aria-checked="true" data-i18n="smp_dir_cyc">Model:Cycles → Samples OS</button>
+        <button type="button" role="radio" id="smp-dir-smp" aria-checked="false" data-i18n="smp_dir_smp">Model:Samples → Cycles OS</button>
+        <button type="button" role="radio" id="smp-dir-back" aria-checked="false" data-i18n="smp_dir_back">Model:Samples: back to its OS</button>
       </div>
+      <div id="smp-pane-cyc">
+        <p class="samples-head"><span data-i18n="samples_title">Turn your Model:Cycles into a Model:Samples</span></p>
+        <p class="panel-text" data-i18n="samples_text"></p>
+        <ul class="warn-list">
+          <li data-i18n="samples_w1"></li>
+          <li data-i18n-html="samples_w2"></li>
+          <li data-i18n="samples_w3"></li>
+        </ul>
+        <label class="check"><input id="samples-ack" type="checkbox"><span data-i18n="samples_ack">I have a MIDI interface for the way back (to the Model:Cycles MIDI IN).</span></label>
+      </div>
+      <div id="smp-pane-smp" hidden>
+        <p class="samples-head"><span data-i18n="cos_title">Turn your Model:Samples into a Model:Cycles</span><span class="tag exp" data-i18n="experimental">Experimental</span></p>
+        <p class="panel-text" data-i18n="cos_text"></p>
+        <ul class="warn-list">
+          <li data-i18n="cos_w1"></li>
+          <li data-i18n="cos_w5"></li>
+          <li data-i18n-html="cos_w2"></li>
+          <li data-i18n="cos_w3"></li>
+          <li data-i18n="xos_reset"></li>
+          <li data-i18n-html="cos_w4"></li>
+        </ul>
+        <p class="note" data-i18n="cos_mods"></p>
+        <label class="check"><input id="cos-ack" type="checkbox"><span data-i18n="cos_ack">I have backed up my samples and projects with Elektron Transfer, and I keep the official Model:Samples OS file for the way back.</span></label>
+      </div>
+      <div id="smp-pane-back" hidden>
+        <p class="samples-head"><span data-i18n="sback_title">Give your Model:Samples its own OS back</span><span class="tag exp" data-i18n="experimental">Experimental</span></p>
+        <p class="panel-text" data-i18n="sback_text"></p>
+        <ul class="warn-list">
+          <li data-i18n="sback_w1"></li>
+          <li data-i18n-html="sback_w2"></li>
+          <li data-i18n="xos_reset"></li>
+        </ul>
+      </div>
+      <p class="next-row"><button type="button" class="btn go-next" data-i18n="sel_next">Continue</button></p>
     </div>
   </section>
 
-  <!-- 2. OS file -->
-  <section class="step" id="step-file" aria-labelledby="h2s">
-    <header><span class="num">2</span><h2 id="h2s" data-i18n="s2">Load your official OS file</h2></header>
-    <div class="step-body">
-      <label class="drop" id="drop" tabindex="0">
-        <span class="drop-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path class="arrow" d="M12 11v6M9.5 14.5 12 17l2.5-2.5"/></svg></span>
-        <span class="drop-t"><strong id="drop-title" data-i18n="drop_title">Drop model-cycles_OS1.13.syx here</strong>
-          <span id="drop-sub" data-i18n="drop_sub">or click to choose it</span></span>
-        <input id="file" type="file" accept=".syx" hidden>
-      </label>
-      <p class="hint" data-i18n-html="get_os"></p>
-      <div id="file-status" class="status" aria-live="polite"></div>
-      <div id="drop2-wrap" hidden>
-        <label class="drop" id="drop2" tabindex="0">
-          <span class="drop-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path class="arrow" d="M12 11v6M9.5 14.5 12 17l2.5-2.5"/></svg></span>
-          <span class="drop-t"><strong id="drop2-title" data-i18n="drop2_title">Drop model-samples_OS1.13.syx here</strong>
-            <span id="drop2-sub" data-i18n="drop2_sub">the official Model:Samples OS — or click to choose it</span></span>
-          <input id="file2" type="file" accept=".syx" hidden>
+  <!-- Screen 2: install. Step 1 recalls the choice; steps 2 to 4 keep the numbers the texts refer to. -->
+  <div class="screen" id="screen-install" hidden>
+    <h1 class="screen-h" id="install-h" tabindex="-1" data-i18n="install_h">Install</h1>
+
+    <section class="step done" id="step-build" aria-labelledby="h1b">
+      <header><span class="num">1</span><h2 id="h1b" data-i18n="build_h">Your build</h2>
+        <button type="button" class="lnk change" id="back" data-i18n="build_change">Change</button></header>
+      <div class="step-body"><ul class="picked" id="picked"></ul></div>
+    </section>
+
+    <section class="step" id="step-file" aria-labelledby="h2s">
+      <header><span class="num">2</span><h2 id="h2s" data-i18n="s2">Load your official OS file</h2></header>
+      <div class="step-body">
+        <label class="drop" id="drop" tabindex="0">
+          <span class="drop-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M14 3H5v18h14V8z"/><path d="M14 3v5h5"/><path class="arrow" d="M12 11v6M9.5 14.5 12 17l2.5-2.5"/></svg></span>
+          <span class="drop-t"><strong id="drop-title" data-i18n="drop_title">Drop model-cycles_OS1.13.syx here</strong>
+            <span id="drop-sub" data-i18n="drop_sub">or click to choose it</span></span>
+          <input id="file" type="file" accept=".syx" hidden>
         </label>
-        <p class="hint" data-i18n-html="get_os_samples"></p>
-        <div id="file2-status" class="status" aria-live="polite"></div>
+        <div id="file-status" class="status" aria-live="polite"></div>
+        <div id="drop2-wrap" hidden>
+          <label class="drop" id="drop2" tabindex="0">
+            <span class="drop-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M14 3H5v18h14V8z"/><path d="M14 3v5h5"/><path class="arrow" d="M12 11v6M9.5 14.5 12 17l2.5-2.5"/></svg></span>
+            <span class="drop-t"><strong id="drop2-title" data-i18n="drop2_title">Drop model-samples_OS1.13.syx here</strong>
+              <span id="drop2-sub" data-i18n="drop2_sub">the official Model:Samples OS — or click to choose it</span></span>
+            <input id="file2" type="file" accept=".syx" hidden>
+          </label>
+          <p class="hint" data-i18n-html="get_os_samples"></p>
+          <div id="file2-status" class="status" aria-live="polite"></div>
+        </div>
+        <div id="drop3-wrap" hidden>
+          <label class="drop" id="drop3" tabindex="0">
+            <span class="drop-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M14 3H5v18h14V8z"/><path d="M14 3v5h5"/><path class="arrow" d="M12 11v6M9.5 14.5 12 17l2.5-2.5"/></svg></span>
+            <span class="drop-t"><strong id="drop3-title" data-i18n="drop3_title">Drop Syntakt_OS1.42.syx here</strong>
+              <span id="drop3-sub" data-i18n="drop3_sub">the official Syntakt OS, for its engines — or click to choose it</span></span>
+            <input id="file3" type="file" accept=".syx" hidden>
+          </label>
+          <p class="hint" data-i18n-html="get_os_syntakt"></p>
+          <div id="file3-status" class="status" aria-live="polite"></div>
+        </div>
       </div>
-      <div id="drop3-wrap" hidden>
-        <label class="drop" id="drop3" tabindex="0">
-          <span class="drop-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path class="arrow" d="M12 11v6M9.5 14.5 12 17l2.5-2.5"/></svg></span>
-          <span class="drop-t"><strong id="drop3-title" data-i18n="drop3_title">Drop Syntakt_OS1.42.syx here</strong>
-            <span id="drop3-sub" data-i18n="drop3_sub">the official Syntakt OS, for its engines — or click to choose it</span></span>
-          <input id="file3" type="file" accept=".syx" hidden>
-        </label>
-        <p class="hint" data-i18n-html="get_os_syntakt"></p>
-        <div id="file3-status" class="status" aria-live="polite"></div>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- 3. Connect -->
-  <section class="step" id="step-connect" aria-labelledby="h3s">
-    <header><span class="num">3</span><h2 id="h3s" data-i18n="s3">Connect your Model:Cycles over USB</h2></header>
-    <div class="step-body">
-      <div class="seg" role="radiogroup" aria-label="Method">
-        <button type="button" role="radio" id="m-fast" aria-checked="true" data-i18n="m_fast">Fast (USB)</button>
-        <button type="button" role="radio" id="m-slow" aria-checked="false" data-i18n="m_slow">Classic (CONFIG › UPGRADE)</button>
+    <section class="step" id="step-connect" aria-labelledby="h3s">
+      <header><span class="num">3</span><h2 id="h3s" data-i18n="s3">Connect your Model:Cycles over USB</h2></header>
+      <div class="step-body">
+        <!-- the classic method (CONFIG › UPGRADE) stays in the code, off the page (CLASSIC_UI in app.js) -->
+        <div id="methods" hidden>
+          <div class="seg" role="radiogroup" aria-label="Method">
+            <button type="button" role="radio" id="m-fast" aria-checked="true" data-i18n="m_fast">Fast (USB)</button>
+            <button type="button" role="radio" id="m-slow" aria-checked="false" data-i18n="m_slow">Classic (CONFIG › UPGRADE)</button>
+          </div>
+          <p class="panel-text method-note" id="method-note"></p>
+        </div>
+        <p class="howto" id="howto-fast" data-i18n-html="hf"></p>
+        <ol class="howto" id="howto-usb" hidden>
+          <li data-i18n-html="hu1"></li>
+          <li data-i18n-html="hu2"></li>
+          <li data-i18n-html="hu3"></li>
+        </ol>
+        <div class="portrow">
+          <button type="button" class="btn primary" id="allow" data-i18n="allow">Allow MIDI access</button>
+          <select id="port" aria-label="MIDI output" hidden></select>
+          <button type="button" class="btn secondary" id="refresh" data-i18n="refresh" hidden>Refresh</button>
+        </div>
+        <div id="midi-status" class="status" aria-live="polite"></div>
       </div>
-      <p class="panel-text method-note" id="method-note"></p>
-      <ol class="howto" id="howto-fast">
-        <li data-i18n-html="hf1"></li>
-        <li data-i18n-html="hf2"></li>
-        <li data-i18n-html="hf3"></li>
-      </ol>
-      <ol class="howto" id="howto-usb" hidden>
-        <li data-i18n-html="hu1"></li>
-        <li data-i18n-html="hu2"></li>
-        <li data-i18n-html="hu3"></li>
-      </ol>
-      <div class="portrow">
-        <button type="button" class="btn primary" id="allow" data-i18n="allow">Allow MIDI access</button>
-        <select id="port" aria-label="MIDI output" hidden></select>
-        <button type="button" class="btn secondary" id="refresh" data-i18n="refresh" hidden>Refresh</button>
-      </div>
-      <div id="midi-status" class="status" aria-live="polite"></div>
-    </div>
-  </section>
+    </section>
 
-  <!-- 4. Flash -->
-  <section class="step" id="step-flash" aria-labelledby="h4s">
-    <header><span class="num">4</span><h2 id="h4s" data-i18n="s4">Flash</h2></header>
-    <div class="step-body">
-      <div class="summary" id="summary" hidden></div>
-      <label class="check"><input id="ack" type="checkbox"><span data-i18n="ack">I've backed up my projects (Elektron Transfer) and I understand that flashing is at my own risk.</span></label>
-      <div class="actions">
-        <button type="button" class="btn primary big" id="flash" disabled data-i18n="flash_btn">Flash the Model:Cycles</button>
-        <button type="button" class="btn secondary" id="stop" hidden data-i18n="stop">Stop</button>
+    <section class="step" id="step-flash" aria-labelledby="h4s">
+      <header><span class="num" id="n4">4</span><h2 id="h4s" data-i18n="s4">Flash</h2></header>
+      <div class="step-body">
+        <!-- a browser without Web MIDI: this step only offers the download, and says why -->
+        <p class="dl-note" id="dl-note" hidden></p>
+        <div class="summary" id="summary" hidden></div>
+        <label class="check" id="ack-row"><input id="ack" type="checkbox"><span data-i18n="ack">I've backed up my projects (Elektron Transfer) and I understand that flashing is at my own risk.</span></label>
+        <div class="actions">
+          <button type="button" class="btn primary big" id="flash" disabled data-i18n="flash_btn">Flash the Model:Cycles</button>
+          <button type="button" class="btn secondary" id="stop" hidden data-i18n="stop">Stop</button>
+        </div>
+        <p class="missing" id="missing" aria-live="polite"></p>
+        <div class="progress" id="progress" hidden>
+          <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="barwrap"><div id="bar"></div><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="meta"><span id="pct">0 %</span><span id="eta"></span></div>
+          <div class="callout" id="watch"></div>
+        </div>
+        <div class="result" id="result" aria-live="polite"></div>
+        <p class="alt" id="alt" hidden><a class="btn secondary" id="download" data-i18n="download">Download the .syx</a>
+          <span data-i18n-html="download_hint"></span></p>
+        <details class="trouble" id="trouble">
+          <summary data-i18n="trouble">Something went wrong?</summary>
+          <dl>
+            <dt data-i18n="t1q">Nothing happens on the Model:Cycles screen</dt><dd data-i18n-html="t1a"></dd>
+            <dt data-i18n="t2q">The transfer stops, or the Model:Cycles shows an error</dt><dd data-i18n-html="t2a"></dd>
+            <dt data-i18n="t3q">No MIDI port in the list</dt><dd data-i18n-html="t3a"></dd>
+            <dt data-i18n="t5q">The fast method doesn't find the Model:Cycles, or stops</dt><dd data-i18n-html="t5a"></dd>
+            <dt data-i18n="t4q">The update over USB is refused, or the Model:Cycles doesn't start any more</dt><dd data-i18n-html="t4a"></dd>
+          </dl>
+        </details>
       </div>
-      <p class="missing" id="missing" aria-live="polite"></p>
-      <p class="alt" id="alt" hidden><a class="btn secondary" id="download" data-i18n="download">Download the .syx</a>
-        <span data-i18n-html="download_hint"></span></p>
-      <div class="progress" id="progress" hidden>
-        <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="barwrap"><div id="bar"></div><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-        <div class="meta"><span id="pct">0 %</span><span id="eta"></span></div>
-        <div class="callout" id="watch"></div>
-      </div>
-      <div class="result" id="result" aria-live="polite"></div>
-      <details class="trouble">
-        <summary data-i18n="trouble">Something went wrong?</summary>
-        <dl>
-          <dt data-i18n="t1q">Nothing happens on the Model:Cycles screen</dt><dd data-i18n-html="t1a"></dd>
-          <dt data-i18n="t2q">The transfer stops, or the Model:Cycles shows an error</dt><dd data-i18n-html="t2a"></dd>
-          <dt data-i18n="t3q">No MIDI port in the list</dt><dd data-i18n-html="t3a"></dd>
-          <dt data-i18n="t5q">The fast method doesn't find the Model:Cycles, or stops</dt><dd data-i18n-html="t5a"></dd>
-          <dt data-i18n="t4q">The update over USB is refused, or the Model:Cycles doesn't start any more</dt><dd data-i18n-html="t4a"></dd>
-        </dl>
-      </details>
-    </div>
-  </section>
+    </section>
+  </div>
 
-  <details class="adv" id="advanced">
+  <!-- the classic method's speed and the transfer log: off the page with the classic method (CLASSIC_UI) -->
+  <details class="adv" id="advanced" hidden>
     <summary data-i18n="advanced">Advanced</summary>
     <div class="field">
       <label for="pace" data-i18n="pace">Send speed margin</label>
@@ -248,30 +256,29 @@
     </div>
     <div id="log" aria-live="off"></div>
   </details>
-
-  <section class="credits" id="credits" aria-labelledby="hcr">
-    <h2 id="hcr" data-i18n="credits">Credits</h2>
-    <p data-i18n="credits_intro">This flasher stands on the shoulders of these projects, none of which includes firmware:</p>
-    <ul id="credits-list"></ul>
-    <p data-i18n-html="credits_license">model27 is built on Modded-Cycles, released under the <a href="https://github.com/18nelli18/Modded-Cycles/blob/main/LICENSE" target="_blank" rel="noopener">MIT license</a>; model27's changes are under the same license. Third-party code keeps its own license and Elektron's firmware is not covered.</p>
-  </section>
 </main>
 
 <footer class="foot">
   <div class="wrap">
     <p><span data-i18n="privacy">Your firmware file never leaves your computer. Nothing is uploaded, no firmware is provided.</span>
       <span data-i18n-html="links"></span></p>
-    <p>Flasher <span data-rel="version">1.0</span> <span id="build-stamp"></span></p>
+    <details class="credits" id="credits">
+      <summary id="hcr" data-i18n="credits">Credits</summary>
+      <p data-i18n="credits_intro">This flasher stands on the shoulders of these projects, none of which includes firmware:</p>
+      <ul id="credits-list"></ul>
+      <p data-i18n-html="credits_license">model27 is built on Modded-Cycles, released under the <a href="https://github.com/18nelli18/Modded-Cycles/blob/main/LICENSE" target="_blank" rel="noopener">MIT license</a>; model27's changes are under the same license. Third-party code keeps its own license and Elektron's firmware is not covered.</p>
+    </details>
+    <p>Flasher <span data-rel="version">1.0</span> · <a href="../#version">what's new</a> · <a href="../guide/">guide</a> <span id="build-stamp"></span></p>
   </div>
 </footer>
 
 <!-- ?v= : same version stamp as MC_BUILD, so a browser never mixes a new page with cached old scripts -->
-<script src="../assets/release.js?v=2026-10-30-05"></script>
-<script src="../assets/site.js?v=2026-10-30-05"></script>
-<script src="builder.js?v=2026-10-30-05"></script>
-<script src="composer.js?v=2026-10-30-05"></script>
-<script src="tweaks.js?v=2026-10-30-05"></script>
-<script src="flasher.js?v=2026-10-30-05"></script>
-<script src="app.js?v=2026-10-30-05"></script>
+<script src="../assets/release.js?v=2026-10-31-10"></script>
+<script src="../assets/site.js?v=2026-10-31-10"></script>
+<script src="builder.js?v=2026-10-31-10"></script>
+<script src="composer.js?v=2026-10-31-10"></script>
+<script src="tweaks.js?v=2026-10-31-10"></script>
+<script src="flasher.js?v=2026-10-31-10"></script>
+<script src="app.js?v=2026-10-31-10"></script>
 </body>
 </html>

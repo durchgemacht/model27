@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=2026-10-30-05">
-<script>try{var l=localStorage.getItem("mc-lang"),t=localStorage.getItem("mc-theme")}catch(e){}document.documentElement.lang=l||(/^fr\b/i.test(navigator.language||"")?"fr":"en");if(t)document.documentElement.setAttribute("data-theme",t)</script>
+<link rel="stylesheet" href="assets/site.css?v=2026-10-31-10">
+<script>try{var t=localStorage.getItem("mc-theme")}catch(e){}if(t)document.documentElement.setAttribute("data-theme",t)</script>
 <style>
   .intro{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:20px 56px;align-items:end;padding:44px 0 36px}
   .intro h1{font-size:clamp(40px,5vw,64px)}
@@ -59,18 +59,17 @@
     <a href="guide/">Guide</a>
     <a href="https://github.com/durchgemacht/model27" target="_blank" rel="noopener">GitHub</a>
   </nav>
-  <div class="lang" role="group" aria-label="Language"><button type="button" data-lang="en" aria-pressed="true">EN</button>/<button type="button" data-lang="fr" aria-pressed="false">FR</button></div>
   <button type="button" class="theme-btn" aria-label="Dark mode"><svg class="moon" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 12.2A7 7 0 0 1 7.8 3.5a7 7 0 1 0 8.7 8.7Z"/></svg><svg class="sun" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.8v2.1M10 16.1v2.1M1.8 10h2.1M16.1 10h2.1M4.2 4.2l1.5 1.5M14.3 14.3l1.5 1.5M4.2 15.8l1.5-1.5M14.3 5.7l1.5-1.5"/></svg></button>
 </header>
 
 <main class="wrap">
   <section class="intro">
-    <h1><span data-l="en">The Model:Cycles, plus a little.</span><span data-l="fr">Le Model:Cycles, et un peu plus.</span></h1>
+    <h1>The Model:Cycles, plus a little.</h1>
     <div>
-      <p><span data-l="en">A small, curated firmware for the Model:Cycles: four-knob machines and a short list of mods that work together, flashed from your browser in about 30 seconds.</span><span data-l="fr">Un firmware sobre et choisi pour le Model:Cycles : des machines à quatre potards et une courte liste de mods qui vont ensemble, flashés depuis votre navigateur en une trentaine de secondes.</span></p>
+      <p>A small, curated firmware for the Model:Cycles: four-knob machines and a short list of mods that work together, flashed from your browser in about 30 seconds.</p>
       <div class="act">
-        <a class="btn" href="flasher/"><span data-l="en">Open the flasher</span><span data-l="fr">Ouvrir le flasher</span></a>
-        <a href="guide/"><span data-l="en">Read the guide</span><span data-l="fr">Lire le guide</span></a>
+        <a class="btn" href="flasher/">Open the flasher</a>
+        <a href="guide/">Read the guide</a>
       </div>
     </div>
   </section>
@@ -78,22 +77,22 @@
   <section class="bench">
     <figure>
       <div data-device="seq"></div>
-      <figcaption><span data-l="en">Hover over a mod: the controls it touches light up.</span><span data-l="fr">Survolez un mod : les commandes qu'il touche s'allument.</span></figcaption>
+      <figcaption>Hover over a mod: the controls it touches light up.</figcaption>
     </figure>
     <div>
-      <h2><span data-l="en">The mods</span><span data-l="fr">Les mods</span></h2>
+      <h2>The mods</h2>
       <ol class="mods">
         <li><a href="guide/#sampler" data-hl="lcd,machines" data-lcd="07 SAMPLE/>ONE-SHOT">
-          <b><span data-l="en">SAMPLE machine</span><span data-l="fr">Machine SAMPLE</span></b>
-          <span><span data-l="en">One sample per trig from the +Drive, picked in the PRESET browser and saved with the sound, with the Model:Samples' filter and a waveform view.</span><span data-l="fr">Un sample par trig depuis le +Drive, choisi dans le navigateur PRESET et enregistré avec le son, avec le filtre du Model:Samples et l'affichage de la forme d'onde.</span></span>
-          <em><span data-l="en">Cycles One-Shot, by durchgemacht</span><span data-l="fr">Cycles One-Shot, par durchgemacht</span></em></a></li>
+          <b>SAMPLE</b>
+          <span>One sample per trig from the +Drive, picked in the PRESET browser and saved with the sound, with the Model:Samples' filter and a waveform view.</span>
+          <em>Cycles One-Shot, by durchgemacht</em></a></li>
         <li><a href="guide/#samples" data-hl="lcd,pads" data-lcd="SAMPLES OS/>MODEL:SAMPLES">
-          <b><span data-l="en">Samples OS</span><span data-l="fr">OS Samples</span></b>
-          <span><span data-l="en">The Model:Cycles starts as a Model:Samples and plays your own samples.</span><span data-l="fr">Le Model:Cycles démarre en Model:Samples et joue vos propres samples.</span></span>
-          <em><span data-l="en">From Modded-Cycles</span><span data-l="fr">De Modded-Cycles</span></em></a></li>
+          <b>Samples OS</b>
+          <span>The Model:Cycles starts as a Model:Samples and plays your own samples.</span>
+          <em>From Modded-Cycles</em></a></li>
       </ol>
       <div class="about">
-        <p><span data-l="en">model27 is a downstream fork of <a href="https://github.com/18nelli18/Modded-Cycles" target="_blank" rel="noopener">Modded-Cycles</a>, started from its release 1.55, the last one with a mod picker. It keeps the picker and offers a curated set of cards: the maintainer's own mods first, then mods by other authors, each reviewed against the Cycles Mod Standard so that mods from different people fit together. The other Modded-Cycles mods stay buildable from the command line. Every mod and tool keeps its author's name: on the flasher's cards and credits, in the <a href="guide/#trouble">guide</a> and in the repository's third-party notices.</span><span data-l="fr">model27 est un fork dérivé de <a href="https://github.com/18nelli18/Modded-Cycles" target="_blank" rel="noopener">Modded-Cycles</a>, parti de sa version 1.55, la dernière avec une sélection de mods. Il garde la sélection et propose des cartes choisies avec soin : d'abord les mods du mainteneur, puis ceux d'autres auteurs, chacun relu selon le Cycles Mod Standard pour que des mods de personnes différentes aillent ensemble. Les autres mods de Modded-Cycles restent constructibles en ligne de commande. Chaque mod et chaque outil garde le nom de son auteur : sur les cartes et les crédits du flasher, dans le <a href="guide/#trouble">guide</a> et dans les mentions tierces du dépôt.</span></p>
+        <p>model27 is a downstream fork of <a href="https://github.com/18nelli18/Modded-Cycles" target="_blank" rel="noopener">Modded-Cycles</a>, started from its release 1.55, the last one with a mod picker. It keeps the picker and offers a curated set of cards: the maintainer's own mods first, then mods by other authors, each reviewed against the Cycles Mod Standard so that mods from different people fit together. The other Modded-Cycles mods stay buildable from the command line. Every mod and tool keeps its author's name: on the flasher's cards and credits, in the <a href="guide/#trouble">guide</a> and in the repository's third-party notices.</p>
       </div>
     </div>
   </section>
@@ -110,15 +109,14 @@
 <footer class="foot">
   <div class="wrap">
     <p>
-      <span data-l="en">Independent project, not affiliated with Elektron, nor with Modded-Cycles' maintainers. Flashing a modified firmware is at your own risk. The code is Modded-Cycles' under the MIT license, with model27's changes under the same license.</span>
-      <span data-l="fr">Projet indépendant, non affilié à Elektron ni aux mainteneurs de Modded-Cycles. Flasher un firmware modifié se fait à vos risques. Le code est celui de Modded-Cycles sous licence MIT, les changements de model27 sous la même licence.</span>
-    </p>
+      Independent project, not affiliated with Elektron, nor with Modded-Cycles' maintainers. Flashing a modified firmware is at your own risk. The code is Modded-Cycles' under the MIT license, with model27's changes under the same license.
+      </p>
     <nav aria-label="Footer"><a href="https://github.com/durchgemacht/model27" target="_blank" rel="noopener">GitHub</a><a href="https://github.com/18nelli18/Modded-Cycles" target="_blank" rel="noopener">Modded-Cycles</a></nav>
   </div>
 </footer>
 
-<script src="assets/release.js?v=2026-10-30-05"></script>
-<script src="assets/cycles.js?v=2026-10-30-05"></script>
-<script src="assets/site.js?v=2026-10-30-05"></script>
+<script src="assets/release.js?v=2026-10-31-10"></script>
+<script src="assets/cycles.js?v=2026-10-31-10"></script>
+<script src="assets/site.js?v=2026-10-31-10"></script>
 </body>
 </html>

@@ -16,7 +16,6 @@
 const $ = (id) => document.getElementById(id);
 const REPO = "https://github.com/durchgemacht/model27";   // model27; the code comes from https://github.com/18nelli18/Modded-Cycles
 const UPSTREAM = "https://github.com/18nelli18/Modded-Cycles";
-const ELEKTRON_DL = "https://www.elektron.se/support-downloads/modelcycles";
 const ELEKTRON_SMP_DL = "https://www.elektron.se/support-downloads/modelsamples";
 const ELEKTRON_ST_DL = "https://www.elektron.se/support-downloads/syntakt";
 
@@ -80,31 +79,25 @@ const REF_SAMPLES_BACK = "d63ce13dd1a5039d11b60d3f69d4e88e9d0f56fb2e7350c105ec64
 // Open-source work this flasher builds on (shown in the Credits section).
 const CREDITS = [
   { who: "18nelli18 and the Modded-Cycles contributors", repo: "18nelli18/Modded-Cycles",
-    en: "Modded-Cycles (MIT license): the tools, the build, this flasher, the notes and the mods model27 starts from; the authors of its mods are named on each card and in the guide",
-    fr: "Modded-Cycles (licence MIT) : les outils, le build, ce flasher, les notes et les mods dont model27 est parti ; les auteurs de ses mods sont nommés sur chaque carte et dans le guide" },
+    en: "Modded-Cycles (MIT license): the tools, the build, this flasher, the notes and the mods model27 starts from; the authors of its mods are named on each card and in the guide" },
   { who: "scottmetoyer", repo: "scottmetoyer/ms-multi-output",
-    en: "the 6-channel USB audio mod (MIT license)", fr: "le mod audio USB 6 canaux (licence MIT)" },
+    en: "the 6-channel USB audio mod (MIT license)" },
   { who: "drumkilla", repo: "drumkilla/elektron-model-tweaks",
-    en: "latching mute, trig preview and name scrolling, and the firmware toolkit (mtlib) this page's builder is ported from (MIT license)",
-    fr: "le mute verrouillé, l'écoute d'un pas et le défilement des noms, et la boîte à outils firmware (mtlib) dont le builder de cette page est un portage (licence MIT)" },
+    en: "latching mute, trig preview and name scrolling, and the firmware toolkit (mtlib) this page's builder is ported from (MIT license)" },
   { who: "Émilie Gillet", repo: "pichenettes/eurorack",
-    en: "the synthesis models of the MACRO machine: her Braids code (MIT license), compiled as is",
-    fr: "les modèles de synthèse de la machine MACRO : son code de Braids (licence MIT), compilé tel quel" },
+    en: "the synthesis models of the MACRO machine: her Braids code (MIT license), compiled as is" },
   { who: "Robin Schmidt", repo: "RobinSchmidt/Open303",
-    en: "the sound model of the ACID machine: Open303's TB-303 filter, envelopes and slide (MIT license), rewritten here in fixed point",
-    fr: "le modèle de son de la machine ACID : le filtre, les enveloppes et le slide de la TB-303 d'Open303 (licence MIT), réécrits ici en virgule fixe" },
+    en: "the sound model of the ACID machine: Open303's TB-303 filter, envelopes and slide (MIT license), rewritten here in fixed point" },
   { who: "TinyGregAudio", repo: "TinyGregAudio/Model-TG",
-    en: "Model-TG (MIT license), built here by its own build, with two changes: in mute mode, each track key mutes at once; with 6-channel audio, a muted track's stem is no longer cut off; Sample preview reuses a short piece of its code",
-    fr: "Model-TG (licence MIT), construit ici par son propre build, avec deux retouches : en mode mute, chaque touche de piste mute tout de suite ; avec l'audio 6 canaux, la piste USB d'une piste mutée n'est plus coupée net ; l'écoute des samples reprend un court passage de son code" },
-  { who: "gialloinfuso", repo: "gialloinfuso/PPPCCC-Model-Cycles-1.13-Mods",
-    en: "Digital Delay: the digital delay of the PPPCCC mods (MIT license), ported here to an effect, its sound bit for bit",
-    fr: "Digital Delay : le delay numérique des mods PPPCCC (licence MIT), porté ici en effet, son son au bit près" },
+    en: "Model-TG (MIT license), built here by its own build, with two changes: in mute mode, each track key mutes at once; with 6-channel audio, a muted track's stem is no longer cut off; Sample preview reuses a short piece of its code" },
+  { who: "gialloinfuso", repo: "gialloinfuso/PPPCCC-M-S-Mods",
+    en: "Digital Delay: the digital delay of the PPPCCC mods (MIT license), ported here to an effect, its sound bit for bit" },
   { who: "mischa85", repo: "mischa85/elektron-firmware-tool",
-    en: "the Elektron firmware container format and its re-signing (MIT license)", fr: "le format du conteneur firmware Elektron et sa re-signature (licence MIT)" },
+    en: "the Elektron firmware container format and its re-signing (MIT license)" },
   { who: "dagargo", repo: "dagargo/elektroid",
-    en: "the Elektron Transfer update protocol behind the fast USB sending (GPL-3.0 license)", fr: "le protocole de mise à jour d'Elektron Transfer derrière l'envoi USB rapide (licence GPL-3.0)" },
+    en: "the Elektron Transfer update protocol behind the fast USB sending (GPL-3.0 license)" },
   { who: "mxldyn", repo: "mxldyn/octamax",
-    en: "the reverse-engineering method for Elektron firmware", fr: "la méthode de rétro-ingénierie des firmwares Elektron" },
+    en: "the reverse-engineering method for Elektron firmware" },
 ];
 
 const FLASH_GUIDE = `${REPO}/blob/main/FLASH.md`;
@@ -142,828 +135,417 @@ const GUIDE_OF = {
 // Step 1's sections, in display order: the `cat` of each feature (tools/gen_flasher_tweaks.py, same list there
 // without "other"). A feature without a known cat goes to "other", at the end.
 const CATS = ["pack", "sound", "seq", "live", "screen", "io", "other"];
-const CAT_ICON = {
-  pack: '<rect x="3" y="7" width="12" height="12" rx="2.5"/><path d="M7 7V5.5A2.5 2.5 0 0 1 9.5 3H18.5A2.5 2.5 0 0 1 21 5.5v9a2.5 2.5 0 0 1-2.5 2.5H15"/>',
-  sound: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 7.5v3"/>',
-  seq: '<rect x="2.5" y="8" width="4" height="8" rx="1.2"/><rect x="10" y="8" width="4" height="8" rx="1.2" fill="currentColor"/><rect x="17.5" y="8" width="4" height="8" rx="1.2"/>',
-  live: '<path d="M7 3v18M17 3v18"/><rect x="4.5" y="13" width="5" height="4" rx="1" fill="var(--paper)"/><rect x="14.5" y="6" width="5" height="4" rx="1" fill="var(--paper)"/>',
-  screen: '<rect x="2.5" y="5" width="19" height="12" rx="2"/><path d="M6 9.5h8M6 12.5h5M9 21h6"/>',
-  io: '<path d="M9 2.5v5M15 2.5v5"/><rect x="6" y="7.5" width="12" height="6" rx="1.5"/><path d="M12 13.5v4a3 3 0 0 0 3 3h3"/>',
-  other: '<circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/>',
-};
 const SEARCH_FROM = 20;         // the search field shows from this many mods
 const PARTLY = false;           // true: an unticked engine card tested with some engines only says "Partly tested"
+// What the page offers (redesign of 2026-10-31): the Model:Cycles and the fast method. flasher/?samples, linked from the
+// guide, brings back the Official firmware and Samples OS tabs and the machine picker (Model:Samples); the classic
+// method (CONFIG › UPGRADE) and Advanced stay in the code, off the page. Nothing is removed: the smoke test still
+// drives every flow.
+const SAMPLES_UI = /[?&]samples(=|&|$)/.test((typeof location !== "undefined" && location.search) || "");
+const CLASSIC_UI = false;
 
 // ---------------------------------------------------------------------------
 // Texts
 // ---------------------------------------------------------------------------
 const T = {
-  en: {
-    title: "Model:Cycles Flasher",
-    tagline: "Install mods on your Elektron Model:Cycles or Model:Samples, right from your browser.",
-    s1: "What do you want to install?",
-    tab_mods: "Mods",
-    tab_restore: "Official firmware",
-    mods_note: 'Tick what you want: mods combine, unless a line says otherwise. <span class="tag ok">Tested</span>: tried on a real Model:Cycles. <span class="tag exp">Experimental</span>: checked in the emulator, not on the machine yet.',
-    cats_label: "Sections",
-    cat_lit: ", with ticked mods",
-    cat_pack: "Packs", cat_pack_sub: "several mods in one",
-    cat_sound: "Sounds & machines", cat_sound_sub: "new machines, filters",
-    cat_seq: "Sequencer", cat_seq_sub: "trigs, tempo, arpeggios",
-    cat_live: "Live playing", cat_live_sub: "mutes, chords, mixing",
-    cat_screen: "Screen & browsing", cat_screen_sub: "browser, display, startup",
-    cat_io: "USB & MIDI", cat_io_sub: "audio and MIDI in and out",
-    cat_other: "Other mods", cat_other_sub: "",
-    grp_n: "{n} mods", grp_n1: "1 mod",
-    grp_on: "<b>{k}</b> ticked of {n}", grp_on1: "<b>1</b> ticked of {n}",
-    details: "Details",
-    details_of: "Details: {name}",
-    also: "Also contains {n} mods of this list: {names}.",
-    need_syntakt: "+ Syntakt OS in step 2",
-    with_mod: "with {name}",
-    part_tested: "Partly tested",
-    good_to_know: "Good to know:",
-    clash_row: "<b>Doesn't go with the mod {name}</b>, already ticked: {why}. Ticking this one unticks it.",
-    clash_generic: "both change the same part of the firmware",
-    // reasons computed from what the mods declare (notes/65): the first kind of clash of the two cards
-    why_slots: "both keep their settings in the same place of the sound",
-    why_saved: "both keep their settings in the same place of the pattern or the project",
-    why_descriptors: "both add parameters in the same place",
-    why_formatter: "both change how the same value is shown",
-    why_plock: "both change how parameter locks are saved",
-    why_midi: "both answer the same MIDI controller",
-    why_ram: "both use the same memory",
-    why_combo: "both use the buttons {combo}",
-    swapped: "The mod {off} was unticked: it doesn't go with {on}.",
-    swapped_n: "The mods {off} were unticked: they don't go with {on}.",
-    quoted: "“{name}”",
-    undo: "Undo",
-    eng_group: "Engines",
-    combo_known: "Already tried on the machine: {list}.",
-    combo_all: "the {n} engines",
-    take: "Use this choice",
-    d_status: "Status",
-    d_tested: "Tested on a real Model:Cycles.",
-    d_exp: "Checked in the emulator, not tested on a Model:Cycles yet.",
-    d_combos: "Tried on the machine: {list}. The other choices are checked in the emulator.",
-    d_with_tested: "With {name}: tried on the machine with {list}.",
-    d_join_new: "With {name}: checked in the emulator, not tested on a Model:Cycles yet.",
-    d_with_tested_one: "With {name}: tried on the machine.",
-    d_contains: "Contains", d_contains_v: "{names}: nothing more to tick.",
-    d_clash: "Doesn't go with", d_clash_v: "{name}: {why}.",
-    d_file: "Extra file", d_file_syntakt: "your Syntakt OS file, asked for in step 2.",
-    d_requires: "Works with", d_requires_v: "{name} only: ticking this one ticks it too, and unticking {name} unticks this one.",
-    d_engines: "Engines",
-    d_note: "Before installing",
-    d_guide: "How to use it", read_guide: "Read the guide",
-    sel_title: "Your selection",
-    sel_n: "{n} mods", sel_n1: "1 mod",
-    sel_incl: "+ {n} included",
-    sel_exp: "{n} experimental", sel_exp1: "1 experimental",
-    sel_none: "No mod ticked yet: tick the ones to install.",
-    sel_show: "Show", sel_hide: "Hide",
-    sel_clear: "Untick all",
-    sel_remove: "Untick {name}",
-    sel_next: "Step 2",
-    sel_syntakt: "+ your Syntakt OS file, to load in step 2.",
-    search_label: "Search the mods",
-    search_ph: "Search: tempo, filter, mute…",
-    search_clear: "Clear the search",
-    found: "<b>{n}</b> of {total} mods for “{q}” · ",
-    show_all: "show all",
-    found_none: `No mod for “{q}”. An idea for a mod? <a href="${REPO}/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>. · `,
-    restore_text: "Sends your official OS file <b>unchanged</b>, to go back to the stock firmware. It is also a good first rehearsal: it checks your cable and your setup without changing anything.",
-    tab_samples: "Samples OS",
-    samples_title: "Turn your Model:Cycles into a Model:Samples",
-    samples_text: "Load and play your own samples, managed with Elektron Transfer. The page puts the official Model:Samples OS inside your Model:Cycles firmware: the startup menu, the updater and the signature of the Model:Cycles stay in place.",
-    samples_w1: "Back up your projects with Transfer first: the Model:Samples OS uses the same storage.",
-    samples_w2: `Coming back to the Model:Cycles OS goes through the startup menu, which only listens to the MIDI IN: it needs a MIDI interface (<a href="${GUIDE}#samples">guide</a>).`,
-    samples_w3: "From the Samples OS, never install a Model:Samples OS file, neither with CONFIG › UPGRADE nor when Elektron Transfer offers an update: it would also replace the startup menu of your Model:Cycles.",
-    samples_ack: "I have a MIDI interface for the way back (to the Model:Cycles MIDI IN).",
-    restore_from_samples: `Coming back from the Samples OS? Its way back is the startup menu through the MIDI IN: see the <a href="${GUIDE}#recovery">guide</a>.`,
-    tested: "Tested",
-    experimental: "Experimental",
-    credit_by: "by {who}",
-    credit_based: "based on {repo} by {who}",
-    credit_based_v: "based on {repo} by {who}",
-    credit_mod: "based on a mod by {who}",
-    s2: "Load your official OS file",
-    drop_title: "Drop model-cycles_OS1.13.syx here",
-    drop_sub: "or click to choose it",
-    drop_again: "Checked. Click or drop to use another file.",
-    get_os: `Don't have it? <a href="${ELEKTRON_DL}" target="_blank" rel="noopener">Download Model:Cycles OS 1.13 from elektron.se</a>, then unzip it.`,
-    s2_samples: "Load both official OS files",
-    drop2_title: "Drop model-samples_OS1.13.syx here",
-    drop2_sub: "the official Model:Samples OS, or click to choose it",
-    get_os_samples: `Don't have it? <a href="${ELEKTRON_SMP_DL}" target="_blank" rel="noopener">Download Model:Samples OS 1.13 from elektron.se</a>, then unzip it.`,
-    drop3_title: "Drop Syntakt_OS1.42.syx here",
-    drop3_sub: "the official Syntakt OS, for its engines, or click to choose it",
-    get_os_syntakt: `Don't have it? <a href="${ELEKTRON_ST_DL}" target="_blank" rel="noopener">Download Syntakt OS 1.42 from elektron.se</a>, then unzip it. The page reads the engines from it, on your computer: no Syntakt needed.`,
-    s3: "Connect your Model:Cycles over USB",
-    hu1: "Connect the {dev} to the computer with a USB cable and turn it on normally.",
-    hu2: "On the {dev}, press <b>SETTINGS</b>, open <b>CONFIG › UPGRADE</b> and confirm with <b>YES</b>. It now waits for the firmware.",
-    hu3: "Allow MIDI access below: the port named “{port}” is selected automatically.",
-    m_fast: "Fast (USB)",
-    m_slow: "Classic (CONFIG › UPGRADE)",
-    method_fast: "The update protocol of Elektron Transfer, straight from this page: about 30 seconds. At the end, the Model:Cycles asks you to confirm (YES or NO).",
-    method_slow: "The firmware is sent at MIDI speed while CONFIG › UPGRADE waits for it: 5 to 10 minutes. The fallback if the fast method doesn't work.",
-    hf1: "Connect the {dev} to the computer with a USB cable and turn it on normally. Stay on its usual screen: no menu to open.",
-    hf2: "Close <b>Elektron Transfer</b> and any music software that uses the {dev}: they hold its USB port.",
-    hf3: "Allow MIDI access below: the page finds the {dev} and shows its OS version.",
-    allow: "Allow MIDI access",
-    refresh: "Refresh",
-    s4: "Flash",
-    ack: "I've backed up my projects (Elektron Transfer) and I understand that flashing is at my own risk.",
-    flash_btn: "Flash the {dev}",
-    flashing: "Flashing…",
-    stop: "Stop",
-    trouble: "Something went wrong?",
-    t1q: "Nothing happens on the {dev} screen",
-    t1a: "Fast method: step 3 must say that the {dev} was found. Classic method: check that <b>CONFIG › UPGRADE</b> is open and waiting. Either way, pick the port named “{port}” in step 3 and close Elektron Transfer, Overbridge and your music software (on Windows they lock the port), then try again.",
-    t2q: "The transfer stops, or the Model:Cycles shows an error",
-    t2a: "Turn the Model:Cycles off and on and flash again. With the classic method, open <b>CONFIG › UPGRADE</b> again and set <b>Advanced › Send speed margin</b> to 2.0 first.",
-    t3q: "No MIDI port in the list",
-    t3a: "Connect the {dev} with a USB cable that carries data (some cables only charge), turn it on, then click <b>Refresh</b>. Some systems only show a new device after the browser is restarted.",
-    t5q: "The fast method doesn't find the Model:Cycles, or stops",
-    t5a: "Turn the Model:Cycles on normally (not in CONFIG › UPGRADE), close Elektron Transfer, then click <b>Refresh</b> in step 3. If it still fails, choose <b>Classic</b> in step 3: slower, but it doesn't need answers from the machine. Elektron Transfer works too: download the .syx (step 4) and drop it onto Transfer's window.",
-    t4q: "The update over USB is refused, or the Model:Cycles doesn't start any more",
-    t4a: `Recovery goes through the startup menu, which only listens to the MIDI IN: follow the <a href="${GUIDE}#recovery">guide</a> (it needs a MIDI interface). The same goes if you installed the old “6-channel reference version”, which disables updates over USB.`,
-    advanced: "Advanced",
-    pace: "Send speed margin",
-    pace_hint: "Classic method only. 1.4 by default: raise it to 2.0 if the transfer stalls.",
-    download: "Download the .syx",
-    download_hint: "to drop onto <b>Elektron Transfer</b> (just as fast), or to keep.",
-    credits: "Credits",
-    credits_intro: "This flasher stands on the shoulders of these projects, none of which includes firmware:",
-    credits_license: `model27 is built on <a href="${UPSTREAM}" target="_blank" rel="noopener">Modded-Cycles</a>, released under the <a href="${UPSTREAM}/blob/main/LICENSE" target="_blank" rel="noopener">MIT license</a>; model27's changes are under the same license. Third-party code keeps its own license and Elektron's firmware is not covered: see the <a href="${REPO}/blob/main/THIRD-PARTY-NOTICES.md" target="_blank" rel="noopener">third-party notices</a>.`,
-    privacy: "Your firmware file never leaves your computer. Nothing is uploaded, no firmware is provided.",
-    links: "Not affiliated with Elektron. Model:Cycles, Model:Samples and Syntakt are Elektron products.",
-    // dynamic
-    no_webmidi: "This browser can't talk to MIDI devices. Open this page in <b>Chrome, Edge or Opera</b> on a computer (Firefox and Safari don't support Web MIDI). You can still prepare the firmware here.",
-    insecure: "Web MIDI needs a secure page. Open the online version, or serve this folder with <code>python3 -m http.server</code>, not by double-clicking the file.",
-    reading: "Reading {name}…",
-    os_ok: "Official Model:Cycles OS 1.13 recognised.",
-    os_custom: "{name}: {device} firmware, but not the official OS 1.13 file. It will be sent <b>exactly as it is</b>.",
-    os_custom_mods: "Your mod selection is ignored for this file.",
-    os_restore_needs: "To restore the official firmware, load the official <code>model-cycles_OS1.13.syx</code>.",
-    os_bad: "This file can't be used: {err}",
-    building: "Preparing the firmware…",
-    built: "Firmware ready: {mods}.",
-    built_ref: "Checked against the reference build.",
-    built_ref_mods: "Each mod checked against its reference build.",
-    build_failed: "The firmware couldn't be prepared: {err}",
-    stock_ready: "Ready to send the official firmware, unchanged.",
-    smp_ok: "Official Model:Samples OS 1.13 recognised.",
-    smp_bad: "This is not the official Model:Samples OS 1.13 file: {err}",
-    smp_not_official: "its SHA-256 differs from the official file",
-    st_ok: "Official Syntakt OS {v} recognised.",
-    st_bad: "This is not the official Syntakt OS 1.42 file: {err}",
-    needs_syntakt: "The Syntakt engines are read from the official Syntakt OS file: drop it below.",
-    license_mit: "MIT license",
-    miss_syntakt: "Load the official Syntakt OS file (step 2).",
-    combo_tested: "This choice was tested on a real Model:Cycles.",
-    combo_new: "New choice: checked in the emulator, not tested on a Model:Cycles yet.",
-    included: "(included with {name})",
-    with_tg: "With Model-TG: its Sampler is the 7th machine and these engines come after it, from the 8th. A track set to an added machine plays another one on the version without Model-TG, and the other way round.",
-    with_macro: "With the MACRO machine: it comes right after these engines. The engines' load governor looks after its tracks too.",
-    join_name_macro: "MACRO",
-    join_label_macro: "47 models from Braids",
-    with_acid: "With the ACID machine: it comes last, after these engines and MACRO. The engines' load governor looks after its tracks too.",
-    join_name_acid: "ACID",
-    join_label_acid: "acid bass in the style of the TB-303",
-    renumber: "Before changing this choice or going back to the official firmware, set the tracks that use an added machine back to an original one (Kick…Chord): their numbers depend on the ticked engines, and MACHINES can freeze on such a track.",
-    done_syn_tg: "Then press MACHINES on a track: after Chord comes the Sampler, then {list}. Their knobs show the Syntakt's names. Model-TG's Attack, Filter and Resonance work on them too: hold MACHINE and turn DECAY, SWEEP or CONTOUR. If something goes wrong, flash the official firmware back with this page (first set the tracks that use an added machine back to an original machine).",
-    done_syn: "Then press MACHINES on a track: after Chord come {list}. Their knobs show the Syntakt's names. The 6 original machines are unchanged. If something goes wrong, flash the official firmware back with this page (first set the tracks that use an added machine back to an original machine).",
-    warn_samples_port: "This port is a Model:Samples (a Model:Cycles running the Samples OS): it refuses a Model:Cycles firmware over USB. The way back goes through the startup menu and the MIDI IN (see the full guide).",
-    samples_needs_cycles: "For the Samples OS, the first file must be the official <code>model-cycles_OS1.13.syx</code>: it provides the startup menu, updater and signature that stay on your Model:Cycles.",
-    samples_ready: "Firmware ready: the Model:Samples OS for your Model:Cycles.",
-    mods_list_samples: "Model:Samples OS (for Model:Cycles)",
-    miss_samples_cycles: "The first file must be the official Model:Cycles OS (step 2).",
-    miss_samples_file: "Load the official Model:Samples OS file (step 2).",
-    miss_samples_ack: "Confirm you have a MIDI interface for the way back (step 1).",
-    smp_dir_cyc: "Model:Cycles → Samples OS",
-    smp_dir_smp: "Model:Samples → Cycles OS",
-    smp_dir_back: "Model:Samples: back to its OS",
-    cos_title: "Turn your Model:Samples into a Model:Cycles",
-    cos_text: "Play the Model:Cycles synth engines on your Model:Samples. The page puts the official Model:Cycles OS inside your Model:Samples firmware: the startup menu, the updater and the signature of the Model:Samples stay in place. One small change in the Model:Cycles OS lets it accept the official Model:Samples OS again over USB, so the way back is in this tab too (“Model:Samples: back to its OS”).",
-    cos_w1: "Experimental: not yet tried on a real Model:Samples.",
-    cos_w2: "Back up your samples and projects with Elektron Transfer first: the Model:Cycles OS uses the same storage, and what it does with Model:Samples data is not known yet.",
-    cos_w3: "Under the Cycles OS, your Model:Samples refuses Model:Cycles firmwares (official or with mods), including an update offered by Elektron Transfer: that is expected, nothing is written. To leave, use “Model:Samples: back to its OS”.",
-    cos_w4: `If the way back over USB ever failed, the startup menu of the Model:Samples still takes its official OS through the MIDI IN, with a MIDI interface (<a href="${GUIDE}#cycles-on-samples">guide</a>).`,
-    cos_w5: "Only for a real Model:Samples. A Model:Cycles running the Samples OS (first choice of this tab) also answers as a Model:Samples and would take this firmware, then refuse Model:Cycles firmwares over USB until its startup menu reinstalls its OS through the MIDI IN.",
-    xos_reset: "If the machine does not start properly after the update, switch it off and on again. If it still hangs, hold FUNC while switching it on, then press TRIG 2 (EMPTY RESET): it clears the active project, hence the backup first.",
-    cos_ack: "I have backed up my samples and projects with Elektron Transfer, and I keep the official Model:Samples OS file for the way back.",
-    sback_title: "Give your Model:Samples its own OS back",
-    sback_text: "For a Model:Samples running the Model:Cycles OS installed from this page. The page sends the official Model:Samples OS, unchanged, packed so that the Model:Cycles OS accepts it. The machine restarts as a Model:Samples, as before.",
-    sback_w1: "A Model:Cycles OS installed another way (another tool, or a Model:Cycles build with mods) refuses this file: the machine says the update failed and nothing changes. Such an OS accepts the first choice, “Model:Cycles → Samples OS”, which brings the Model:Samples OS back; failing that, the startup menu and the MIDI IN.",
-    sback_w2: `Sent to a real Model:Cycles, it is refused and nothing changes (<a href="${GUIDE}#cycles-on-samples">guide</a>).`,
-    cos_needs_cycles: "For this choice, the first file must be the official <code>model-cycles_OS1.13.syx</code>, and the second the official Model:Samples OS.",
-    cos_ready: "Firmware ready: the Model:Cycles OS for your Model:Samples.",
-    sback_ready: "Firmware ready: the official Model:Samples OS, for the way back over USB.",
-    mods_list_cos: "Model:Cycles OS (for Model:Samples)",
-    mods_list_sback: "Official Model:Samples OS (way back)",
-    miss_cos_ack: "Confirm your backup and the official Model:Samples file (step 1).",
-    done_cos: "It restarts as a <b>Model:Cycles</b>: Elektron Transfer and your computer see a “Model:Cycles”. To go back, choose “Model:Samples: back to its OS” in the Samples OS tab.",
-    done_sback: "It restarts as a <b>Model:Samples</b>, with its own OS.",
-    dev_fwd_on_cycles: "This machine answers as a Model:Cycles: it would refuse this firmware. If it is a Model:Samples already running the Cycles OS, there is nothing to install; to go back, choose “Model:Samples: back to its OS” if that Cycles OS came from this page, or “Model:Cycles → Samples OS” if it was installed another way.",
-    dev_back_on_samples: "This machine answers as a Model:Samples OS: there is nothing to bring back. If it actually runs the Cycles OS with Model-TG, set Model-TG's Transfer identity back to CYC (or restart the machine), then try again.",
-    // Mods tab, machine picker (notes/57): always the Model:Cycles OS, packed for the machine
-    mach_q: "Your machine",
-    mach_cyc: "Model:Cycles",
-    mach_smp: "Model:Samples, on its own OS",
-    mach_cos: "Model:Samples, already on the Cycles OS",
-    mach_title: "Mods on a Model:Samples",
-    mach_text: "Whatever the machine, the page installs the Model:Cycles OS with the mods you tick; on a Model:Samples, tick the SAMPLE machine to play the samples already on the +Drive (not yet tried on a Model:Samples). The firmware is packed inside your Model:Samples' own firmware (its startup menu, updater and signature stay in place), so step 2 also asks for the official Model:Samples OS file.",
-    mach_w_smp: "Choose this when the machine runs its Model:Samples OS (it starts as a Model:Samples).",
-    mach_w_cos: "Choose this when it already runs the Model:Cycles OS installed from this page (here, or from the Samples OS tab): this is how you change mods later. That OS refuses firmwares built for a Model:Cycles: nothing is written.",
-    mach_w1: "Tested on a real Model:Samples, both choices: on its own OS, and already on the Cycles OS to change mods.",
-    mach_w2: "Back up your samples and projects with Elektron Transfer first: the Model:Cycles OS uses the same storage.",
-    mach_w3: `The way back to the Model:Samples OS stays in the Samples OS tab, “Model:Samples: back to its OS” (<a href="${GUIDE}#mods-on-samples">guide</a>).`,
-    mach_w4: "Only for a real Model:Samples. A Model:Cycles running the Samples OS also answers as a Model:Samples and would take this firmware, then refuse Model:Cycles firmwares over USB until its startup menu reinstalls its OS through the MIDI IN.",
-    mach_w5: "A Model:Cycles OS installed with another tool refuses these firmwares (nothing is written): first bring the Model:Samples OS back with the Samples OS tab's first choice, “Model:Cycles → Samples OS”, then choose “Model:Samples, on its own OS” here.",
-    mach_credit: "Original flasher by RDS (AIM), integrated into Modded Cycles by DaftMaple.",
-    sel_samples: "+ your Model:Samples OS file, to load in step 2.",
-    needs_samples_file: "Load the official Model:Samples OS below: the mods go inside its firmware.",
-    built_smp: "Packed for your Model:Samples (on its own OS).",
-    built_cos: "Packed for your Model:Samples (on the Cycles OS).",
-    for_samples: "for Model:Samples",
-    done_mach: "It restarts as a <b>Model:Cycles</b> with your mods (Elektron Transfer sees a “Model:Samples” if Model-TG's Transfer identity is on SMP). To change mods later, choose “Model:Samples, already on the Cycles OS”; to go back, the Samples OS tab.",
-    dev_mach_smp_on_cycles: "This machine answers as a Model:Cycles. If it is a Model:Samples already running the Cycles OS from this page, choose “Model:Samples, already on the Cycles OS” in step 1; if it is a Model:Cycles, choose “Model:Cycles”.",
-    dev_mach_cos_on_samples: "This machine answers as a Model:Samples. If it runs its Model:Samples OS, choose “Model:Samples, on its own OS” in step 1. If it runs the Cycles OS with Model-TG, set Device Config › Transfer back to CYC (or restart it), then Refresh.",
-    cos_mods: "To add mods, use the Mods tab and choose your Model:Samples as the machine: it installs the same Model:Cycles OS, with the mods you tick.",
-    done_samples: "It restarts as a <b>Model:Samples</b>: Elektron Transfer and your computer see a “Model:Samples”. Load your samples with Transfer.",
-    pick_one: "Select at least one mod, or switch to “Official firmware”.",
-    midi_asking: "Asking for MIDI access…",
-    midi_wait: "Waiting for your permission: Chrome shows a prompt near the address bar. Click “Allow”. If you blocked it before, click the icon left of the address and allow MIDI.",
-    midi_denied: "MIDI access was refused. Click the icon left of the address, allow MIDI, reload the page and try again.",
-    midi_none: "No MIDI output found. Connect the {dev} over USB, turn it on, then click Refresh.",
-    midi_pick_dev: "The {dev} USB port is selected.",
-    midi_no_dev: "The {dev} doesn't appear over USB. Connect it, turn it on and click Refresh.",
-    warn_not_dev: "This doesn't look like the {dev}: pick the port named “{port}”.",
-    choose_port: "Choose a MIDI output",
-    via: "via",
-    minutes: "about {m} min",
-    mods_list_restore: "Official firmware (unchanged)",
-    mods_list_custom: "Custom file {name} (sent as is)",
-    miss_file: "Load your official OS file (step 2).",
-    miss_mod: "Select a mod (step 1), or switch to “Official firmware”.",
-    miss_build: "Preparing the firmware…",
-    miss_fw: "The firmware isn't ready (step 2).",
-    miss_midi: "Allow MIDI access (step 3).",
-    miss_port: "Choose a MIDI output (step 3).",
-    miss_ack: "Tick the box above to confirm.",
-    miss_ready: "Open CONFIG › UPGRADE on the {m} (step 3), then flash.",
-    miss_ready_fast: "Ready. At the end, the {m} asks you to confirm on its screen.",
-    miss_probe: "Waiting for the Model:Cycles to answer (step 3).",
-    miss_dev: "The Model:Cycles must answer first (step 3).",
-    miss_dev_mismatch: "This machine can't take this firmware (step 3).",
-    dev_probing: "Looking for the {dev}…",
-    dev_ok: "{device} found: OS {v}.",
-    dev_none: "The {dev} doesn't answer. If CONFIG › UPGRADE is open, leave it (NO); close Elektron Transfer, then click Refresh. Or choose the classic method.",
-    dev_busy: "Its USB port is in use by another program: close Elektron Transfer, Overbridge and your music software, then click Refresh.",
-    dev_noinput: "The page sees no MIDI input from the {dev}, and the fast method needs both directions. Click Refresh, or choose the classic method.",
-    dev_samples: `This machine answers as a Model:Samples, so it would refuse this firmware. With Model-TG, set Device Config › Transfer back to CYC (or turn it off and on). Under the Samples OS, the way back is in the <a href="${GUIDE}#recovery">guide</a>. A real Model:Samples: choose it in step 1.`,
-    dev_other: "This Elektron machine ({name}) is not a Model:Cycles: nothing will be sent.",
-    dev_wrong_file: "This firmware is for a Model:Samples, and this machine is a Model:Cycles: nothing will be sent.",
-    watch_fast: "The Model:Cycles checks every block as it arrives. At the end it asks you to confirm the update on its screen.",
-    done_title_fast: "Firmware sent.",
-    after_confirm: "Now confirm the update on the {m} screen (<b>YES</b>). It then writes the firmware and restarts by itself: <b>don't turn it off</b> until it has restarted.",
-    after_gone: "The {m} is writing the firmware and restarting. <b>Don't turn it off.</b>",
-    after_back: "The {m} is back: {device} OS {v}.",
-    after_back_plain: "The {m} is back.",
-    fast_timeout: "The Model:Cycles stopped answering. Turn it off and on, then flash again. If it happens again, choose the classic method in step 3.",
-    fast_refused: "The Model:Cycles refused the update{why}. Turn it off and on and try again, or choose the classic method in step 3.",
-    fast_write: "The {dev} reported an error while receiving{why}. Turn it off and on and try again, or choose the classic method in step 3.",
-    stopped_fast: "Stopped before the end: the Model:Cycles hasn't received the whole firmware. Turn it off and on, then flash again.",
-    log_start_fast: "Fast upgrade: {kb} KB in {n} blocks to “{port}” ({device} OS {v}).",
-    watch: "Watch the Model:Cycles screen: it should show that it is receiving. If nothing happens within a few seconds, press <b>Stop</b>.",
-    keep_visible: "Keep this tab in the foreground: browsers slow down background tabs.",
-    remaining: "{t} left",
-    done_title: "Transfer complete.",
-    done_body: "The Model:Cycles now writes the firmware (<code>UPDATING FLASH</code>) and restarts by itself. <b>Don't turn it off</b> until it has restarted.",
-    done_6ch: "With the 6-channel mod, your computer should then show a Model:Cycles audio device with <b>6 input channels</b>.",
-    stopped: "Stopped. Turn the Model:Cycles off and on, open CONFIG › UPGRADE again, then flash again.",
-    send_error: "The transfer failed: {err}. Turn the Model:Cycles off and on, open CONFIG › UPGRADE again and retry.",
-    port_gone: "The MIDI output has disappeared. Check the connection and pick it again.",
-    leave: "A firmware transfer is in progress. Leaving now will interrupt it.",
-    log_start: "Sending {n} packets to “{port}”, margin {pace}.",
-  },
-  fr: {
-    title: "Flasher Model:Cycles",
-    tagline: "Installez des mods sur votre Elektron Model:Cycles ou Model:Samples, depuis votre navigateur.",
-    s1: "Que voulez-vous installer ?",
-    tab_mods: "Mods",
-    tab_restore: "Firmware officiel",
-    mods_note: 'Cochez ce que vous voulez : les mods se combinent, sauf mention contraire. <span class="tag ok">Testé</span> : essayé sur un vrai Model:Cycles. <span class="tag exp">Expérimental</span> : vérifié en émulation, pas encore sur la machine.',
-    cats_label: "Rubriques",
-    cat_lit: ", avec des mods cochés",
-    cat_pack: "Packs", cat_pack_sub: "plusieurs mods en un",
-    cat_sound: "Sons et machines", cat_sound_sub: "nouvelles machines, filtres",
-    cat_seq: "Séquenceur", cat_seq_sub: "trigs, tempo, arpèges",
-    cat_live: "Jeu en live", cat_live_sub: "mutes, accords, mixage",
-    cat_screen: "Écran et navigation", cat_screen_sub: "navigateur, affichage, démarrage",
-    cat_io: "USB et MIDI", cat_io_sub: "audio et MIDI vers l'extérieur",
-    cat_other: "Autres mods", cat_other_sub: "",
-    grp_n: "{n} mods", grp_n1: "1 mod",
-    grp_on: "<b>{k}</b> cochés sur {n}", grp_on1: "<b>1</b> coché sur {n}",
-    details: "Détails",
-    details_of: "Détails : {name}",
-    also: "Contient aussi {n} mods de la liste : {names}.",
-    need_syntakt: "+ OS Syntakt à l'étape 2",
-    with_mod: "avec {name}",
-    part_tested: "Testé en partie",
-    good_to_know: "À savoir :",
-    clash_row: "<b>Ne va pas avec le mod {name}</b>, déjà coché : {why}. Cocher celui-ci le décochera.",
-    clash_generic: "les deux modifient le même endroit du firmware",
-    why_slots: "les deux rangent leurs réglages au même endroit du son",
-    why_saved: "les deux rangent leurs réglages au même endroit du pattern ou du projet",
-    why_descriptors: "les deux ajoutent des paramètres au même endroit",
-    why_formatter: "les deux changent l'affichage de la même valeur",
-    why_plock: "les deux changent la façon dont les p-locks sont sauvegardés",
-    why_midi: "les deux répondent au même contrôleur MIDI",
-    why_ram: "les deux utilisent la même mémoire",
-    why_combo: "les deux utilisent les touches {combo}",
-    swapped: "Le mod {off} a été décoché : il ne va pas avec {on}.",
-    swapped_n: "Les mods {off} ont été décochés : ils ne vont pas avec {on}.",
-    quoted: "« {name} »",
-    undo: "Annuler",
-    eng_group: "Moteurs",
-    combo_known: "Déjà essayé sur la machine : {list}.",
-    combo_all: "les {n} moteurs",
-    take: "Prendre ce choix",
-    d_status: "État",
-    d_tested: "Testé sur un vrai Model:Cycles.",
-    d_exp: "Vérifié en émulation, pas encore testé sur un Model:Cycles.",
-    d_combos: "Essayé sur la machine : {list}. Les autres choix sont vérifiés en émulation.",
-    d_with_tested: "Avec {name} : essayé sur la machine avec {list}.",
-    d_join_new: "Avec {name} : vérifié en émulation, pas encore testé sur un Model:Cycles.",
-    d_with_tested_one: "Avec {name} : essayé sur la machine.",
-    d_contains: "Contient", d_contains_v: "{names} : rien à cocher en plus.",
-    d_clash: "Ne va pas avec", d_clash_v: "{name} : {why}.",
-    d_file: "Fichier en plus", d_file_syntakt: "votre fichier d'OS Syntakt, demandé à l'étape 2.",
-    d_requires: "Marche avec", d_requires_v: "{name} seulement : cocher celui-ci le coche aussi, et décocher {name} décoche celui-ci.",
-    d_engines: "Moteurs",
-    d_note: "Avant d'installer",
-    d_guide: "Mode d'emploi", read_guide: "Lire le guide",
-    sel_title: "Votre sélection",
-    sel_n: "{n} mods", sel_n1: "1 mod",
-    sel_incl: "+ {n} inclus",
-    sel_exp: "{n} expérimentaux", sel_exp1: "1 expérimental",
-    sel_none: "Aucun mod coché : cochez ceux à installer.",
-    sel_show: "Voir", sel_hide: "Masquer",
-    sel_clear: "Tout décocher",
-    sel_remove: "Décocher {name}",
-    sel_next: "Étape 2",
-    sel_syntakt: "+ votre fichier d'OS Syntakt, à charger à l'étape 2.",
-    search_label: "Chercher un mod",
-    search_ph: "Chercher : tempo, filtre, mute…",
-    search_clear: "Effacer la recherche",
-    found: "<b>{n}</b> mods sur {total} pour « {q} » · ",
-    show_all: "tout afficher",
-    found_none: `Aucun mod pour « {q} ». Une idée de mod ? <a href="${REPO}/issues" target="_blank" rel="noopener">Ouvrez un ticket sur GitHub</a>. · `,
-    restore_text: "Envoie votre fichier d'OS officiel <b>sans le modifier</b>, pour revenir au firmware d'origine. C'est aussi une bonne répétition avant un mod : elle vérifie le câble et l'installation sans rien changer.",
-    tab_samples: "OS Samples",
-    samples_title: "Transformer le Model:Cycles en Model:Samples",
-    samples_text: "Chargez et jouez vos propres samples, gérés avec Elektron Transfer. La page place l'OS officiel du Model:Samples dans le firmware de votre Model:Cycles : le menu de démarrage, l'updater et la signature du Model:Cycles restent en place.",
-    samples_w1: "Sauvegardez d'abord vos projets avec Transfer : l'OS du Model:Samples utilise le même stockage.",
-    samples_w2: `Le retour à l'OS du Model:Cycles passe par le menu de démarrage, qui n'écoute que le MIDI IN : il faut une interface MIDI (<a href="${GUIDE}#samples">guide</a>).`,
-    samples_w3: "Depuis l'OS Samples, n'installez jamais un fichier d'OS Model:Samples, ni par CONFIG › UPGRADE ni quand Elektron Transfer propose une mise à jour : il remplacerait aussi le menu de démarrage de votre Model:Cycles.",
-    samples_ack: "J'ai une interface MIDI pour le retour (vers le MIDI IN du Model:Cycles).",
-    restore_from_samples: `Vous revenez de l'OS Samples ? Le retour passe par le menu de démarrage et le MIDI IN : voir le <a href="${GUIDE}#recovery">guide</a>.`,
-    tested: "Testé",
-    experimental: "Expérimental",
-    credit_by: "par {who}",
-    credit_based: "d'après {repo} de {who}",
-    credit_based_v: "d'après {repo} d'{who}",
-    credit_mod: "d'après un mod de {who}",
-    s2: "Déposez votre fichier d'OS officiel",
-    drop_title: "Déposez model-cycles_OS1.13.syx ici",
-    drop_sub: "ou cliquez pour le choisir",
-    drop_again: "Vérifié. Cliquez ou déposez un autre fichier pour le remplacer.",
-    get_os: `Vous ne l'avez pas ? <a href="${ELEKTRON_DL}" target="_blank" rel="noopener">Téléchargez l'OS Model:Cycles 1.13 sur elektron.se</a>, puis dézippez-le.`,
-    s2_samples: "Déposez les deux fichiers d'OS officiels",
-    drop2_title: "Déposez model-samples_OS1.13.syx ici",
-    drop2_sub: "l'OS officiel du Model:Samples, ou cliquez pour le choisir",
-    get_os_samples: `Vous ne l'avez pas ? <a href="${ELEKTRON_SMP_DL}" target="_blank" rel="noopener">Téléchargez l'OS Model:Samples 1.13 sur elektron.se</a>, puis dézippez-le.`,
-    drop3_title: "Déposez Syntakt_OS1.42.syx ici",
-    drop3_sub: "l'OS officiel du Syntakt, pour ses moteurs, ou cliquez pour le choisir",
-    get_os_syntakt: `Vous ne l'avez pas ? <a href="${ELEKTRON_ST_DL}" target="_blank" rel="noopener">Téléchargez l'OS Syntakt 1.42 sur elektron.se</a>, puis dézippez-le. La page y lit les moteurs, sur votre ordinateur : pas besoin d'avoir un Syntakt.`,
-    s3: "Branchez le Model:Cycles en USB",
-    hu1: "Reliez le {dev} à l'ordinateur avec un câble USB et allumez-le normalement.",
-    hu2: "Sur le {dev}, appuyez sur <b>SETTINGS</b>, ouvrez <b>CONFIG › UPGRADE</b> et confirmez avec <b>YES</b>. Il attend alors le firmware.",
-    hu3: "Autorisez le MIDI ci-dessous : le port nommé « {port} » est choisi automatiquement.",
-    m_fast: "Rapide (USB)",
-    m_slow: "Classique (CONFIG › UPGRADE)",
-    method_fast: "Le protocole de mise à jour d'Elektron Transfer, directement depuis cette page : une trentaine de secondes. À la fin, le Model:Cycles demande de confirmer (YES ou NO).",
-    method_slow: "Le firmware est envoyé à la vitesse du MIDI pendant que CONFIG › UPGRADE l'attend : 5 à 10 minutes. La solution de secours si la méthode rapide ne marche pas.",
-    hf1: "Reliez le {dev} à l'ordinateur avec un câble USB et allumez-le normalement. Restez sur son écran habituel : aucun menu à ouvrir.",
-    hf2: "Fermez <b>Elektron Transfer</b> et tout logiciel de musique qui utilise le {dev} : ils occupent son port USB.",
-    hf3: "Autorisez le MIDI ci-dessous : la page trouve le {dev} et affiche sa version d'OS.",
-    allow: "Autoriser le MIDI",
-    refresh: "Rafraîchir",
-    s4: "Flasher",
-    ack: "J'ai sauvegardé mes projets (Elektron Transfer) et je comprends que je flashe à mes risques.",
-    flash_btn: "Flasher le {dev}",
-    flashing: "Flash en cours…",
-    stop: "Arrêter",
-    trouble: "Un problème ?",
-    t1q: "Rien ne se passe sur l'écran du {dev}",
-    t1a: "Méthode rapide : l'étape 3 doit indiquer que le {dev} a été trouvé. Méthode classique : vérifiez que <b>CONFIG › UPGRADE</b> est ouvert et en attente. Dans les deux cas, choisissez le port nommé « {port} » à l'étape 3 et fermez Elektron Transfer, Overbridge et votre logiciel de musique (sous Windows, ils bloquent le port), puis réessayez.",
-    t2q: "Le transfert s'arrête, ou le Model:Cycles affiche une erreur",
-    t2a: "Éteignez puis rallumez le Model:Cycles et relancez. Avec la méthode classique, rouvrez d'abord <b>CONFIG › UPGRADE</b> et réglez <b>Options avancées › Marge de vitesse</b> sur 2.0.",
-    t3q: "Aucun port MIDI dans la liste",
-    t3a: "Branchez le {dev} avec un câble USB qui transporte les données (certains câbles ne font que charger), allumez-le, puis cliquez sur <b>Rafraîchir</b>. Certains systèmes n'affichent un nouvel appareil qu'après un redémarrage du navigateur.",
-    t5q: "La méthode rapide ne trouve pas le Model:Cycles, ou s'arrête",
-    t5a: "Allumez le Model:Cycles normalement (pas dans CONFIG › UPGRADE), fermez Elektron Transfer, puis cliquez sur <b>Rafraîchir</b> à l'étape 3. Si ça échoue encore, choisissez <b>Classique</b> à l'étape 3 : plus lent, mais sans besoin de réponse de la machine. Elektron Transfer marche aussi : téléchargez le .syx (étape 4) et déposez-le sur la fenêtre de Transfer.",
-    t4q: "La mise à jour par USB est refusée, ou le Model:Cycles ne démarre plus",
-    t4a: `La récupération passe par le menu de démarrage, qui n'écoute que le MIDI IN : suivez le <a href="${GUIDE}#recovery">guide</a> (il faut une interface MIDI). C'est aussi le cas si vous aviez installé l'ancienne « version de référence » du 6 canaux, qui désactive la mise à jour par USB.`,
-    advanced: "Options avancées",
-    pace: "Marge de vitesse d'envoi",
-    pace_hint: "Méthode classique seulement. 1.4 par défaut : montez à 2.0 si le transfert se bloque.",
-    download: "Télécharger le .syx",
-    download_hint: "à déposer sur <b>Elektron Transfer</b> (aussi rapide), ou à garder.",
-    credits: "Crédits",
-    credits_intro: "Ce flasher s'appuie sur ces projets, dont aucun ne contient de firmware :",
-    credits_license: `model27 est construit sur <a href="${UPSTREAM}" target="_blank" rel="noopener">Modded-Cycles</a>, publié sous <a href="${UPSTREAM}/blob/main/LICENSE" target="_blank" rel="noopener">licence MIT</a> ; les changements de model27 sont sous la même licence. Le code tiers garde sa propre licence et le firmware d'Elektron n'est pas couvert : voir les <a href="${REPO}/blob/main/THIRD-PARTY-NOTICES.md" target="_blank" rel="noopener">mentions tierces</a>.`,
-    privacy: "Votre fichier firmware ne quitte jamais votre ordinateur. Rien n'est envoyé en ligne, aucun firmware n'est fourni.",
-    links: "Projet non affilié à Elektron. Model:Cycles, Model:Samples et Syntakt sont des produits Elektron.",
-    no_webmidi: "Ce navigateur ne sait pas parler aux appareils MIDI. Ouvrez cette page dans <b>Chrome, Edge ou Opera</b> sur ordinateur (Firefox et Safari ne gèrent pas le Web MIDI). Vous pouvez quand même préparer le firmware ici.",
-    insecure: "Le Web MIDI exige une page sécurisée. Ouvrez la version en ligne, ou servez ce dossier avec <code>python3 -m http.server</code>, pas par double-clic sur le fichier.",
-    reading: "Lecture de {name}…",
-    os_ok: "OS officiel Model:Cycles 1.13 reconnu.",
-    os_custom: "{name} : firmware {device}, mais pas le fichier d'OS 1.13 officiel. Il sera envoyé <b>tel quel</b>.",
-    os_custom_mods: "Votre sélection de mods est ignorée pour ce fichier.",
-    os_restore_needs: "Pour restaurer le firmware officiel, déposez le fichier officiel <code>model-cycles_OS1.13.syx</code>.",
-    os_bad: "Fichier inutilisable : {err}",
-    building: "Préparation du firmware…",
-    built: "Firmware prêt : {mods}.",
-    built_ref: "Conforme au build de référence.",
-    built_ref_mods: "Chaque mod est conforme à son build de référence.",
-    build_failed: "Impossible de préparer le firmware : {err}",
-    stock_ready: "Prêt à envoyer le firmware officiel, sans modification.",
-    smp_ok: "OS officiel Model:Samples 1.13 reconnu.",
-    smp_bad: "Ce n'est pas le fichier officiel de l'OS Model:Samples 1.13 : {err}",
-    smp_not_official: "son SHA-256 diffère du fichier officiel",
-    st_ok: "OS officiel Syntakt {v} reconnu.",
-    st_bad: "Ce n'est pas le fichier officiel de l'OS Syntakt 1.42 : {err}",
-    needs_syntakt: "Les moteurs du Syntakt se lisent dans le fichier officiel de l'OS Syntakt : déposez-le ci-dessous.",
-    license_mit: "licence MIT",
-    miss_syntakt: "Déposez le fichier officiel de l'OS Syntakt (étape 2).",
-    combo_tested: "Ce choix a été testé sur un vrai Model:Cycles.",
-    combo_new: "Nouveau choix : vérifié en émulation, pas encore testé sur un Model:Cycles.",
-    included: "(inclus avec {name})",
-    with_tg: "Avec Model-TG : son Sampler est la 7e machine et ces moteurs viennent après lui, à partir de la 8e. Une piste réglée sur une machine ajoutée en joue une autre sur la version sans Model-TG, et inversement.",
-    with_macro: "Avec la machine MACRO : elle vient juste après ces moteurs. Le régulateur de charge des moteurs veille aussi sur ses pistes.",
-    join_name_macro: "MACRO",
-    join_label_macro: "47 modèles de Braids",
-    with_acid: "Avec la machine ACID : elle vient en dernier, après ces moteurs et MACRO. Le régulateur de charge des moteurs veille aussi sur ses pistes.",
-    join_name_acid: "ACID",
-    join_label_acid: "basse acide à la manière de la TB-303",
-    renumber: "Avant de changer de choix ou de revenir au firmware officiel, remettez sur une machine d'origine (de Kick à Chord) les pistes qui utilisent une machine ajoutée : leurs numéros dépendent des moteurs cochés, et MACHINES peut geler sur une telle piste.",
-    done_syn_tg: "Appuyez ensuite sur MACHINES sur une piste : après Chord vient le Sampler, puis {list}. Leurs potards affichent les noms du Syntakt. Attack, Filtre et Résonance de Model-TG y fonctionnent aussi : maintenez MACHINE et tournez DECAY, SWEEP ou CONTOUR. En cas de problème, reflashez le firmware officiel avec cette page (remettez d'abord sur une machine d'origine les pistes qui utilisent une machine ajoutée).",
-    done_syn: "Appuyez ensuite sur MACHINES sur une piste : après Chord viennent {list}. Leurs potards affichent les noms du Syntakt. Les 6 machines d'origine ne changent pas. En cas de problème, reflashez le firmware officiel avec cette page (remettez d'abord sur une machine d'origine les pistes qui utilisent une machine ajoutée).",
-    warn_samples_port: "Ce port est un Model:Samples (un Model:Cycles sous l'OS Samples) : il refuse un firmware Model:Cycles par USB. Le retour passe par le menu de démarrage et le MIDI IN (voir le guide).",
-    samples_needs_cycles: "Pour l'OS Samples, le premier fichier doit être le <code>model-cycles_OS1.13.syx</code> officiel : il fournit le menu de démarrage, l'updater et la signature qui restent sur votre Model:Cycles.",
-    samples_ready: "Firmware prêt : l'OS Model:Samples pour votre Model:Cycles.",
-    mods_list_samples: "OS Model:Samples (pour Model:Cycles)",
-    miss_samples_cycles: "Le premier fichier doit être l'OS officiel du Model:Cycles (étape 2).",
-    miss_samples_file: "Déposez le fichier officiel de l'OS Model:Samples (étape 2).",
-    miss_samples_ack: "Confirmez que vous avez une interface MIDI pour le retour (étape 1).",
-    smp_dir_cyc: "Model:Cycles → OS Samples",
-    smp_dir_smp: "Model:Samples → OS Cycles",
-    smp_dir_back: "Model:Samples : retour à son OS",
-    cos_title: "Transformer le Model:Samples en Model:Cycles",
-    cos_text: "Jouez les moteurs de synthèse du Model:Cycles sur votre Model:Samples. La page place l'OS officiel du Model:Cycles dans le firmware de votre Model:Samples : le menu de démarrage, l'updater et la signature du Model:Samples restent en place. Une petite modification de l'OS du Model:Cycles lui fait accepter à nouveau l'OS officiel du Model:Samples par USB : le retour se fait aussi depuis cet onglet (« Model:Samples : retour à son OS »).",
-    cos_w1: "Expérimental : pas encore essayé sur un vrai Model:Samples.",
-    cos_w2: "Sauvegardez d'abord vos samples et vos projets avec Elektron Transfer : l'OS du Model:Cycles utilise le même stockage, et on ne sait pas encore ce qu'il fait des données du Model:Samples.",
-    cos_w3: "Sous l'OS Cycles, votre Model:Samples refuse les firmwares Model:Cycles (officiels ou avec mods), y compris une mise à jour proposée par Elektron Transfer : c'est voulu, rien n'est écrit. Pour revenir, utilisez « Model:Samples : retour à son OS ».",
-    cos_w4: `Si le retour par USB échouait un jour, le menu de démarrage du Model:Samples accepte toujours son OS officiel par le MIDI IN, avec une interface MIDI (<a href="${GUIDE}#cycles-on-samples">guide</a>).`,
-    cos_w5: "Seulement pour un vrai Model:Samples. Un Model:Cycles sous l'OS Samples (premier choix de cet onglet) répond lui aussi Model:Samples et prendrait ce firmware, puis refuserait les firmwares Model:Cycles par USB jusqu'à ce que son menu de démarrage réinstalle son OS par le MIDI IN.",
-    xos_reset: "Si la machine démarre mal après la mise à jour, éteignez-la et rallumez-la. Si elle bloque encore, maintenez FUNC à l'allumage puis appuyez sur TRIG 2 (EMPTY RESET) : il vide le projet actif, d'où la sauvegarde d'abord.",
-    cos_ack: "J'ai sauvegardé mes samples et mes projets avec Elektron Transfer, et je garde le fichier officiel de l'OS Model:Samples pour le retour.",
-    sback_title: "Rendre au Model:Samples son propre OS",
-    sback_text: "Pour un Model:Samples sous l'OS du Model:Cycles installé depuis cette page. La page envoie l'OS officiel du Model:Samples, sans le modifier, emballé pour que l'OS du Model:Cycles l'accepte. La machine redémarre en Model:Samples, comme avant.",
-    sback_w1: "Un OS Model:Cycles installé autrement (avec un autre outil, ou un build Model:Cycles avec mods) refuse ce fichier : la machine dit que la mise à jour a échoué et rien ne change. Un tel OS accepte le premier choix, « Model:Cycles → OS Samples », qui rend l'OS du Model:Samples ; à défaut, le menu de démarrage et le MIDI IN.",
-    sback_w2: `Envoyé à un vrai Model:Cycles, il est refusé et rien ne change (<a href="${GUIDE}#cycles-on-samples">guide</a>).`,
-    cos_needs_cycles: "Pour ce choix, le premier fichier doit être le <code>model-cycles_OS1.13.syx</code> officiel, et le second l'OS officiel du Model:Samples.",
-    cos_ready: "Firmware prêt : l'OS du Model:Cycles pour votre Model:Samples.",
-    sback_ready: "Firmware prêt : l'OS officiel du Model:Samples, pour le retour par USB.",
-    mods_list_cos: "OS Model:Cycles (pour Model:Samples)",
-    mods_list_sback: "OS Model:Samples officiel (retour)",
-    miss_cos_ack: "Confirmez votre sauvegarde et le fichier officiel du Model:Samples (étape 1).",
-    done_cos: "Il redémarre en <b>Model:Cycles</b> : Elektron Transfer et votre ordinateur voient un « Model:Cycles ». Pour revenir, choisissez « Model:Samples : retour à son OS » dans l'onglet OS Samples.",
-    done_sback: "Il redémarre en <b>Model:Samples</b>, avec son propre OS.",
-    dev_fwd_on_cycles: "Cette machine répond comme un Model:Cycles : elle refuserait ce firmware. Si c'est un Model:Samples déjà sous l'OS Cycles, il n'y a rien à installer ; pour revenir, choisissez « Model:Samples : retour à son OS » si cet OS Cycles vient de cette page, ou « Model:Cycles → OS Samples » s'il a été installé autrement.",
-    dev_back_on_samples: "Cette machine répond comme l'OS du Model:Samples : il n'y a rien à rendre. Si elle tourne en fait sous l'OS Cycles avec Model-TG, remettez l'identité Transfer de Model-TG sur CYC (ou redémarrez la machine), puis réessayez.",
-    mach_q: "Votre machine",
-    mach_cyc: "Model:Cycles",
-    mach_smp: "Model:Samples, sous son OS",
-    mach_cos: "Model:Samples, déjà sous l'OS Cycles",
-    mach_title: "Des mods sur un Model:Samples",
-    mach_text: "Quelle que soit la machine, la page installe l'OS du Model:Cycles avec les mods cochés ; sur un Model:Samples, cochez la machine SAMPLE pour jouer les samples déjà sur le +Drive (pas encore essayé sur un Model:Samples). Le firmware est emballé dans le firmware de votre Model:Samples (son menu de démarrage, son updater et sa signature restent en place) : l'étape 2 demande donc aussi le fichier officiel de l'OS Model:Samples.",
-    mach_w_smp: "Choisissez ceci quand la machine tourne sous son OS Model:Samples (elle démarre en Model:Samples).",
-    mach_w_cos: "Choisissez ceci quand elle tourne déjà sous l'OS du Model:Cycles installé depuis cette page (ici, ou depuis l'onglet OS Samples) : c'est ainsi qu'on change de mods plus tard. Cet OS refuse les firmwares construits pour un Model:Cycles : rien n'est écrit.",
-    mach_w1: "Testé sur un vrai Model:Samples, les deux choix : sous son OS, et déjà sous l'OS Cycles pour changer de mods.",
-    mach_w2: "Sauvegardez d'abord vos samples et vos projets avec Elektron Transfer : l'OS du Model:Cycles utilise le même stockage.",
-    mach_w3: `Le retour à l'OS du Model:Samples reste dans l'onglet OS Samples, « Model:Samples : retour à son OS » (<a href="${GUIDE}#mods-on-samples">guide</a>).`,
-    mach_w4: "Seulement pour un vrai Model:Samples. Un Model:Cycles sous l'OS Samples répond lui aussi Model:Samples et prendrait ce firmware, puis refuserait les firmwares Model:Cycles par USB jusqu'à ce que son menu de démarrage réinstalle son OS par le MIDI IN.",
-    mach_w5: "Un OS Model:Cycles installé avec un autre outil refuse ces firmwares (rien n'est écrit) : rendez d'abord l'OS du Model:Samples avec le premier choix de l'onglet OS Samples, « Model:Cycles → OS Samples », puis choisissez ici « Model:Samples, sous son OS ».",
-    mach_credit: "Flasher d'origine de RDS (AIM), intégré à Modded Cycles par DaftMaple.",
-    sel_samples: "+ votre fichier d'OS Model:Samples, à charger à l'étape 2.",
-    needs_samples_file: "Déposez l'OS officiel du Model:Samples ci-dessous : les mods vont dans son firmware.",
-    built_smp: "Emballé pour votre Model:Samples (sous son OS).",
-    built_cos: "Emballé pour votre Model:Samples (sous l'OS Cycles).",
-    for_samples: "pour Model:Samples",
-    done_mach: "Il redémarre en <b>Model:Cycles</b> avec vos mods (Elektron Transfer voit un « Model:Samples » si l'identité Transfer de Model-TG est sur SMP). Pour changer de mods plus tard, choisissez « Model:Samples, déjà sous l'OS Cycles » ; pour revenir, l'onglet OS Samples.",
-    dev_mach_smp_on_cycles: "Cette machine répond comme un Model:Cycles. Si c'est un Model:Samples déjà sous l'OS Cycles de cette page, choisissez « Model:Samples, déjà sous l'OS Cycles » à l'étape 1 ; si c'est un Model:Cycles, choisissez « Model:Cycles ».",
-    dev_mach_cos_on_samples: "Cette machine répond comme un Model:Samples. Si elle tourne sous son OS Model:Samples, choisissez « Model:Samples, sous son OS » à l'étape 1. Si elle tourne sous l'OS Cycles avec Model-TG, remettez Device Config › Transfer sur CYC (ou redémarrez-la), puis Rafraîchir.",
-    cos_mods: "Pour ajouter des mods, utilisez l'onglet Mods et choisissez votre Model:Samples comme machine : il installe le même OS du Model:Cycles, avec les mods cochés.",
-    done_samples: "Il redémarre en <b>Model:Samples</b> : Elektron Transfer et votre ordinateur voient un « Model:Samples ». Chargez vos samples avec Transfer.",
-    pick_one: "Cochez au moins un mod, ou passez sur « Firmware officiel ».",
-    midi_asking: "Demande d'accès MIDI…",
-    midi_wait: "En attente de votre autorisation : Chrome affiche une demande près de la barre d'adresse. Cliquez sur « Autoriser ». Si vous l'avez bloquée, cliquez sur l'icône à gauche de l'adresse et autorisez le MIDI.",
-    midi_denied: "Accès MIDI refusé. Cliquez sur l'icône à gauche de l'adresse, autorisez le MIDI, rechargez la page et réessayez.",
-    midi_none: "Aucune sortie MIDI. Branchez le {dev} en USB, allumez-le, puis cliquez sur Rafraîchir.",
-    midi_pick_dev: "Le port USB du {dev} est sélectionné.",
-    midi_no_dev: "Le {dev} n'apparaît pas en USB. Branchez-le, allumez-le et cliquez sur Rafraîchir.",
-    warn_not_dev: "Ce port ne semble pas être le {dev} : choisissez le port nommé « {port} ».",
-    choose_port: "Choisissez une sortie MIDI",
-    via: "via",
-    minutes: "environ {m} min",
-    mods_list_restore: "Firmware officiel (sans modification)",
-    mods_list_custom: "Fichier {name} (envoyé tel quel)",
-    miss_file: "Déposez votre fichier d'OS officiel (étape 2).",
-    miss_mod: "Cochez un mod (étape 1), ou passez sur « Firmware officiel ».",
-    miss_build: "Préparation du firmware…",
-    miss_fw: "Le firmware n'est pas prêt (étape 2).",
-    miss_midi: "Autorisez le MIDI (étape 3).",
-    miss_port: "Choisissez une sortie MIDI (étape 3).",
-    miss_ack: "Cochez la case ci-dessus pour confirmer.",
-    miss_ready: "Ouvrez CONFIG › UPGRADE sur le {m} (étape 3), puis flashez.",
-    miss_ready_fast: "Prêt. À la fin, le {m} demande de confirmer sur son écran.",
-    miss_probe: "En attente d'une réponse du Model:Cycles (étape 3).",
-    miss_dev: "Le Model:Cycles doit d'abord répondre (étape 3).",
-    miss_dev_mismatch: "Cette machine ne peut pas recevoir ce firmware (étape 3).",
-    dev_probing: "Recherche du {dev}…",
-    dev_ok: "{device} trouvé : OS {v}.",
-    dev_none: "Le {dev} ne répond pas. Si CONFIG › UPGRADE est ouvert, quittez-le (NO) ; fermez Elektron Transfer, puis cliquez sur Rafraîchir. Ou choisissez la méthode classique.",
-    dev_busy: "Son port USB est occupé par un autre programme : fermez Elektron Transfer, Overbridge et votre logiciel de musique, puis cliquez sur Rafraîchir.",
-    dev_noinput: "La page ne voit pas d'entrée MIDI venant du {dev}, or la méthode rapide a besoin des deux sens. Cliquez sur Rafraîchir, ou choisissez la méthode classique.",
-    dev_samples: `Cette machine répond comme un Model:Samples : elle refuserait ce firmware. Avec Model-TG, remettez Device Config › Transfer sur CYC (ou éteignez-la et rallumez-la). Sous l'OS Samples, le retour est expliqué dans le <a href="${GUIDE}#recovery">guide</a>. Un vrai Model:Samples : choisissez-le à l'étape 1.`,
-    dev_other: "Cette machine Elektron ({name}) n'est pas un Model:Cycles : rien ne sera envoyé.",
-    dev_wrong_file: "Ce firmware est pour un Model:Samples, et cette machine est un Model:Cycles : rien ne sera envoyé.",
-    watch_fast: "Le Model:Cycles vérifie chaque bloc à son arrivée. À la fin, il demande de confirmer la mise à jour sur son écran.",
-    done_title_fast: "Firmware envoyé.",
-    after_confirm: "Confirmez maintenant la mise à jour sur l'écran du {m} (<b>YES</b>). Il écrit alors le firmware et redémarre tout seul : <b>ne l'éteignez pas</b> avant qu'il ait redémarré.",
-    after_gone: "Le {m} écrit le firmware et redémarre. <b>Ne l'éteignez pas.</b>",
-    after_back: "Le {m} est de retour : {device} OS {v}.",
-    after_back_plain: "Le {m} est de retour.",
-    fast_timeout: "Le Model:Cycles ne répond plus. Éteignez-le puis rallumez-le, et relancez. Si ça recommence, choisissez la méthode classique à l'étape 3.",
-    fast_refused: "Le Model:Cycles a refusé la mise à jour{why}. Éteignez-le puis rallumez-le et réessayez, ou choisissez la méthode classique à l'étape 3.",
-    fast_write: "Le {dev} a signalé une erreur pendant la réception{why}. Éteignez-le puis rallumez-le et réessayez, ou choisissez la méthode classique à l'étape 3.",
-    stopped_fast: "Arrêté avant la fin : le Model:Cycles n'a pas reçu tout le firmware. Éteignez-le puis rallumez-le, et relancez.",
-    log_start_fast: "Mise à jour rapide : {kb} Ko en {n} blocs vers « {port} » ({device} OS {v}).",
-    watch: "Regardez l'écran du Model:Cycles : il doit indiquer qu'il reçoit. S'il ne se passe rien en quelques secondes, cliquez sur <b>Arrêter</b>.",
-    keep_visible: "Gardez cet onglet au premier plan : les navigateurs ralentissent les onglets en arrière-plan.",
-    remaining: "encore {t}",
-    done_title: "Transfert terminé.",
-    done_body: "Le Model:Cycles écrit maintenant le firmware (<code>UPDATING FLASH</code>) puis redémarre tout seul. <b>Ne l'éteignez pas</b> avant qu'il ait redémarré.",
-    done_6ch: "Avec le mod 6 canaux, votre ordinateur doit ensuite voir un périphérique audio Model:Cycles avec <b>6 canaux d'entrée</b>.",
-    stopped: "Arrêté. Éteignez puis rallumez le Model:Cycles, rouvrez CONFIG › UPGRADE, puis relancez.",
-    send_error: "Le transfert a échoué : {err}. Éteignez puis rallumez le Model:Cycles, rouvrez CONFIG › UPGRADE et réessayez.",
-    port_gone: "La sortie MIDI a disparu. Vérifiez le branchement et choisissez-la de nouveau.",
-    leave: "Un flash est en cours. Quitter maintenant l'interromprait.",
-    log_start: "Envoi de {n} paquets vers « {port} », marge {pace}.",
-  },
+  title: "Teach your Cycles new tricks",
+  tagline: "New machines, effects and mods for your Model:Cycles. Pick what you like and install it over USB in about 30 seconds.",
+  tab_mods: "Mods",
+  tab_restore: "Official firmware",
+  kind_machine: "Machines", kind_effect: "Effects", kind_mod: "Mods",
+  // a section's one line: what all its cards share (the effect slots are model27's, notes/68)
+  kind_effect_sub: "Hold TRACK and turn Delay Time or Reverb Size to switch between the stock effect and the ones you install. Your choice is saved with each pattern.",
+  // the sections of the old list, still searched (search from SEARCH_FROM cards)
+  cat_pack: "Packs", cat_sound: "Sounds & machines", cat_seq: "Sequencer", cat_live: "Live playing",
+  cat_screen: "Screen & browsing", cat_io: "USB & MIDI", cat_other: "Other mods",
+  details: "Details", details_close: "Close",
+  details_of: "Details: {name}",
+  also: "Also contains {n} mods of this list: {names}.",
+  need_syntakt: "+ Syntakt OS in step 2",
+  with_mod: "with {name}",
+  part_tested: "Partly tested",
+  good_to_know: "Good to know:",
+  clash_row: "<b>Doesn't go with the mod {name}</b>, already ticked: {why}. Ticking this one unticks it.",
+  clash_generic: "both change the same part of the firmware",
+  // reasons computed from what the mods declare (notes/65): the first kind of clash of the two cards
+  why_slots: "both keep their settings in the same place of the sound",
+  why_saved: "both keep their settings in the same place of the pattern or the project",
+  why_descriptors: "both add parameters in the same place",
+  why_formatter: "both change how the same value is shown",
+  why_plock: "both change how parameter locks are saved",
+  why_midi: "both answer the same MIDI controller",
+  why_ram: "both use the same memory",
+  why_combo: "both use the buttons {combo}",
+  swapped: "The mod {off} was unticked: it doesn't go with {on}.",
+  swapped_n: "The mods {off} were unticked: they don't go with {on}.",
+  quoted: "“{name}”",
+  undo: "Undo",
+  eng_group: "Engines",
+  combo_known: "Already tried on the machine: {list}.",
+  combo_all: "the {n} engines",
+  take: "Use this choice",
+  d_contains: "Contains", d_contains_v: "{names}: nothing more to tick.",
+  d_clash: "Doesn't go with", d_clash_v: "{name}: {why}.",
+  d_file: "Extra file", d_file_syntakt: "your Syntakt OS file, asked for in step 2.",
+  d_requires: "Works with", d_requires_v: "{name} only: ticking this one ticks it too, and unticking {name} unticks this one.",
+  d_engines: "Engines",
+  d_note: "Good to know",
+  d_guide: "How to use it", read_guide: "Read the guide",
+  sel_title: "Your selection",
+  sel_exp: "{n} experimental", sel_exp1: "1 experimental",
+  sel_go: "Install {n} mods", sel_go1: "Install 1 mod",
+  sel_pick: "Pick a card to start",
+  sel_next: "Continue",
+  go_restore: "Back to the official firmware",
+  go_restore_sub: "Installs your OS file unchanged. Also a safe first try of your cable and setup.",
+  build_h: "Your build",
+  build_change: "Change",
+  install_h: "Install",
+  sel_syntakt: "+ your Syntakt OS file, to load in step 2.",
+  search_label: "Search the mods",
+  search_ph: "Search: tempo, filter, mute…",
+  search_clear: "Clear the search",
+  found: "<b>{n}</b> of {total} mods for “{q}” · ",
+  show_all: "show all",
+  found_none: `No mod for “{q}”. An idea for a mod? <a href="${REPO}/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>. · `,
+  restore_text: "Sends your official OS file <b>unchanged</b>, to go back to the stock firmware. It is also a good first rehearsal: it checks your cable and your setup without changing anything.",
+  tab_samples: "Samples OS",
+  samples_title: "Turn your Model:Cycles into a Model:Samples",
+  samples_text: "Load and play your own samples, managed with Elektron Transfer. The page puts the official Model:Samples OS inside your Model:Cycles firmware: the startup menu, the updater and the signature of the Model:Cycles stay in place.",
+  samples_w1: "Back up your projects with Transfer first: the Model:Samples OS uses the same storage.",
+  samples_w2: `Coming back to the Model:Cycles OS goes through the startup menu, which only listens to the MIDI IN: it needs a MIDI interface (<a href="${GUIDE}#samples">guide</a>).`,
+  samples_w3: "From the Samples OS, never install a Model:Samples OS file, neither with CONFIG › UPGRADE nor when Elektron Transfer offers an update: it would also replace the startup menu of your Model:Cycles.",
+  samples_ack: "I have a MIDI interface for the way back (to the Model:Cycles MIDI IN).",
+  restore_from_samples: `Coming back from the Samples OS? Its way back is the startup menu through the MIDI IN: see the <a href="${GUIDE}#recovery">guide</a>.`,
+  tested: "Tested",
+  experimental: "Experimental",
+  credit_by: "by {who}",
+  credit_based: "based on {repo} by {who}",
+  credit_based_name: "based on {repo}",
+  credit_mod: "based on a mod by {who}",
+  s2: "Load your official OS file",
+  drop_title: "Drop model-cycles_OS1.13.syx here",
+  drop_sub: "or click to choose it",
+  drop_again: "Checked. Click or drop to use another file.",
+  s2_samples: "Load both official OS files",
+  drop2_title: "Drop model-samples_OS1.13.syx here",
+  drop2_sub: "the official Model:Samples OS, or click to choose it",
+  get_os_samples: `Don't have it? <a href="${ELEKTRON_SMP_DL}" target="_blank" rel="noopener">Download Model:Samples OS 1.13 from elektron.se</a>, then unzip it.`,
+  drop3_title: "Drop Syntakt_OS1.42.syx here",
+  drop3_sub: "the official Syntakt OS, for its engines, or click to choose it",
+  get_os_syntakt: `Don't have it? <a href="${ELEKTRON_ST_DL}" target="_blank" rel="noopener">Download Syntakt OS 1.42 from elektron.se</a>, then unzip it. The page reads the engines from it, on your computer: no Syntakt needed.`,
+  s3: "Connect your Model:Cycles over USB",
+  hu1: "Connect the {dev} to the computer with a USB cable and turn it on normally.",
+  hu2: "On the {dev}, press <b>SETTINGS</b>, open <b>CONFIG › UPGRADE</b> and confirm with <b>YES</b>. It now waits for the firmware.",
+  hu3: "Allow MIDI access below: the port named “{port}” is selected automatically.",
+  m_fast: "Fast (USB)",
+  m_slow: "Classic (CONFIG › UPGRADE)",
+  method_fast: "The update protocol of Elektron Transfer, straight from this page: about 30 seconds. At the end, the Model:Cycles asks you to confirm (YES or NO).",
+  method_slow: "The firmware is sent at MIDI speed while CONFIG › UPGRADE waits for it: 5 to 10 minutes. The fallback if the fast method doesn't work.",
+  hf: "Connect the {dev} with a USB cable and turn it on normally, on its usual screen. Close <b>Elektron Transfer</b> and any music software that uses it: they hold its USB port.",
+  allow: "Allow MIDI access",
+  refresh: "Refresh",
+  s4: "Flash",
+  ack: "I've backed up my projects (Elektron Transfer) and I understand that flashing is at my own risk.",
+  flash_btn: "Flash the {dev}",
+  flashing: "Flashing…",
+  stop: "Stop",
+  trouble: "Something went wrong?",
+  t1q: "Nothing happens on the {dev} screen",
+  t1a: "Step 3 must say that the {dev} was found. Pick the port named “{port}” there and close Elektron Transfer, Overbridge and your music software (on Windows they lock the port), then try again.",
+  t2q: "The transfer stops, or the Model:Cycles shows an error",
+  t2a: "Turn the Model:Cycles off and on and flash again. If it stops again, download the .syx (step 4) and install it with Elektron Transfer.",
+  t3q: "No MIDI port in the list",
+  t3a: "Connect the {dev} with a USB cable that carries data (some cables only charge), turn it on, then click <b>Refresh</b>. Some systems only show a new device after the browser is restarted.",
+  t5q: "The fast method doesn't find the Model:Cycles, or stops",
+  t5a: "Turn the Model:Cycles on normally (not in CONFIG › UPGRADE), close Elektron Transfer, then click <b>Refresh</b> in step 3. If it still fails, download the .syx (step 4) and drop it onto Elektron Transfer's window: it installs it just as fast.",
+  t4q: "The update over USB is refused, or the Model:Cycles doesn't start any more",
+  t4a: `Recovery goes through the startup menu, which only listens to the MIDI IN: follow the <a href="${GUIDE}#recovery">guide</a> (it needs a MIDI interface). The same goes if you installed the old “6-channel reference version”, which disables updates over USB.`,
+  advanced: "Advanced",
+  pace: "Send speed margin",
+  pace_hint: "Classic method only. 1.4 by default: raise it to 2.0 if the transfer stalls.",
+  download: "Download the .syx",
+  download_hint: "to drop onto <b>Elektron Transfer</b> (just as fast), or to keep.",
+  credits: "Credits",
+  credits_intro: "This flasher stands on the shoulders of these projects, none of which includes firmware:",
+  credits_license: `model27 is built on <a href="${UPSTREAM}" target="_blank" rel="noopener">Modded-Cycles</a>, released under the <a href="${UPSTREAM}/blob/main/LICENSE" target="_blank" rel="noopener">MIT license</a>; model27's changes are under the same license. Third-party code keeps its own license and Elektron's firmware is not covered: see the <a href="${REPO}/blob/main/THIRD-PARTY-NOTICES.md" target="_blank" rel="noopener">third-party notices</a>.`,
+  privacy: "Your firmware file never leaves your computer. Nothing is uploaded, no firmware is provided.",
+  links: "Not affiliated with Elektron. Model:Cycles, Model:Samples and Syntakt are Elektron products.",
+  // dynamic
+  s4_dl: "Download",
+  no_webmidi: "This browser can't send the firmware to the {dev}: it has no Web MIDI. Download the .syx and install it with <b>Elektron Transfer</b>, or open this page in <b>Chrome, Edge or Opera</b> on a computer to install it from here.",
+  insecure: "Web MIDI needs a secure page, so this one can't send the firmware. Download the .syx and install it with <b>Elektron Transfer</b>, or open the online version (or serve this folder with <code>python3 -m http.server</code>) to install it from here.",
+  reading: "Reading {name}…",
+  os_ok: "Official Model:Cycles OS 1.13 recognised.",
+  os_custom: "{name}: {device} firmware, but not the official OS 1.13 file. It will be sent <b>exactly as it is</b>.",
+  os_custom_mods: "Your mod selection is ignored for this file.",
+  os_restore_needs: "To restore the official firmware, load the official <code>model-cycles_OS1.13.syx</code>.",
+  os_bad: "This file can't be used: {err}",
+  building: "Preparing the firmware…",
+  built: "Firmware ready: {mods}.",
+  built_ref: "Checked against the reference build.",
+  built_ref_mods: "Each mod checked against its reference build.",
+  build_failed: "The firmware couldn't be prepared: {err}",
+  stock_ready: "Ready to send the official firmware, unchanged.",
+  smp_ok: "Official Model:Samples OS 1.13 recognised.",
+  smp_bad: "This is not the official Model:Samples OS 1.13 file: {err}",
+  smp_not_official: "its SHA-256 differs from the official file",
+  st_ok: "Official Syntakt OS {v} recognised.",
+  st_bad: "This is not the official Syntakt OS 1.42 file: {err}",
+  needs_syntakt: "The Syntakt engines are read from the official Syntakt OS file: drop it below.",
+  license_mit: "MIT license",
+  miss_syntakt: "Load the official Syntakt OS file (step 2).",
+  combo_tested: "This choice was tested on a real Model:Cycles.",
+  combo_new: "New choice: checked in the emulator, not tested on a Model:Cycles yet.",
+  included: "(included with {name})",
+  with_tg: "With Model-TG: its Sampler is the 7th machine and these engines come after it, from the 8th. A track set to an added machine plays another one on the version without Model-TG, and the other way round.",
+  with_macro: "With the MACRO machine: it comes right after these engines. The engines' load governor looks after its tracks too.",
+  join_name_macro: "MACRO",
+  join_label_macro: "47 models from Braids",
+  with_acid: "With the ACID machine: it comes last, after these engines and MACRO. The engines' load governor looks after its tracks too.",
+  join_name_acid: "ACID",
+  join_label_acid: "acid bass in the style of the TB-303",
+  renumber: "Before changing this choice or going back to the official firmware, set the tracks that use an added machine back to an original one (Kick…Chord): their numbers depend on the ticked engines, and MACHINES can freeze on such a track.",
+  done_syn_tg: "Then press MACHINES on a track: after Chord comes the Sampler, then {list}. Their knobs show the Syntakt's names. Model-TG's Attack, Filter and Resonance work on them too: hold MACHINE and turn DECAY, SWEEP or CONTOUR. If something goes wrong, flash the official firmware back with this page (first set the tracks that use an added machine back to an original machine).",
+  done_syn: "Then press MACHINES on a track: after Chord come {list}. Their knobs show the Syntakt's names. The 6 original machines are unchanged. If something goes wrong, flash the official firmware back with this page (first set the tracks that use an added machine back to an original machine).",
+  warn_samples_port: "This port is a Model:Samples (a Model:Cycles running the Samples OS): it refuses a Model:Cycles firmware over USB. The way back goes through the startup menu and the MIDI IN (see the full guide).",
+  samples_needs_cycles: "For the Samples OS, the first file must be the official <code>model-cycles_OS1.13.syx</code>: it provides the startup menu, updater and signature that stay on your Model:Cycles.",
+  samples_ready: "Firmware ready: the Model:Samples OS for your Model:Cycles.",
+  mods_list_samples: "Model:Samples OS (for Model:Cycles)",
+  miss_samples_cycles: "The first file must be the official Model:Cycles OS (step 2).",
+  miss_samples_file: "Load the official Model:Samples OS file (step 2).",
+  miss_samples_ack: "Confirm you have a MIDI interface for the way back (step 1).",
+  smp_dir_cyc: "Model:Cycles → Samples OS",
+  smp_dir_smp: "Model:Samples → Cycles OS",
+  smp_dir_back: "Model:Samples: back to its OS",
+  cos_title: "Turn your Model:Samples into a Model:Cycles",
+  cos_text: "Play the Model:Cycles synth engines on your Model:Samples. The page puts the official Model:Cycles OS inside your Model:Samples firmware: the startup menu, the updater and the signature of the Model:Samples stay in place. One small change in the Model:Cycles OS lets it accept the official Model:Samples OS again over USB, so the way back is in this tab too (“Model:Samples: back to its OS”).",
+  cos_w1: "Experimental: not yet tried on a real Model:Samples.",
+  cos_w2: "Back up your samples and projects with Elektron Transfer first: the Model:Cycles OS uses the same storage, and what it does with Model:Samples data is not known yet.",
+  cos_w3: "Under the Cycles OS, your Model:Samples refuses Model:Cycles firmwares (official or with mods), including an update offered by Elektron Transfer: that is expected, nothing is written. To leave, use “Model:Samples: back to its OS”.",
+  cos_w4: `If the way back over USB ever failed, the startup menu of the Model:Samples still takes its official OS through the MIDI IN, with a MIDI interface (<a href="${GUIDE}#cycles-on-samples">guide</a>).`,
+  cos_w5: "Only for a real Model:Samples. A Model:Cycles running the Samples OS (first choice of this tab) also answers as a Model:Samples and would take this firmware, then refuse Model:Cycles firmwares over USB until its startup menu reinstalls its OS through the MIDI IN.",
+  xos_reset: "If the machine does not start properly after the update, switch it off and on again. If it still hangs, hold FUNC while switching it on, then press TRIG 2 (EMPTY RESET): it clears the active project, hence the backup first.",
+  cos_ack: "I have backed up my samples and projects with Elektron Transfer, and I keep the official Model:Samples OS file for the way back.",
+  sback_title: "Give your Model:Samples its own OS back",
+  sback_text: "For a Model:Samples running the Model:Cycles OS installed from this page. The page sends the official Model:Samples OS, unchanged, packed so that the Model:Cycles OS accepts it. The machine restarts as a Model:Samples, as before.",
+  sback_w1: "A Model:Cycles OS installed another way (another tool, or a Model:Cycles build with mods) refuses this file: the machine says the update failed and nothing changes. Such an OS accepts the first choice, “Model:Cycles → Samples OS”, which brings the Model:Samples OS back; failing that, the startup menu and the MIDI IN.",
+  sback_w2: `Sent to a real Model:Cycles, it is refused and nothing changes (<a href="${GUIDE}#cycles-on-samples">guide</a>).`,
+  cos_needs_cycles: "For this choice, the first file must be the official <code>model-cycles_OS1.13.syx</code>, and the second the official Model:Samples OS.",
+  cos_ready: "Firmware ready: the Model:Cycles OS for your Model:Samples.",
+  sback_ready: "Firmware ready: the official Model:Samples OS, for the way back over USB.",
+  mods_list_cos: "Model:Cycles OS (for Model:Samples)",
+  mods_list_sback: "Official Model:Samples OS (way back)",
+  miss_cos_ack: "Confirm your backup and the official Model:Samples file (step 1).",
+  done_cos: "It restarts as a <b>Model:Cycles</b>: Elektron Transfer and your computer see a “Model:Cycles”. To go back, choose “Model:Samples: back to its OS” in the Samples OS tab.",
+  done_sback: "It restarts as a <b>Model:Samples</b>, with its own OS.",
+  dev_fwd_on_cycles: "This machine answers as a Model:Cycles: it would refuse this firmware. If it is a Model:Samples already running the Cycles OS, there is nothing to install; to go back, choose “Model:Samples: back to its OS” if that Cycles OS came from this page, or “Model:Cycles → Samples OS” if it was installed another way.",
+  dev_back_on_samples: "This machine answers as a Model:Samples OS: there is nothing to bring back. If it actually runs the Cycles OS with Model-TG, set Model-TG's Transfer identity back to CYC (or restart the machine), then try again.",
+  // Mods tab, machine picker (notes/57): always the Model:Cycles OS, packed for the machine
+  mach_q: "Your machine",
+  mach_cyc: "Model:Cycles",
+  mach_smp: "Model:Samples, on its own OS",
+  mach_cos: "Model:Samples, already on the Cycles OS",
+  mach_title: "Mods on a Model:Samples",
+  mach_text: "Whatever the machine, the page installs the Model:Cycles OS with the mods you tick; on a Model:Samples, tick the SAMPLE machine to play the samples already on the +Drive (not yet tried on a Model:Samples). The firmware is packed inside your Model:Samples' own firmware (its startup menu, updater and signature stay in place), so step 2 also asks for the official Model:Samples OS file.",
+  mach_w_smp: "Choose this when the machine runs its Model:Samples OS (it starts as a Model:Samples).",
+  mach_w_cos: "Choose this when it already runs the Model:Cycles OS installed from this page (here, or from the Samples OS tab): this is how you change mods later. That OS refuses firmwares built for a Model:Cycles: nothing is written.",
+  mach_w1: "Tested on a real Model:Samples, both choices: on its own OS, and already on the Cycles OS to change mods.",
+  mach_w2: "Back up your samples and projects with Elektron Transfer first: the Model:Cycles OS uses the same storage.",
+  mach_w3: `The way back to the Model:Samples OS stays in the Samples OS tab, “Model:Samples: back to its OS” (<a href="${GUIDE}#mods-on-samples">guide</a>).`,
+  mach_w4: "Only for a real Model:Samples. A Model:Cycles running the Samples OS also answers as a Model:Samples and would take this firmware, then refuse Model:Cycles firmwares over USB until its startup menu reinstalls its OS through the MIDI IN.",
+  mach_w5: "A Model:Cycles OS installed with another tool refuses these firmwares (nothing is written): first bring the Model:Samples OS back with the Samples OS tab's first choice, “Model:Cycles → Samples OS”, then choose “Model:Samples, on its own OS” here.",
+  mach_credit: "Original flasher by RDS (AIM), integrated into Modded Cycles by DaftMaple.",
+  sel_samples: "+ your Model:Samples OS file, to load in step 2.",
+  needs_samples_file: "Load the official Model:Samples OS below: the mods go inside its firmware.",
+  built_smp: "Packed for your Model:Samples (on its own OS).",
+  built_cos: "Packed for your Model:Samples (on the Cycles OS).",
+  for_samples: "for Model:Samples",
+  done_mach: "It restarts as a <b>Model:Cycles</b> with your mods (Elektron Transfer sees a “Model:Samples” if Model-TG's Transfer identity is on SMP). To change mods later, choose “Model:Samples, already on the Cycles OS”; to go back, the Samples OS tab.",
+  dev_mach_smp_on_cycles: "This machine answers as a Model:Cycles. If it is a Model:Samples already running the Cycles OS from this page, choose “Model:Samples, already on the Cycles OS” in step 1; if it is a Model:Cycles, choose “Model:Cycles”.",
+  dev_mach_cos_on_samples: "This machine answers as a Model:Samples. If it runs its Model:Samples OS, choose “Model:Samples, on its own OS” in step 1. If it runs the Cycles OS with Model-TG, set Device Config › Transfer back to CYC (or restart it), then Refresh.",
+  cos_mods: "To add mods, use the Mods tab and choose your Model:Samples as the machine: it installs the same Model:Cycles OS, with the mods you tick.",
+  done_samples: "It restarts as a <b>Model:Samples</b>: Elektron Transfer and your computer see a “Model:Samples”. Load your samples with Transfer.",
+  pick_one: "Select at least one mod, or switch to “Official firmware”.",
+  midi_asking: "Asking for MIDI access…",
+  midi_wait: "Waiting for your permission: Chrome shows a prompt near the address bar. Click “Allow”. If you blocked it before, click the icon left of the address and allow MIDI.",
+  midi_denied: "MIDI access was refused. Click the icon left of the address, allow MIDI, reload the page and try again.",
+  midi_none: "No MIDI output found. Connect the {dev} over USB, turn it on, then click Refresh.",
+  midi_pick_dev: "The {dev} USB port is selected.",
+  midi_no_dev: "The {dev} doesn't appear over USB. Connect it, turn it on and click Refresh.",
+  warn_not_dev: "This doesn't look like the {dev}: pick the port named “{port}”.",
+  choose_port: "Choose a MIDI output",
+  via: "via",
+  minutes: "about {m} min",
+  mods_list_restore: "Official firmware (unchanged)",
+  mods_list_custom: "Custom file {name} (sent as is)",
+  miss_file: "Load your official OS file (step 2).",
+  miss_mod: "Select a mod (step 1), or switch to “Official firmware”.",
+  miss_build: "Preparing the firmware…",
+  miss_fw: "The firmware isn't ready (step 2).",
+  miss_midi: "Allow MIDI access (step 3).",
+  miss_port: "Choose a MIDI output (step 3).",
+  miss_ack: "Tick the box above to confirm.",
+  miss_ready: "Open CONFIG › UPGRADE on the {m} (step 3), then flash.",
+  miss_ready_fast: "Ready. At the end, the {m} asks you to confirm on its screen.",
+  miss_probe: "Waiting for the Model:Cycles to answer (step 3).",
+  miss_dev: "The Model:Cycles must answer first (step 3).",
+  miss_dev_mismatch: "This machine can't take this firmware (step 3).",
+  dev_probing: "Looking for the {dev}…",
+  dev_ok: "{device} found: OS {v}.",
+  dev_none: "The {dev} doesn't answer. If CONFIG › UPGRADE is open, leave it (NO); close Elektron Transfer, then click Refresh. Or download the .syx in step 4 and install it with Elektron Transfer.",
+  dev_busy: "Its USB port is in use by another program: close Elektron Transfer, Overbridge and your music software, then click Refresh.",
+  dev_noinput: "The page sees no MIDI input from the {dev}, and the fast method needs both directions. Click Refresh, or download the .syx in step 4 and install it with Elektron Transfer.",
+  dev_samples: `This machine answers as a Model:Samples, so it would refuse this firmware. With Model-TG, set Device Config › Transfer back to CYC (or turn it off and on). Under the Samples OS, the way back is in the <a href="${GUIDE}#recovery">guide</a>. A real Model:Samples: choose it in step 1.`,
+  dev_other: "This Elektron machine ({name}) is not a Model:Cycles: nothing will be sent.",
+  dev_wrong_file: "This firmware is for a Model:Samples, and this machine is a Model:Cycles: nothing will be sent.",
+  watch_fast: "The Model:Cycles checks every block as it arrives. At the end it asks you to confirm the update on its screen.",
+  done_title_fast: "Firmware sent.",
+  after_confirm: "Now confirm the update on the {m} screen (<b>YES</b>). It then writes the firmware and restarts by itself: <b>don't turn it off</b> until it has restarted.",
+  after_gone: "The {m} is writing the firmware and restarting. <b>Don't turn it off.</b>",
+  after_back: "The {m} is back: {device} OS {v}.",
+  after_back_plain: "The {m} is back.",
+  fast_timeout: "The Model:Cycles stopped answering. Turn it off and on, then flash again. If it happens again, download the .syx in step 4 and install it with Elektron Transfer.",
+  fast_refused: "The Model:Cycles refused the update{why}. Turn it off and on and try again, or install the .syx from step 4 with Elektron Transfer.",
+  fast_write: "The {dev} reported an error while receiving{why}. Turn it off and on and try again, or install the .syx from step 4 with Elektron Transfer.",
+  stopped_fast: "Stopped before the end: the Model:Cycles hasn't received the whole firmware. Turn it off and on, then flash again.",
+  log_start_fast: "Fast upgrade: {kb} KB in {n} blocks to “{port}” ({device} OS {v}).",
+  watch: "Watch the Model:Cycles screen: it should show that it is receiving. If nothing happens within a few seconds, press <b>Stop</b>.",
+  keep_visible: "Keep this tab in the foreground: browsers slow down background tabs.",
+  remaining: "{t} left",
+  done_title: "Transfer complete.",
+  done_body: "The Model:Cycles now writes the firmware (<code>UPDATING FLASH</code>) and restarts by itself. <b>Don't turn it off</b> until it has restarted.",
+  done_6ch: "With the 6-channel mod, your computer should then show a Model:Cycles audio device with <b>6 input channels</b>.",
+  stopped: "Stopped. Turn the Model:Cycles off and on, open CONFIG › UPGRADE again, then flash again.",
+  send_error: "The transfer failed: {err}. Turn the Model:Cycles off and on, open CONFIG › UPGRADE again and retry.",
+  port_gone: "The MIDI output has disappeared. Check the connection and pick it again.",
+  leave: "A firmware transfer is in progress. Leaving now will interrupt it.",
+  log_start: "Sending {n} packets to “{port}”, margin {pace}.",
 };
 
 // Feature texts shown in the UI (fallback: labels from tweaks.js).
 const FEAT = {
-  en: {
-    usb6: { label: "6-channel USB audio",
-      short: "Each track on its own USB channel. No stereo mix over USB any more.",
-      desc: "Each track gets its own USB channel (48 kHz / 32-bit): record the 6 tracks separately in your DAW. The stereo mix is no longer sent over USB. OS updates over USB keep working." },
-    "model-tg": { label: "Model-TG",
-      short: "TinyGregAudio's big pack: a 7th Sampler machine and many additions.",
-      parts: ["Sampler (7th machine)", "resampling", "retrig and master FX", "filter and resonance on the stock machines", "slide trigs", "Scale Lock", "samples through Elektron Transfer"],
-      desc: "A Sampler machine (7th machine) with seven playback modes, resampling, a beat-repeat page with master FX, Attack, Filter and Resonance on the stock machines, slide trigs that glide the parameters from one trig to the next, Scale Lock, sample upload through Elektron Transfer, and lower CPU use. It already includes drumkilla's three tweaks. With the Syntakt engines, the Sampler stays the 7th machine and the engines follow it.",
-      note: "Only install an OS while Device Config > Transfer is set to CYC (every power-on starts at CYC). Projects using the Sampler won't play those tracks on another firmware." },
-    "sample-preview": { label: "Sample preview (Model-TG)",
-      short: "On a Sampler track, in the preset menu, the pad plays the sample under the cursor.",
-      desc: "On a Sampler track, press FUNC + MACHINES (preset menu) and move the cursor onto a sample: the track's pad (or its trig keys in keyboard mode) plays it, just as the original OS lets you hear the preset under the cursor. Nothing plays by itself while you scroll. A sample that isn't in memory yet loads on the first press (a short wait), into free space or in place of samples the project doesn't use. The track keeps its own sample: its trigs still play it, and so does its pad once you leave the menu. Sampler presets that remember their sample should also play that sample instead of the track's.",
-      note: "If there isn't enough free memory (a preview keeps room for recording and never removes a sample your project uses), or while Model-TG is resampling, the press plays nothing. It needs Model-TG: unticking Model-TG unticks it." },
-    "latching-mute": { label: "Latching mute mode",
-      short: "TRACK + FUNC: mute mode stays on, no need to hold FUNC.",
-      desc: "Hold TRACK and tap FUNC: mute mode stays on, so you mute tracks without holding FUNC. A short tap on FUNC leaves it." },
-    "control-all-config": { label: "Control All, your choice of tracks",
-      short: "TRACK + TRIG 1–6 leaves a track out of Control All, or puts it back.",
-      desc: "Hold TRACK and press TRIG 1–6 to take that track out of Control All (TRACK held + knob), or to put it back. While TRACK is held, TRIG 1–6 light for the tracks that follow and stay dark for the ones left out. The active track always follows, as on the Digitakt and Digitone. Left-out tracks also keep their machine, LFO destination and PUNCH/GATE when you change those with TRACK held.",
-      note: "The choice is not saved: after power-on every track follows again, as on the stock OS. TRACK + LEVEL/DATA (volume, pan) still moves all six tracks." },
-    digidelay: { label: "Digital Delay (effect)",
-      short: "A second delay, bright and clean, up to 5.4 s; TRACK + Delay Time picks it for the pattern.",
-      desc: "A second delay for the delay slot, from gialloinfuso's PPPCCC mods: the opposite of the dark stock delay, bright and clean, up to 5.4 s, each repeat a little thinner in the lows. Hold TRACK and turn Delay Time: four detents to the right switch the pattern from the stock Delay to Digital, four to the left switch it back. The choice is saved with the pattern, so each pattern keeps its own delay and a pattern change switches it. While Digital plays, Time and Fdbk keep their knobs and read Digi Time and Digi Fdbk. The delay is mono, the same repeat on both sides, and starts from silence each time it is chosen.",
-      note: "On a firmware without Digital, a pattern that chose it plays the stock Delay." },
-    pots: { label: "POTS (effect)",
-      short: "A delay down an old phone line: each repeat darker, narrower and a little out of tune.",
-      desc: "A third delay for the delay slot, model27's own: every repeat goes down an old telephone line once more. The echoes darken into a narrow band (about 350 Hz to 3 kHz, a little nasal), drift a little further out of tune each pass as their harmonics move apart, fade in and out, now and then drop out for a moment, and pick up a coarse digital grain that leaves them as the tail dies away. A hot send is held at the level the sound was tuned at, so low notes and a kick keep their tone. Hold TRACK and turn Delay Time: every four detents to the right step the pattern to the next delay, the stock Delay, then Digital if it is ticked too, then POTS; to the left they step back. The choice is saved with the pattern. While POTS plays, Time and Fdbk keep their knobs and ranges and read POTS Time and POTS Fdbk; at the highest Fdbk the repeats go on without running away. The delay is mono, the same repeat on both sides, and starts from silence each time it is chosen.",
-      note: "On a firmware without POTS, a pattern that chose it plays the stock Delay." },
-    "trig-cond-order": { label: "Trig conditions, A:B before %",
-      short: "Trig + CHANCE: FILL … !1st, then 1:2 … 8:8, then 1% … 99%. Same conditions, new order.",
-      desc: "Hold a trig and turn CHANCE: the trig conditions now come as FILL, !FILL, PRE, !PRE, NEI, !NEI, 1st, !1st, then the A:B conditions 1:2 to 8:8, then the percentages 1% to 99% (the stock OS puts the percentages before the A:B conditions). The five dots under the value follow the new order, so each dot always covers the same stretch of the list. Only the knob changes: a trig keeps, plays and shows the same condition as on the stock OS, so your patterns are the same with and without the mod." },
-    "trig-preview": { label: "Trig preview",
-      short: "Sequencer stopped: hold a trig and press PAGE to hear that step.",
-      desc: "With the sequencer stopped or paused, hold a trig and press PAGE: the step sounds as the sequencer would play it, with its note, length, p-locks and sound lock, and the page does not turn. It sounds whatever its trig condition and probability, also on a muted track, and the trig stays. While the sequencer plays, PAGE turns the page as on the stock OS." },
-    "browser-scroll": { label: "Scroll long names",
-      short: "In the sound browser, names too long for the screen scroll.",
-      desc: "In the sound browser, a name too long for the screen scrolls so you can read it." },
-    syntakt: { label: "Real Syntakt engines",
-      short: "Syntakt engines as extra machines, read from your own Syntakt OS file.",
-      desc: "The Syntakt's own engines, read from your Syntakt OS file (step 2) and added after Chord, in this order, with the Syntakt's knob names and defaults. Tick the ones you want." },
-    "eng-sd": { short: "vintage snare", note: "Vintage snare." },
-    "eng-cp": { short: "vintage clap", note: "Vintage clap." },
-    "eng-toy": { short: "toy-like percussion", note: "Toy-like tuned percussion." },
-    "eng-bits": { short: "digital, bit crush", note: "Two digital oscillators with rate and bit reduction. PUNCH switches Bit Redux on." },
-    "eng-swarm": { short: "supersaw", note: "A swarm of detuned saws (supersaw). PUNCH adds the sub-octave." },
-    "trig-hold": { label: "Easier trig removal",
-      short: "A short press removes the trig; a long one keeps it and shows its settings.",
-      desc: "Pressing a trig key whose step already holds a trig removes it if you let go within half a second (0.2 s on the stock OS). Hold it longer and the trig stays, as before: its settings show up. Turning a knob while you hold keeps the trig too." },
-    arp: { label: "Arpeggiator",
-      short: "The retrig becomes an arpeggiator: held notes play one after another.",
-      desc: "The retrig becomes an arpeggiator: hold several notes on a track with RETRIG held (or A.On) and they play one after another at the retrig rate. FUNC + RETRIG adds Arp (direction: UP, DOWN, UPDN, RAND, PLAY or OFF) and Oct (1 to 4 octaves), saved with the pattern." },
-    "tempo-max": { label: "Tempo up to 546 BPM",
-      short: "Tempo goes up to 546 BPM instead of 300, MIDI clock included.",
-      desc: "The tempo goes up to 546.0 BPM instead of 300: TEMPO knob, tap tempo, incoming MIDI clock and saved projects. 546 is the ceiling of the project format. Tempo-synced LFOs stay right at these speeds.",
-      note: "Above 300 BPM, the processor may struggle to keep up with busy patterns: push it knowingly. A project saved above 300 BPM reopens at 120 BPM on the original OS." },
-    "boot-anim": { label: "modded-cycles startup animation",
-      short: "At startup the modded-cycles logo animates, without making startup longer.",
-      desc: "When the Model:Cycles starts, the four rounded squares of the modded-cycles logo pop in one by one and “modded-cycles” types itself underneath, instead of the original tile animation. It lasts as long as the original: startup is not slower." },
-    "multiline-browser": { label: "Multi-line browser",
-      short: "The browser shows three names at once in a small font, a > before the current one.",
-      desc: "The sound, folder and sample browser shows 3 names at once in a small font, instead of one in big letters. A > marks the name under the cursor, the loaded sound stays highlighted, and a small mark stands for a folder. With Scroll long names or Model-TG, only the name under the cursor scrolls. From an idea and a script by a community member." },
-    "level-pan-values": { label: "Volume and pan as numbers",
-      short: "On the main screen, LEVEL/DATA shows the track's volume and pan as numbers.",
-      desc: "On the main screen, turning LEVEL/DATA shows the selected track's volume as a number (0 to 127) next to its bar; with FUNC held, its pan (-64 to 63). The number goes away 3 to 4 seconds after you stop turning.",
-      note: "On the main screen, LEVEL/DATA now moves in steps of 1 instead of 2, so the number goes through every value: turn twice as far for the same change. While it shows, the number hides the loudspeaker icon or the “R” at the end of the bar." },
-    "trigless-dim": { label: "Dimmed trigless trigs",
-      short: "A trig key holding a trigless trig lights dimmed, so you tell it from a note trig.",
-      desc: "A trig key that holds a trigless trig (FUNC + trig key) lights dimmed instead of at full brightness, so you can tell it from a note trig at a glance. It keeps its usual blink. Note trigs, p-locked trigs and the playing light don't change.",
-      note: "The key is dimmed by lighting it for one millisecond out of every three, 333 times a second, so it looks steady." },
-    "midi-both": { label: "MIDI OUT while in THRU",
-      short: "With THR selected, the Cycles forwards incoming MIDI and sends its own MIDI too.",
-      clash: "both change what THR does with the Cycles' own MIDI",
-      desc: "In CONFIG › MIDI › PORTS, set OUT/THRU to THR: the Cycles keeps forwarding what arrives on its MIDI IN, and also sends its own clock, notes and parameter changes on its MIDI OUT. OUT works as before, and the menu doesn't change.",
-      note: "Best when only one side plays notes. The Cycles passes on what it receives as it comes in, without waiting for whole messages like a MIDI merger box: if the device on MIDI IN and the Cycles both send notes or knob moves, some can reach the next device wrong (a wrong or stuck note). Clock and start/stop are not affected." },
-    "midi-live-both": { label: "Live MIDI OUT + THRU toggle",
-      short: "With THR selected, FUNC + press LEVEL/DATA adds or removes the Cycles' own MIDI.",
-      clash: "both change what THR does with the Cycles' own MIDI",
-      desc: "Keeps the original OUT/THR menu. In CONFIG › MIDI › PORTS, with OUT/THRU on THR, hold FUNC and press the LEVEL/DATA knob: the Cycles also sends its own clock, notes and parameter changes, while still forwarding incoming MIDI. Do it again to go back to forwarding only. The screen shows THR either way; a press without FUNC switches to OUT, as before.",
-      note: "Best when only one side plays notes. The Cycles passes on what it receives as it comes in, without waiting for whole messages like a MIDI merger box: if the device on MIDI IN and the Cycles both send notes or knob moves, some can reach the next device wrong (a wrong or stuck note). Clock and start/stop are not affected." },
-    macro: { label: "MACRO machine",
-      short: "One extra machine with 47 synthesis models, from Braids' open-source code.",
-      desc: "An extra machine after Chord (after the Sampler with Model-TG, after the Syntakt engines if you tick them too) with the 47 synthesis models of Braids, Émilie Gillet's open-source macro-oscillator, from her own code: analog-style waves, FM, vowels and speech, physical models, drums, wavetables and noises. SHAPE picks the model, COLOR and SWEEP shape it, CONTOUR lets the amp envelope open the timbre. FUNC + PITCH gives lo-fi: turn left to lower the sample rate (RATE, down to about 4 kHz), right to lower the bit depth (BITS, down to 2 bits). DECAY, GATE and PUNCH work as on Tone.",
-      note: "About twice as heavy on the processor as an original machine; 13 models (the TRIPLE waves, the wavetables, CSAW…) are computed at 48 kHz and cost about half as much, and RATE lightens them further. On its own it has no load governor: several MACRO tracks playing at once can make the sound crackle, so start with one or two. On a MACRO track, FUNC + PITCH no longer fine-tunes the note. With the Syntakt engines, their load governor looks after MACRO tracks too. A project using MACRO needs a firmware with MACRO at the same place: it comes after the Sampler of Model-TG and the ticked Syntakt engines (ACID comes after it), so its number depends on Model-TG and on the ticked engines." },
-    acid: { label: "ACID machine",
-      short: "One extra machine: an acid bass in the style of the TB-303, with a drive knob and slides from your trigs.",
-      desc: "An extra machine after Chord, always the last one (after the Sampler with Model-TG, then the Syntakt engines and MACRO if you tick them too): an acid bass in the style of the TB-303, from the open-source Open303 model by Robin Schmidt. COLOR is the cutoff, SHAPE the resonance, SWEEP the env mod, CONTOUR the drive (from clean to fuzz, at about the same volume) and DECAY the decay; PUNCH switches the wave from saw to square. A trig whose length (LEN) runs past the next trig slides into the next note instead of playing it again; a pad played while another is held slides too.",
-      note: "About as heavy on the processor as Tone. Turn GATE on for notes that hold their whole length, as on the original. With the Syntakt engines, their load governor looks after ACID tracks too: a track it stopped plays its next note afresh, without sliding. A project using ACID needs a firmware with ACID at the same place: it is the last machine, so its number depends on Model-TG, the ticked Syntakt engines and MACRO." },
-    sampler: { label: "SAMPLE machine (Cycles One-Shot)",
-      short: "One extra machine: a sampler for samples on the +Drive, once per trig or in a loop, forward or reverse, picked in the PRESET browser.",
-      clash: "both add machines at the same place of the firmware, and there is no combined build with SAMPLE yet",
-      "clash_model-tg": "both change the same sound record functions of the firmware",
-      "clash_track-filter": "both change the same sound record functions of the firmware",
-      "clash_sample-preview": "both read sample files from the same PRESET browser, and sample preview needs Model-TG",
-      desc: "An extra machine after Chord: SAMPLE plays one sample from the +Drive per trig, the way the Model:Samples does (6-tap interpolation at 96 kHz, then the Cycles' own decimator and amp chain). Open the PRESET browser (FUNC + MACHINE) on a SAMPLE track and open a sample file: the sound takes its name and keeps the choice in the project, the kit and the preset; hold a step while you open one and the step gets it as a sound lock. COLOR = Start and SHAPE = Length (0 to 120 each; the trig ends at Start + Length), SWEEP = the Model:Samples' filter (lowpass to the left, off in the centre, highpass to the right, shown as -64 to 63), CONTOUR = Reso; DECAY, GATE and PUNCH as on Tone. Hold RETRIG and press PUNCH for Loop, GATE for Reverse: Loop plays Start to End again and again with a hard seam as on the Model:Samples (a single-cycle waveform loops without a step) until DECAY closes it, Reverse plays it backwards from the next trig; both are saved with the sound, and PUNCH's and GATE's LEDs show them while RETRIG is held. A trig that cuts a sounding note brings the new one in over 0.67 ms. The main screen shows the sample's name, with L and R while Loop and Reverse are on, and its waveform with the start and end marked; hold a trig and turn COLOR or SHAPE, and the whole screen shows that trig's waveform with the marks on its locks (a sample lock's own sample and name) until the value goes. Stereo files play as mono, other sample rates keep their pitch.",
-      note: "Needs samples on the +Drive in the Model:Samples' format, what Elektron Transfer and One-Shot's upload page write. On a SAMPLE track, RETRIG + PUNCH and RETRIG + GATE flip Loop and Reverse instead of PUNCH and GATE; TRACK + PUNCH or GATE stays Control All. A project using SAMPLE needs a firmware with SAMPLE: set SAMPLE tracks back to an original machine before flashing another choice or the official OS. English only for now." },
-    "chord-keys": { label: "Chord Keys",
-      short: "On a CHORD track, TRIG 1–16 play the chords of your scale.",
-      clash: "both change the notes of the TRIG keys (Model-TG has its own Scale Lock)",
-      desc: "Play one CHORD track with the lower TRIG buttons: I–VII on 1–7, one octave higher on 8–14, then I–II two octaves higher on 15–16. T1–T6 keep their usual controls. FUNC + RETRIG adds Keys, Root, Scale and a triad/7/9/11/13 choice per degree, shared across octaves and saved with the pattern." },
-    "track-filter": { label: "Per-track filter (LP / OFF / HP)",
-      short: "Hold MACHINES and turn SWEEP: low-pass to the left, off in the centre, high-pass to the right.",
-      clash: "both use MACHINES + SWEEP / CONTOUR for a track filter",
-      desc: "Hold MACHINES and turn SWEEP: a filter on the track, low-pass to the left, off in the centre, high-pass to the right, like a DJ mixer, with the Model:Samples' range (5 Hz to 20 kHz). CONTOUR sets the resonance, COLOR and SHAPE a filter envelope (amount up or down, decay) restarted by each note. Four real parameters on every machine: p-locks, LFO, velocity, MIDI CC 74 and 71, saved with the sound and the pattern.",
-      note: "Can't be ticked together with Model-TG for now: both use MACHINES + SWEEP / CONTOUR. Model-TG's filter will make way for this one once it is tested. A sound opened on another firmware plays without its filter." },
-    "lfo-plus": { label: "LFO 2, 3, 4",
-      "clash_track-filter": "both keep their settings in the same place of the sound",
-      short: "Three more LFOs on every track: press [LFO] again to reach LFO 2, 3 and 4.",
-      desc: "Each track gets three more LFOs next to the original one. On the LFO page, press [LFO] again: a big 2, then 3, then 4 shows in the left box, and the fifth press closes the page. Each extra LFO has its own speed, multiplier, waveform, destination and depth. Fade, start phase and mode stay shared with LFO 1. LFO 2 is saved with the sound and can be p-locked. LFO 3 and 4 are for live play: one setting per track, not saved. From DavidCaruso's Model-TG-VA-DR-v1, rewritten for this project. Works with or without Model-TG.",
-      note: "An extra LFO set to LFO 1's destination does nothing, and the DEST knob skips destinations another LFO of the track already uses. LFO 3 and 4 go back to their defaults at power-on and cannot be p-locked. With Model-TG, it also fixes the Attack, Filter and Resonance p-locks, which came back on other parameters after reloading a pattern. Not with the Per-track filter for now: both keep their settings in the same place of the sound." },
-  },
-  fr: {
-    usb6: { label: "Audio USB 6 canaux",
-      short: "Chaque piste sur son propre canal USB. Plus de mix stéréo en USB.",
-      desc: "Chaque piste a son propre canal USB (48 kHz / 32 bits) : enregistrez les 6 pistes séparément dans votre logiciel. Le mix stéréo n'est plus envoyé en USB. La mise à jour de l'OS par USB continue de fonctionner." },
-    "model-tg": { label: "Model-TG",
-      short: "Le grand pack de TinyGregAudio : une 7e machine Sampler et de nombreux ajouts.",
-      parts: ["Sampler (7e machine)", "rééchantillonnage", "retrig et effets master", "filtre et résonance sur les machines d'origine", "slide trigs", "Scale Lock", "samples par Elektron Transfer"],
-      desc: "Une machine Sampler (7e machine) à sept modes de lecture, le rééchantillonnage, une page de retrig avec effets master, Attack, Filtre et Résonance sur les machines d'origine, des slide trigs qui font glisser les paramètres d'un trig au suivant, Scale Lock, l'envoi d'échantillons par Elektron Transfer, et moins de charge processeur. Contient déjà les trois tweaks de drumkilla. Avec les moteurs du Syntakt, le Sampler reste la 7e machine et les moteurs le suivent.",
-      note: "N'installez un OS que lorsque Device Config > Transfer est sur CYC (chaque démarrage repart sur CYC). Les projets qui utilisent le Sampler ne joueront pas ces pistes sur un autre firmware." },
-    "sample-preview": { label: "Écoute des samples (Model-TG)",
-      short: "Sur une piste Sampler, dans le menu des presets, le pad joue le sample sous le curseur.",
-      desc: "Sur une piste Sampler, appuyez sur FUNC + MACHINES (menu des presets) et placez le curseur sur un sample : le pad de la piste (ou ses touches de pas en mode clavier) le joue, comme l'OS d'origine fait entendre le preset sous le curseur. Rien ne joue tout seul pendant le défilement. Un sample pas encore en mémoire se charge au premier appui (un court instant), dans la place libre ou à la place de samples que le projet n'utilise pas. La piste garde son propre sample : ses trigs le jouent toujours, et son pad aussi dès que vous quittez le menu. Les presets du Sampler qui gardent leur sample devraient aussi faire entendre ce sample plutôt que celui de la piste.",
-      note: "S'il n'y a pas assez de mémoire libre (une écoute garde de la place pour l'enregistrement et ne retire jamais un sample utilisé par votre projet), ou pendant que Model-TG rééchantillonne, l'appui ne joue rien. L'option demande Model-TG : décocher Model-TG la décoche." },
-    "latching-mute": { label: "Mode mute verrouillé",
-      short: "TRACK + FUNC : le mode mute reste actif, plus besoin de tenir FUNC.",
-      desc: "Maintenez TRACK et tapez FUNC : le mode mute reste actif, vous mutez les pistes sans tenir FUNC. Un appui court sur FUNC en sort." },
-    "control-all-config": { label: "Control All : choix des pistes",
-      short: "TRACK + TRIG 1–6 écarte une piste de Control All, ou l'y remet.",
-      desc: "Tenez TRACK et appuyez sur TRIG 1–6 pour écarter cette piste de Control All (TRACK tenu + potard), ou l'y remettre. TRACK tenu, les TRIG 1–6 s'allument pour les pistes qui suivent et restent éteints pour les autres. La piste active suit toujours, comme sur les Digitakt et Digitone. Les pistes écartées gardent aussi leur machine, leur destination de LFO et PUNCH/GATE quand vous les changez TRACK tenu.",
-      note: "Le choix n'est pas enregistré : après l'allumage, toutes les pistes suivent de nouveau, comme sur l'OS d'origine. TRACK + LEVEL/DATA (volume, pan) bouge encore les six pistes." },
-    digidelay: { label: "Digital Delay (effet)",
-      short: "Un second delay, clair et net, jusqu'à 5,4 s ; TRACK + Delay Time le choisit pour le pattern.",
-      desc: "Un second delay pour l'emplacement du delay, tiré des mods PPPCCC de gialloinfuso : l'inverse du delay d'origine, sombre ; celui-ci est clair et net, jusqu'à 5,4 s, et chaque répétition est un peu plus fine dans les graves. Tenez TRACK et tournez Delay Time : quatre crans vers la droite passent le pattern du Delay d'origine à Digital, quatre vers la gauche le ramènent. Le choix est enregistré avec le pattern : chaque pattern garde son delay, et un changement de pattern le change. Pendant que Digital joue, Time et Fdbk gardent leurs potards et s'appellent Digi Time et Digi Fdbk. Le delay est mono, la même répétition des deux côtés, et repart du silence chaque fois qu'il est choisi.",
-      note: "Sur un firmware sans Digital, un pattern qui l'a choisi joue le Delay d'origine." },
-    pots: { label: "POTS (effet)",
-      short: "Un delay passé par une vieille ligne de téléphone : chaque répétition plus sombre, plus étroite, un peu désaccordée.",
-      desc: "Un troisième delay pour l'emplacement du delay, propre à model27 : chaque répétition repasse par une vieille ligne de téléphone. Les échos s'assombrissent dans une bande étroite (d'environ 350 Hz à 3 kHz, un peu nasillarde), se désaccordent un peu plus à chaque passage à mesure que leurs harmoniques s'écartent, vont et viennent, décrochent de temps en temps un court instant, et prennent un grain numérique grossier qui les quitte quand la queue s'éteint. Un envoi trop fort est ramené au niveau pour lequel le son a été réglé : les notes graves et une grosse caisse gardent leur son. Tenez TRACK et tournez Delay Time : tous les quatre crans vers la droite, le pattern passe au delay suivant, le Delay d'origine, puis Digital s'il est coché aussi, puis POTS ; vers la gauche, il revient en arrière. Le choix est enregistré avec le pattern. Pendant que POTS joue, Time et Fdbk gardent leurs potards et leurs plages et s'appellent POTS Time et POTS Fdbk ; au Fdbk le plus haut, les répétitions continuent sans s'emballer. Le delay est mono, la même répétition des deux côtés, et repart du silence chaque fois qu'il est choisi.",
-      note: "Sur un firmware sans POTS, un pattern qui l'a choisi joue le Delay d'origine." },
-    "trig-cond-order": { label: "Conditions de trig : A:B avant %",
-      short: "Trig + CHANCE : FILL … !1st, puis 1:2 … 8:8, puis 1 % … 99 %. Mêmes conditions, nouvel ordre.",
-      desc: "Maintenez un trig et tournez CHANCE : les conditions de trig viennent maintenant dans l'ordre FILL, !FILL, PRE, !PRE, NEI, !NEI, 1st, !1st, puis les conditions A:B de 1:2 à 8:8, puis les pourcentages de 1 % à 99 % (l'OS d'origine place les pourcentages avant les conditions A:B). Les cinq points sous la valeur suivent le nouvel ordre : chaque point couvre toujours la même partie de la liste. Seul le potard change : un trig garde, joue et affiche la même condition que sur l'OS d'origine, vos patterns sont donc les mêmes avec et sans le mod." },
-    "trig-preview": { label: "Écoute d'un pas",
-      short: "Séquenceur arrêté : maintenez un trig et appuyez sur PAGE pour entendre ce pas.",
-      desc: "Séquenceur à l'arrêt ou en pause, maintenez un trig et appuyez sur PAGE : le pas sonne comme le séquenceur le jouerait, avec sa note, sa longueur, ses p-locks et son sound lock, et la page ne tourne pas. Il sonne quelles que soient sa condition et sa probabilité, aussi sur une piste mutée, et le trig reste. Pendant la lecture, PAGE tourne la page comme sur l'OS d'origine." },
-    "browser-scroll": { label: "Défilement des noms longs",
-      short: "Dans le navigateur de sons, les noms trop longs pour l'écran défilent.",
-      desc: "Dans le navigateur de sons, un nom trop long pour l'écran défile pour rester lisible." },
-    syntakt: { label: "Vrais moteurs du Syntakt",
-      short: "Des moteurs du Syntakt en machines en plus, lus dans votre propre OS Syntakt.",
-      desc: "Les moteurs du Syntakt, lus dans votre fichier d'OS Syntakt (étape 2) et ajoutés après Chord, dans cet ordre, avec les noms et réglages des potards du Syntakt. Cochez ceux que vous voulez." },
-    "eng-sd": { short: "caisse claire vintage", note: "Caisse claire vintage." },
-    "eng-cp": { short: "clap vintage", note: "Clap vintage." },
-    "eng-toy": { short: "percu façon jouet", note: "Percussion accordée façon jouet." },
-    "eng-bits": { short: "numérique, bit crush", note: "Deux oscillateurs numériques avec réduction d'échantillonnage et de bits. PUNCH active Bit Redux." },
-    "eng-swarm": { short: "supersaw", note: "Un essaim de dents de scie désaccordées (supersaw). PUNCH ajoute l'octave inférieure." },
-    "trig-hold": { label: "Effacer un trig plus facilement",
-      short: "Un appui bref efface le trig ; un appui long le garde et montre ses réglages.",
-      desc: "Un appui sur une touche de pas qui porte déjà un trig l'efface si vous relâchez en moins d'une demi-seconde (0,2 s avec l'OS d'origine). Tenez plus longtemps et le trig reste, comme avant : ses réglages s'affichent. Tourner un potard pendant l'appui garde aussi le trig." },
-    arp: { label: "Arpégiateur",
-      short: "Le retrig devient un arpégiateur : les notes tenues se jouent l'une après l'autre.",
-      desc: "Le retrig devient un arpégiateur : tenez plusieurs notes sur une piste avec RETRIG tenu (ou A.On) et elles se jouent l'une après l'autre au rythme du retrig. FUNC + RETRIG ajoute Arp (sens : UP, DOWN, UPDN, RAND, PLAY ou OFF) et Oct (1 à 4 octaves), enregistrés avec le pattern." },
-    "tempo-max": { label: "Tempo jusqu'à 546 BPM",
-      short: "Le tempo monte jusqu'à 546 BPM au lieu de 300, horloge MIDI comprise.",
-      desc: "Le tempo monte jusqu'à 546,0 BPM au lieu de 300 : potard TEMPO, tap tempo, horloge MIDI reçue et projets enregistrés. 546 est le plafond du format des projets. Les LFO synchronisés au tempo restent justes à ces vitesses.",
-      note: "Au-delà de 300 BPM, le processeur peut avoir plus de mal à suivre la cadence sur des patterns chargés : à utiliser en connaissance de cause. Un projet enregistré au-dessus de 300 BPM se rouvre à 120 BPM sur l'OS d'origine." },
-    "boot-anim": { label: "Animation de démarrage modded-cycles",
-      short: "Au démarrage, le logo modded-cycles s'anime, sans rallonger le démarrage.",
-      desc: "Au démarrage du Model:Cycles, les quatre carrés arrondis du logo modded-cycles apparaissent un par un et « modded-cycles » s'écrit dessous, à la place de l'animation de carreaux d'origine. Elle dure autant que l'originale : le démarrage n'est pas plus long." },
-    "multiline-browser": { label: "Navigateur sur plusieurs lignes",
-      short: "Le navigateur affiche trois noms à la fois en petite police, un > devant le nom courant.",
-      desc: "Le navigateur de sons, de dossiers et d'échantillons affiche 3 noms à la fois en petite police, au lieu d'un seul en gros caractères. Un > signale le nom sous le curseur, le son chargé reste en surbrillance, et un petit repère désigne un dossier. Avec Défilement des noms longs ou Model-TG, seul le nom sous le curseur défile. D'après une idée et un script d'un membre de la communauté." },
-    "level-pan-values": { label: "Volume et pan en chiffres",
-      short: "Sur l'écran principal, LEVEL/DATA affiche le volume et le pan de la piste en chiffres.",
-      desc: "Sur l'écran principal, tourner LEVEL/DATA affiche le volume de la piste sélectionnée en chiffres (0 à 127) à côté de sa barre ; avec FUNC tenu, son pan (-64 à 63). Le chiffre disparaît 3 à 4 secondes après le dernier mouvement.",
-      note: "Sur l'écran principal, LEVEL/DATA avance maintenant de 1 au lieu de 2, pour que le chiffre passe par toutes les valeurs : tournez deux fois plus pour le même changement. Tant qu'il est affiché, le chiffre cache le haut-parleur ou le « R » au bout de la barre." },
-    "trigless-dim": { label: "Trigless trigs atténués",
-      short: "Une touche de pas avec un trigless trig s'allume atténuée : on la distingue d'un trig de note.",
-      desc: "Une touche de pas qui porte un trigless trig (FUNC + touche de pas) s'allume atténuée au lieu de pleine lumière : on la distingue d'un trig de note d'un coup d'œil. Elle garde son clignotement habituel. Trigs de note, trigs avec p-locks et lumière de lecture ne changent pas.",
-      note: "La touche est atténuée en l'allumant une milliseconde sur trois, 333 fois par seconde : elle paraît stable." },
-    "midi-both": { label: "MIDI OUT pendant THRU",
-      short: "Sur THR, le Cycles relaie le MIDI reçu et envoie aussi son propre MIDI.",
-      clash: "les deux changent ce que THR fait du MIDI du Cycles",
-      desc: "Dans CONFIG › MIDI › PORTS, réglez OUT/THRU sur THR : le Cycles continue de relayer ce qui arrive sur son MIDI IN, et envoie aussi son horloge, ses notes et ses changements de paramètres sur sa sortie MIDI. OUT marche comme avant, et le menu ne change pas.",
-      note: "Le mieux est qu'un seul côté joue des notes. Le Cycles fait suivre ce qu'il reçoit au fil de l'eau, sans attendre les messages entiers comme un boîtier de fusion MIDI : si l'appareil branché sur le MIDI IN et le Cycles envoient tous les deux des notes ou des mouvements de potards, certains peuvent arriver faussés à l'appareil suivant (note fausse ou bloquée). L'horloge et start/stop ne sont pas touchés." },
-    "midi-live-both": { label: "Basculer MIDI OUT + THRU en direct",
-      short: "Sur THR, FUNC + appui sur LEVEL/DATA ajoute ou retire le MIDI du Cycles.",
-      clash: "les deux changent ce que THR fait du MIDI du Cycles",
-      desc: "Garde le menu OUT/THR d'origine. Dans CONFIG › MIDI › PORTS, avec OUT/THRU sur THR, tenez FUNC et appuyez sur le potard LEVEL/DATA : le Cycles envoie aussi son horloge, ses notes et ses changements de paramètres, tout en relayant le MIDI reçu. Refaites-le pour revenir au relais seul. L'écran affiche THR dans les deux cas ; un appui sans FUNC passe en OUT, comme avant.",
-      note: "Le mieux est qu'un seul côté joue des notes. Le Cycles fait suivre ce qu'il reçoit au fil de l'eau, sans attendre les messages entiers comme un boîtier de fusion MIDI : si l'appareil branché sur le MIDI IN et le Cycles envoient tous les deux des notes ou des mouvements de potards, certains peuvent arriver faussés à l'appareil suivant (note fausse ou bloquée). L'horloge et start/stop ne sont pas touchés." },
-    macro: { label: "Machine MACRO",
-      short: "Une machine en plus avec 47 modèles de synthèse, tirés du code libre de Braids.",
-      desc: "Une machine ajoutée après Chord (après le Sampler avec Model-TG, après les moteurs du Syntakt si vous les cochez aussi) avec les 47 modèles de synthèse de Braids, le macro-oscillateur libre d'Émilie Gillet, à partir de son propre code : ondes façon analogique, FM, voyelles et voix, modèles physiques, percussions, tables d'ondes et bruits. SHAPE choisit le modèle, COLOR et SWEEP le façonnent, CONTOUR laisse l'enveloppe d'ampli ouvrir le timbre. FUNC + PITCH donne le lo-fi : à gauche, la fréquence d'échantillonnage baisse (RATE, jusqu'à 4 kHz environ) ; à droite, la résolution (BITS, jusqu'à 2 bits). DECAY, GATE et PUNCH marchent comme sur Tone.",
-      note: "Environ deux fois plus gourmande en calcul qu'une machine d'origine ; 13 modèles (les TRIPLE, les tables d'ondes, CSAW…) sont calculés à 48 kHz et coûtent environ moitié moins, et RATE les allège encore. Seule, elle n'a pas de régulateur de charge : plusieurs pistes MACRO qui jouent en même temps peuvent faire craquer le son ; commencez avec une ou deux. Sur une piste MACRO, FUNC + PITCH n'accorde plus la note. Avec les moteurs du Syntakt, leur régulateur de charge veille aussi sur les pistes MACRO. Un projet qui utilise MACRO demande un firmware où MACRO est à la même place : elle vient après le Sampler de Model-TG et les moteurs du Syntakt cochés (ACID vient après elle), son numéro dépend donc de Model-TG et des moteurs cochés." },
-    acid: { label: "Machine ACID",
-      short: "Une machine en plus : une basse acide à la manière de la TB-303, avec un potard de saturation et le slide tiré de vos trigs.",
-      desc: "Une machine ajoutée après Chord, toujours la dernière (après le Sampler avec Model-TG, puis les moteurs du Syntakt et MACRO si vous les cochez aussi) : une basse acide à la manière de la TB-303, d'après le modèle libre Open303 de Robin Schmidt. COLOR règle le cutoff, SHAPE la résonance, SWEEP l'env mod, CONTOUR la saturation (du son propre au fuzz, à volume à peu près égal) et DECAY la décroissance ; PUNCH passe l'onde de scie à carré. Un trig dont la longueur (LEN) dépasse le trig suivant glisse vers la note suivante au lieu de la rejouer ; un pad joué pendant qu'un autre est tenu glisse aussi.",
-      note: "À peu près aussi gourmande en calcul que Tone. Allumez GATE pour que les notes tiennent toute leur longueur, comme sur l'original. Avec les moteurs du Syntakt, leur régulateur de charge veille aussi sur les pistes ACID : une piste qu'il a arrêtée rejoue sa note suivante, sans glisser. Un projet qui utilise ACID demande un firmware où ACID est à la même place : c'est la dernière machine, son numéro dépend donc de Model-TG, des moteurs du Syntakt cochés et de MACRO." },
-    "chord-keys": { label: "Chord Keys",
-      short: "Sur une piste CHORD, les TRIG 1–16 jouent les accords de votre gamme.",
-      clash: "les deux changent les notes des boutons TRIG (Model-TG a son propre Scale Lock)",
-      desc: "Jouez une piste CHORD avec les boutons TRIG du bas : I–VII sur 1–7, une octave plus haut sur 8–14, puis I–II deux octaves plus haut sur 15–16. T1–T6 gardent leurs commandes habituelles. FUNC + RETRIG ajoute Keys, Root, Scale et le choix triade/7/9/11/13 par degré, commun aux octaves et enregistré avec le pattern." },
-    "track-filter": { label: "Filtre par piste (LP / OFF / HP)",
-      short: "MACHINES tenu + SWEEP : passe-bas à gauche, rien au centre, passe-haut à droite.",
-      clash: "les deux utilisent MACHINES + SWEEP / CONTOUR pour un filtre de piste",
-      desc: "Maintenez MACHINES et tournez SWEEP : un filtre sur la piste, passe-bas à gauche, rien au centre, passe-haut à droite, comme sur une table de mixage DJ, avec la plage du Model:Samples (5 Hz à 20 kHz). CONTOUR règle la résonance, COLOR et SHAPE une enveloppe du filtre (quantité vers le haut ou le bas, decay) relancée à chaque note. Quatre vrais paramètres de toutes les machines : p-locks, LFO, vélocité, CC MIDI 74 et 71, enregistrés avec le son et le pattern.",
-      note: "Ne se coche pas avec Model-TG pour l'instant : les deux utilisent MACHINES + SWEEP / CONTOUR. Le filtre de Model-TG laissera la place à celui-ci une fois testé. Un son ouvert sur un autre firmware joue sans son filtre." },
-    "lfo-plus": { label: "LFO 2, 3, 4",
-      "clash_track-filter": "les deux rangent leurs réglages au même endroit du son",
-      short: "Trois LFO de plus sur chaque piste : appuyez encore sur [LFO] pour passer à LFO 2, 3 et 4.",
-      desc: "Chaque piste reçoit trois LFO de plus, à côté de celui d'origine. Sur la page LFO, appuyez encore sur [LFO] : un grand 2, puis 3, puis 4 s'affiche dans le cadre de gauche, et le cinquième appui ferme la page. Chaque LFO de plus a sa vitesse, son multiplicateur, sa forme, sa destination et sa profondeur. Le fondu, la phase de départ et le mode restent communs avec LFO 1. LFO 2 est sauvé avec le son et se p-locke. LFO 3 et 4 servent au live : un réglage par piste, pas sauvé. D'après le Model-TG-VA-DR-v1 de DavidCaruso, réécrit pour ce projet. Marche avec ou sans Model-TG.",
-      note: "Un LFO de plus réglé sur la destination de LFO 1 ne fait rien, et la molette DEST saute les destinations déjà prises par un autre LFO de la piste. LFO 3 et 4 reviennent à leurs réglages par défaut à l'allumage et ne se p-lockent pas. Avec Model-TG, corrige aussi les p-locks d'Attack, de Filtre et de Résonance, qui revenaient sur d'autres paramètres au rechargement d'un pattern. Pas avec le Filtre par piste pour l'instant : les deux rangent leurs réglages au même endroit du son." },
-  },
+  usb6: { label: "6-channel USB audio",
+    short: "Each track on its own USB channel. No stereo mix over USB any more.",
+    desc: "Each track gets its own USB channel (48 kHz / 32-bit): record the 6 tracks separately in your DAW. The stereo mix is no longer sent over USB. OS updates over USB keep working." },
+  "model-tg": { label: "Model-TG",
+    short: "TinyGregAudio's big pack: a 7th Sampler machine and many additions.",
+    parts: ["Sampler (7th machine)", "resampling", "retrig and master FX", "filter and resonance on the stock machines", "slide trigs", "Scale Lock", "samples through Elektron Transfer"],
+    desc: "A Sampler machine (7th machine) with seven playback modes, resampling, a beat-repeat page with master FX, Attack, Filter and Resonance on the stock machines, slide trigs that glide the parameters from one trig to the next, Scale Lock, sample upload through Elektron Transfer, and lower CPU use. It already includes drumkilla's three tweaks. With the Syntakt engines, the Sampler stays the 7th machine and the engines follow it.",
+    note: "Only install an OS while Device Config > Transfer is set to CYC (every power-on starts at CYC). Projects using the Sampler won't play those tracks on another firmware." },
+  "sample-preview": { label: "Sample preview (Model-TG)",
+    short: "On a Sampler track, in the preset menu, the pad plays the sample under the cursor.",
+    desc: "On a Sampler track, press FUNC + MACHINES (preset menu) and move the cursor onto a sample: the track's pad (or its trig keys in keyboard mode) plays it, just as the original OS lets you hear the preset under the cursor. Nothing plays by itself while you scroll. A sample that isn't in memory yet loads on the first press (a short wait), into free space or in place of samples the project doesn't use. The track keeps its own sample: its trigs still play it, and so does its pad once you leave the menu. Sampler presets that remember their sample should also play that sample instead of the track's.",
+    note: "If there isn't enough free memory (a preview keeps room for recording and never removes a sample your project uses), or while Model-TG is resampling, the press plays nothing. It needs Model-TG: unticking Model-TG unticks it." },
+  "latching-mute": { label: "Latching mute mode",
+    short: "TRACK + FUNC: mute mode stays on, no need to hold FUNC.",
+    desc: "Hold TRACK and tap FUNC: mute mode stays on, so you mute tracks without holding FUNC. A short tap on FUNC leaves it." },
+  "control-all-config": { label: "Control All Config",
+    short: "Choose which tracks Control All moves: hold TRACK and press TRIG 1–6.",
+    desc: "Hold TRACK and press TRIG 1–6 to take a track out of Control All, or to put it back. While TRACK is held, the trig keys of the tracks that follow light up. The active track always follows, as on the Digitakt and Digitone.\n\nTracks left out also keep their machine, LFO destination and PUNCH/GATE when you change those with TRACK held. TRACK + LEVEL/DATA (volume, pan) still moves all six tracks.",
+    note: "Your choice resets when you switch the Model:Cycles off." },
+  digidelay: { label: "Digital Delay",
+    credit_name: "PPPCCC",     // the credit's link text, in place of the long repository name
+    short: "A bright, clean delay of up to 5.4 seconds.",
+    desc: "Where the stock delay is dark, this one is bright and clean, with up to 5.4 seconds of delay time. Each repeat loses a little low end.\n\nWhile it plays, Time and Fdbk work as usual and are labelled Digi Time and Digi Fdbk. The delay is mono." },
+  pots: { label: "POTS",
+    short: "A lo-fi delay like an old phone line: each repeat darker and more out of tune.",
+    desc: "Every repeat goes down an old telephone line once more. The echoes get darker and narrower, drift further out of tune, fade in and out, and pick up a coarse grain as they die away.\n\nWhile it plays, Time and Fdbk work as usual and are labelled POTS Time and POTS Fdbk. Even at full feedback the repeats never run away. The delay is mono." },
+  "trig-cond-order": { label: "Trig Condition Order",
+    short: "On the CHANCE knob, the A:B conditions now come before the percentages.",
+    desc: "Hold a trig and turn CHANCE: FILL to !1st come first, then the A:B conditions from 1:2 to 8:8, then the percentages from 1% to 99%. The stock OS puts the percentages first.\n\nThe five dots under the value follow the new order. Only the knob changes: every trig keeps its condition, so your patterns play the same with or without the mod." },
+  "trig-preview": { label: "Trig Preview",
+    short: "With the sequencer stopped, hold a trig and press PAGE to hear that step.",
+    desc: "With the sequencer stopped or paused, hold a trig and press PAGE: the step plays as the sequencer would play it, with its note, length, p-locks and sound lock, and the page doesn't turn.\n\nThe step plays whatever its trig condition, even on a muted track. While the sequencer runs, PAGE turns the page as usual." },
+  "browser-scroll": { label: "Scroll long names",
+    short: "In the sound browser, names too long for the screen scroll.",
+    desc: "In the sound browser, a name too long for the screen scrolls so you can read it." },
+  syntakt: { label: "Real Syntakt engines",
+    short: "Syntakt engines as extra machines, read from your own Syntakt OS file.",
+    desc: "The Syntakt's own engines, read from your Syntakt OS file (step 2) and added after Chord, in this order, with the Syntakt's knob names and defaults. Tick the ones you want." },
+  "eng-sd": { short: "vintage snare", note: "Vintage snare." },
+  "eng-cp": { short: "vintage clap", note: "Vintage clap." },
+  "eng-toy": { short: "toy-like percussion", note: "Toy-like tuned percussion." },
+  "eng-bits": { short: "digital, bit crush", note: "Two digital oscillators with rate and bit reduction. PUNCH switches Bit Redux on." },
+  "eng-swarm": { short: "supersaw", note: "A swarm of detuned saws (supersaw). PUNCH adds the sub-octave." },
+  "trig-hold": { label: "Easier trig removal",
+    short: "A short press removes the trig; a long one keeps it and shows its settings.",
+    desc: "Pressing a trig key whose step already holds a trig removes it if you let go within half a second (0.2 s on the stock OS). Hold it longer and the trig stays, as before: its settings show up. Turning a knob while you hold keeps the trig too." },
+  arp: { label: "Arpeggiator",
+    short: "The retrig becomes an arpeggiator: held notes play one after another.",
+    desc: "The retrig becomes an arpeggiator: hold several notes on a track with RETRIG held (or A.On) and they play one after another at the retrig rate. FUNC + RETRIG adds Arp (direction: UP, DOWN, UPDN, RAND, PLAY or OFF) and Oct (1 to 4 octaves), saved with the pattern." },
+  "tempo-max": { label: "Tempo up to 546 BPM",
+    short: "Tempo goes up to 546 BPM instead of 300, MIDI clock included.",
+    desc: "The tempo goes up to 546.0 BPM instead of 300: TEMPO knob, tap tempo, incoming MIDI clock and saved projects. 546 is the ceiling of the project format. Tempo-synced LFOs stay right at these speeds.",
+    note: "Above 300 BPM, the processor may struggle to keep up with busy patterns: push it knowingly. A project saved above 300 BPM reopens at 120 BPM on the original OS." },
+  "boot-anim": { label: "modded-cycles startup animation",
+    short: "At startup the modded-cycles logo animates, without making startup longer.",
+    desc: "When the Model:Cycles starts, the four rounded squares of the modded-cycles logo pop in one by one and “modded-cycles” types itself underneath, instead of the original tile animation. It lasts as long as the original: startup is not slower." },
+  "multiline-browser": { label: "Multi-line browser",
+    short: "The browser shows three names at once in a small font, a > before the current one.",
+    desc: "The sound, folder and sample browser shows 3 names at once in a small font, instead of one in big letters. A > marks the name under the cursor, the loaded sound stays highlighted, and a small mark stands for a folder. With Scroll long names or Model-TG, only the name under the cursor scrolls. From an idea and a script by a community member." },
+  "level-pan-values": { label: "Volume and pan as numbers",
+    short: "On the main screen, LEVEL/DATA shows the track's volume and pan as numbers.",
+    desc: "On the main screen, turning LEVEL/DATA shows the selected track's volume as a number (0 to 127) next to its bar; with FUNC held, its pan (-64 to 63). The number goes away 3 to 4 seconds after you stop turning.",
+    note: "On the main screen, LEVEL/DATA now moves in steps of 1 instead of 2, so the number goes through every value: turn twice as far for the same change. While it shows, the number hides the loudspeaker icon or the “R” at the end of the bar." },
+  "trigless-dim": { label: "Dimmed trigless trigs",
+    short: "A trig key holding a trigless trig lights dimmed, so you tell it from a note trig.",
+    desc: "A trig key that holds a trigless trig (FUNC + trig key) lights dimmed instead of at full brightness, so you can tell it from a note trig at a glance. It keeps its usual blink. Note trigs, p-locked trigs and the playing light don't change.",
+    note: "The key is dimmed by lighting it for one millisecond out of every three, 333 times a second, so it looks steady." },
+  "midi-both": { label: "MIDI OUT while in THRU",
+    short: "With THR selected, the Cycles forwards incoming MIDI and sends its own MIDI too.",
+    clash: "both change what THR does with the Cycles' own MIDI",
+    desc: "In CONFIG › MIDI › PORTS, set OUT/THRU to THR: the Cycles keeps forwarding what arrives on its MIDI IN, and also sends its own clock, notes and parameter changes on its MIDI OUT. OUT works as before, and the menu doesn't change.",
+    note: "Best when only one side plays notes. The Cycles passes on what it receives as it comes in, without waiting for whole messages like a MIDI merger box: if the device on MIDI IN and the Cycles both send notes or knob moves, some can reach the next device wrong (a wrong or stuck note). Clock and start/stop are not affected." },
+  "midi-live-both": { label: "Live MIDI OUT + THRU toggle",
+    short: "With THR selected, FUNC + press LEVEL/DATA adds or removes the Cycles' own MIDI.",
+    clash: "both change what THR does with the Cycles' own MIDI",
+    desc: "Keeps the original OUT/THR menu. In CONFIG › MIDI › PORTS, with OUT/THRU on THR, hold FUNC and press the LEVEL/DATA knob: the Cycles also sends its own clock, notes and parameter changes, while still forwarding incoming MIDI. Do it again to go back to forwarding only. The screen shows THR either way; a press without FUNC switches to OUT, as before.",
+    note: "Best when only one side plays notes. The Cycles passes on what it receives as it comes in, without waiting for whole messages like a MIDI merger box: if the device on MIDI IN and the Cycles both send notes or knob moves, some can reach the next device wrong (a wrong or stuck note). Clock and start/stop are not affected." },
+  macro: { label: "MACRO machine",
+    short: "One extra machine with 47 synthesis models, from Braids' open-source code.",
+    desc: "An extra machine after Chord (after the Sampler with Model-TG, after the Syntakt engines if you tick them too) with the 47 synthesis models of Braids, Émilie Gillet's open-source macro-oscillator, from her own code: analog-style waves, FM, vowels and speech, physical models, drums, wavetables and noises. SHAPE picks the model, COLOR and SWEEP shape it, CONTOUR lets the amp envelope open the timbre. FUNC + PITCH gives lo-fi: turn left to lower the sample rate (RATE, down to about 4 kHz), right to lower the bit depth (BITS, down to 2 bits). DECAY, GATE and PUNCH work as on Tone.",
+    note: "About twice as heavy on the processor as an original machine; 13 models (the TRIPLE waves, the wavetables, CSAW…) are computed at 48 kHz and cost about half as much, and RATE lightens them further. On its own it has no load governor: several MACRO tracks playing at once can make the sound crackle, so start with one or two. On a MACRO track, FUNC + PITCH no longer fine-tunes the note. With the Syntakt engines, their load governor looks after MACRO tracks too. A project using MACRO needs a firmware with MACRO at the same place: it comes after the Sampler of Model-TG and the ticked Syntakt engines (ACID comes after it), so its number depends on Model-TG and on the ticked engines." },
+  acid: { label: "ACID machine",
+    short: "One extra machine: an acid bass in the style of the TB-303, with a drive knob and slides from your trigs.",
+    desc: "An extra machine after Chord, always the last one (after the Sampler with Model-TG, then the Syntakt engines and MACRO if you tick them too): an acid bass in the style of the TB-303, from the open-source Open303 model by Robin Schmidt. COLOR is the cutoff, SHAPE the resonance, SWEEP the env mod, CONTOUR the drive (from clean to fuzz, at about the same volume) and DECAY the decay; PUNCH switches the wave from saw to square. A trig whose length (LEN) runs past the next trig slides into the next note instead of playing it again; a pad played while another is held slides too.",
+    note: "About as heavy on the processor as Tone. Turn GATE on for notes that hold their whole length, as on the original. With the Syntakt engines, their load governor looks after ACID tracks too: a track it stopped plays its next note afresh, without sliding. A project using ACID needs a firmware with ACID at the same place: it is the last machine, so its number depends on Model-TG, the ticked Syntakt engines and MACRO." },
+  sampler: { label: "SAMPLE",
+    short: "Play samples from the +Drive and shape them with the built-in LP/HP filter, loop, reverse and gate.",
+    clash: "both add machines at the same place of the firmware, and there is no combined build with SAMPLE yet",
+    "clash_model-tg": "both change the same sound record functions of the firmware",
+    "clash_track-filter": "both change the same sound record functions of the firmware",
+    "clash_sample-preview": "both read sample files from the same PRESET browser, and sample preview needs Model-TG",
+    desc: "On a SAMPLE track, open the PRESET browser (FUNC + MACHINE) and pick a sample: the sound takes its name. Hold a trig while you pick one to give that step its own sample as a sound lock.\n\nCOLOR sets the start, SHAPE the length, SWEEP the Model:Samples' filter and CONTOUR its resonance. Hold RETRIG and press PUNCH for loop or GATE for reverse.",
+    note: "Load samples onto the +Drive with Elektron Transfer. Before installing a firmware without SAMPLE, switch SAMPLE tracks back to a stock machine." },
+  "chord-keys": { label: "Chord Keys",
+    short: "On a CHORD track, TRIG 1–16 play the chords of your scale.",
+    clash: "both change the notes of the TRIG keys (Model-TG has its own Scale Lock)",
+    desc: "Play one CHORD track with the lower TRIG buttons: I–VII on 1–7, one octave higher on 8–14, then I–II two octaves higher on 15–16. T1–T6 keep their usual controls. FUNC + RETRIG adds Keys, Root, Scale and a triad/7/9/11/13 choice per degree, shared across octaves and saved with the pattern." },
+  "track-filter": { label: "Per-track filter (LP / OFF / HP)",
+    short: "Hold MACHINES and turn SWEEP: low-pass to the left, off in the centre, high-pass to the right.",
+    clash: "both use MACHINES + SWEEP / CONTOUR for a track filter",
+    desc: "Hold MACHINES and turn SWEEP: a filter on the track, low-pass to the left, off in the centre, high-pass to the right, like a DJ mixer, with the Model:Samples' range (5 Hz to 20 kHz). CONTOUR sets the resonance, COLOR and SHAPE a filter envelope (amount up or down, decay) restarted by each note. Four real parameters on every machine: p-locks, LFO, velocity, MIDI CC 74 and 71, saved with the sound and the pattern.",
+    note: "Can't be ticked together with Model-TG for now: both use MACHINES + SWEEP / CONTOUR. Model-TG's filter will make way for this one once it is tested. A sound opened on another firmware plays without its filter." },
+  "lfo-plus": { label: "LFO 2, 3, 4",
+    "clash_track-filter": "both keep their settings in the same place of the sound",
+    short: "Three more LFOs on every track: press [LFO] again to reach LFO 2, 3 and 4.",
+    desc: "Each track gets three more LFOs next to the original one. On the LFO page, press [LFO] again: a big 2, then 3, then 4 shows in the left box, and the fifth press closes the page. Each extra LFO has its own speed, multiplier, waveform, destination and depth. Fade, start phase and mode stay shared with LFO 1. LFO 2 is saved with the sound and can be p-locked. LFO 3 and 4 are for live play: one setting per track, not saved. From DavidCaruso's Model-TG-VA-DR-v1, rewritten for this project. Works with or without Model-TG.",
+    note: "An extra LFO set to LFO 1's destination does nothing, and the DEST knob skips destinations another LFO of the track already uses. LFO 3 and 4 go back to their defaults at power-on and cannot be p-locked. With Model-TG, it also fixes the Attack, Filter and Resonance p-locks, which came back on other parameters after reloading a pattern. Not with the Per-track filter for now: both keep their settings in the same place of the sound." },
 };
 
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
 const st = {
-  lang: "en",
+  screen: "choose",        // "choose" (the cards) | "install" (file, connection, flash)
   mode: "mods",            // "mods" | "restore" | "samples"
   samplesOs: null,         // official Model:Samples OS { raw, name, sha } ("samples" mode)
   smpDir: "cyc",           // "samples" mode: "cyc" Samples OS for a Model:Cycles | "smp" Cycles OS for a Model:Samples | "back" its way back
   machine: "cyc",          // "mods" mode, the machine that receives the (always Model:Cycles) OS: "cyc" a Model:Cycles |
                            // "smp" a Model:Samples on its own OS | "cos" a Model:Samples already on the Cycles OS (notes/57)
   samplesError: null,
+  noMidi: null,            // why this browser can't send ("no_webmidi" | "insecure"): the page offers the download only
   syntakt: null,           // official Syntakt OS { raw, name, sha } (source of the Syntakt engines)
   syntaktError: null,
   os: null,                // { raw, name, info, sha, stock }
@@ -990,7 +572,7 @@ const st = {
 };
 
 function t(key, vars) {
-  let s = (T[st.lang] && T[st.lang][key]) || T.en[key] || key;
+  let s = T[key] || key;
   if (vars) for (const k in vars) s = s.split("{" + k + "}").join(vars[k]);
   return s.split("{dev}").join(deviceName()).split("{port}").join(portName());
 }
@@ -1010,7 +592,7 @@ function portName() {
 function refreshDevTexts() {
   document.querySelectorAll("[data-i18n],[data-i18n-html]").forEach((el) => {
     const key = el.dataset.i18n || el.dataset.i18nHtml;
-    if (!/\{(dev|port)\}/.test(T.en[key] || "")) return;
+    if (!/\{(dev|port)\}/.test(T[key] || "")) return;
     if (el.dataset.i18n) el.textContent = t(key); else el.innerHTML = t(key);
   });
 }
@@ -1018,7 +600,7 @@ function esc(s) {
   return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 function featText(id, key, fallback) {
-  const f = (FEAT[st.lang] && FEAT[st.lang][id]) || FEAT.en[id];
+  const f = FEAT[id];
   return (f && f[key]) || fallback || "";
 }
 
@@ -1044,18 +626,13 @@ const isDevicePort = (name) => /model\s*[:_-]?\s*(cycles|samples)/i.test(name ||
 // ---------------------------------------------------------------------------
 // Language
 // ---------------------------------------------------------------------------
-function applyLang(lang) {
-  st.lang = T[lang] ? lang : "en";
-  document.documentElement.lang = st.lang;
-  try { localStorage.setItem("mc-lang", st.lang); } catch (e) { /* private mode */ }
+function applyTexts() {
   document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll("[data-i18n-html]").forEach((el) => { el.innerHTML = t(el.dataset.i18nHtml); });
   // a loaded file keeps its name in its drop zone
   if (st.os) { $("drop-title").textContent = st.os.name; $("drop-sub").textContent = t("drop_again"); }
   if (st.samplesOs) { $("drop2-title").textContent = st.samplesOs.name; $("drop2-sub").textContent = t("drop_again"); }
   if (st.syntakt) { $("drop3-title").textContent = st.syntakt.name; $("drop3-sub").textContent = t("drop_again"); }
-  document.querySelectorAll(".lang button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === st.lang)));
-  document.title = t("title");
   renderFeatures();
   renderCredits();
   if (st.os) describeOs();
@@ -1070,8 +647,8 @@ function applyLang(lang) {
 // feature id -> { on: bool, variant: id } ; engine cards (real Syntakt engines): { on: bool, engines: [codes] } ;
 // machine cards (an added machine composed in the page, f.package, notes/61): { on: bool }
 const selection = {};
-// display-only state of the picker (never saved): open Details drawers, folded sections, search, last swap (Undo)
-const pick = { open: new Set(), folded: new Set(), q: "", swap: null, selOpen: false };
+// display-only state of the picker (never saved): open Details drawers, search, last swap (Undo)
+const pick = { open: new Set(), q: "", swap: null };
 
 // Engine card: the combination of ticked engines (kept in catalog order) and its tweak.
 // Two cards that can't be ticked together (Model-TG and the tweaks it already holds, or the Syntakt engines).
@@ -1149,7 +726,15 @@ function shortOf(f) {
   return featText(f.id, "short", "") || (d.match(/^.*?[.!?](?=\s|$)/) || [d])[0];
 }
 const catOf = (f) => (f.cat && CATS.includes(f.cat) ? f.cat : "other");
-const order = () => CATS.flatMap((c) => features().filter((f) => catOf(f) === c));    // display order
+// The three sections of step 1: added machines, effects (a package that takes an effect slot, notes/68), mods.
+const KINDS = ["machine", "effect", "mod"];
+function kindOf(f) {
+  const p = f.package && window.MC_TWEAKS.packages && window.MC_TWEAKS.packages[f.package];
+  if (p) return (p.uses || []).some((u) => /^fx\./.test(u.point || "")) ? "effect" : "machine";
+  return f.engines ? "machine" : "mod";
+}
+// display order: by section, then CATS, then FEATURES order
+const order = () => KINDS.flatMap((k) => CATS.flatMap((c) => features().filter((f) => kindOf(f) === k && catOf(f) === c)));
 // the real "excludes" (explained to the user); excludes() above also counts what a pack includes
 const clashOnly = (f, g) => (f.excludes || []).includes(g.id) || (g.excludes || []).includes(f.id);
 // "clash_<id>": why this card doesn't go with that one in particular; "clash": with any other
@@ -1160,7 +745,7 @@ const clashWhy = (f, g) => featText(f.id, "clash_" + g.id, "") || featText(g.id,
 function autoWhy(f, g) {
   const r = (window.MC_TWEAKS && window.MC_TWEAKS.clash_reasons) || {};
   const first = (r[`${f.id}|${g.id}`] || r[`${g.id}|${f.id}`] || [])[0];
-  return first && T.en["why_" + first[0]] ? t("why_" + first[0], { combo: first[1] }) : "";
+  return first && T["why_" + first[0]] ? t("why_" + first[0], { combo: first[1] }) : "";
 }
 // the card whose clash with g keeps f from going with g: f itself, or the card f requires (ticking sample preview
 // ticks Model-TG, so it doesn't go with what Model-TG doesn't go with); null if f goes with g
@@ -1191,7 +776,8 @@ function statusOf(f) {
   if (tgCombo) return triedWith(versionOf(featById(withId), tgCombo), true) ? "tested" : "experimental";
   return f.status === "tested" ? "tested" : "experimental";
 }
-const tagHtml = (s) => s === "tested" ? `<span class="tag ok">${esc(t("tested"))}</span>`
+// Tested is the rule and goes unsaid on a card (its Details say it); the exceptions carry a tag.
+const tagHtml = (s) => s === "tested" ? ""
   : s === "part" ? `<span class="tag ok">${esc(t("part_tested"))}</span>` : `<span class="tag exp">${esc(t("experimental"))}</span>`;
 
 // Tick or untick a card: cards that can't go together turn the other one off, as before; a real clash (excludes) is
@@ -1237,23 +823,24 @@ function undo() {
   return by;
 }
 
-// Search (shown from SEARCH_FROM mods): accent- and case-insensitive, in both languages, every word must match.
+// Search (shown from SEARCH_FROM mods): accent- and case-insensitive, every word must match.
 const fold = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 const hay = {};
 function haystack(f) {
   if (hay[f.id]) return hay[f.id];
   const parts = [f.label, f.desc];
-  for (const L of ["en", "fr"]) {
-    const x = FEAT[L][f.id] || {};
-    parts.push(x.label, x.short, x.desc, x.clash, (x.parts || []).join(" "), T[L]["cat_" + catOf(f)]);
-    for (const e of f.engines || []) parts.push(e.name, e.label, (FEAT[L]["eng-" + e.code] || {}).short);
-  }
+  const x = FEAT[f.id] || {};
+  parts.push(x.label, x.short, x.desc, x.clash, (x.parts || []).join(" "), T["cat_" + catOf(f)]);
+  for (const e of f.engines || []) parts.push(e.name, e.label, (FEAT["eng-" + e.code] || {}).short);
   if (f.credit) parts.push(f.credit.who);
   return (hay[f.id] = fold(parts.filter(Boolean).join(" ")));
 }
 const searching = () => features().length >= SEARCH_FROM && pick.q.trim() !== "";
 const matches = (f) => !searching() || fold(pick.q).split(/\s+/).filter(Boolean).every((w) => haystack(f).includes(w));
 
+// Step 1, three sections: the added machines, the effects (a package that takes an effect slot, notes/68), the mods.
+// Inside a section the cards follow CATS, then FEATURES order. A card is a checkbox: its name and one sentence; under
+// them the exception it carries (Experimental, never Tested: tested is the rule), its author and Details.
 function renderFeatures() {
   const box = $("features");
   if (!box || !window.MC_TWEAKS || !window.MC_TWEAKS.features) return;
@@ -1261,34 +848,24 @@ function renderFeatures() {
   features().forEach(selOf);
   box.innerHTML = "";
   dropOrphans();                                   // a card without the card it requires goes off
-  for (const c of CATS) {
-    const mods = features().filter((f) => catOf(f) === c);
-    if (!mods.length) continue;
-    const lit = mods.filter((f) => isOn(f.id) || includedBy(f));
-    const folded = pick.folded.has(c) && !searching();
+  const cards = order();
+  for (const k of KINDS) {
+    const mine = cards.filter((f) => kindOf(f) === k);
+    if (!mine.length) continue;
     const g = document.createElement("section");
     g.className = "grp";
-    g.id = "cat-" + c;
-    g.hidden = !mods.some(matches);
-    const n = lit.length ? t(lit.length > 1 ? "grp_on" : "grp_on1", { k: lit.length, n: mods.length })
-      : esc(t(mods.length > 1 ? "grp_n" : "grp_n1", { n: mods.length }));
-    const sub = t("cat_" + c + "_sub");
-    g.innerHTML = `<h3><button type="button" class="grp-h" id="grp-h-${c}" aria-expanded="${!folded}" aria-controls="grp-${c}">` +
-      `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CAT_ICON[c]}</svg>` +
-      `<span class="gt">${esc(t("cat_" + c))}</span>${sub ? `<span class="gs">${esc(sub)}</span>` : ""}<span class="gn">${n}</span>` +
-      `<svg class="chev" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5l4 4 4-4"/></svg>` +
-      `</button></h3>` +
-      (folded && lit.length ? `<p class="grp-sel">${lit.map((f) => `<span class="${includedBy(f) ? "inc" : ""}">${esc(label(f))}</span>`).join("")}</p>` : "");
+    g.id = "grp-" + k;
+    g.setAttribute("aria-labelledby", "grp-h-" + k);
+    g.hidden = !mine.some(matches);
+    const sub = T["kind_" + k + "_sub"];
+    g.innerHTML = `<h2 class="grp-h" id="grp-h-${k}">${esc(t("kind_" + k))}</h2>` + (sub ? `<p class="grp-sub">${esc(sub)}</p>` : "");
     const body = document.createElement("div");
     body.className = "grp-body";
-    body.id = "grp-" + c;
-    body.hidden = folded;
-    for (const f of mods) body.appendChild(renderRow(f));
+    for (const f of mine) body.appendChild(renderRow(f));
     g.appendChild(body);
     box.appendChild(g);
   }
   renderFind();
-  renderCats();
   renderSelection();
   // keyboard users keep their place: the element that had the focus gets it back after the rebuild
   if (focusId && (!document.activeElement || document.activeElement.id !== focusId) && $(focusId)) $(focusId).focus({ preventScroll: true });
@@ -1296,28 +873,30 @@ function renderFeatures() {
 
 function renderRow(f) {
   const sel = selOf(f), holder = includedBy(f), status = statusOf(f), on = sel.on || !!holder;
+  const open = pick.open.has(f.id);
   const d = document.createElement("div");
-  d.className = "mod" + (on ? " on" : "") + (holder ? " incl" : "");
+  d.className = "mod" + (on ? " on" : "") + (holder ? " incl" : "") + (open ? " open" : "");
   d.id = "mod-" + f.id;
   d.hidden = !matches(f);
   const side = [];
-  // "by drumkilla" / "based on ms-multi-output by scottmetoyer"; a link inside the <label> doesn't toggle the checkbox
-  if (f.credit) side.push(`<span class="credit">${creditHtml(f.credit)}` +
-    (f.license ? ` · <a href="${esc(f.license)}" target="_blank" rel="noopener">${esc(t("license_mit"))}</a>` : "") + `</span>`);
+  // "by drumkilla" / "based on ms-multi-output by scottmetoyer", outside the <label>: its link doesn't tick the card
+  if (f.credit) side.push(`<span class="credit"><span>${creditHtml(f.credit, featText(f.id, "credit_name", ""))}</span>` +
+    (f.license ? `<span><a href="${esc(f.license)}" target="_blank" rel="noopener">${esc(t("license_mit"))}</a></span>` : "") + `</span>`);
   if (f.needs === "syntakt") side.push(`<span class="need">${esc(t("need_syntakt"))}</span>`);
   const req = f.requires && featById(f.requires);
   if (req) side.push(`<span class="need">${esc(t("with_mod", { name: label(req) }))}</span>`);
-  const open = pick.open.has(f.id);
   d.innerHTML = `<label class="mod-row" for="feat-${f.id}">` +
       `<input type="checkbox" id="feat-${f.id}"${on ? " checked" : ""}${holder ? " disabled" : ""}>` +
       `<span class="ttl"><span class="nm">${esc(label(f))}</span>${holder ? `<span class="incl">${esc(t("included", { name: label(holder) }))}</span>` : ""}</span>` +
-      `<span class="by">${side.join("")}</span>` +
-      `<span class="st">${tagHtml(status)}</span>` +
       `<span class="short">${esc(shortOf(f))}</span>` +
     `</label>` +
-    `<button type="button" class="more" id="more-${f.id}" aria-expanded="${open}" aria-controls="det-${f.id}" aria-label="${esc(t("details_of", { name: label(f) }))}">` +
-      `<span class="lbl">${esc(t("details"))}</span><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5l4 4 4-4"/></svg></button>` +
-    `<div class="ext"></div>`;
+    `<div class="ext"></div>` +
+    `<div class="mod-foot">` +
+      `<span class="st">${tagHtml(status)}</span>` +
+      `<span class="by">${side.join("")}</span>` +
+      `<button type="button" class="more" id="more-${f.id}" aria-expanded="${open}" aria-controls="det-${f.id}" aria-label="${esc(t("details_of", { name: label(f) }))}">` +
+        `<span class="lbl">${esc(t(open ? "details_close" : "details"))}</span></button>` +
+    `</div>`;
   const ext = d.querySelector(".ext");
   const add = (html) => ext.insertAdjacentHTML("beforeend", html);
 
@@ -1326,9 +905,9 @@ function renderRow(f) {
   if (parts) add(`<ul class="parts">${parts.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>`);
   const held = (f.includes || []).map(featById).filter(Boolean);
   if (held.length) add(`<p class="also">${t("also", { n: held.length, names: held.map((g) => `<b>${esc(label(g))}</b>`).join(", ") })}</p>`);
-  // just unticked: said on the row just ticked, where the eyes are, with Undo
+  // just unticked: said on the card just ticked, where the eyes are, with Undo
   if (pick.swap && pick.swap.by === f.id) add(`<p class="say swap">${esc(swapText(pick.swap))} <button type="button" class="lnk" data-undo>${esc(t("undo"))}</button></p>`);
-  // before ticking: why this mod doesn't go with a ticked one
+  // before ticking: why this card doesn't go with a ticked one
   if (!on) for (const g of features()) {
     const by = g !== f && isOn(g.id) && clashVia(f, g);
     if (by) add(`<p class="say clash">${t("clash_row", { name: esc(t("quoted", { name: label(g) })), why: esc(clashWhy(by, g)) })}</p>`);
@@ -1336,8 +915,7 @@ function renderRow(f) {
   // several variants of one mod (none today): a sub-choice once ticked
   if (f.variants && f.variants.length > 1 && sel.on) add(renderVariants(f, sel));
   if (f.engines && sel.on) add(renderEngines(f, sel, status));
-  if (sel.on && featText(f.id, "note", "")) add(`<p class="say"><b>${esc(t("good_to_know"))}</b> ${esc(featText(f.id, "note", ""))}</p>`);
-  add(renderDetails(f, sel, open));
+  add(renderDetails(f, open));
   return d;
 }
 
@@ -1389,42 +967,11 @@ function renderEngines(f, sel, status) {
 }
 const dist = (c, sel) => c.engines.filter((x) => !sel.engines.includes(x)).length + sel.engines.filter((x) => !c.engines.includes(x)).length;
 
-// The Details drawer: the full description and the facts. Always in the page, hidden while closed.
-function renderDetails(f, sel, open) {
+// The Details drawer: the description, then the facts (Good to know among them: a card never grows when ticked).
+// Always in the page, hidden while closed.
+function renderDetails(f, open) {
   const rows = [];
   const row = (k, v) => rows.push(`<dt>${esc(t(k))}</dt><dd>${v}</dd>`);
-  const tgName = label(featById("model-tg") || { id: "model-tg", label: "Model-TG" });
-  const comboName = (g, c) => (c.engines.length === g.engines.length ? t("combo_all", { n: c.engines.length }) : c.label);
-  let status = esc(t(f.status === "tested" ? "d_tested" : "d_exp"));
-  if (f.combos) {
-    const tried = f.combos.filter((c) => c.tested).map((c) => comboName(f, c))
-      .concat(f.combos.filter((c) => c.tg_tested).map((c) => comboName(f, c) + " " + t("with_mod", { name: tgName })));
-    for (const k of f.joined || []) {                // with MACRO (notes/50), ACID (notes/54 §11)
-      const plus = k.split("+").map((id) => " + " + t("join_name_" + id)).join("");
-      tried.push(...f.combos.filter((c) => triedWith(c[k], false)).map((c) => comboName(f, c) + plus),
-        ...f.combos.filter((c) => triedWith(c[k], true)).map((c) => comboName(f, c) + plus + " " + t("with_mod", { name: tgName })));
-    }
-    status = esc(tried.length ? t("d_combos", { list: tried.join(" ; ") }) : t("d_exp"));
-  }
-  // MACRO, ACID: with the Syntakt engines, ACID with MACRO, their own tests
-  for (const host of hostsOf(f).map(featById).filter(Boolean)) {
-    const mine = (host.joined || []).filter((k) => k.split("+").includes(f.id));
-    const ok = host.combos ? host.combos.filter((c) => mine.some((k) => triedWith(c[k], false) || triedWith(c[k], true)))
-      : mine.some((k) => triedWith(host.versions[k], false) || triedWith(host.versions[k], true)) ? [null] : [];
-    status += " " + esc(ok.length ? (host.combos ? t("d_with_tested", { name: label(host), list: ok.map((c) => comboName(host, c)).join(" ; ") })
-      : t("d_with_tested_one", { name: label(host) })) : t("d_join_new", { name: label(host) }));
-  }
-  // a card with variants that holds others (MACRO): its versions with them
-  for (const k of f.versions ? f.joined || [] : []) {
-    const v = f.versions[k], names = k.split("+").map((id) => label(featById(id) || { id, label: id })).join(", ");
-    status += " " + esc(triedWith(v, false) || triedWith(v, true) ? t("d_with_tested_one", { name: names }) : t("d_join_new", { name: names }));
-  }
-  // Model-TG: its combined versions already tried (not on a card that only rides along, sample preview)
-  for (const gid of f.requires ? [] : Object.keys(f.with || {})) {
-    const g = featById(gid), ok = ((g && g.combos) || []).filter((c) => c.tg_tested);
-    if (ok.length) status += " " + esc(t("d_with_tested", { name: label(g), list: ok.map((c) => comboName(g, c)).join(" ; ") }));
-  }
-  row("d_status", status);
   const held = (f.includes || []).map(featById).filter(Boolean);
   if (held.length) row("d_contains", t("d_contains_v", { names: held.map((g) => `<b>${esc(label(g))}</b>`).join(", ") }));
   const clash = features().filter((g) => g !== f && clashVia(f, g));
@@ -1434,24 +981,11 @@ function renderDetails(f, sel, open) {
   if (req) row("d_requires", t("d_requires_v", { name: `<b>${esc(label(req))}</b>` }));
   if (f.engines) row("d_engines", f.engines.map((e) =>
     `<b>${esc(e.name)}</b> (${esc(e.label)})${featText("eng-" + e.code, "note", "") ? " : " + esc(featText("eng-" + e.code, "note", "")) : ""}`).join("<br>"));
-  if (!sel.on && featText(f.id, "note", "")) row("d_note", esc(featText(f.id, "note", "")));
+  if (featText(f.id, "note", "")) row("d_note", esc(featText(f.id, "note", "")));
   if (GUIDE_OF[f.id]) row("d_guide", `<a class="feat-guide" href="${GUIDE}#${GUIDE_OF[f.id]}">${esc(t("read_guide"))} <span aria-hidden="true">→</span></a>`);
-  return `<div class="det" id="det-${f.id}"${open ? "" : " hidden"}><p>${esc(featText(f.id, "desc", f.desc))}</p><dl class="facts">${rows.join("")}</dl></div>`;
-}
-
-// Section chips: they jump to a section (never filter); the LED lights when the section holds a ticked mod.
-function renderCats() {
-  const box = $("cats");
-  if (!box) return;
-  box.setAttribute("aria-label", t("cats_label"));
-  box.innerHTML = CATS.map((c) => {
-    const mods = features().filter((f) => catOf(f) === c);
-    if (!mods.length) return "";
-    const lit = mods.some((f) => isOn(f.id) || includedBy(f));
-    const n = mods.filter(matches).length;
-    return `<li class="${n ? "" : "zero"}"><a href="#cat-${c}" data-cat="${c}"><span class="led${lit ? " on" : ""}" aria-hidden="true"></span>` +
-      `${esc(t("cat_" + c))} <span class="n">${n}</span>${lit ? `<span class="vh">${esc(t("cat_lit"))}</span>` : ""}</a></li>`;
-  }).join("");
+  // the description in paragraphs (a blank line between them in FEAT)
+  const desc = String(featText(f.id, "desc", f.desc)).split(/\n\s*\n/).map((x) => `<p>${esc(x)}</p>`).join("");
+  return `<div class="det" id="det-${f.id}"${open ? "" : " hidden"}>${desc}<dl class="facts">${rows.join("")}</dl></div>`;
 }
 
 function renderFind() {
@@ -1471,50 +1005,27 @@ function renderFind() {
   }
 }
 
-// "Your selection": what will be installed, in display order, with × to untick; stuck to the bottom of the screen
-// while the list scrolls (where IntersectionObserver exists).
+// The end of the cards: one big button that says what happens, "Install 2 mods", with the cards' names above it.
+// Nothing picked: a dashed "Pick a card to start" that takes you back to the cards. Not sticky.
 function renderSelection() {
   const box = $("mod-sel");
   if (!box) return;
   const on = order().filter((f) => isOn(f.id));
-  const inc = features().filter((f) => includedBy(f));
   const exp = on.filter((f) => statusOf(f) === "experimental");
-  if (!on.length) {
-    box.innerHTML = `<div class="sel-h"><div class="sel-sum"><span class="sel-t" id="sel-title" tabindex="-1">${esc(t("sel_title"))}</span></div></div>` +
-      `<p class="sel-none">${esc(t("sel_none"))}</p>`;
-    box.classList.remove("open");
-    live(t("sel_none"));
-    return;
-  }
-  const counts = `<span class="sel-n">${esc(t(on.length > 1 ? "sel_n" : "sel_n1", { n: on.length })) + (inc.length ? " " + esc(t("sel_incl", { n: inc.length })) : "")}</span>` +
-    (exp.length ? `<span class="dotsep"> · </span><span class="fx">${esc(t(exp.length > 1 ? "sel_exp" : "sel_exp1", { n: exp.length }))}</span>` : "");
-  const chip = (f) => {
-    const sel = selOf(f);
-    const mine = inc.filter((g) => (f.includes || []).includes(g.id));
-    const extra = f.engines ? sel.engines.map((c) => f.engines.find((e) => e.code === c).name).join(", ")
-      : mine.length ? t("sel_incl", { n: mine.length }) : "";
-    return `<li class="chip"><span>${esc(label(f))}${extra ? ` <span class="ci">${esc(extra)}</span>` : ""}</span>` +
-      (statusOf(f) === "experimental" ? `<span class="cx" role="img" aria-label="${esc(t("experimental"))}" title="${esc(t("experimental"))}"></span>` : "") +
-      `<button type="button" class="x" data-off="${f.id}" aria-label="${esc(t("sel_remove", { name: label(f) }))}">×</button></li>`;
-  };
   const sw = pick.swap;
-  box.innerHTML = `<div class="sel-h">` +
-      `<div class="sel-sum"><span class="sel-t" id="sel-title" tabindex="-1">${esc(t("sel_title"))}</span><span class="sel-c">${counts}</span></div>` +
-      `<div class="sel-x">` +
-        `<button type="button" class="lnk soft clear" data-clear>${esc(t("sel_clear"))}</button>` +
-        `<button type="button" class="lnk soft sel-more" aria-expanded="${pick.selOpen}" aria-controls="sel-body">${esc(t(pick.selOpen ? "sel_hide" : "sel_show"))}</button>` +
-        `<a class="btn sel-next" href="#step-file">${esc(t("sel_next"))} <span aria-hidden="true">↓</span></a>` +
-      `</div>` +
-    `</div>` +
-    `<div class="sel-body" id="sel-body">` +
-      `<ul class="chips">${on.map(chip).join("")}${choiceNeedsSyntakt() ? `<li class="sel-need">${esc(t("sel_syntakt"))}</li>` : ""}` +
-        `${st.machine !== "cyc" ? `<li class="sel-need">${esc(t("sel_samples"))}</li>` : ""}</ul>` +
-      (sw ? `<p class="sel-msg">${esc(swapText(sw))} <button type="button" class="lnk" data-undo>${esc(t("undo"))}</button></p>` : "") +
-      `<p class="sel-foot"><button type="button" class="lnk soft" data-clear>${esc(t("sel_clear"))}</button></p>` +
-    `</div>`;
-  box.classList.toggle("open", pick.selOpen);
+  const names = on.map((f) => esc(label(f)) + (f.engines ? ` (${esc(selOf(f).engines.map((c) => f.engines.find((e) => e.code === c).name).join(", "))})` : "")).join(", ");
+  const go = on.length ? t(on.length > 1 ? "sel_go" : "sel_go1", { n: on.length }) : t("sel_pick");
+  const needs = (choiceNeedsSyntakt() ? `<p class="sel-need">${esc(t("sel_syntakt"))}</p>` : "") +
+    (onSamples() ? `<p class="sel-need">${esc(t("sel_samples"))}</p>` : "");
+  box.innerHTML = `<span class="vh" id="sel-title" tabindex="-1">${esc(t("sel_title"))}</span>` +
+    (on.length ? `<p class="sel-sum"><span class="sel-names">${names}</span>` +
+      (exp.length ? `<span class="dotsep"> · </span><span class="fx">${esc(t(exp.length > 1 ? "sel_exp" : "sel_exp1", { n: exp.length }))}</span>` : "") +
+      `</p>` : "") + needs +
+    (sw ? `<p class="sel-msg">${esc(swapText(sw))} <button type="button" class="lnk" data-undo>${esc(t("undo"))}</button></p>` : "") +
+    `<button type="button" class="btn sel-next${on.length ? "" : " empty"}"${on.length && !canContinue() ? " disabled" : ""}>` +
+      `<span>${esc(go)}</span><span aria-hidden="true">${on.length ? "→" : "↑"}</span></button>`;
   // short announcement for screen readers: the live region stays in place, only its text changes
-  live(box.querySelector(".sel-c").textContent + (sw ? ". " + swapText(sw) : ""));
+  live(on.length ? `${go}: ${on.map(label).join(", ")}` + (sw ? ". " + swapText(sw) : "") : go);
 }
 function live(text) {
   const el = $("mod-live");
@@ -1539,10 +1050,6 @@ function wirePicker() {
       const id = b.id.slice(5);
       if (pick.open.has(id)) pick.open.delete(id); else pick.open.add(id);
       renderFeatures();
-    } else if (b.classList.contains("grp-h")) {
-      const c = b.id.slice(6);
-      if (pick.folded.has(c)) pick.folded.delete(c); else pick.folded.add(c);
-      renderFeatures();
     } else if (b.hasAttribute("data-undo")) {
       const by = undo();
       changed();
@@ -1553,55 +1060,60 @@ function wirePicker() {
       changed();
     }
   });
-  $("cats").addEventListener("click", (e) => {               // a jump to a folded section unfolds it first
-    const a = e.target.closest("a[data-cat]");
-    if (a && pick.folded.delete(a.dataset.cat)) renderFeatures();
-  });
   $("mod-sel").addEventListener("click", (e) => {
     const b = e.target.closest("button");
     if (!b) return;
-    if (b.dataset.off && featById(b.dataset.off)) {
-      const xs = [...$("mod-sel").querySelectorAll("[data-off]")], k = xs.indexOf(b);
-      setOn(featById(b.dataset.off), false);
-      changed();
-      const next = $("mod-sel").querySelectorAll("[data-off]")[k] || $("sel-title");   // focus: the next ×, else the title
-      if (next) next.focus({ preventScroll: true });
-      return;
+    if (b.classList.contains("sel-next")) {
+      if (!b.classList.contains("empty")) { showScreen("install"); return; }
+      // nothing picked yet: back up to the cards, the first one in focus
+      if ($("features").scrollIntoView) $("features").scrollIntoView({ block: "start" });
+      const first = $("features").querySelector("input[type=checkbox]");
+      if (first) first.focus({ preventScroll: true });
     }
-    if (b.hasAttribute("data-clear")) { for (const id in selection) selection[id].on = false; pick.swap = null; }
     else if (b.hasAttribute("data-undo")) {
       const by = undo();
       changed();
       if (by && $("feat-" + by)) $("feat-" + by).focus({ preventScroll: true });
-      return;
-    } else if (b.classList.contains("sel-more")) { pick.selOpen = !pick.selOpen; renderFeatures(); return; }
-    else return;
-    changed();
+    }
   });
   $("mod-q").addEventListener("input", (e) => { pick.q = e.target.value; renderFeatures(); });
   $("mod-q").addEventListener("keydown", (e) => { if (e.key === "Escape") { pick.q = ""; renderFeatures(); } });
   $("mod-q-clr").addEventListener("click", () => { pick.q = ""; renderFeatures(); $("mod-q").focus(); });
   $("mod-found").addEventListener("click", (e) => { if (e.target.closest("[data-showall]")) { pick.q = ""; renderFeatures(); } });
-  // the selection bar floats only where IntersectionObserver exists (not in jsdom); its shadow only while it floats
-  if ("IntersectionObserver" in window) {
-    $("panel-mods").classList.add("js-sticky");
-    new IntersectionObserver(([en]) => {
-      $("mod-sel").classList.toggle("stuck", !en.isIntersecting && en.boundingClientRect.top > 0);
-    }).observe($("mod-sel-end"));
-  }
 }
 
-// "by drumkilla" / "based on ms-multi-output by scottmetoyer", linked to the repository; a mod received without
-// a public repository: "based on a mod by djd_oz", no link.
-// A link inside the card's <label> doesn't toggle the checkbox (interactive content).
-function creditHtml(c) {
+// The two screens: the cards, then the install steps. Continue opens the second when the choice is complete.
+function canContinue() {
+  if (st.mode === "restore") return true;
+  if (st.mode === "samples") return samplesAcked();
+  return chosenTweaks().length > 0 && (!onSamples() || $("mach-ack").checked);
+}
+function showScreen(s) {
+  if (st.sending || (s === "install" && !canContinue())) return;
+  st.screen = s;
+  render();
+  if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+  $(s === "install" ? "install-h" : "h1s").focus({ preventScroll: true });
+}
+// Step 1 of the install screen: what will be installed.
+function pickedHtml() {
+  const li = (s) => `<li>${esc(s)}</li>`;
+  if (st.mode === "restore") return li(t("mods_list_restore"));
+  if (st.mode === "samples") return li(t(st.smpDir === "cyc" ? "mods_list_samples" : st.smpDir === "smp" ? "mods_list_cos" : "mods_list_sback"));
+  return order().filter((f) => isOn(f.id)).map((f) => `<li>${esc(label(f))}` +
+    (statusOf(f) === "experimental" ? ` ${tagHtml("experimental")}` : "") + `</li>`).join("");
+}
+
+// "by drumkilla" / "based on ms-multi-output by scottmetoyer", linked to the repository (a card's FEAT credit_name
+// stands for the repository and its author: "based on PPPCCC"); a mod received without a public repository: "based
+// on a mod by djd_oz", no link.
+function creditHtml(c, name) {
   if (!c.repo) return t(c.kind === "based" ? "credit_mod" : "credit_by", { who: esc(c.who) });
   const url = "https://github.com/" + c.repo;
   const link = (txt) => `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(txt)}</a>`;
-  return c.kind === "based"
-    // "d'après eurorack d'Émilie Gillet": French elides "de" before a vowel
-    ? t(/^[aeiouàâéèêëîïôùûœ]/i.test(c.who) ? "credit_based_v" : "credit_based",
-        { repo: link(c.repo.split("/")[1]), who: esc(c.who) })
+  // a short name (credit_name) is the project's own and says who it is: "based on PPPCCC", no author after it
+  if (c.kind === "based" && name) return t("credit_based_name", { repo: link(name) });
+  return c.kind === "based" ? t("credit_based", { repo: link(c.repo.split("/")[1]), who: esc(c.who) })
     : t("credit_by", { who: link(c.who) });
 }
 
@@ -1610,7 +1122,7 @@ function renderCredits() {
   if (!box) return;
   box.innerHTML = CREDITS.map((c) =>
     `<li><a href="https://github.com/${esc(c.repo)}" target="_blank" rel="noopener">${esc(c.repo)}</a>, ` +
-    `${esc(c[st.lang] || c.en)}</li>`).join("");
+    `${esc(c.en)}</li>`).join("");
 }
 
 // Model-TG with the Syntakt engines: the combined version (notes/31), its base (f.with) then the engines' tweak
@@ -1964,15 +1476,15 @@ function buildCached(key, make) {
 // ---------------------------------------------------------------------------
 // Step 3 — MIDI
 // ---------------------------------------------------------------------------
+// No Web MIDI (Firefox, Safari) or not a secure page: no banner; the page offers the download only and step 4 says why
+// (st.noMidi, the text key).
 function checkCompat() {
-  const box = $("compat");
-  let msg = "";
-  if (typeof window.isSecureContext !== "undefined" && !window.isSecureContext) msg = t("insecure");
-  else if (!navigator.requestMIDIAccess) msg = t("no_webmidi");
-  box.innerHTML = msg;
-  box.hidden = !msg;
-  if (msg) st.midiState = st.midiState === "ready" ? "ready" : "unsupported";
-  return !msg;
+  let why = null;
+  if (typeof window.isSecureContext !== "undefined" && !window.isSecureContext) why = "insecure";
+  else if (!navigator.requestMIDIAccess) why = "no_webmidi";
+  st.noMidi = why;
+  if (why) st.midiState = st.midiState === "ready" ? "ready" : "unsupported";
+  return !why;
 }
 
 async function initMidi(silent) {
@@ -2201,6 +1713,26 @@ function missingReason() {
 
 function render() {
   refreshDevTexts();
+  // the two screens; the tabs, the machine picker and the classic method only where the page offers them
+  $("step-choose").hidden = st.screen !== "choose";
+  $("screen-install").hidden = st.screen !== "install";
+  $("mode-tabs").hidden = $("mach-box").hidden = !SAMPLES_UI;
+  $("methods").hidden = $("advanced").hidden = !CLASSIC_UI;
+  $("back").disabled = st.sending;
+  document.querySelectorAll(".go-next").forEach((b) => { b.disabled = !canContinue(); });
+  const nx = $("mod-sel").querySelector(".sel-next");
+  if (nx) nx.disabled = !nx.classList.contains("empty") && !canContinue();
+  $("picked").innerHTML = pickedHtml();
+  // a browser that can't send: no connection step, step 4 becomes 3 and offers the download alone
+  const dlOnly = st.midiState === "unsupported";
+  $("step-connect").hidden = dlOnly;
+  $("n4").textContent = dlOnly ? "3" : "4";
+  $("h4s").textContent = t(dlOnly ? "s4_dl" : "s4");
+  $("dl-note").hidden = !dlOnly;
+  $("dl-note").innerHTML = dlOnly ? t(st.noMidi || "no_webmidi") : "";
+  $("ack-row").hidden = $("trouble").hidden = dlOnly;
+  $("flash").parentElement.hidden = dlOnly;
+  $("download").classList.toggle("secondary", !dlOnly);
   // step 2 status
   $("h2s").textContent = t(needsSamplesFile() ? "s2_samples" : "s2");
   $("drop2-wrap").hidden = !needsSamplesFile();
@@ -2257,9 +1789,6 @@ function render() {
   }
 
   // step badges
-  const choseOk = st.mode === "restore" || (st.mode === "samples" ? samplesAcked()
-    : chosenTweaks().length > 0 && (!onSamples() || $("mach-ack").checked));
-  $("step-choose").classList.toggle("done", choseOk);
   $("step-file").classList.toggle("done", !!st.fw && !st.building);
   $("step-connect").classList.toggle("done", st.midiState === "ready" && !!currentPort() && (st.method !== "fast" || !devProblem()));
   $("step-flash").classList.toggle("done", st.finished === "ok");
@@ -2277,14 +1806,15 @@ function render() {
     const mins = Math.max(1, Math.round(secs / 60));
     sum.innerHTML = `<b>${esc(what)}</b>` + (port ? ` ${esc(t("via"))} <b>${esc(port.name)}</b>` : "") +
       ` · ${esc(t("minutes", { m: mins }))}`;
-    sum.hidden = false;
+    sum.hidden = dlOnly;
   } else sum.hidden = true;
 
   // flash button
   const miss = st.sending ? null : missingReason();
   $("flash").disabled = st.sending || !!miss;
   $("flash").textContent = st.sending ? t("flashing") : t("flash_btn");
-  $("missing").textContent = st.sending ? "" : miss ? t(miss) : st.finished === "ok" ? ""
+  $("missing").textContent = dlOnly ? (st.fw || !miss ? "" : t(miss))         // only what the download waits for
+    : st.sending ? "" : miss ? t(miss) : st.finished === "ok" ? ""
     : t(st.method === "fast" ? "miss_ready_fast" : "miss_ready", { m: hardware() });
   $("stop").hidden = !st.sending;
   renderAfter();
@@ -2433,8 +1963,7 @@ async function flashFast(out, fw, onProgress, gone) {
 }
 
 function fastError(err) {
-  const q = st.lang === "fr" ? ["« ", " »"] : ["“", "”"];
-  const why = err.detail ? ` (${q[0]}${esc(err.detail)}${q[1]})` : "";
+  const why = err.detail ? ` (“${esc(err.detail)}”)` : "";
   switch (err.code) {
     case "timeout": return esc(t("fast_timeout"));
     case "refused": return t("fast_refused", { why });
@@ -2458,14 +1987,10 @@ function setMethod(m) {
 // Wiring
 // ---------------------------------------------------------------------------
 function init() {
-  let lang = "en";
-  try { lang = localStorage.getItem("mc-lang") || ""; } catch (e) { lang = ""; }
-  if (!lang) lang = /^fr\b/i.test(navigator.language || "") ? "fr" : "en";
-  st.lang = lang;
-  try { st.method = localStorage.getItem("mc-method") === "slow" ? "slow" : "fast"; } catch (e) { /* private mode */ }
-  try { const m = localStorage.getItem("mc-machine"); if (["cyc", "smp", "cos"].includes(m)) st.machine = m; } catch (e) { /* private mode */ }
+  // a choice saved on an older page stays unused where this page doesn't show it
+  try { st.method = CLASSIC_UI && localStorage.getItem("mc-method") === "slow" ? "slow" : "fast"; } catch (e) { /* private mode */ }
+  try { const m = localStorage.getItem("mc-machine"); if (SAMPLES_UI && ["cyc", "smp", "cos"].includes(m)) st.machine = m; } catch (e) { /* private mode */ }
 
-  document.querySelectorAll(".lang button").forEach((b) => b.addEventListener("click", () => applyLang(b.dataset.lang)));
   $("tab-mods").addEventListener("click", () => setMode("mods"));
   $("tab-restore").addEventListener("click", () => setMode("restore"));
   $("tab-samples").addEventListener("click", () => setMode("samples"));
@@ -2502,6 +2027,10 @@ function init() {
   $("m-fast").addEventListener("click", () => setMethod("fast"));
   $("m-slow").addEventListener("click", () => setMethod("slow"));
   $("ack").addEventListener("change", render);
+  $("go-restore").addEventListener("click", () => { setMode("restore"); showScreen("install"); });
+  document.querySelectorAll(".go-next").forEach((b) => b.addEventListener("click", () => showScreen("install")));
+  // back to the cards; without the tabs, the official firmware was a one-off choice
+  $("back").addEventListener("click", () => { if (!SAMPLES_UI && st.mode !== "mods") setMode("mods"); showScreen("choose"); });
   $("pace").addEventListener("input", render);
   $("flash").addEventListener("click", flash);
   $("stop").addEventListener("click", () => { st.cancel = true; });
@@ -2520,7 +2049,7 @@ function init() {
 
   $("build-stamp").textContent = "· build " + (window.MC_BUILD || "?");
   wirePicker();
-  applyLang(st.lang);
+  applyTexts();
   update();
 
   // Returning visitor who already allowed MIDI: connect without a click.
@@ -2533,7 +2062,7 @@ function init() {
 
 // test hooks (tools/webflash_smoke.js)
 window.MCFlasherApp = { state: st, REF_MAINOS, REF_MODS, REF_SAMPLES_ON_CYCLES, REF_CYCLES_ON_SAMPLES, REF_SAMPLES_BACK, loadOs,
-  loadSamples, loadSyntakt, setMode, setSmpDir, setMachine, setMethod, applyLang, render,
+  loadSamples, loadSyntakt, setMode, setSmpDir, setMachine, setMethod, applyTexts, render,
   chosenTweaks, chosenLabels, CATS, autoWhy };
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

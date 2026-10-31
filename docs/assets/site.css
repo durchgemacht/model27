@@ -92,9 +92,6 @@
   --bad:#ff7b6b;
 }
 
-/* one language at a time: <x data-l="fr"> / <x data-l="en"> */
-html[lang="fr"] [data-l="en"],html:not([lang="fr"]) [data-l="fr"]{display:none !important}
-
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;scroll-padding-top:24px}
 body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.55 var(--f);-webkit-font-smoothing:antialiased}
@@ -118,9 +115,6 @@ h3{font-size:20px;letter-spacing:-.01em}
 .top nav{display:flex;gap:22px;flex-wrap:wrap;align-items:baseline}
 .top nav a{text-decoration:none}
 .top nav a:hover,.top nav a[aria-current="page"]{text-decoration:underline;text-decoration-color:var(--red);text-decoration-thickness:2px}
-.lang{display:flex;gap:2px;align-items:baseline;color:var(--muted)}
-.lang button{font:inherit;color:var(--muted);background:none;border:0;padding:0 3px;cursor:pointer}
-.lang button[aria-pressed="true"]{color:var(--ink);font-weight:700}
 /* theme switch: a moon in the light theme, a sun in the dark one */
 .theme-btn{align-self:center;display:grid;place-items:center;width:32px;height:32px;margin:-6px -6px -6px 0;padding:0;border:0;border-radius:var(--r);
   background:none;color:var(--ink-2);cursor:pointer}

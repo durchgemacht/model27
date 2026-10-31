@@ -351,7 +351,7 @@ ALL_FEATURES = [
         # on the Model:Cycles on 2026-10-27 from the command line, then flashed from this page alone and with SAMPLE
         # (notes/68 §18, §19)
         "status": "tested",
-        "credit": {"kind": "based", "who": "gialloinfuso", "repo": "gialloinfuso/PPPCCC-Model-Cycles-1.13-Mods"},
+        "credit": {"kind": "based", "who": "gialloinfuso", "repo": "gialloinfuso/PPPCCC-M-S-Mods"},
         "license": "LICENSE-PPPCCC",
         # an effect composed in the page from its package (notes/68 §19), with the machines ticked: alone it gives
         # 39-digidelay.json byte for byte, whose conflicts give its excludes
@@ -369,7 +369,7 @@ ALL_FEATURES = [
         # the 24 kHz build tested on the Model:Cycles (notes/69 §18, §22.5); the loop at 12 kHz of §23, lighter for a
         # busy pattern, tested too: flashed from this page on 2026-10-29, the project that lagged without lag (§23.6)
         "status": "tested",
-        "credit": None,
+        "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
         # an effect composed in the page from its package (notes/69 §19), with the machines and Digital ticked:
         # alone it gives 70-pots.json byte for byte, whose conflicts give its excludes
         "package": "pots",
@@ -383,7 +383,7 @@ ALL_FEATURES = [
         # model27's own (notes/70); tested on the Model:Cycles from the command line on 2026-10-30, the order and the
         # five dots (notes/70 §9), then flashed from this page the same day (§11)
         "status": "tested",
-        "credit": None,
+        "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
         "variants": [
             {"file": "80-trig-cond-order", "label": None},
         ],

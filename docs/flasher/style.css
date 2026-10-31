@@ -1,340 +1,310 @@
-/* Web flasher page, on top of ../assets/site.css. Class names are the ones app.js renders. */
+/* Web flasher page, on top of ../assets/site.css. Class names are the ones app.js renders.
+ * 1-bit (redesign of 2026-10-31): two tones only, ink and a cool grey; the dark theme swaps them. Greys are patterns
+ * (dashes, a dithered LED), states are borders and inversion, never colour. No rounded corners, one typeface (Space Mono).
+ * Plain CSS (no nesting, color-mix or :has): the smoke test parses it with jsdom. */
 
-.fl-head{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:16px 56px;align-items:end;padding:88px 0 56px}
-.fl-head p{font-size:19px;line-height:1.45;margin:0 0 10px;max-width:36ch}
-.fl-head .ver{font-size:15px;color:var(--muted);margin:0}
-.fl>section,.fl>details,.fl>.alert{max-width:820px}
+:root{
+  color-scheme:light;
+  --ink:#0b0c0e;
+  --paper:#d7dbe0;
+  --card:#e6ebf1;          /* the cards, a shade lighter than the page; the dark theme keeps them on the page's tone */
+  --card-foot:#cde3ef;     /* a card's foot (author, Details); none in the dark theme */
+  --head-bg:#2b2c2d;       /* the headline's block; the dark theme inverts it */
+  --check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%230b0c0e'/%3E%3C/svg%3E");   /* a ticked box: a pixel check in the ink */
+  --casing:var(--paper);
+  --well:var(--paper);
+  --line:var(--ink);
+  --line-2:var(--ink);
+  --ink-2:var(--ink);
+  --muted:var(--ink);
+  --ctl:var(--ink);
+  --ctl-ink:var(--paper);
+  --ctl-edge:var(--ink);
+  --red:var(--ink);
+  --red-ink:var(--ink);
+  --accent-ink:var(--paper);
+  --accent-glow:transparent;
+  --accent-2:var(--ink);
+  --accent-2-bg:var(--paper);
+  --ok:var(--ink);
+  --warn:var(--ink);
+  --bad:var(--ink);
+  --f:"Space Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --f-code:var(--f);
+  --r:0;
+  --wrap:1120px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){color-scheme:dark;--ink:#d7dbe0;--paper:#0b0c0e;--card:var(--paper);--card-foot:transparent;--head-bg:var(--ink);
+    --check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%23d7dbe0'/%3E%3C/svg%3E")}
+}
+:root[data-theme="dark"]{color-scheme:dark;--ink:#d7dbe0;--paper:#0b0c0e;--card:var(--paper);--card-foot:transparent;--head-bg:var(--ink);
+  --check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%23d7dbe0'/%3E%3C/svg%3E")}
 
-.alert{margin:0 0 20px;padding:2px 0 2px 14px;border-left:3px solid var(--bad);color:var(--bad);font-size:16px}
-.alert a{color:inherit}
-
-/* steps: a rule, a numbered trig key that lights up once the step is done */
-.step{padding:22px 0 44px;border-top:1px solid var(--ink)}
-.step>header{display:flex;align-items:center;gap:14px;margin:0 0 20px}
-.step h2{font-size:24px}
-.num{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:6px;background:var(--ctl);color:var(--ctl-ink);
-  font-weight:700;font-size:15px;box-shadow:0 2px 0 var(--ctl-edge)}
-.step.done .num{background:var(--red);color:var(--accent-ink)}
-.hint{margin:.8em 0 0;font-size:15px;color:var(--muted)}
-.hint:empty{display:none}
-.panel-text{margin:0;max-width:64ch}
-.note{margin:16px 0 0;font-size:15px;color:var(--muted);max-width:64ch}
-code{font-size:.82em}
-
-/* mode tabs */
-.seg{display:flex;flex-wrap:wrap;gap:6px 22px;margin:0 0 20px}
-.seg button{font:inherit;font-size:16px;background:none;border:0;padding:0;color:var(--muted);cursor:pointer}
-.seg button:hover{color:var(--ink)}
-.seg button[aria-selected="true"],.seg button[aria-checked="true"]{color:var(--ink);font-weight:700;text-decoration:underline;text-decoration-color:var(--red);text-decoration-thickness:2px;text-underline-offset:.25em}
-
-/* key-shaped checkboxes: charcoal, red when on */
-.mod-row>input,.variants input,.check input{appearance:none;-webkit-appearance:none;flex:none;margin:0;width:22px;height:22px;border-radius:5px;
-  background:var(--ctl);box-shadow:0 2px 0 var(--ctl-edge);cursor:pointer}
-.mod-row>input:checked,.variants input:checked,.check input:checked{background:var(--red)}
-.variants input[type=radio]{border-radius:50%}
-
-/* mods, step 1: sections named after what a mod changes on the machine, one short row per mod, details on demand.
- * Plain CSS (no nesting, color-mix or :has): the smoke test parses it with jsdom. Class names avoid site.css's .name and
- * the progress bar's .meta. */
-#features{border-top:0}
+body{font:400 15px/1.6 var(--f);-webkit-font-smoothing:auto}
+::selection{background:var(--ink);color:var(--paper)}
+:focus-visible{outline:3px solid currentColor;outline-offset:3px}
+a{text-decoration-thickness:2px;text-decoration-color:currentColor;text-underline-offset:.22em}
+a:hover{text-decoration-thickness:4px;text-decoration-color:currentColor}
+h1,h2,h3{font-family:var(--f);font-weight:700;letter-spacing:0;text-transform:uppercase;line-height:1}
+code{font:.9em var(--f);background:none;padding:0;border-radius:0}
 .vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
-
-/* how to read the list, before ticking anything */
-.mods-lede{margin:0 0 14px;font-size:15px;line-height:1.55;color:var(--muted);max-width:70ch}
-.mods-lede .tag{font-size:inherit}
-.tag{font-size:14px;font-weight:600;letter-spacing:0;color:var(--accent-2)}
-.tag.ok{color:var(--ok)}
-/* "Experimental" outlined in amber so the exceptions stand out; "Tested" stays plain green */
-.tag.exp{display:inline-block;padding:0 6px;border:1px solid var(--accent-2);background:var(--accent-2-bg);border-radius:6px;line-height:1.35}
-
-/* search, shown from SEARCH_FROM mods (app.js) */
-.find{position:relative;margin:0 0 10px}
-.find input{width:100%;height:44px;padding:0 44px 0 40px;border:1px solid var(--line-2);border-radius:var(--r);background:var(--paper);color:var(--ink);font:16px var(--f);
-  appearance:none;-webkit-appearance:none}
-.find input::placeholder{color:var(--muted)}
-.find .mag{position:absolute;left:13px;top:13px;color:var(--muted);pointer-events:none}
-.find .clr{position:absolute;right:0;top:0;width:44px;height:44px;padding:0;border:0;background:none;color:var(--muted);font:20px/1 var(--f);cursor:pointer}
-.find .clr:hover{color:var(--ink)}
-.found{margin:0 0 12px;font-size:14.5px;color:var(--muted)}
-.found b{color:var(--ink);font-weight:600}
-
-/* section chips: they jump to a section; a page LED lights when the section holds a ticked mod */
-.cats{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 4px;padding:0;list-style:none}
-.cats a{position:relative;display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:0 7px;border:1px solid var(--line-2);border-radius:var(--r);
-  font-size:13.5px;line-height:1.2;text-decoration:none;color:var(--ink-2);white-space:nowrap}
-.cats a:hover{border-color:var(--ink);color:var(--ink)}
-.cats .n{margin-left:-1px;color:var(--muted);font-variant-numeric:tabular-nums}
-.cats .zero a{opacity:.45}
-.led{flex:none;width:7px;height:7px;border-radius:50%;background:var(--line-2)}
-.led.on{background:var(--red);box-shadow:0 0 0 2px var(--accent-glow)}
-
-/* a section: an ink rule like the steps, a header button that folds it */
-.grp{margin-top:28px;scroll-margin-top:16px}
-.grp>h3{margin:0;font-size:inherit;letter-spacing:0}
-.grp-h{display:flex;align-items:center;gap:12px;width:100%;min-height:50px;padding:12px 0 11px;border:0;border-top:1px solid var(--ink);background:none;
-  font:inherit;color:var(--ink);text-align:left;cursor:pointer}
-.grp-h .ic{flex:none;width:22px;height:22px;color:var(--ink-2)}
-.grp-h .gt{font-size:19px;font-weight:700;letter-spacing:-.015em}
-.grp-h .gs{font-size:15px;color:var(--muted);font-weight:400}
-.grp-h .gn{margin-left:auto;font-size:14.5px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
-.grp-h .gn b{color:var(--ink);font-weight:700}
-.grp-h .chev{flex:none;color:var(--muted);transition:transform .15s}
-.grp-h[aria-expanded="false"] .chev{transform:rotate(-90deg)}
-.grp-h:hover .gt{text-decoration:underline;text-decoration-color:var(--red);text-decoration-thickness:2px;text-underline-offset:.2em}
-.grp-body{border-top:1px solid var(--line)}
-/* folded section: one line recalls what is ticked inside */
-.grp-sel{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 14px;margin:0;padding:0 0 4px 34px;font-size:14.5px;color:var(--ink-2)}
-.grp-sel span{display:inline-flex;align-items:baseline;gap:7px}
-.grp-sel span::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--red);transform:translateY(-1px)}
-.grp-sel .inc::before{background:none;box-shadow:inset 0 0 0 1.5px var(--red)}
-
-/* a mod = one row: key, name, one sentence; status and author on the right; Details opens the drawer */
-.mod{position:relative;border-bottom:1px solid var(--line)}
-.mod-row{display:grid;grid-template-columns:22px minmax(0,max-content) minmax(0,1fr) max-content;
-  grid-template-areas:"key ttl by tag" "key short short short";column-gap:14px;row-gap:1px;align-items:baseline;padding:12px 104px 13px 0;cursor:pointer}
-.mod-row>input{grid-area:key;align-self:start;margin-top:2px}
-.ttl{grid-area:ttl;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 10px;font-weight:700;font-size:17px;line-height:1.35;letter-spacing:-.01em}
-.ttl .incl{font-weight:400;font-size:14.5px;color:var(--muted);letter-spacing:0}
-.by{grid-area:by;display:flex;flex-wrap:wrap;gap:0 12px;font-size:14px;line-height:1.35;color:var(--muted)}
-.by a{color:var(--ink-2)}
-.by .need{color:var(--ink-2)}
-.st{grid-area:tag;justify-self:end}
-.st .tag{font-size:13.5px}
-.short{grid-area:short;font-size:15.5px;line-height:1.45;color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.more{position:absolute;top:8px;right:0;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 9px 0 11px;border:0;border-radius:var(--r);
-  background:none;color:var(--muted);font:14.5px var(--f);cursor:pointer}
-.more:hover{background:var(--casing);color:var(--ink)}
-.more svg{flex:none;transition:transform .15s}
-.more[aria-expanded="true"]{color:var(--ink)}
-.more[aria-expanded="true"] svg{transform:rotate(180deg)}
-.ext{padding-left:36px}
-.ext:empty{display:none}
-.mod.incl .mod-row{cursor:default}
-.mod.incl .mod-row>input{opacity:.5;cursor:default}
-.mod.incl .nm{color:var(--ink-2)}
-.ext .variants{margin:0 0 12px}
-
-/* a pack: what it brings, on one line, and the mods of this list it already holds */
-.parts{margin:-5px 0 6px;padding:0;list-style:none;font-size:14.5px;line-height:1.5;color:var(--ink-2);max-width:72ch}
-.parts li{display:inline}
-.parts li+li::before{content:" · ";color:var(--muted)}
-.also{margin:0 0 12px;font-size:14.5px;line-height:1.5;color:var(--muted);max-width:72ch}
-.also b{font-weight:600;color:var(--ink-2)}
-
-/* engines: trig-key pads, red once lit; under each key, the machine's name and what it does */
-.pads{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:12px 10px;margin:2px 0 12px;max-width:620px}
-.pad{position:relative;display:block;cursor:pointer}
-.pad input{position:absolute;opacity:0;width:1px;height:1px}
-.pad b{display:grid;place-items:center;height:38px;border-radius:5px;background:var(--ctl);color:var(--ctl-ink);box-shadow:0 2px 0 var(--ctl-edge);
-  font-size:14px;font-weight:700;letter-spacing:.03em}
-.pad input:checked+b{background:var(--red);color:var(--accent-ink)}
-.pad input:focus-visible+b{outline:2px solid var(--ink);outline-offset:3px}
-.pad small{display:block;font-size:12.5px;line-height:1.3;color:var(--muted)}
-.pad .pl{margin-top:7px;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--ink-2)}
-.combo{margin:0 0 10px;font-size:14.5px;line-height:1.5;color:var(--ink-2);max-width:70ch}
-.combo .tag{margin-right:8px}
-.combo.quiet{color:var(--muted)}
-.lnk{font:inherit;font-weight:600;color:var(--ink);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;
-  text-decoration-color:var(--red);text-decoration-thickness:1.5px;text-underline-offset:.2em}
-.lnk.soft{font-weight:400;color:var(--muted);text-decoration-color:var(--line-2)}
-.lnk.soft:hover{color:var(--ink);text-decoration-color:var(--red)}
-
-/* to read: a clash before ticking (red), just unticked (ink, with Undo), good to know once ticked (amber) */
-.say{margin:0 0 12px;padding:1px 0 1px 12px;border-left:3px solid var(--warn);font-size:14.5px;line-height:1.5;color:var(--ink-2);max-width:70ch}
-.say b{color:var(--warn)}
-.say.clash{border-color:var(--bad)}
-.say.clash b{color:var(--bad)}
-.say.swap{border-color:var(--ink)}
-.say.swap b{color:var(--ink)}
-
-/* the Details drawer: the full description and the facts, always in the page (hidden while closed) */
-.det{margin:2px 0 14px;padding:14px 16px 13px;border-radius:var(--r);background:var(--casing);font-size:15px;line-height:1.5;color:var(--ink-2)}
-.det>p{margin:0 0 10px;max-width:70ch}
-.facts{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:5px 18px;margin:0;font-size:14.5px;line-height:1.45}
-.facts dt{color:var(--muted)}
-.facts dd{margin:0;color:var(--ink-2);max-width:62ch}
-.facts dd b{font-weight:600;color:var(--ink)}
-.facts a{color:var(--ink)}
-.facts .feat-guide{font-weight:600;text-decoration-color:var(--red)}
-
-/* "Your selection": stuck to the bottom of the screen while the list scrolls, resting at the end of step 1 */
-.sel{margin-top:26px;padding:11px 0 13px;border-top:1px solid var(--ink);background:var(--paper)}
-.js-sticky .sel{position:sticky;bottom:0;z-index:5}
-.sel.stuck{box-shadow:0 -14px 18px -16px rgba(0,0,0,.4)}
-.sel-h{display:flex;align-items:center;gap:6px 16px}
-.sel-sum{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 14px;min-width:0}
-.sel-t{font-size:17px;font-weight:700}
-.sel-c{font-size:15px;color:var(--ink-2)}
-.sel-c .fx{color:var(--warn)}
-.sel-x{margin-left:auto;display:flex;align-items:center;gap:18px;flex:none}
-.sel-more{display:none}
-.btn.sel-next{padding:9px 15px;font-size:15px}
-.chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:10px 0 0;padding:0;list-style:none}
-.chip{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 2px 0 10px;border-radius:5px;background:var(--casing);font-size:14.5px;color:var(--ink)}
-.chip .ci{color:var(--muted)}
-.chip .cx{width:7px;height:7px;border-radius:50%;background:var(--warn)}
-.chip .x{display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:4px;background:none;color:var(--muted);cursor:pointer;font:18px/1 var(--f)}
-.chip .x:hover{background:var(--line);color:var(--ink)}
-.sel.stuck .chips{max-height:66px;overflow:hidden}
-.sel-msg{margin:10px 0 0;padding-left:12px;border-left:3px solid var(--ink);font-size:14.5px;color:var(--ink-2)}
-.sel-need{margin-left:4px;font-size:14px;color:var(--muted)}
-.sel-none{margin:4px 0 0;font-size:15px;color:var(--muted)}
-.sel-foot{display:none}
-@media (max-height:500px){.js-sticky .sel{position:static}}
-
-.variants{display:grid;gap:0;margin:12px 0 0;border-top:1px solid var(--line)}
-.variants label{display:flex;align-items:flex-start;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:16px;color:var(--ink-2)}
-.variants input{width:18px;height:18px;margin-top:2px}
-.variants b{font-weight:700;color:var(--ink)}
-.variants small{display:block;color:var(--muted);font-size:14.5px}
-.variants .combo{margin:8px 0 0;font-size:14.5px;color:var(--muted);max-width:64ch}
-.samples-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;margin:0 0 6px;font-weight:700;font-size:18px}
-.warn-list{margin:14px 0 18px;padding-left:1.2em;max-width:64ch}
-.warn-list li{margin:.35em 0;color:var(--ink-2)}
-
-/* drop zones */
-#drop2-wrap,#drop3-wrap{margin-top:22px}
-.drop{display:flex;align-items:center;gap:16px;padding:18px 20px;border:1.5px dashed var(--line-2);border-radius:var(--r);cursor:pointer}
-.drop-ic{flex:none;color:var(--ink-2)}
-.drop-t strong{display:block;font-size:17px;word-break:break-all}
-.drop-t span{font-size:15px;color:var(--muted)}
-.drop:hover,.drop:focus-visible,.drop.over{border-color:var(--ink);background:var(--casing);outline:none}
-.drop.loaded{border-style:solid;border-color:var(--ok)}
-.drop.loaded .drop-ic{color:var(--ok)}
-
-/* status lines: the text says it, a plain sign before it */
-.status{margin-top:14px;font-size:16px}
-.status:empty{display:none}
-.status .row{display:flex;gap:10px;align-items:baseline;margin:.3em 0;color:var(--ink-2)}
-.status .row::before{content:"–";flex:none;width:1em;font-weight:700;color:var(--muted)}
-.status .is-ok::before{content:"✓";color:var(--ok)}
-.status .is-warn{color:var(--warn)}
-.status .is-warn::before{content:"!";color:var(--warn)}
-.status .is-bad{color:var(--bad)}
-.status .is-bad::before{content:"×";color:var(--bad)}
-.status .is-busy::before{content:"…";color:var(--ink)}
-.dot{display:none}
-.status a{color:inherit;font-weight:600}
-.hash{font:.82em var(--f-code);color:var(--muted);white-space:nowrap}
-
-/* connection */
-.howto{margin:0 0 20px;padding-left:1.3em;max-width:64ch}
-.howto li{margin:.4em 0;color:var(--ink-2)}
-.howto b{font-weight:700;color:var(--ink)}
-.portrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-select{flex:1 1 260px;min-width:0;padding:12px 36px 12px 12px;border:1px solid var(--line-2);border-radius:var(--r);background:var(--paper);color:var(--ink);
-  font:16px/1.2 var(--f);appearance:none;-webkit-appearance:none;cursor:pointer;
-  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
-  background-size:5px 5px,5px 5px;background-position:calc(100% - 19px) 52%,calc(100% - 14px) 52%;background-repeat:no-repeat}
-
-/* buttons */
-button.btn{border:0}
-.btn.secondary{background:none;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line-2)}
-.btn.secondary:hover{background:var(--casing);color:var(--ink)}
-.btn.big{width:100%;justify-content:center;padding:18px;font-size:18px}
-.btn:disabled,.btn:disabled:hover{background:var(--casing);color:var(--muted);box-shadow:none;cursor:not-allowed;transform:none}
-
-/* flash step */
-.summary{margin:0 0 16px;padding:2px 0 2px 14px;border-left:3px solid var(--ink);font-size:16px}
-.summary b{font-weight:700}
-.check{display:flex;align-items:flex-start;gap:12px;margin:0 0 18px;cursor:pointer;color:var(--ink-2);max-width:64ch}
-#panel-samples .check{margin:0}
-.actions{display:flex;gap:10px}
-.actions .big{flex:1}
-.missing{margin:12px 0 0;text-align:center;font-size:15px;color:var(--muted)}
-.missing:empty{display:none}
-.alt{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:18px 0 0;font-size:15px;color:var(--muted)}
-.alt .btn{padding:10px 16px;font-size:15px}
-.method-note{margin:0 0 16px;color:var(--ink-2)}
-.method-note:empty{display:none}
-.seg button:disabled{cursor:not-allowed;opacity:.5}
-.progress{margin-top:24px}
-.bar{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:6px}
-#bar{display:none}
-.bar i{aspect-ratio:1;max-height:40px;border-radius:5px;background:var(--ctl);box-shadow:0 2px 0 var(--ctl-edge)}
-.bar i.on{background:var(--red)}
-.bar i.cur{animation:cur .5s steps(1) infinite}
-@keyframes cur{50%{background:var(--red)}}
-.meta{display:flex;justify-content:space-between;margin-top:10px;font-size:15px;color:var(--muted);font-variant-numeric:tabular-nums}
-.callout{margin-top:16px;padding:2px 0 2px 14px;border-left:3px solid var(--red);font-size:16px;color:var(--ink-2)}
-.callout.warn{border-color:var(--warn)}
-.result{margin-top:18px;padding:2px 0 2px 14px;border-left:3px solid var(--ink)}
-.result:empty{display:none}
-.result.ok{border-color:var(--ok)}
-.result.warn{border-color:var(--warn)}
-.result.bad{border-color:var(--bad)}
-.result p{margin:.35em 0;max-width:64ch}
-
-details>summary{cursor:pointer;font-weight:700}
-details.trouble{margin-top:24px}
-.trouble dl{margin:12px 0 0;max-width:64ch}
-.trouble dt{margin-top:12px;font-weight:700}
-.trouble dd{margin:3px 0 0;color:var(--ink-2)}
-.adv{padding:18px 0 0;border-top:1px solid var(--line)}
-.adv .field{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:14px 0 0}
-.adv .hint{margin:0}
-.adv input[type=number]{width:5.5em;padding:8px 10px;border:1px solid var(--line-2);border-radius:var(--r);background:var(--paper);color:var(--ink);font:16px var(--f)}
-#download{font-weight:600}
-#log{height:170px;overflow:auto;margin-top:16px;padding:10px 12px;background:var(--casing);border-radius:var(--r);
-  font:12.5px/1.6 var(--f-code);color:var(--ink-2);white-space:pre-wrap}
-#log .is-ok{color:var(--ok)} #log .is-bad{color:var(--bad)} #log .is-warn{color:var(--warn)}
-
-.credits{margin-top:56px;padding-top:22px;border-top:1px solid var(--ink);max-width:820px}
-.credits h2{font-size:24px;margin:0 0 10px}
-.credits p{color:var(--muted);margin:0 0 10px}
-.credits ul{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
-.credits li{padding:9px 0;border-bottom:1px solid var(--line);color:var(--ink-2)}
-
 [hidden]{display:none !important}
 
-@media (max-width:900px){
-  .fl-head{grid-template-columns:1fr;padding:56px 0 40px}
-}
+/* header */
+.top{align-items:center;gap:10px 20px;padding-top:24px}
+.brand{font:700 20px/1 var(--f);text-transform:uppercase;letter-spacing:0}
+.top nav{gap:6px 16px;align-items:center;font:700 14px/1 var(--f);text-transform:uppercase}
+.top nav a{text-decoration:none}
+.top nav a:hover,.top nav a[aria-current="page"]{text-decoration:underline;text-decoration-color:currentColor;text-decoration-thickness:3px;text-underline-offset:.3em}
+.theme-btn{width:36px;height:36px;margin:0;border:3px solid var(--ink);border-radius:0;color:var(--ink)}
+.theme-btn:hover{background:var(--ink);color:var(--paper)}
+
+/* buttons: a block of ink; disabled, an empty dashed frame */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:0 18px;border:3px solid var(--ink);border-radius:0;
+  background:var(--ink);color:var(--paper);box-shadow:none;font:700 14px/1 var(--f);text-transform:uppercase;transition:transform .08s steps(2)}
+.btn:hover{background:var(--ink);color:var(--paper);transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--ink)}
+.btn:active{transform:translate(2px,2px);box-shadow:none}
+.btn.secondary{background:transparent;color:var(--ink);box-shadow:none}
+.btn.secondary:hover{background:var(--ink);color:var(--paper)}
+.btn.big{width:100%;min-height:60px;font-size:15px}
+.btn:disabled,.btn:disabled:hover{background:transparent;color:var(--ink);border-style:dashed;box-shadow:none;transform:none;cursor:not-allowed}
+.lnk{font:inherit;font-weight:700;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;
+  text-decoration-thickness:2px;text-underline-offset:.22em}
+.lnk:hover{text-decoration-thickness:4px}
+
+.fl{padding-bottom:24px}
+.alert{margin:20px 0 0;padding:10px 14px;border:3px solid var(--ink);font-size:15px}
+.alert a{color:inherit}
+
+/* screen 1: the cards */
+.fl-head{padding:6rem 0}
+.fl-head h1{display:inline-block;margin:0 0 8px -8px;padding:8px;background:var(--head-bg);color:var(--paper);font-size:36px}
+.fl-head p{margin:0;max-width:64ch;font-size:15px}
+.grp{margin:0 0 6rem}
+.grp-h{margin:0 0 1rem;padding-top:1rem;border-top:3px solid var(--ink);font-size:20px}
+.grp-sub{margin:-4px 0 16px;max-width:72ch;font-size:14px}
+.grp-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
+
+/* a card: a checkbox with its name and one sentence; picked, it inverts */
+.mod{display:flex;flex-direction:column;border:3px solid var(--ink);background:var(--card);color:var(--ink);
+  box-shadow:4px 4px 0 var(--ink)}
+/* hover thickens the shadow in place: the cards are rebuilt on every click, and a card moved by a transform left
+   stray lines in the paint when it was replaced */
+.mod:hover{box-shadow:6px 6px 0 var(--ink)}
+.mod.open{grid-column:1 / -1}
+.mod-row{display:grid;grid-template-columns:minmax(0,1fr) 28px;grid-template-areas:"ttl key" "short short";gap:8px 12px;
+  padding:16px 16px 14px;cursor:pointer}
+.mod-row>input{grid-area:key}
+.ttl{grid-area:ttl;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 10px;font-size:18px;font-weight:700;line-height:1.25}
+.ttl .incl{font-size:13.5px;font-weight:400}
+.short{grid-area:short;font-size:14px;line-height:1.55}
+.mod.incl .mod-row{cursor:default}
+.mod.incl .mod-row>input{border-style:dashed;cursor:default}
+.ext{padding:0 16px}
+.ext:empty{display:none}
+.mod-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:auto;padding:6px 8px 6px 16px;border-top:3px solid currentColor;background:var(--card-foot)}
+.st:empty{display:none}
+.by{display:flex;flex-wrap:wrap;gap:0 12px;min-width:0;font-size:13px;line-height:1.4;overflow-wrap:anywhere}
+.by a{color:inherit}
+.credit{display:flex;flex-direction:column}       /* author, then license: a long name never breaks the line */
+.more{margin-left:auto;min-height:40px;padding:0 8px;border:0;background:none;color:inherit;font:700 14px/1 var(--f);text-transform:uppercase;
+  text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px;cursor:pointer}
+.more:hover{text-decoration-thickness:4px}
+
+/* square checkboxes: an empty frame, a pixel check once ticked (a picked card itself stays as it is) */
+.mod-row>input,.variants input,.check input{appearance:none;-webkit-appearance:none;flex:none;width:28px;height:28px;margin:0;border:3px solid currentColor;
+  border-radius:0;background:transparent;box-shadow:none;cursor:pointer}
+.mod-row>input:checked,.variants input:checked,.check input:checked{background:var(--check) center / 16px 16px no-repeat}
+.variants input[type=radio]{border-radius:0}
+
+/* tags: the exceptions only (Experimental); Tested is the rule */
+.tag{display:inline-block;padding:2px 4px;border:3px solid currentColor;font:700 12px/1.2 var(--f);text-transform:uppercase;letter-spacing:0}
+.tag.ok,.tag.exp{color:inherit;background:none}
+
+/* to read: a clash before ticking, just unticked (with Undo), good to know once ticked */
+.say{margin:0 0 12px;padding:6px 10px;border-left:6px solid currentColor;font-size:14px;line-height:1.5}
+.say b{color:inherit}
+.say.clash{border:3px solid currentColor}
+.say.clash::before{content:"!! ";font-weight:700}
+.say.swap{border-left-style:dashed}
+
+/* Details: the full description and the facts; the card takes the whole row */
+.det{margin:0 0 14px;padding:12px 0 0;border-top:3px dashed currentColor;font-size:14.5px;line-height:1.6}
+.det>p{margin:0 0 12px;max-width:72ch}
+.facts{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 18px;margin:0;font-size:14px;line-height:1.5}
+.facts dt{font-weight:700}
+.facts dd{margin:0;max-width:66ch}
+.facts dd b{font-weight:700}
+.facts a{color:inherit;font-weight:700}
+
+/* packs, variants and engines (none offered today) */
+.parts{margin:0 0 8px;padding:0;list-style:none;font-size:14px;line-height:1.5}
+.parts li{display:inline}
+.parts li+li::before{content:" · "}
+.also{margin:0 0 12px;font-size:14px;line-height:1.5}
+.variants{display:grid;margin:0 0 12px;border-top:3px solid currentColor}
+.variants label{display:flex;align-items:flex-start;gap:12px;padding:8px 0;border-bottom:3px solid currentColor;cursor:pointer;font-size:15px}
+.variants small{display:block;font-size:13.5px}
+.pads{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;margin:0 0 12px}
+.pad{position:relative;display:block;cursor:pointer}
+.pad input{position:absolute;opacity:0;width:1px;height:1px}
+.pad b{display:grid;place-items:center;height:40px;border:3px solid currentColor;font:700 14px/1 var(--f)}
+.pad input:checked+b{background:currentColor;color:var(--paper)}
+.pad input:focus-visible+b{outline:3px solid currentColor;outline-offset:3px}
+.pad small{display:block;font-size:12.5px;line-height:1.3}
+.combo{margin:0 0 10px;font-size:14px;line-height:1.5}
+.combo .tag{margin-right:8px}
+
+/* back to the official firmware: a quiet line at the end of the cards, above the footer */
+.restore-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px;margin:40px 0 0;font-size:13.5px}
+.restore-row .lnk{font-size:14px}
+
+/* the end of the cards: the picked names, then one big button that says what happens ("Install 2 mods");
+   nothing picked, a dashed frame that sends you back to the cards */
+#features>.grp:last-child{margin-bottom:3rem}
+.sel-sum{margin:0 0 8px;font-size:13.5px;line-height:1.45}
+.sel-need,.sel-msg{margin:0 0 8px;font-size:14px}
+.btn.sel-next{justify-content:space-between;width:100%;min-height:64px;padding:0 20px;font-size:15px}
+.btn.sel-next.empty{background:transparent;color:var(--ink);border-style:dashed}
+.btn.sel-next.empty:hover{background:var(--ink);color:var(--paper)}
+
+/* ?samples: the tabs and the machine picker */
+.seg{display:flex;flex-wrap:wrap;gap:0;margin:0 0 24px}
+.seg button{min-height:44px;padding:0 12px;border:3px solid var(--ink);background:none;color:var(--ink);font:700 14px/1 var(--f);text-transform:uppercase;cursor:pointer}
+.seg button+button{border-left:0}
+.seg button[aria-selected="true"],.seg button[aria-checked="true"]{background:var(--ink);color:var(--paper)}
+.seg button:disabled{cursor:not-allowed;border-style:dashed}
+.seg.sub{margin:0 0 18px}
+.mach-q{margin:0 0 8px;font:700 14px/1 var(--f);text-transform:uppercase}
+.mach-pane{margin:0 0 24px;padding:0 0 18px;border-bottom:3px dashed var(--ink)}
+.samples-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 0 8px;font-weight:700;font-size:17px}
+.panel-text{margin:0;max-width:66ch}
+.note{margin:16px 0 0;font-size:14px;max-width:66ch}
+.warn-list{margin:14px 0 18px;padding-left:1.2em;max-width:66ch}
+.warn-list li{margin:.35em 0}
+.next-row{margin:24px 0 0}
+#panel-samples .check{margin:0}
+
+/* screen 2: the install steps */
+.screen-h{margin:32px 0 24px;font-size:36px}
+.step{margin:0 0 20px;border:3px solid var(--ink)}
+.step>header{display:flex;align-items:stretch;gap:14px;border-bottom:3px solid var(--ink)}
+.step h2{align-self:center;padding:12px 0;font-size:20px;line-height:1.1}
+.num{display:grid;place-items:center;flex:none;width:48px;min-height:48px;border-right:3px solid var(--ink);font:700 22px/1 var(--f)}
+.step.done .num{background:var(--ink);color:var(--paper)}
+.step-body{padding:16px 18px 18px}
+.change{align-self:center;margin-left:auto;margin-right:14px;font-size:14.5px}
+.picked{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
+.picked li{display:inline-flex;align-items:center;gap:8px;padding:2px 8px;background:var(--ink);color:var(--paper);font-weight:700;font-size:14.5px}
+.picked .tag{font-size:11px;padding:0 3px;border-width:2px}
+.hint{margin:10px 0 0;font-size:13.5px}
+.hint:empty{display:none}
+
+.drop{display:flex;align-items:center;gap:16px;padding:16px 18px;border:3px dashed var(--ink);cursor:pointer}
+.drop-ic{flex:none}
+.drop-t strong{display:block;font-size:15px;word-break:break-all}
+.drop-t span{font-size:13.5px}
+.drop:hover,.drop:focus-visible,.drop.over{background:var(--ink);color:var(--paper);outline:none}
+.drop.loaded{border-style:solid}
+#drop2-wrap,#drop3-wrap{margin-top:20px}
+
+/* status lines: the text says it, a sign before it */
+.status{margin-top:14px;font-size:14.5px}
+.status:empty{display:none}
+.status .row{display:flex;gap:10px;align-items:baseline;margin:.3em 0}
+.status .row::before{content:"–";flex:none;width:1em;font-weight:700}
+.status .is-ok::before{content:"✓"}
+.status .is-warn::before{content:"!"}
+.status .is-bad::before{content:"×"}
+.status .is-busy::before{content:"…"}
+.status .is-bad{font-weight:700}
+.dot{display:none}
+.status a{color:inherit;font-weight:700}
+.hash{font-size:.9em;white-space:nowrap}
+
+.howto{margin:0 0 16px;max-width:66ch;font-size:14.5px}
+ol.howto{padding-left:1.3em}
+.howto b{font-weight:700}
+.method-note{margin:0 0 16px}
+.method-note:empty{display:none}
+.portrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+select{flex:1 1 260px;min-width:0;min-height:48px;padding:0 36px 0 12px;border:3px solid var(--ink);border-radius:0;background:var(--paper);color:var(--ink);
+  font:15px/1.2 var(--f);appearance:none;-webkit-appearance:none;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-size:6px 6px,6px 6px;background-position:calc(100% - 20px) 52%,calc(100% - 14px) 52%;background-repeat:no-repeat}
+
+.dl-note{margin:0 0 16px;max-width:66ch;font-size:14.5px}
+.summary{margin:0 0 16px;padding:2px 0 2px 12px;border-left:6px solid var(--ink);font-size:14.5px}
+.summary b{font-weight:700}
+.check{display:flex;align-items:flex-start;gap:12px;margin:0 0 16px;cursor:pointer;max-width:66ch;font-size:14px;line-height:1.5}
+.actions{display:flex;gap:10px}
+.actions .big{flex:1}
+.missing{margin:10px 0 0;text-align:center;font-size:13.5px}
+.missing:empty{display:none}
+.alt{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:16px 0 0;font-size:13.5px}
+#download{min-height:44px}
+
+/* progress: 16 square LEDs, the current one dithered */
+.progress{margin-top:20px}
+.bar{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:4px}
+#bar{display:none}
+.bar i{height:18px;border:3px solid var(--ink);background:transparent}
+.bar i.on{background:var(--ink)}
+.bar i.cur{background-image:repeating-conic-gradient(var(--ink) 0 25%,transparent 0 50%);background-size:4px 4px}
+.meta{display:flex;justify-content:space-between;gap:12px;margin-top:8px;font-size:14px;font-variant-numeric:tabular-nums}
+.callout{margin-top:16px;padding:10px 12px;border:3px dashed var(--ink);font-size:14px}
+.callout.warn{border-style:solid}
+.result{margin-top:18px;padding:14px 16px;border:3px solid var(--ink)}
+.result:empty{display:none}
+.result.ok{background:var(--ink);color:var(--paper)}
+.result.ok a{color:inherit}
+.result.warn{border-style:dashed}
+.result.bad{border-left-width:12px}
+.result p{margin:.35em 0;max-width:66ch}
+
+details>summary{cursor:pointer;font-weight:700}
+details.trouble{margin-top:22px;font-size:14px}
+.trouble dl{margin:10px 0 0;max-width:66ch}
+.trouble dt{margin-top:12px;font-weight:700}
+.trouble dd{margin:3px 0 0}
+.adv{margin-top:24px;padding:16px 0 0;border-top:3px dashed var(--ink)}
+.adv .field{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:14px 0 0}
+.adv .hint{margin:0}
+.adv input[type=number]{width:5.5em;padding:8px 10px;border:3px solid var(--ink);border-radius:0;background:var(--paper);color:var(--ink);font:15px var(--f)}
+#log{height:170px;overflow:auto;margin-top:16px;padding:10px 12px;border:3px solid var(--ink);font:12.5px/1.6 var(--f);white-space:pre-wrap}
+
+/* search, from SEARCH_FROM cards (app.js) */
+.find{position:relative;margin:0 0 12px;max-width:360px}
+.find input{width:100%;height:44px;padding:0 44px 0 40px;border:3px solid var(--ink);border-radius:0;background:transparent;color:var(--ink);font:15px var(--f);
+  appearance:none;-webkit-appearance:none}
+.find input::placeholder{color:inherit}
+.find .mag{position:absolute;left:12px;top:12px;pointer-events:none}
+.find .clr{position:absolute;right:0;top:0;width:44px;height:44px;padding:0;border:0;background:none;color:inherit;font:20px/1 var(--f);cursor:pointer}
+.found{margin:0 0 12px;font-size:14px}
+
+/* footer: privacy, credits (folded), version */
+.foot{margin-top:56px;padding:24px 0 40px;border-top:3px solid var(--ink);font-size:13px;color:var(--ink)}
+.foot .wrap{flex-direction:column;gap:10px}
+.foot p{max-width:none}
+.credits{max-width:72ch}
+.credits summary{font-weight:700}
+.credits p{margin:8px 0}
+.credits ul{margin:8px 0;padding-left:1.2em}
+.credits li{margin:.25em 0}
+
 @media (max-width:620px){
-  .bar{gap:4px}
-  /* mods: chips scroll sideways in their own strip, rows stack, 44 px targets, the selection bar folds to 2 lines */
-  .cats{flex-wrap:nowrap;overflow-x:auto;margin:0 calc(-1*var(--gut)) 4px;padding:0 var(--gut) 2px;scrollbar-width:none}
-  .cats::-webkit-scrollbar{display:none}
-  .cats a{min-height:44px;padding:0 14px 0 12px;font-size:15px}
-  .grp-h{min-height:56px}
-  .grp-h .gs{display:none}
-  .mod-row{grid-template-columns:22px max-content minmax(0,1fr);grid-template-areas:"key ttl ttl" ". short short" ". tag by";row-gap:3px;padding:12px 0 13px}
-  .ttl{padding-right:40px;font-size:16.5px}
-  .short{font-size:15px}
-  .st{justify-self:start}
-  .by{font-size:13.5px}
-  .more{top:2px;right:-10px;width:44px;height:44px;padding:0;justify-content:center}
-  .more .lbl{display:none}
-  .pads{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 8px}
-  .pad b{height:44px}
+  .fl-head{padding:4rem 0}
+  .fl-head h1,.screen-h{font-size:28px}
+  .grp-body{grid-template-columns:minmax(0,1fr)}
   .facts{grid-template-columns:minmax(0,1fr);gap:0}
-  .facts dt{margin-top:8px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+  .facts dt{margin-top:8px}
   .facts dt:first-child{margin-top:0}
-  .det{padding:12px 14px}
-  .sel{margin-left:calc(-1*var(--gut));margin-right:calc(-1*var(--gut));padding:10px var(--gut) 12px}
-  .sel-h{gap:10px}
-  .sel-sum{flex-direction:column;gap:0}
-  .sel-t{font-size:16px}
-  .sel-c{font-size:14px}
-  .sel.stuck:not(.open) .sel-t{display:none}
-  .sel.stuck:not(.open) .sel-c{display:flex;flex-direction:column;font-size:15px}
-  .sel.stuck:not(.open) .sel-n{font-weight:700;color:var(--ink)}
-  .sel.stuck:not(.open) .dotsep{display:none}
-  .sel.stuck.open .sel-body{max-height:56vh;overflow:auto}
-  .sel-need{width:100%;margin:4px 0 0}
-  .sel-x{gap:6px}
-  .sel-x .clear{display:none}
-  .sel.stuck .sel-more{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:44px;padding:0 6px;font-size:15px}
-  .btn.sel-next{height:44px;padding:0 13px}
-  .sel.stuck:not(.open) .sel-body{display:none}
-  .sel.stuck .chips{max-height:none;overflow:visible}
-  .sel-foot{display:block;margin:12px 0 0}
-  .chip{min-height:44px;padding-left:12px}
-  .chip .x{width:44px;height:44px}
+  .step-body{padding:14px}
+  .num{width:44px;min-height:44px}
+  .bar{gap:3px}
 }
-.seg.sub{margin:0 0 18px;gap:6px 18px}
-.seg.sub button{font-size:15px}
-/* Mods tab: which machine receives the firmware (always the Model:Cycles OS, notes/57) */
-.mach-q{margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
-.mach-pane{margin:0 0 22px;padding:0 0 18px;border-bottom:1px solid var(--line)}
-.mach-credit{margin:0 0 14px}
+@media (prefers-reduced-motion:reduce){
+  .btn{transition:none}
+  .btn:hover{transform:none}
+}

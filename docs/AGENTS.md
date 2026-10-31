@@ -6,7 +6,7 @@ no framework. Read the root [`AGENTS.md`](../AGENTS.md) first.
 ```
 index.html             home page (intro, mods, "what's new" from release.js)
 flasher/index.html     the web flasher page
-flasher/app.js         its UI: texts (en/fr), FEAT cards, GUIDE_OF, REF_MAINOS and REF_MODS (generated blocks), flashing steps
+flasher/app.js         its UI: texts (English only), FEAT cards, GUIDE_OF, REF_MAINOS and REF_MODS (generated blocks), flashing steps
 flasher/builder.js     builds the .syx in the browser (port of tools/build.py + mtlib); mainOsOf() gives composer.js
                        the user's MAIN OS
 flasher/composer.js    composes the ticked machine cards in the browser (port of tools/compose.py without the
@@ -18,21 +18,29 @@ assets/release.js      MC_RELEASES: flasher versions, newest first
 assets/site.js, site.css, guide.css, cycles.js   shared behaviour and styles (language, theme)
 ```
 
-## Two languages, everywhere
+## What the flasher shows
 
-Every visible text exists in English and French. In HTML: `<span data-l="en">…</span><span data-l="fr">…</span>`; in
-`app.js`: the `en` and `fr` objects (same keys); in `release.js`: `{ en: "…", fr: "…" }`. The page picks the
-language from the browser and remembers the EN/FR switch. French addresses the reader as « vous » on the site.
+The main page (redesign of 2026-10-31, 1-bit look in `flasher/style.css`) offers the Model:Cycles and the fast method
+only, on two screens: the cards, then the install steps (1 recalls the choice; 2 to 4 keep the numbers the texts refer
+to). `SAMPLES_UI` in `app.js` (true on `flasher/?samples`, which the guide links) brings back the Official firmware and
+Samples OS tabs and the machine picker; `CLASSIC_UI` (false) the classic method and Advanced. Those parts stay in the
+page, hidden, and the smoke test still drives them. The cards sit in three sections by kind (`kindOf()`: added
+machines, effects, mods); only the exceptions carry a tag (Experimental), a card's Details say how it was tested.
+
+## English only
+
+The whole site is in English (the maintainer's decision of 31/10/2026): no French, no `data-l` spans, no EN/FR
+switch. `app.js` has one `T` and one `FEAT`; a `release.js` change is `{ en: "…" }`.
 Write for musicians: what changes on the machine, which buttons to press, the limits; no addresses.
 
 ## Adding a mod to the flasher
 
 1. Add it to `FEATURES` in `tools/gen_flasher_tweaks.py` (`"status": "experimental"`, `cat`, `credit`, `license` when
    the mod carries outside code, `excludes`, `includes`, `needs` or `requires` if any), then
-   `python3 tools/gen_flasher_tweaks.py` to regenerate `flasher/tweaks.js`. `cat` is the flasher section the mod shows
-   in, one of `CATS` (`pack`, `sound`, `seq`, `live`, `screen`, `io`); without it the mod lands at the end, in « Other
-   mods ». The order of `FEATURES` is the build order (the `REF_MAINOS` keys); the page shows the mods by section, in
-   `FEATURES` order inside a section.
+   `python3 tools/gen_flasher_tweaks.py` to regenerate `flasher/tweaks.js`. `cat` orders the card inside its
+   section (machines, effects, mods: `kindOf()` in `app.js`), one of `CATS` (`pack`, `sound`, `seq`, `live`, `screen`,
+   `io`); without it the card comes last in its section. The order of `FEATURES` is the build order (the `REF_MAINOS`
+   keys); the page shows the cards by section, then `CATS`, then `FEATURES` order.
    `"requires": "<card id>"` is for an add-on that only works with another card (sample preview needs Model-TG):
    ticking it ticks that card too (with that card's own exclusions), unticking that card unticks it, its Details say
    "Works with …", and `ref_mainos.py` only lists combinations that hold both. Give the add-on the same `with` as the
@@ -46,13 +54,14 @@ Write for musicians: what changes on the machine, which buttons to press, the li
    rules between mods (`excludes`, `includes`, a card's `requires`, `with`, the Syntakt engines' `tg` version) are read
    by `ref_mainos.py` as `app.js` reads them: a new kind of rule goes into both (`tools/webflash_smoke.js` ticks each card alone and every
    pair in the page and checks that each one is in the sample).
-3. In `flasher/app.js`: the row texts in `FEAT.en` and `FEAT.fr`: `label`; `short`, the one sentence shown on the
-   row (about 80 characters, what it does on the machine, with any deal-breaker; without it the row shows the first
-   sentence of `desc`); `desc`, the full text in the Details drawer; optional `note` (shown once ticked), `clash` if it
+3. In `flasher/app.js`: the card texts in `FEAT`: `label`, the name alone (no "(effect)", no half sentence);
+   `short`, one plain sentence on the card (about 80 characters, what it does on the machine); `desc`, the Details,
+   a few short paragraphs separated by a blank line (`\n\n`): what it is, the buttons, the main limit, the rest in
+   the guide; optional `note` (shown once ticked), only for what protects the user, one or two short sentences; `clash` if it
    has `excludes` (why it doesn't go with the other mod), `parts` for a pack (what it brings), a `short` per engine
    (`"eng-<code>"`) for an engine card. And the guide anchor in `GUIDE_OF` (one line per mod).
 4. In `tools/webflash_smoke.js`: the expected order of tweaks, the expected **display** order of the rows (by
-   section), and a check that the French row and its guide link render.
+   section), and a check that its card and its guide link render.
 5. A guide section in `guide/index.html` (next number, before *Samples OS*; renumber the ones after): a lede, the
    steps (`<ol>`) with the buttons in `<b>`, then `<dl class="facts">` with the limits and a *Tested* / *Experimental*
    line saying how it was checked. Copy the `#tempo` or `#trig-hold` section.

@@ -11,9 +11,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-10-30-05">
-<link rel="stylesheet" href="../assets/guide.css?v=2026-10-30-05">
-<script>try{var l=localStorage.getItem("mc-lang"),t=localStorage.getItem("mc-theme")}catch(e){}document.documentElement.lang=l||(/^fr\b/i.test(navigator.language||"")?"fr":"en");if(t)document.documentElement.setAttribute("data-theme",t)</script>
+<link rel="stylesheet" href="../assets/site.css?v=2026-10-31-10">
+<link rel="stylesheet" href="../assets/guide.css?v=2026-10-31-10">
+<script>try{var t=localStorage.getItem("mc-theme")}catch(e){}if(t)document.documentElement.setAttribute("data-theme",t)</script>
 </head>
 <body data-page="guide">
 
@@ -24,72 +24,63 @@
     <a href="./" aria-current="page">Guide</a>
     <a href="https://github.com/durchgemacht/model27" target="_blank" rel="noopener">GitHub</a>
   </nav>
-  <div class="lang" role="group" aria-label="Language"><button type="button" data-lang="en" aria-pressed="true">EN</button>/<button type="button" data-lang="fr" aria-pressed="false">FR</button></div>
   <button type="button" class="theme-btn" aria-label="Dark mode"><svg class="moon" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 12.2A7 7 0 0 1 7.8 3.5a7 7 0 1 0 8.7 8.7z"/></svg><svg class="sun" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.8v2M10 16.2v2M1.8 10h2M16.2 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4"/></svg></button>
 </header>
 
 <main class="wrap">
   <div class="g-head">
     <h1>Guide</h1>
-    <p><span data-l="en">What each mod does, how to install it, and how to go back.</span><span data-l="fr">Ce que fait chaque mod, comment l'installer et comment revenir en arrière.</span></p>
+    <p>What each mod does, how to install it, and how to go back.</p>
   </div>
 
   <div class="g-grid">
     <nav class="toc" aria-label="Contents">
       <ol>
-        <li><a href="#start"><span data-l="en">Before you start</span><span data-l="fr">Avant de commencer</span></a></li>
-        <li><a href="#flash"><span data-l="en">Flashing</span><span data-l="fr">Flasher</span></a></li>
-        <li><a href="#sampler">SAMPLE machine (Cycles One-Shot)</a></li>
-        <li><a href="#digital-delay"><span data-l="en">Digital Delay (effect)</span><span data-l="fr">Digital Delay (effet)</span></a></li>
-        <li><a href="#pots"><span data-l="en">POTS (effect)</span><span data-l="fr">POTS (effet)</span></a></li>
-        <li><a href="#trig-cond"><span data-l="en">Trig conditions, A:B before the percentages</span><span data-l="fr">Conditions de trig, A:B avant les pourcentages</span></a></li>
-        <li><a href="#preview"><span data-l="en">Trig preview</span><span data-l="fr">Écoute d'un pas</span></a></li>
-        <li><a href="#control-all"><span data-l="en">Control All, your choice of tracks</span><span data-l="fr">Control All : choix des pistes</span></a></li>
-        <li><a href="#mods-on-samples"><span data-l="en">Mods on a Model:Samples</span><span data-l="fr">Des mods sur un Model:Samples</span></a></li>
-        <li><a href="#samples"><span data-l="en">Samples OS</span><span data-l="fr">OS Samples</span></a></li>
-        <li><a href="#stock"><span data-l="en">Back to stock</span><span data-l="fr">Revenir à l'origine</span></a></li>
-        <li><a href="#recovery"><span data-l="en">Recovery</span><span data-l="fr">Secours</span></a></li>
-        <li><a href="#trouble"><span data-l="en">Troubleshooting</span><span data-l="fr">Dépannage</span></a></li>
+        <li><a href="#start">Before you start</a></li>
+        <li><a href="#flash">Flashing</a></li>
+        <li><a href="#sampler">SAMPLE</a></li>
+        <li><a href="#digital-delay">Digital Delay</a></li>
+        <li><a href="#pots">POTS</a></li>
+        <li><a href="#trig-cond">Trig Condition Order</a></li>
+        <li><a href="#preview">Trig Preview</a></li>
+        <li><a href="#control-all">Control All Config</a></li>
+        <li><a href="#mods-on-samples">Mods on a Model:Samples</a></li>
+        <li><a href="#samples">Samples OS</a></li>
+        <li><a href="#stock">Back to stock</a></li>
+        <li><a href="#recovery">Recovery</a></li>
+        <li><a href="#trouble">Troubleshooting</a></li>
       </ol>
     </nav>
 
     <article class="doc">
       <section id="start">
-        <h2><span class="n">1</span><span data-l="en">Before you start</span><span data-l="fr">Avant de commencer</span></h2>
+        <h2><span class="n">1</span>Before you start</h2>
         <ul>
-          <li><span data-l="en">A Model:Cycles and a USB cable that carries data (some cables only charge).</span><span data-l="fr">Un Model:Cycles et un câble USB qui transporte les données (certains câbles ne font que charger).</span></li>
-          <li><span data-l="en">Chrome, Edge or Opera on a computer. Firefox and Safari have no Web MIDI.</span><span data-l="fr">Chrome, Edge ou Opera sur un ordinateur. Firefox et Safari n'ont pas le Web MIDI.</span></li>
-          <li><span data-l="en">The official OS file <code>model-cycles_OS1.13.syx</code>, from <a href="https://www.elektron.se/support-downloads/modelcycles" target="_blank" rel="noopener">elektron.se</a>, unzipped.</span><span data-l="fr">Le fichier d'OS officiel <code>model-cycles_OS1.13.syx</code>, sur <a href="https://www.elektron.se/support-downloads/modelcycles" target="_blank" rel="noopener">elektron.se</a>, dézippé.</span></li>
-          <li><span data-l="en">Your projects backed up with Elektron Transfer.</span><span data-l="fr">Vos projets sauvegardés avec Elektron Transfer.</span></li>
+          <li>A Model:Cycles and a USB cable that carries data (some cables only charge).</li>
+          <li>Chrome, Edge or Opera on a computer. Firefox and Safari have no Web MIDI: there the page offers the <code>.syx</code> to download, for Elektron Transfer.</li>
+          <li>The official OS file <code>model-cycles_OS1.13.syx</code>, from <a href="https://www.elektron.se/support-downloads/modelcycles" target="_blank" rel="noopener">elektron.se</a>, unzipped.</li>
+          <li>Your projects backed up with Elektron Transfer.</li>
         </ul>
-        <p><span data-l="en">The <a href="#samples">Samples OS</a> tab needs one more file, the official <a href="https://www.elektron.se/support-downloads/modelsamples" target="_blank" rel="noopener"><code>model-samples_OS1.13.syx</code></a>. The SAMPLE machine needs only the Model:Cycles file.</span>
-          <span data-l="fr">L'onglet <a href="#samples">OS Samples</a> demande un fichier de plus, l'OS officiel <a href="https://www.elektron.se/support-downloads/modelsamples" target="_blank" rel="noopener"><code>model-samples_OS1.13.syx</code></a>. La machine SAMPLE ne demande que le fichier du Model:Cycles.</span></p>
-        <p><span data-l="en">No firmware is provided here. The page modifies your own file on your computer and checks the result against a reference build before sending it.</span>
-          <span data-l="fr">Aucun firmware n'est fourni ici. La page modifie votre propre fichier sur votre ordinateur, et vérifie le résultat contre un build de référence avant de l'envoyer.</span></p>
+        <p>The <a href="#samples">Samples OS</a> tab (on <a href="../flasher/?samples">this page of the flasher</a>) needs one more file, the official <a href="https://www.elektron.se/support-downloads/modelsamples" target="_blank" rel="noopener"><code>model-samples_OS1.13.syx</code></a>. The SAMPLE machine needs only the Model:Cycles file.</p>
+        <p>No firmware is provided here. The page modifies your own file on your computer and checks the result against a reference build before sending it.</p>
       </section>
 
       <section id="flash">
-        <h2><span class="n">2</span><span data-l="en">Flashing</span><span data-l="fr">Flasher</span></h2>
+        <h2><span class="n">2</span>Flashing</h2>
         <ol>
-          <li><span data-l="en">In the <a href="../flasher/">flasher</a>, tick the mods you want: they are sorted into sections, and they combine. <b>Details</b> on a row gives its full description and a link to its page in this guide.</span><span data-l="fr">Dans le <a href="../flasher/">flasher</a>, cochez les mods voulus : ils sont rangés par rubriques, et ils se combinent. <b>Détails</b> sur une ligne donne sa description complète et un lien vers sa page dans ce guide.</span></li>
-          <li><span data-l="en">Drop your OS file. The firmware is built and checked in the page.</span><span data-l="fr">Déposez votre fichier d'OS. Le firmware est construit et vérifié dans la page.</span></li>
-          <li><span data-l="en">Close Elektron Transfer, connect the Model:Cycles over USB and turn it on normally: no menu to open. Allow MIDI in the browser: the page finds the Model:Cycles and shows its OS version.</span><span data-l="fr">Fermez Elektron Transfer, branchez le Model:Cycles en USB et allumez-le normalement : aucun menu à ouvrir. Autorisez le MIDI dans le navigateur : la page trouve le Model:Cycles et affiche sa version d'OS.</span></li>
-          <li><span data-l="en">Flash: about 30 seconds. Then confirm the update on the Model:Cycles screen with <b>YES</b>. It writes the firmware and restarts by itself: don't turn it off before.</span><span data-l="fr">Flashez : une trentaine de secondes. Confirmez ensuite la mise à jour sur l'écran du Model:Cycles avec <b>YES</b>. Il écrit le firmware et redémarre tout seul : ne l'éteignez pas avant.</span></li>
+          <li>In the <a href="../flasher/">flasher</a>, pick the cards you want: machines, effects and mods, and they combine. <b>Details</b> on a card gives its full description and a link to its page in this guide. Then press <b>Install</b> under the cards.</li>
+          <li>Drop your OS file. The firmware is built and checked in the page.</li>
+          <li>Close Elektron Transfer, connect the Model:Cycles over USB and turn it on normally: no menu to open. Allow MIDI in the browser: the page finds the Model:Cycles and shows its OS version.</li>
+          <li>Flash: about 30 seconds. Then confirm the update on the Model:Cycles screen with <b>YES</b>. It writes the firmware and restarts by itself: don't turn it off before.</li>
         </ol>
-        <p><span data-l="en">The page uses the update protocol of Elektron Transfer, worked out by <a href="https://github.com/dagargo/elektroid" target="_blank" rel="noopener">Elektroid</a>: the Model:Cycles checks every block as it arrives. You can also download the prepared <code>.syx</code> in step 4 and drop it onto Elektron Transfer's window.</span>
-          <span data-l="fr">La page utilise le protocole de mise à jour d'Elektron Transfer, décrypté par <a href="https://github.com/dagargo/elektroid" target="_blank" rel="noopener">Elektroid</a> : le Model:Cycles vérifie chaque bloc à son arrivée. Vous pouvez aussi télécharger le <code>.syx</code> préparé à l'étape 4 et le déposer sur la fenêtre d'Elektron Transfer.</span></p>
-        <p><span data-l="en">If the fast method doesn't find the Model:Cycles, choose <b>Classic</b> in step 3: press <b>SETTINGS</b>, open <b>CONFIG › UPGRADE</b> and confirm. The firmware then travels at MIDI speed (5 to 10 minutes) and the Model:Cycles shows <b>UPDATING FLASH</b> before restarting.</span>
-          <span data-l="fr">Si la méthode rapide ne trouve pas le Model:Cycles, choisissez <b>Classique</b> à l'étape 3 : appuyez sur <b>SETTINGS</b>, ouvrez <b>CONFIG › UPGRADE</b> et confirmez. Le firmware passe alors à la vitesse du MIDI (5 à 10 minutes) et le Model:Cycles affiche <b>UPDATING FLASH</b> avant de redémarrer.</span></p>
-        <figure class="fig">
-          <div data-device data-lit="settings" data-lcd="CONFIG/>UPGRADE"></div>
-          <figcaption><span data-l="en">Classic method: CONFIG › UPGRADE is under the SETTINGS key.</span><span data-l="fr">Méthode classique : CONFIG › UPGRADE se trouve sous la touche SETTINGS.</span></figcaption>
-        </figure>
-        <p class="note"><span data-l="en">Keep the flasher tab in the foreground during the transfer: browsers slow down background tabs.</span><span data-l="fr">Gardez l'onglet du flasher au premier plan pendant le transfert : les navigateurs ralentissent les onglets en arrière-plan.</span></p>
+        <p>The page uses the update protocol of Elektron Transfer, worked out by <a href="https://github.com/dagargo/elektroid" target="_blank" rel="noopener">Elektroid</a>: the Model:Cycles checks every block as it arrives. You can also download the prepared <code>.syx</code> in step 4 and drop it onto Elektron Transfer's window.</p>
+        <p>If the page doesn't find the Model:Cycles, download the <code>.syx</code> in step 4 and install it with Elektron Transfer: just as fast.</p>
+        <p class="note">Keep the flasher tab in the foreground during the transfer: browsers slow down background tabs.</p>
       </section>
 
       <section id="sampler">
-        <h2><span class="n">3</span>SAMPLE machine (Cycles One-Shot)</h2>
-        <p class="by">By <a href="https://github.com/durchgemacht/cycles-one-shot" target="_blank" rel="noopener">durchgemacht</a> · MIT license · this section is in English only for now</p>
+        <h2><span class="n">3</span>SAMPLE</h2>
+        <p class="by">By <a href="https://github.com/durchgemacht/cycles-one-shot" target="_blank" rel="noopener">durchgemacht</a> · MIT license</p>
         <p class="lede">One extra machine, SAMPLE, plays a sample from the +Drive once per trig or in a loop, forward or reverse, the way the Model:Samples does: 6-tap interpolation at 96 kHz, then the Model:Cycles' own decimator and amp chain, and the Model:Samples' filter. The sample is chosen in the PRESET browser and saved with the sound, so projects, kits, presets and sound locks keep it. It is the Cycles One-Shot machine, built here from its own code at version 0.12.</p>
         <ol>
           <li>Put samples on the +Drive first: with Elektron Transfer, or with One-Shot's <a href="https://durchgemacht.github.io/cycles-one-shot/uploader/" target="_blank" rel="noopener">upload page</a> in Chrome or Edge, which works with the official OS too. Samples left there by the Model:Samples OS work as they are.</li>
@@ -124,224 +115,224 @@
       </section>
 
       <section id="digital-delay">
-        <h2><span class="n">4</span><span data-l="en">Digital Delay (effect)</span><span data-l="fr">Digital Delay (effet)</span></h2>
-        <p class="by"><span data-l="en">Based on</span><span data-l="fr">D'après</span> <a href="https://github.com/gialloinfuso/PPPCCC-Model-Cycles-1.13-Mods" target="_blank" rel="noopener">PPPCCC-Model-Cycles-1.13-Mods</a> <span data-l="en">by gialloinfuso · MIT license</span><span data-l="fr">de gialloinfuso · licence MIT</span></p>
-        <p class="lede"><span data-l="en">A second delay for the delay slot: the opposite of the dark stock delay, bright and clean, up to 5.4 seconds, each repeat a little thinner in the lows. Each pattern chooses its delay.</span><span data-l="fr">Un second delay pour l'emplacement du delay : l'inverse du delay d'origine, sombre ; celui-ci est clair et net, jusqu'à 5,4 secondes, et chaque répétition est un peu plus fine dans les graves. Chaque pattern choisit son delay.</span></p>
+        <h2><span class="n">4</span>Digital Delay</h2>
+        <p class="by">Based on <a href="https://github.com/gialloinfuso/PPPCCC-M-S-Mods" target="_blank" rel="noopener">PPPCCC</a> · MIT license</p>
+        <p class="lede">A second delay for the delay slot: the opposite of the dark stock delay, bright and clean, up to 5.4 seconds, each repeat a little thinner in the lows. Each pattern chooses its delay.</p>
         <ol>
-          <li><span data-l="en">Turn up a track's <b>Delay Send</b>, as for the stock delay.</span><span data-l="fr">Montez le <b>Delay Send</b> d'une piste, comme pour le delay d'origine.</span></li>
-          <li><span data-l="en">Hold <b>TRACK</b> and turn <b>Delay Time</b> to the right: after four detents the pattern switches to Digital, and the two delay knobs read <b>Digi Time</b> and <b>Digi Fdbk</b>. Four detents to the left switch it back to the stock Delay.</span><span data-l="fr">Tenez <b>TRACK</b> et tournez <b>Delay Time</b> vers la droite : au bout de quatre crans, le pattern passe à Digital, et les deux potards du delay s'appellent <b>Digi Time</b> et <b>Digi Fdbk</b>. Quatre crans vers la gauche le ramènent au Delay d'origine.</span></li>
-          <li><span data-l="en"><b>Delay Time</b> and <b>FUNC</b> + <b>Delay Time</b> (Fdbk) work as usual: Time follows the tempo up to 5.4 seconds, and Fdbk at 127 keeps the repeats going almost endlessly.</span><span data-l="fr"><b>Delay Time</b> et <b>FUNC</b> + <b>Delay Time</b> (Fdbk) marchent comme d'habitude : Time suit le tempo jusqu'à 5,4 secondes, et Fdbk à 127 garde les répétitions presque sans fin.</span></li>
-          <li><span data-l="en">Save the project: each pattern keeps its own choice, and changing pattern changes the delay with it.</span><span data-l="fr">Enregistrez le projet : chaque pattern garde son choix, et un changement de pattern change le delay avec lui.</span></li>
+          <li>Turn up a track's <b>Delay Send</b>, as for the stock delay.</li>
+          <li>Hold <b>TRACK</b> and turn <b>Delay Time</b> to the right: after four detents the pattern switches to Digital, and the two delay knobs read <b>Digi Time</b> and <b>Digi Fdbk</b>. Four detents to the left switch it back to the stock Delay.</li>
+          <li><b>Delay Time</b> and <b>FUNC</b> + <b>Delay Time</b> (Fdbk) work as usual: Time follows the tempo up to 5.4 seconds, and Fdbk at 127 keeps the repeats going almost endlessly.</li>
+          <li>Save the project: each pattern keeps its own choice, and changing pattern changes the delay with it.</li>
         </ol>
         <dl class="facts">
-          <div><dt><span data-l="en">Sound</span><span data-l="fr">Son</span></dt><dd><span data-l="en">mono: the two sides of the send summed, the same repeat on both. A high-pass of about 240 Hz and a low-pass of about 12.8 kHz sit in the feedback. It starts from silence each time it is chosen: no old echo comes back.</span><span data-l="fr">mono : les deux côtés du send additionnés, la même répétition des deux côtés. Un passe-haut d'environ 240 Hz et un passe-bas d'environ 12,8 kHz sont dans la réinjection. Il repart du silence chaque fois qu'il est choisi : aucun ancien écho ne revient.</span></dd></div>
-          <div><dt><span data-l="en">Other mods</span><span data-l="fr">Autres mods</span></dt><dd><span data-l="en">goes with SAMPLE, POTS and Control All Config. On a firmware without Digital, the official one too, a pattern that chose it plays the stock Delay.</span><span data-l="fr">va avec SAMPLE, POTS et Control All Config. Sur un firmware sans Digital, l'officiel aussi, un pattern qui l'a choisi joue le Delay d'origine.</span></dd></div>
-          <div><dt><span data-l="en">Tested</span><span data-l="fr">Testé</span></dt><dd><span data-l="en">its sound is PPPCCC's bit for bit, checked in an emulator against their own code. On a Model:Cycles (2026-10-27), from the command line, then flashed from this page alone and with SAMPLE: the choice per pattern, long times and high feedback, switching back and forth, saved projects, six tracks playing.</span><span data-l="fr">son son est celui de PPPCCC au bit près, vérifié en émulation contre leur propre code. Sur un Model:Cycles (2026-10-27), depuis la ligne de commande, puis flashé depuis cette page seul et avec SAMPLE : le choix par pattern, les temps longs et la forte réinjection, les allers-retours, les projets enregistrés, six pistes en jeu.</span></dd></div>
+          <div><dt>Sound</dt><dd>mono: the two sides of the send summed, the same repeat on both. A high-pass of about 240 Hz and a low-pass of about 12.8 kHz sit in the feedback. It starts from silence each time it is chosen: no old echo comes back.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, POTS and Control All Config. On a firmware without Digital, the official one too, a pattern that chose it plays the stock Delay.</dd></div>
+          <div><dt>Tested</dt><dd>its sound is PPPCCC's bit for bit, checked in an emulator against their own code. On a Model:Cycles (2026-10-27), from the command line, then flashed from this page alone and with SAMPLE: the choice per pattern, long times and high feedback, switching back and forth, saved projects, six tracks playing.</dd></div>
         </dl>
       </section>
 
       <section id="pots">
-        <h2><span class="n">5</span><span data-l="en">POTS (effect)</span><span data-l="fr">POTS (effet)</span></h2>
-        <p class="by"><span data-l="en">model27's own · MIT license</span><span data-l="fr">propre à model27 · licence MIT</span></p>
-        <p class="lede"><span data-l="en">A delay whose repeats go down an old telephone line: each pass darker and narrower, a little further out of tune, fading in and out and now and then dropping out, with a coarse digital grain on the tail. Each pattern chooses its delay.</span><span data-l="fr">Un delay dont les répétitions passent par une vieille ligne de téléphone : à chaque passage plus sombres et plus étroites, un peu plus désaccordées, elles vont et viennent et décrochent de temps en temps, avec un grain numérique grossier sur la queue. Chaque pattern choisit son delay.</span></p>
+        <h2><span class="n">5</span>POTS</h2>
+        <p class="by">model27's own · MIT license</p>
+        <p class="lede">A delay whose repeats go down an old telephone line: each pass darker and narrower, a little further out of tune, fading in and out and now and then dropping out, with a coarse digital grain on the tail. Each pattern chooses its delay.</p>
         <ol>
-          <li><span data-l="en">Turn up a track's <b>Delay Send</b>, as for the stock delay.</span><span data-l="fr">Montez le <b>Delay Send</b> d'une piste, comme pour le delay d'origine.</span></li>
-          <li><span data-l="en">Hold <b>TRACK</b> and turn <b>Delay Time</b> to the right: every four detents the pattern steps to the next delay, the stock Delay, then Digital if it is ticked too, then POTS. With POTS the two delay knobs read <b>POTS Time</b> and <b>POTS Fdbk</b>. To the left it steps back.</span><span data-l="fr">Tenez <b>TRACK</b> et tournez <b>Delay Time</b> vers la droite : tous les quatre crans, le pattern passe au delay suivant, le Delay d'origine, puis Digital s'il est coché aussi, puis POTS. Avec POTS, les deux potards du delay s'appellent <b>POTS Time</b> et <b>POTS Fdbk</b>. Vers la gauche, il revient en arrière.</span></li>
-          <li><span data-l="en"><b>Delay Time</b> and <b>FUNC</b> + <b>Delay Time</b> (Fdbk) work as usual: Time follows the tempo as on the stock delay and slides while you turn it, and at the highest Fdbk the repeats go on without running away. The more Fdbk, the further down the line the tail goes: darker, more out of tune, grainier.</span><span data-l="fr"><b>Delay Time</b> et <b>FUNC</b> + <b>Delay Time</b> (Fdbk) marchent comme d'habitude : Time suit le tempo comme sur le delay d'origine et glisse pendant que vous le tournez, et au Fdbk le plus haut les répétitions continuent sans s'emballer. Plus il y a de Fdbk, plus la queue va loin sur la ligne : plus sombre, plus désaccordée, plus granuleuse.</span></li>
-          <li><span data-l="en">Save the project: each pattern keeps its own choice, and changing pattern changes the delay with it.</span><span data-l="fr">Enregistrez le projet : chaque pattern garde son choix, et un changement de pattern change le delay avec lui.</span></li>
+          <li>Turn up a track's <b>Delay Send</b>, as for the stock delay.</li>
+          <li>Hold <b>TRACK</b> and turn <b>Delay Time</b> to the right: every four detents the pattern steps to the next delay, the stock Delay, then Digital if it is ticked too, then POTS. With POTS the two delay knobs read <b>POTS Time</b> and <b>POTS Fdbk</b>. To the left it steps back.</li>
+          <li><b>Delay Time</b> and <b>FUNC</b> + <b>Delay Time</b> (Fdbk) work as usual: Time follows the tempo as on the stock delay and slides while you turn it, and at the highest Fdbk the repeats go on without running away. The more Fdbk, the further down the line the tail goes: darker, more out of tune, grainier.</li>
+          <li>Save the project: each pattern keeps its own choice, and changing pattern changes the delay with it.</li>
         </ol>
         <dl class="facts">
-          <div><dt><span data-l="en">Sound</span><span data-l="fr">Son</span></dt><dd><span data-l="en">mono: the two sides of the send summed, the same repeat on both. The line passes about 350 Hz to 3 kHz, so kicks and low notes come back thin, as down a phone; middle tones come back about as loud as from the stock delay. A hot send (a loud sample, several tracks on the delay) is held at the level the sound was tuned at, so the repeats keep their tone instead of turning to noise. It starts from silence each time it is chosen: no old echo comes back.</span><span data-l="fr">mono : les deux côtés du send additionnés, la même répétition des deux côtés. La ligne passe d'environ 350 Hz à 3 kHz : les grosses caisses et les notes graves reviennent minces, comme au téléphone ; les tons médiums reviennent à peu près aussi fort qu'avec le delay d'origine. Un envoi trop fort (un sample fort, plusieurs pistes sur le delay) est ramené au niveau pour lequel le son a été réglé : les répétitions gardent leur son au lieu de devenir du bruit. Il repart du silence chaque fois qu'il est choisi : aucun ancien écho ne revient.</span></dd></div>
-          <div><dt><span data-l="en">Other mods</span><span data-l="fr">Autres mods</span></dt><dd><span data-l="en">goes with SAMPLE, Digital Delay and Control All Config. On a firmware without POTS, the official one too, a pattern that chose it plays the stock Delay.</span><span data-l="fr">va avec SAMPLE, Digital Delay et Control All Config. Sur un firmware sans POTS, l'officiel aussi, un pattern qui l'a choisi joue le Delay d'origine.</span></dd></div>
-          <div><dt><span data-l="en">Tested</span><span data-l="fr">Testé</span></dt><dd><span data-l="en">checked in an emulator on the OS's own code. The build before this one, its line at 24 kHz, was tested on a Model:Cycles: from the command line (2026-10-28), then flashed from this page (2026-10-29). This build runs the line at 12 kHz with an 8-bit codec, as a real phone does, about a fifth lighter on the processor; flashed from this page (2026-10-29), a busy project that lagged with the 24 kHz build plays without lag.</span><span data-l="fr">vérifié en émulation sur le propre code de l'OS. Le build d'avant, sa ligne à 24 kHz, a été testé sur un Model:Cycles : depuis la ligne de commande (28/10/2026), puis flashé depuis cette page (29/10/2026). Ce build fait tourner la ligne à 12 kHz avec un codec 8 bits, comme un vrai téléphone, environ un cinquième plus léger pour le processeur ; flashé depuis cette page (29/10/2026), un projet chargé qui ralentissait avec le build à 24 kHz joue sans ralentir.</span></dd></div>
+          <div><dt>Sound</dt><dd>mono: the two sides of the send summed, the same repeat on both. The line passes about 350 Hz to 3 kHz, so kicks and low notes come back thin, as down a phone; middle tones come back about as loud as from the stock delay. A hot send (a loud sample, several tracks on the delay) is held at the level the sound was tuned at, so the repeats keep their tone instead of turning to noise. It starts from silence each time it is chosen: no old echo comes back.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, Digital Delay and Control All Config. On a firmware without POTS, the official one too, a pattern that chose it plays the stock Delay.</dd></div>
+          <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code. The build before this one, its line at 24 kHz, was tested on a Model:Cycles: from the command line (2026-10-28), then flashed from this page (2026-10-29). This build runs the line at 12 kHz with an 8-bit codec, as a real phone does, about a fifth lighter on the processor; flashed from this page (2026-10-29), a busy project that lagged with the 24 kHz build plays without lag.</dd></div>
         </dl>
       </section>
 
       <section id="trig-cond">
-        <h2><span class="n">6</span><span data-l="en">Trig conditions, A:B before the percentages</span><span data-l="fr">Conditions de trig, A:B avant les pourcentages</span></h2>
-        <p class="by"><span data-l="en">model27's own · MIT license</span><span data-l="fr">propre à model27 · licence MIT</span></p>
-        <p class="lede"><span data-l="en">The trig conditions in another order on the knob: the A:B conditions come right after the named ones, the percentages last. The conditions themselves stay the same.</span><span data-l="fr">Les conditions de trig dans un autre ordre au potard : les conditions A:B viennent juste après les conditions nommées, les pourcentages en dernier. Les conditions elles-mêmes restent les mêmes.</span></p>
+        <h2><span class="n">6</span>Trig Condition Order</h2>
+        <p class="by">model27's own · MIT license</p>
+        <p class="lede">The trig conditions in another order on the knob: the A:B conditions come right after the named ones, the percentages last. The conditions themselves stay the same.</p>
         <ol>
-          <li><span data-l="en">Hold a <b>trig</b> and turn <b>CHANCE</b> to the right: FILL, !FILL, PRE, !PRE, NEI, !NEI, 1st, !1st, then 1:2, 2:2, 1:3 … 8:8, then 1% … 99%. To the left it goes back.</span><span data-l="fr">Maintenez un <b>trig</b> et tournez <b>CHANCE</b> vers la droite : FILL, !FILL, PRE, !PRE, NEI, !NEI, 1st, !1st, puis 1:2, 2:2, 1:3 … 8:8, puis 1 % … 99 %. Vers la gauche, on revient en arrière.</span></li>
-          <li><span data-l="en">The five dots under the value show where you are in that list: dot 1 from FILL to 3:3, dot 2 from 1:4 to 4:6, dot 3 from 5:6 to 3:8, dot 4 from 4:8 to 25%, dot 5 from 33% to 99%.</span><span data-l="fr">Les cinq points sous la valeur montrent où vous êtes dans cette liste : point 1 de FILL à 3:3, point 2 de 1:4 à 4:6, point 3 de 5:6 à 3:8, point 4 de 4:8 à 25 %, point 5 de 33 % à 99 %.</span></li>
-          <li><span data-l="en">Fast turns, <b>FUNC</b> + <b>CHANCE</b> and several trigs held at once work as on the stock OS, through the new order.</span><span data-l="fr">Les tours rapides, <b>FUNC</b> + <b>CHANCE</b> et plusieurs trigs tenus à la fois marchent comme sur l'OS d'origine, dans le nouvel ordre.</span></li>
+          <li>Hold a <b>trig</b> and turn <b>CHANCE</b> to the right: FILL, !FILL, PRE, !PRE, NEI, !NEI, 1st, !1st, then 1:2, 2:2, 1:3 … 8:8, then 1% … 99%. To the left it goes back.</li>
+          <li>The five dots under the value show where you are in that list: dot 1 from FILL to 3:3, dot 2 from 1:4 to 4:6, dot 3 from 5:6 to 3:8, dot 4 from 4:8 to 25%, dot 5 from 33% to 99%.</li>
+          <li>Fast turns, <b>FUNC</b> + <b>CHANCE</b> and several trigs held at once work as on the stock OS, through the new order.</li>
         </ol>
         <dl class="facts">
-          <div><dt><span data-l="en">Patterns</span><span data-l="fr">Patterns</span></dt><dd><span data-l="en">a trig keeps the same condition as on the stock OS: the sequencer plays it and the screen names it as before. Patterns made with or without the mod are the same both ways, the official firmware included.</span><span data-l="fr">un trig garde la même condition que sur l'OS d'origine : le séquenceur la joue et l'écran la nomme comme avant. Les patterns faits avec ou sans le mod sont les mêmes dans les deux sens, firmware officiel compris.</span></dd></div>
-          <div><dt><span data-l="en">First turn</span><span data-l="fr">Premier tour</span></dt><dd><span data-l="en">a trig without a condition starts at FILL, as on the stock OS.</span><span data-l="fr">un trig sans condition commence à FILL, comme sur l'OS d'origine.</span></dd></div>
-          <div><dt><span data-l="en">Other mods</span><span data-l="fr">Autres mods</span></dt><dd><span data-l="en">goes with SAMPLE, Digital Delay, POTS and Control All Config.</span><span data-l="fr">va avec SAMPLE, Digital Delay, POTS et Control All Config.</span></dd></div>
-          <div><dt><span data-l="en">Tested</span><span data-l="fr">Testé</span></dt><dd><span data-l="en">checked in an emulator on the OS's own code. Tested on a Model:Cycles from the command line (2026-10-30), the order and the five dots; then flashed from this page and tested on a Model:Cycles (2026-10-30).</span><span data-l="fr">vérifié en émulation sur le propre code de l'OS. Testé sur un Model:Cycles depuis la ligne de commande (30/10/2026), l'ordre et les cinq points ; puis flashé depuis cette page et testé sur un Model:Cycles (30/10/2026).</span></dd></div>
+          <div><dt>Patterns</dt><dd>a trig keeps the same condition as on the stock OS: the sequencer plays it and the screen names it as before. Patterns made with or without the mod are the same both ways, the official firmware included.</dd></div>
+          <div><dt>First turn</dt><dd>a trig without a condition starts at FILL, as on the stock OS.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, Digital Delay, POTS and Control All Config.</dd></div>
+          <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code. Tested on a Model:Cycles from the command line (2026-10-30), the order and the five dots; then flashed from this page and tested on a Model:Cycles (2026-10-30).</dd></div>
         </dl>
       </section>
 
       <section id="preview">
-        <h2><span class="n">7</span><span data-l="en">Trig preview</span><span data-l="fr">Écoute d'un pas</span></h2>
-        <p class="by"><span data-l="en">By</span><span data-l="fr">Par</span> <a href="https://github.com/drumkilla/elektron-model-tweaks" target="_blank" rel="noopener">drumkilla</a> <span data-l="en">· MIT license</span><span data-l="fr">· licence MIT</span></p>
-        <p class="lede"><span data-l="en">Hear a single step without starting the sequencer: hold its trig and press PAGE.</span><span data-l="fr">Écoutez un seul pas sans lancer le séquenceur : maintenez son trig et appuyez sur PAGE.</span></p>
+        <h2><span class="n">7</span>Trig Preview</h2>
+        <p class="by">By <a href="https://github.com/drumkilla/elektron-model-tweaks" target="_blank" rel="noopener">drumkilla</a> · MIT license</p>
+        <p class="lede">Hear a single step without starting the sequencer: hold its trig and press PAGE.</p>
         <ol>
-          <li><span data-l="en">Stop the sequencer, or pause it with <b>PLAY</b>.</span><span data-l="fr">Arrêtez le séquenceur, ou mettez-le en pause avec <b>PLAY</b>.</span></li>
-          <li><span data-l="en">Hold a <b>trig</b> of the active track and press <b>PAGE</b>: the step sounds as the sequencer would play it, with its note, length, p-locks and sound lock. The page does not turn.</span><span data-l="fr">Maintenez un <b>trig</b> de la piste active et appuyez sur <b>PAGE</b> : le pas sonne comme le séquenceur le jouerait, avec sa note, sa longueur, ses p-locks et son sound lock. La page ne tourne pas.</span></li>
-          <li><span data-l="en">Keep the trig held, change a lock and press <b>PAGE</b> again to hear the step with it.</span><span data-l="fr">Gardez le trig tenu, changez un lock et appuyez de nouveau sur <b>PAGE</b> pour entendre le pas avec.</span></li>
+          <li>Stop the sequencer, or pause it with <b>PLAY</b>.</li>
+          <li>Hold a <b>trig</b> of the active track and press <b>PAGE</b>: the step sounds as the sequencer would play it, with its note, length, p-locks and sound lock. The page does not turn.</li>
+          <li>Keep the trig held, change a lock and press <b>PAGE</b> again to hear the step with it.</li>
         </ol>
         <dl class="facts">
-          <div><dt><span data-l="en">Always sounds</span><span data-l="fr">Sonne toujours</span></dt><dd><span data-l="en">whatever the trig's condition and probability, also on a muted track. The trig stays.</span><span data-l="fr">quelles que soient la condition et la probabilité du trig, aussi sur une piste mutée. Le trig reste.</span></dd></div>
-          <div><dt><span data-l="en">Limits</span><span data-l="fr">Limites</span></dt><dd><span data-l="en">while the sequencer plays, PAGE turns the page as on the stock OS.</span><span data-l="fr">pendant la lecture, PAGE tourne la page comme sur l'OS d'origine.</span></dd></div>
-          <div><dt><span data-l="en">Other mods</span><span data-l="fr">Autres mods</span></dt><dd><span data-l="en">goes with SAMPLE, Digital Delay, POTS, Trig conditions and Control All Config.</span><span data-l="fr">va avec SAMPLE, Digital Delay, POTS, Conditions de trig et Control All Config.</span></dd></div>
-          <div><dt><span data-l="en">Credit</span><span data-l="fr">Crédit</span></dt><dd><span data-l="en">drumkilla's trig preview, version 1.2.0 (MIT), unchanged. Since that version it also plays with the sequencer paused, a fix that came from Modded-Cycles.</span><span data-l="fr">l'écoute d'un pas de drumkilla, version 1.2.0 (MIT), inchangée. Depuis cette version, elle joue aussi séquenceur en pause, une correction venue de Modded-Cycles.</span></dd></div>
-          <div><dt><span data-l="en">Tested</span><span data-l="fr">Testé</span></dt><dd><span data-l="en">checked in an emulator on the OS's own code: stopped, playing, paused and after a MIDI Stop. Tested on a Model:Cycles (2026-10-04) with the same code inside Model-TG; then flashed from this page and tested on a Model:Cycles (2026-10-30).</span><span data-l="fr">vérifié en émulation sur le propre code de l'OS : à l'arrêt, en lecture, en pause et après un Stop MIDI. Testé sur un Model:Cycles (04/10/2026) avec le même code dans Model-TG ; puis flashé depuis cette page et testé sur un Model:Cycles (30/10/2026).</span></dd></div>
+          <div><dt>Always sounds</dt><dd>whatever the trig's condition and probability, also on a muted track. The trig stays.</dd></div>
+          <div><dt>Limits</dt><dd>while the sequencer plays, PAGE turns the page as on the stock OS.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, Digital Delay, POTS, Trig conditions and Control All Config.</dd></div>
+          <div><dt>Credit</dt><dd>drumkilla's trig preview, version 1.2.0 (MIT), unchanged. Since that version it also plays with the sequencer paused, a fix that came from Modded-Cycles.</dd></div>
+          <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code: stopped, playing, paused and after a MIDI Stop. Tested on a Model:Cycles (2026-10-04) with the same code inside Model-TG; then flashed from this page and tested on a Model:Cycles (2026-10-30).</dd></div>
         </dl>
       </section>
 
       <section id="control-all">
-        <h2><span class="n">8</span><span data-l="en">Control All, your choice of tracks</span><span data-l="fr">Control All : choix des pistes</span></h2>
-        <p class="by"><span data-l="en">By</span><span data-l="fr">Par</span> <a href="https://github.com/durchgemacht/cycles-control-all-config" target="_blank" rel="noopener">durchgemacht</a></p>
-        <p class="lede"><span data-l="en">Leave single tracks out of Control All: with TRACK held, a knob changes only the tracks you chose.</span><span data-l="fr">Écartez des pistes de Control All : TRACK tenu, un potard ne change que les pistes que vous avez choisies.</span></p>
+        <h2><span class="n">8</span>Control All Config</h2>
+        <p class="by">By <a href="https://github.com/durchgemacht/cycles-control-all-config" target="_blank" rel="noopener">durchgemacht</a></p>
+        <p class="lede">Leave single tracks out of Control All: with TRACK held, a knob changes only the tracks you chose.</p>
         <ol>
-          <li><span data-l="en">Hold <b>TRACK</b> and press <b>TRIG 1</b>–<b>6</b>: that track leaves Control All. Press again to put it back.</span><span data-l="fr">Tenez <b>TRACK</b> et appuyez sur <b>TRIG 1</b> à <b>6</b> : cette piste sort de Control All. Appuyez de nouveau pour l'y remettre.</span></li>
-          <li><span data-l="en">While <b>TRACK</b> is held, TRIG 1–6 light for the tracks that follow Control All and stay dark for the ones left out.</span><span data-l="fr">TRACK tenu, les TRIG 1–6 s'allument pour les pistes qui suivent Control All et restent éteints pour les autres.</span></li>
-          <li><span data-l="en">Hold <b>TRACK</b> and turn a knob: it changes the tracks that follow. The active track always follows, as on the Digitakt and Digitone, so what the screen shows is what the knob does.</span><span data-l="fr">Tenez <b>TRACK</b> et tournez un potard : il change les pistes qui suivent. La piste active suit toujours, comme sur les Digitakt et Digitone : ce que l'écran montre, le potard le fait.</span></li>
+          <li>Hold <b>TRACK</b> and press <b>TRIG 1</b>–<b>6</b>: that track leaves Control All. Press again to put it back.</li>
+          <li>While <b>TRACK</b> is held, TRIG 1–6 light for the tracks that follow Control All and stay dark for the ones left out.</li>
+          <li>Hold <b>TRACK</b> and turn a knob: it changes the tracks that follow. The active track always follows, as on the Digitakt and Digitone, so what the screen shows is what the knob does.</li>
         </ol>
         <dl class="facts">
-          <div><dt><span data-l="en">Also</span><span data-l="fr">Aussi</span></dt><dd><span data-l="en">left-out tracks keep their machine, LFO destination and PUNCH/GATE when you change those with TRACK held.</span><span data-l="fr">les pistes écartées gardent leur machine, leur destination de LFO et PUNCH/GATE quand vous les changez TRACK tenu.</span></dd></div>
-          <div><dt><span data-l="en">Not saved</span><span data-l="fr">Pas enregistré</span></dt><dd><span data-l="en">after power-on every track follows again, as on the stock OS.</span><span data-l="fr">après l'allumage, toutes les pistes suivent de nouveau, comme sur l'OS d'origine.</span></dd></div>
-          <div><dt><span data-l="en">Limits</span><span data-l="fr">Limites</span></dt><dd><span data-l="en">TRACK + LEVEL/DATA (volume, and pan with FUNC) still moves all six tracks. A left-out track that is the active one shows dark but follows while it is active.</span><span data-l="fr">TRACK + LEVEL/DATA (volume, et pan avec FUNC) bouge encore les six pistes. Une piste écartée qui est la piste active s'affiche éteinte mais suit tant qu'elle est active.</span></dd></div>
-          <div><dt><span data-l="en">Other mods</span><span data-l="fr">Autres mods</span></dt><dd><span data-l="en">goes with SAMPLE.</span><span data-l="fr">va avec SAMPLE.</span></dd></div>
-          <div><dt><span data-l="en">Credit</span><span data-l="fr">Crédit</span></dt><dd><span data-l="en">Control All Config 1.0 by durchgemacht (MIT), unchanged; placed here in four free sprite masks so that it goes with every other mod, as in Modded-Cycles 1.56.</span><span data-l="fr">Control All Config 1.0 de durchgemacht (MIT), inchangé ; logé ici dans quatre masques de sprites libres pour aller avec tous les autres mods, comme dans Modded-Cycles 1.56.</span></dd></div>
-          <div><dt><span data-l="en">Tested</span><span data-l="fr">Testé</span></dt><dd><span data-l="en">by its author on a Model:Cycles, in their own build; then flashed from this page and tested on a Model:Cycles, alone and with SAMPLE (2026-10-22).</span><span data-l="fr">par son auteur sur un Model:Cycles, dans sa propre image ; puis flashé depuis cette page et testé sur un Model:Cycles, seul et avec SAMPLE (22/10/2026).</span></dd></div>
+          <div><dt>Also</dt><dd>left-out tracks keep their machine, LFO destination and PUNCH/GATE when you change those with TRACK held.</dd></div>
+          <div><dt>Not saved</dt><dd>after power-on every track follows again, as on the stock OS.</dd></div>
+          <div><dt>Limits</dt><dd>TRACK + LEVEL/DATA (volume, and pan with FUNC) still moves all six tracks. A left-out track that is the active one shows dark but follows while it is active.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE.</dd></div>
+          <div><dt>Credit</dt><dd>Control All Config 1.0 by durchgemacht (MIT), unchanged; placed here in four free sprite masks so that it goes with every other mod, as in Modded-Cycles 1.56.</dd></div>
+          <div><dt>Tested</dt><dd>by its author on a Model:Cycles, in their own build; then flashed from this page and tested on a Model:Cycles, alone and with SAMPLE (2026-10-22).</dd></div>
         </dl>
       </section>
 
       <section id="mods-on-samples">
-        <h2><span class="n">9</span><span data-l="en">Mods on a Model:Samples</span><span data-l="fr">Des mods sur un Model:Samples</span></h2>
-        <p class="lede"><span data-l="en">A Model:Samples can run the Model:Cycles OS with the same mods as a Model:Cycles. Whatever the machine, the flasher always installs the Model:Cycles OS. With the <a href="#sampler">SAMPLE</a> machine ticked, it can play the samples already on the +Drive (not yet tried on a Model:Samples).</span><span data-l="fr">Un Model:Samples peut faire tourner l'OS du Model:Cycles avec les mêmes mods qu'un Model:Cycles. Quelle que soit la machine, le flasher installe toujours l'OS du Model:Cycles. Avec la machine <a href="#sampler">SAMPLE</a> cochée, il peut jouer les samples déjà sur le +Drive (pas encore essayé sur un Model:Samples).</span></p>
+        <h2><span class="n">9</span>Mods on a Model:Samples</h2>
+        <p class="lede">A Model:Samples can run the Model:Cycles OS with the same mods as a Model:Cycles. Whatever the machine, the flasher always installs the Model:Cycles OS. With the <a href="#sampler">SAMPLE</a> machine ticked, it can play the samples already on the +Drive (not yet tried on a Model:Samples).</p>
         <ol>
-          <li><span data-l="en">Back up your samples and projects with Elektron Transfer, then close Transfer.</span><span data-l="fr">Sauvegardez vos samples et vos projets avec Elektron Transfer, puis fermez Transfer.</span></li>
-          <li><span data-l="en">In the flasher's <b>Mods</b> tab, under <b>Your machine</b>, choose <b>Model:Samples, on its own OS</b> the first time (the machine starts as a Model:Samples), or <b>Model:Samples, already on the Cycles OS</b> to change mods later. Tick the box about your backup.</span><span data-l="fr">Dans l'onglet <b>Mods</b> du flasher, sous <b>Votre machine</b>, choisissez <b>Model:Samples, sous son OS</b> la première fois (la machine démarre en Model:Samples), ou <b>Model:Samples, déjà sous l'OS Cycles</b> pour changer de mods plus tard. Cochez la case de la sauvegarde.</span></li>
-          <li><span data-l="en">Tick your mods as usual. Tick SAMPLE to keep playing samples.</span><span data-l="fr">Cochez vos mods comme d'habitude. Cochez SAMPLE pour continuer à jouer des samples.</span></li>
-          <li><span data-l="en">In step 2, load both official OS files: <code>model-cycles_OS1.13.syx</code>, then <code>model-samples_OS1.13.syx</code>.</span><span data-l="fr">À l'étape 2, déposez les deux fichiers d'OS officiels : <code>model-cycles_OS1.13.syx</code>, puis <code>model-samples_OS1.13.syx</code>.</span></li>
-          <li><span data-l="en">Turn the Model:Samples on normally, choose <b>Fast (USB)</b>, flash, then press <b>YES</b> on its screen. It restarts as a Model:Cycles with your mods.</span><span data-l="fr">Allumez le Model:Samples normalement, choisissez <b>Rapide (USB)</b>, flashez, puis appuyez sur <b>YES</b> sur son écran. Il redémarre en Model:Cycles avec vos mods.</span></li>
+          <li>Back up your samples and projects with Elektron Transfer, then close Transfer.</li>
+          <li>Open <a href="../flasher/?samples">the flasher with the Model:Samples choices</a>. In its <b>Mods</b> tab, under <b>Your machine</b>, choose <b>Model:Samples, on its own OS</b> the first time (the machine starts as a Model:Samples), or <b>Model:Samples, already on the Cycles OS</b> to change mods later. Tick the box about your backup.</li>
+          <li>Tick your mods as usual. Tick SAMPLE to keep playing samples.</li>
+          <li>In step 2, load both official OS files: <code>model-cycles_OS1.13.syx</code>, then <code>model-samples_OS1.13.syx</code>.</li>
+          <li>Turn the Model:Samples on normally, choose <b>Fast (USB)</b>, flash, then press <b>YES</b> on its screen. It restarts as a Model:Cycles with your mods.</li>
         </ol>
         <dl class="layers fig">
-          <div><dt><span data-l="en">Startup menu</span><span data-l="fr">Menu de démarrage</span></dt><dd>Model:Samples</dd></div>
+          <div><dt>Startup menu</dt><dd>Model:Samples</dd></div>
           <div><dt>Updater</dt><dd>Model:Samples</dd></div>
           <div><dt>Signature</dt><dd>Model:Samples</dd></div>
-          <div class="swap"><dt><span data-l="en">Main OS</span><span data-l="fr">OS principal</span></dt><dd><span data-l="en">Model:Cycles with your mods, which accepts the Model:Samples signature</span><span data-l="fr">Model:Cycles avec vos mods, qui accepte la signature du Model:Samples</span></dd></div>
+          <div class="swap"><dt>Main OS</dt><dd>Model:Cycles with your mods, which accepts the Model:Samples signature</dd></div>
         </dl>
         <dl class="facts">
-          <div><dt><span data-l="en">Which choice</span><span data-l="fr">Quel choix</span></dt><dd><span data-l="en">the page asks the machine who it is and only sends the right file: <b>on its own OS</b> goes to a machine that answers Model:Samples, <b>already on the Cycles OS</b> to one that answers Model:Cycles. With Model-TG's Transfer identity on SMP, set it back to CYC (or restart) before changing mods.</span><span data-l="fr">la page demande à la machine qui elle est et n'envoie que le bon fichier : <b>sous son OS</b> va à une machine qui répond Model:Samples, <b>déjà sous l'OS Cycles</b> à une machine qui répond Model:Cycles. Avec l'identité Transfer de Model-TG sur SMP, remettez-la sur CYC (ou redémarrez) avant de changer de mods.</span></dd></div>
-          <div><dt><span data-l="en">Coming back</span><span data-l="fr">Revenir</span></dt><dd><span data-l="en">over USB, in the <b>Samples OS</b> tab: <b>Model:Samples: back to its OS</b> (see <a href="#cycles-on-samples">below</a>). The startup menu of the Model:Samples is never touched: through the MIDI IN, it stays the safety net (<a href="#recovery">Recovery</a>).</span><span data-l="fr">par USB, dans l'onglet <b>OS Samples</b> : <b>Model:Samples : retour à son OS</b> (voir <a href="#cycles-on-samples">plus bas</a>). Le menu de démarrage du Model:Samples n'est jamais touché : par le MIDI IN, il reste le filet de sécurité (<a href="#recovery">Secours</a>).</span></dd></div>
-          <div><dt><span data-l="en">Limits</span><span data-l="fr">Limites</span></dt><dd><span data-l="en">only for a real Model:Samples (a Model:Cycles running the Samples OS answers as a Model:Samples too). Once on the Cycles OS, the machine refuses firmwares built for a Model:Cycles: nothing is written. A Model:Cycles OS installed with another tool refuses these files: first bring the Model:Samples OS back with <b>Model:Cycles → Samples OS</b>. If it starts badly, switch it off and on; if it still hangs, <b>FUNC</b> at power-on then <b>TRIG 2</b> (EMPTY RESET clears the active project).</span><span data-l="fr">seulement pour un vrai Model:Samples (un Model:Cycles sous l'OS Samples répond lui aussi Model:Samples). Une fois sous l'OS Cycles, la machine refuse les firmwares construits pour un Model:Cycles : rien n'est écrit. Un OS Model:Cycles installé avec un autre outil refuse ces fichiers : rendez d'abord l'OS du Model:Samples avec <b>Model:Cycles → OS Samples</b>. Si elle démarre mal, éteignez-la et rallumez-la ; si elle bloque encore, <b>FUNC</b> à l'allumage puis <b>TRIG 2</b> (EMPTY RESET vide le projet actif).</span></dd></div>
-          <div><dt><span data-l="en">Tested</span><span data-l="fr">Testé</span></dt><dd><span data-l="en">on a Model:Samples, both choices: on its own OS, and already on the Cycles OS to change mods; and in the emulator, on both OSes' own update checks and on the Model:Samples startup code, with the largest set of mods. Each mod keeps the status it has on a Model:Cycles. Thanks to RDS (AIM) for the original flasher, and DaftMaple for integrating it into Modded Cycles.</span><span data-l="fr">sur un Model:Samples, les deux choix : sous son OS, et déjà sous l'OS Cycles pour changer de mods ; et en émulation, sur les contrôles de mise à jour des deux OS et sur le code de démarrage du Model:Samples, avec le plus gros ensemble de mods. Chaque mod garde le statut qu'il a sur un Model:Cycles. Merci à RDS (AIM) pour le flasher d'origine, et à DaftMaple pour son intégration à Modded Cycles.</span></dd></div>
+          <div><dt>Which choice</dt><dd>the page asks the machine who it is and only sends the right file: <b>on its own OS</b> goes to a machine that answers Model:Samples, <b>already on the Cycles OS</b> to one that answers Model:Cycles. With Model-TG's Transfer identity on SMP, set it back to CYC (or restart) before changing mods.</dd></div>
+          <div><dt>Coming back</dt><dd>over USB, in the <b>Samples OS</b> tab: <b>Model:Samples: back to its OS</b> (see <a href="#cycles-on-samples">below</a>). The startup menu of the Model:Samples is never touched: through the MIDI IN, it stays the safety net (<a href="#recovery">Recovery</a>).</dd></div>
+          <div><dt>Limits</dt><dd>only for a real Model:Samples (a Model:Cycles running the Samples OS answers as a Model:Samples too). Once on the Cycles OS, the machine refuses firmwares built for a Model:Cycles: nothing is written. A Model:Cycles OS installed with another tool refuses these files: first bring the Model:Samples OS back with <b>Model:Cycles → Samples OS</b>. If it starts badly, switch it off and on; if it still hangs, <b>FUNC</b> at power-on then <b>TRIG 2</b> (EMPTY RESET clears the active project).</dd></div>
+          <div><dt>Tested</dt><dd>on a Model:Samples, both choices: on its own OS, and already on the Cycles OS to change mods; and in the emulator, on both OSes' own update checks and on the Model:Samples startup code, with the largest set of mods. Each mod keeps the status it has on a Model:Cycles. Thanks to RDS (AIM) for the original flasher, and DaftMaple for integrating it into Modded Cycles.</dd></div>
         </dl>
       </section>
 
       <section id="samples">
-        <h2><span class="n">10</span><span data-l="en">Samples OS</span><span data-l="fr">OS Samples</span></h2>
-        <p class="lede"><span data-l="en">The Model:Cycles starts as a Model:Samples: you load and play your own samples, managed with Elektron Transfer.</span><span data-l="fr">Le Model:Cycles démarre en Model:Samples : vous chargez et jouez vos propres samples, gérés avec Elektron Transfer.</span></p>
-        <p><span data-l="en">The flasher puts the official Model:Samples OS inside your Model:Cycles firmware file:</span><span data-l="fr">Le flasher place l'OS officiel du Model:Samples dans le fichier firmware de votre Model:Cycles :</span></p>
+        <h2><span class="n">10</span>Samples OS</h2>
+        <p class="lede">The Model:Cycles starts as a Model:Samples: you load and play your own samples, managed with Elektron Transfer.</p>
+        <p>The <a href="../flasher/?samples">flasher, in its Samples OS tab</a>, puts the official Model:Samples OS inside your Model:Cycles firmware file:</p>
         <dl class="layers fig">
-          <div><dt><span data-l="en">Startup menu</span><span data-l="fr">Menu de démarrage</span></dt><dd>Model:Cycles</dd></div>
+          <div><dt>Startup menu</dt><dd>Model:Cycles</dd></div>
           <div><dt>Updater</dt><dd>Model:Cycles</dd></div>
           <div><dt>Signature</dt><dd>Model:Cycles</dd></div>
-          <div class="swap"><dt><span data-l="en">Main OS</span><span data-l="fr">OS principal</span></dt><dd>Model:Samples</dd></div>
+          <div class="swap"><dt>Main OS</dt><dd>Model:Samples</dd></div>
         </dl>
-        <h3><span data-l="en">Coming back</span><span data-l="fr">Revenir</span></h3>
-        <p><span data-l="en">The way back to the Model:Cycles OS goes through the startup menu, which only listens to the MIDI IN (see <a href="#recovery">Recovery</a>). <b>Without a MIDI interface, there is no way back.</b></span><span data-l="fr">Le retour à l'OS du Model:Cycles passe par le menu de démarrage, qui n'écoute que le MIDI IN (voir <a href="#recovery">Secours</a>). <b>Sans interface MIDI, pas de retour possible.</b></span></p>
-        <p class="note"><span data-l="en">From the Samples OS, never install a Model:Samples OS file, neither with CONFIG › UPGRADE nor when Elektron Transfer offers an update: it would also replace the startup menu of your Model:Cycles. Back up your projects first: both OSes use the same storage.</span><span data-l="fr">Depuis l'OS Samples, n'installez jamais un fichier d'OS Model:Samples, ni par CONFIG › UPGRADE ni quand Elektron Transfer propose une mise à jour : il remplacerait aussi le menu de démarrage de votre Model:Cycles. Sauvegardez d'abord vos projets : les deux OS utilisent le même stockage.</span></p>
+        <h3>Coming back</h3>
+        <p>The way back to the Model:Cycles OS goes through the startup menu, which only listens to the MIDI IN (see <a href="#recovery">Recovery</a>). <b>Without a MIDI interface, there is no way back.</b></p>
+        <p class="note">From the Samples OS, never install a Model:Samples OS file, neither with CONFIG › UPGRADE nor when Elektron Transfer offers an update: it would also replace the startup menu of your Model:Cycles. Back up your projects first: both OSes use the same storage.</p>
 
-        <h3 id="cycles-on-samples"><span data-l="en">The other way: the Cycles OS on a Model:Samples</span><span data-l="fr">Dans l'autre sens : l'OS Cycles sur un Model:Samples</span></h3>
-        <p><span data-l="en">A Model:Samples can start as a Model:Cycles and play its synth engines. In the flasher, open the <b>Samples OS</b> tab and choose <b>Model:Samples → Cycles OS</b>. The page needs both official OS files, Model:Cycles then Model:Samples, and sends over USB like any update: the Model:Samples on as usual, Elektron Transfer closed, then YES on its screen.</span><span data-l="fr">Un Model:Samples peut démarrer en Model:Cycles et jouer ses moteurs de synthèse. Dans le flasher, ouvrez l'onglet <b>OS Samples</b> et choisissez <b>Model:Samples → OS Cycles</b>. La page a besoin des deux fichiers d'OS officiels, Model:Cycles puis Model:Samples, et envoie par USB comme pour une mise à jour : le Model:Samples allumé normalement, Elektron Transfer fermé, puis YES sur son écran.</span></p>
+        <h3 id="cycles-on-samples">The other way: the Cycles OS on a Model:Samples</h3>
+        <p>A Model:Samples can start as a Model:Cycles and play its synth engines. In the <a href="../flasher/?samples">flasher</a>, open the <b>Samples OS</b> tab and choose <b>Model:Samples → Cycles OS</b>. The page needs both official OS files, Model:Cycles then Model:Samples, and sends over USB like any update: the Model:Samples on as usual, Elektron Transfer closed, then YES on its screen.</p>
         <dl class="layers fig">
-          <div><dt><span data-l="en">Startup menu</span><span data-l="fr">Menu de démarrage</span></dt><dd>Model:Samples</dd></div>
+          <div><dt>Startup menu</dt><dd>Model:Samples</dd></div>
           <div><dt>Updater</dt><dd>Model:Samples</dd></div>
           <div><dt>Signature</dt><dd>Model:Samples</dd></div>
-          <div class="swap"><dt><span data-l="en">Main OS</span><span data-l="fr">OS principal</span></dt><dd><span data-l="en">Model:Cycles, which accepts the Model:Samples signature</span><span data-l="fr">Model:Cycles, qui accepte la signature du Model:Samples</span></dd></div>
+          <div class="swap"><dt>Main OS</dt><dd>Model:Cycles, which accepts the Model:Samples signature</dd></div>
         </dl>
-        <p><span data-l="en"><b>Coming back over USB:</b> same tab, <b>Model:Samples: back to its OS</b>. The page sends the official Model:Samples OS, unchanged. This works because the Model:Cycles OS put on by the page checks updates with the Model:Samples signature. An unmodified Model:Cycles OS would refuse it.</span><span data-l="fr"><b>Revenir par USB :</b> même onglet, <b>Model:Samples : retour à son OS</b>. La page envoie l'OS officiel du Model:Samples, sans le modifier. Ça marche parce que l'OS Cycles installé par la page vérifie les mises à jour avec la signature du Model:Samples. Un OS Cycles non modifié le refuserait.</span></p>
+        <p><b>Coming back over USB:</b> same tab, <b>Model:Samples: back to its OS</b>. The page sends the official Model:Samples OS, unchanged. This works because the Model:Cycles OS put on by the page checks updates with the Model:Samples signature. An unmodified Model:Cycles OS would refuse it.</p>
         <ul>
-          <li><span data-l="en">Back up your samples and projects with Elektron Transfer first: both OSes use the same storage.</span><span data-l="fr">Sauvegardez d'abord vos samples et vos projets avec Elektron Transfer : les deux OS utilisent le même stockage.</span></li>
-          <li><span data-l="en">Only on a real Model:Samples. A Model:Cycles running the Samples OS answers as a Model:Samples too: it would take this firmware, then refuse Model:Cycles firmwares over USB until its startup menu reinstalls its OS through the MIDI IN.</span><span data-l="fr">Seulement sur un vrai Model:Samples. Un Model:Cycles sous l'OS Samples répond lui aussi Model:Samples : il prendrait ce firmware, puis refuserait les firmwares Model:Cycles par USB jusqu'à ce que son menu de démarrage réinstalle son OS par le MIDI IN.</span></li>
-          <li><span data-l="en">If the machine does not start properly after the update, either way, switch it off and on again. If it still hangs, hold <b>FUNC</b> while switching it on, then press <b>TRIG 2</b> (EMPTY RESET): it clears the active project, hence the backup.</span><span data-l="fr">Si la machine démarre mal après la mise à jour, dans un sens ou dans l'autre, éteignez-la et rallumez-la. Si elle bloque encore, maintenez <b>FUNC</b> à l'allumage puis appuyez sur <b>TRIG 2</b> (EMPTY RESET) : il vide le projet actif, d'où la sauvegarde.</span></li>
-          <li><span data-l="en">Under the Cycles OS, the machine refuses Model:Cycles firmwares (official or with mods), even when Elektron Transfer offers one: nothing is written. Leave through “back to its OS”. To add mods, use the Mods tab with <b>Model:Samples, already on the Cycles OS</b> (see <a href="#mods-on-samples">Mods on a Model:Samples</a>).</span><span data-l="fr">Sous l'OS Cycles, la machine refuse les firmwares Model:Cycles (officiels ou avec mods), même quand Elektron Transfer en propose un : rien n'est écrit. Revenez par « retour à son OS ». Pour ajouter des mods, utilisez l'onglet Mods avec <b>Model:Samples, déjà sous l'OS Cycles</b> (voir <a href="#mods-on-samples">Des mods sur un Model:Samples</a>).</span></li>
-          <li><span data-l="en">A Model:Cycles OS installed another way (another tool, or a Model:Cycles build with mods) refuses “back to its OS”: the machine says the update failed and nothing changes. Such an OS accepts the first choice of the tab, <b>Model:Cycles → Samples OS</b>, which brings the Model:Samples OS back.</span><span data-l="fr">Un OS Model:Cycles installé autrement (avec un autre outil, ou un build Model:Cycles avec mods) refuse « retour à son OS » : la machine dit que la mise à jour a échoué et rien ne change. Un tel OS accepte le premier choix de l'onglet, <b>Model:Cycles → OS Samples</b>, qui rend l'OS du Model:Samples.</span></li>
-          <li><span data-l="en">Safety net: the startup menu of the Model:Samples is never touched. If anything went wrong, it takes the official Model:Samples OS through the MIDI IN, as in <a href="#recovery">Recovery</a>.</span><span data-l="fr">Filet de sécurité : le menu de démarrage du Model:Samples n'est jamais touché. En cas de problème, il accepte l'OS officiel du Model:Samples par le MIDI IN, comme dans <a href="#recovery">Secours</a>.</span></li>
-          <li><span data-l="en">Experimental: checked in the emulator on both OSes' own update checks and on the Model:Samples startup code that loads the new OS, not yet tried on a real Model:Samples.</span><span data-l="fr">Expérimental : vérifié en émulation sur les contrôles de mise à jour des deux OS et sur le code de démarrage du Model:Samples qui charge le nouvel OS, pas encore essayé sur un vrai Model:Samples.</span></li>
+          <li>Back up your samples and projects with Elektron Transfer first: both OSes use the same storage.</li>
+          <li>Only on a real Model:Samples. A Model:Cycles running the Samples OS answers as a Model:Samples too: it would take this firmware, then refuse Model:Cycles firmwares over USB until its startup menu reinstalls its OS through the MIDI IN.</li>
+          <li>If the machine does not start properly after the update, either way, switch it off and on again. If it still hangs, hold <b>FUNC</b> while switching it on, then press <b>TRIG 2</b> (EMPTY RESET): it clears the active project, hence the backup.</li>
+          <li>Under the Cycles OS, the machine refuses Model:Cycles firmwares (official or with mods), even when Elektron Transfer offers one: nothing is written. Leave through “back to its OS”. To add mods, use the Mods tab with <b>Model:Samples, already on the Cycles OS</b> (see <a href="#mods-on-samples">Mods on a Model:Samples</a>).</li>
+          <li>A Model:Cycles OS installed another way (another tool, or a Model:Cycles build with mods) refuses “back to its OS”: the machine says the update failed and nothing changes. Such an OS accepts the first choice of the tab, <b>Model:Cycles → Samples OS</b>, which brings the Model:Samples OS back.</li>
+          <li>Safety net: the startup menu of the Model:Samples is never touched. If anything went wrong, it takes the official Model:Samples OS through the MIDI IN, as in <a href="#recovery">Recovery</a>.</li>
+          <li>Experimental: checked in the emulator on both OSes' own update checks and on the Model:Samples startup code that loads the new OS, not yet tried on a real Model:Samples.</li>
         </ul>
       </section>
 
       <section id="stock">
-        <h2><span class="n">11</span><span data-l="en">Back to stock</span><span data-l="fr">Revenir à l'origine</span></h2>
-        <p><span data-l="en">The <b>Official firmware</b> tab of the flasher sends your OS file unchanged, over USB, like a normal update. It is also a good rehearsal before a first mod: it checks the cable and the setup without changing anything.</span><span data-l="fr">L'onglet <b>Firmware officiel</b> du flasher renvoie votre fichier d'OS sans le modifier, par USB, comme une mise à jour normale. C'est aussi une bonne répétition avant un premier mod : elle vérifie le câble et l'installation sans rien changer.</span></p>
-        <p><span data-l="en">With the SAMPLE machine, first set your SAMPLE tracks back to an original machine (Kick to Chord): the official OS doesn't have SAMPLE, and a project that still names it can freeze its MACHINES page.</span><span data-l="fr">Avec la machine SAMPLE, remettez d'abord vos pistes SAMPLE sur une machine d'origine (de Kick à Chord) : l'OS officiel n'a pas SAMPLE, et un projet qui la nomme encore peut geler sa page MACHINES.</span></p>
+        <h2><span class="n">11</span>Back to stock</h2>
+        <p><b>Back to the official firmware</b>, under the cards of the <a href="../flasher/">flasher</a>, sends your OS file unchanged, over USB, like a normal update. It is also a good rehearsal before a first mod: it checks the cable and the setup without changing anything.</p>
+        <p>With the SAMPLE machine, first set your SAMPLE tracks back to an original machine (Kick to Chord): the official OS doesn't have SAMPLE, and a project that still names it can freeze its MACHINES page.</p>
       </section>
 
       <section id="recovery">
-        <h2><span class="n">12</span><span data-l="en">Recovery</span><span data-l="fr">Secours</span></h2>
-        <p class="lede"><span data-l="en">If the Model:Cycles no longer starts, its startup menu can always reinstall the OS: it lives in an area that updates never write.</span><span data-l="fr">Si le Model:Cycles ne démarre plus, son menu de démarrage peut toujours réinstaller l'OS : il vit dans une zone que les mises à jour n'écrivent jamais.</span></p>
+        <h2><span class="n">12</span>Recovery</h2>
+        <p class="lede">If the Model:Cycles no longer starts, its startup menu can always reinstall the OS: it lives in an area that updates never write.</p>
         <figure class="fig">
           <div data-device data-scenes="func @logo | func,mainvol | s4 @READY TO/>RECEIVE" data-ms="1300"></div>
         </figure>
         <ol>
-          <li><span data-l="en">With the Model:Cycles off, hold <b>FUNC</b> and turn it on (press and hold <b>MAIN VOLUME</b>).</span><span data-l="fr">Model:Cycles éteint, maintenez <b>FUNC</b> et allumez-le (appui long sur <b>MAIN VOLUME</b>).</span></li>
-          <li><span data-l="en">Press <b>TRIG 4</b> (OS UPGRADE): the screen shows <b>READY TO RECEIVE</b>.</span><span data-l="fr">Appuyez sur <b>TRIG 4</b> (OS UPGRADE) : l'écran affiche <b>READY TO RECEIVE</b>.</span></li>
-          <li><span data-l="en">Send the official OS file through a USB-MIDI interface connected to the MIDI IN.</span><span data-l="fr">Envoyez le fichier d'OS officiel par une interface USB-MIDI reliée au MIDI IN.</span></li>
+          <li>With the Model:Cycles off, hold <b>FUNC</b> and turn it on (press and hold <b>MAIN VOLUME</b>).</li>
+          <li>Press <b>TRIG 4</b> (OS UPGRADE): the screen shows <b>READY TO RECEIVE</b>.</li>
+          <li>Send the official OS file through a USB-MIDI interface connected to the MIDI IN.</li>
         </ol>
-        <p><span data-l="en">The startup menu doesn't listen to the USB port, only to the MIDI IN (3.5 mm jack, or DIN through the adapter supplied with the Model:Cycles). The full procedure is on <a href="https://github.com/durchgemacht/model27/blob/main/FLASH.md" target="_blank" rel="noopener">GitHub</a>.</span><span data-l="fr">Le menu de démarrage n'écoute pas le port USB, seulement le MIDI IN (jack 3,5 mm, ou DIN avec l'adaptateur fourni avec le Model:Cycles). La marche à suivre complète est sur <a href="https://github.com/durchgemacht/model27/blob/main/FLASH.md" target="_blank" rel="noopener">GitHub</a>.</span></p>
+        <p>The startup menu doesn't listen to the USB port, only to the MIDI IN (3.5 mm jack, or DIN through the adapter supplied with the Model:Cycles). The full procedure is on <a href="https://github.com/durchgemacht/model27/blob/main/FLASH.md" target="_blank" rel="noopener">GitHub</a>.</p>
       </section>
 
       <section id="trouble">
-        <h2><span class="n">13</span><span data-l="en">Troubleshooting</span><span data-l="fr">Dépannage</span></h2>
+        <h2><span class="n">13</span>Troubleshooting</h2>
         <div class="faq">
           <details>
-            <summary><span data-l="en">Nothing happens on the Model:Cycles screen</span><span data-l="fr">Rien ne se passe sur l'écran du Model:Cycles</span></summary>
-            <p><span data-l="en">Fast method: step 3 must say that the Model:Cycles was found. Classic method: check that CONFIG › UPGRADE is open and waiting. Either way, pick the port named “Model:Cycles” and close Elektron Transfer, Overbridge and your music software (on Windows they lock the port), then try again.</span><span data-l="fr">Méthode rapide : l'étape 3 doit indiquer que le Model:Cycles a été trouvé. Méthode classique : vérifiez que CONFIG › UPGRADE est ouvert et en attente. Dans les deux cas, choisissez le port nommé « Model:Cycles » et fermez Elektron Transfer, Overbridge et votre logiciel de musique (sous Windows, ils bloquent le port), puis réessayez.</span></p>
+            <summary>Nothing happens on the Model:Cycles screen</summary>
+            <p>Step 3 must say that the Model:Cycles was found. Pick the port named “Model:Cycles” and close Elektron Transfer, Overbridge and your music software (on Windows they lock the port), then try again.</p>
           </details>
           <details>
-            <summary><span data-l="en">The fast method doesn't find the Model:Cycles, or stops</span><span data-l="fr">La méthode rapide ne trouve pas le Model:Cycles, ou s'arrête</span></summary>
-            <p><span data-l="en">Turn the Model:Cycles on normally (not in CONFIG › UPGRADE), close Elektron Transfer and click Refresh. If it still fails, choose Classic in step 3: slower, but it needs no answer from the machine.</span><span data-l="fr">Allumez le Model:Cycles normalement (pas dans CONFIG › UPGRADE), fermez Elektron Transfer et cliquez sur Rafraîchir. Si ça échoue encore, choisissez Classique à l'étape 3 : plus lent, mais sans besoin de réponse de la machine.</span></p>
+            <summary>The fast method doesn't find the Model:Cycles, or stops</summary>
+            <p>Turn the Model:Cycles on normally (not in CONFIG › UPGRADE), close Elektron Transfer and click Refresh. If it still fails, download the .syx in step 4 and drop it onto Elektron Transfer's window.</p>
           </details>
           <details>
-            <summary><span data-l="en">The transfer stops, or the Model:Cycles shows an error</span><span data-l="fr">Le transfert s'arrête, ou le Model:Cycles affiche une erreur</span></summary>
-            <p><span data-l="en">Turn it off and on and flash again. With the classic method, open CONFIG › UPGRADE again and first set Advanced › Send speed margin to 2.0 in the flasher.</span><span data-l="fr">Éteignez-le puis rallumez-le et relancez. Avec la méthode classique, rouvrez CONFIG › UPGRADE et réglez d'abord Options avancées › Marge de vitesse sur 2.0 dans le flasher.</span></p>
+            <summary>The transfer stops, or the Model:Cycles shows an error</summary>
+            <p>Turn it off and on and flash again. If it stops again, download the .syx in step 4 and install it with Elektron Transfer.</p>
           </details>
           <details>
-            <summary><span data-l="en">No MIDI port in the list</span><span data-l="fr">Aucun port MIDI dans la liste</span></summary>
-            <p><span data-l="en">Use a USB cable that carries data, turn the Model:Cycles on, then click Refresh. Some systems only show a new device after the browser is restarted.</span><span data-l="fr">Utilisez un câble USB qui transporte les données, allumez le Model:Cycles, puis cliquez sur Rafraîchir. Certains systèmes n'affichent un nouvel appareil qu'après un redémarrage du navigateur.</span></p>
+            <summary>No MIDI port in the list</summary>
+            <p>Use a USB cable that carries data, turn the Model:Cycles on, then click Refresh. Some systems only show a new device after the browser is restarted.</p>
           </details>
           <details>
-            <summary><span data-l="en">MACHINES freezes on a track</span><span data-l="fr">MACHINES gèle sur une piste</span></summary>
-            <p><span data-l="en">The track uses an added machine that this firmware doesn't have. Flash back the previous choice, set the track to an original machine, then flash the one you want.</span><span data-l="fr">La piste utilise une machine ajoutée que ce firmware n'a pas. Reflashez le choix précédent, remettez la piste sur une machine d'origine, puis flashez celui que vous voulez.</span></p>
+            <summary>MACHINES freezes on a track</summary>
+            <p>The track uses an added machine that this firmware doesn't have. Flash back the previous choice, set the track to an original machine, then flash the one you want.</p>
           </details>
           <details>
-            <summary><span data-l="en">The update over USB is refused, or the Model:Cycles doesn't start</span><span data-l="fr">La mise à jour par USB est refusée, ou le Model:Cycles ne démarre plus</span></summary>
-            <p><span data-l="en">Go through the startup menu and the MIDI IN: see <a href="#recovery">Recovery</a>.</span><span data-l="fr">Passez par le menu de démarrage et le MIDI IN : voir <a href="#recovery">Secours</a>.</span></p>
+            <summary>The update over USB is refused, or the Model:Cycles doesn't start</summary>
+            <p>Go through the startup menu and the MIDI IN: see <a href="#recovery">Recovery</a>.</p>
           </details>
         </div>
 
-        <h3><span data-l="en">Credits</span><span data-l="fr">Crédits</span></h3>
+        <h3>Credits</h3>
         <ul class="credits">
-          <li><a href="https://github.com/18nelli18/Modded-Cycles" target="_blank" rel="noopener">18nelli18/Modded-Cycles</a>, <span data-l="en">everything model27 starts from: the tools, the build, the flasher, the notes and the mods (MIT license)</span><span data-l="fr">tout ce dont model27 est parti : les outils, le build, le flasher, les notes et les mods (licence MIT)</span></li>
-          <li><a href="https://github.com/scottmetoyer/ms-multi-output" target="_blank" rel="noopener">scottmetoyer/ms-multi-output</a>, <span data-l="en">the 6-channel USB audio mod</span><span data-l="fr">le mod audio USB 6 canaux</span></li>
-          <li><a href="https://github.com/TinyGregAudio/Model-TG" target="_blank" rel="noopener">TinyGregAudio/Model-TG</a>, <span data-l="en">the Sampler machine, resampling, retrig and master effects, slide trigs, and a short piece of code reused by Sample preview (MIT license)</span><span data-l="fr">la machine Sampler, le rééchantillonnage, le retrig et les effets master, les slide trigs, et un court passage de code repris par l'écoute des samples (licence MIT)</span></li>
-          <li><a href="https://github.com/pichenettes/eurorack" target="_blank" rel="noopener">pichenettes/eurorack</a>, <span data-l="en">Émilie Gillet's Braids code: the synthesis models of the MACRO machine (MIT license)</span><span data-l="fr">le code de Braids d'Émilie Gillet : les modèles de synthèse de la machine MACRO (licence MIT)</span></li>
-          <li><a href="https://github.com/drumkilla/elektron-model-tweaks" target="_blank" rel="noopener">drumkilla/elektron-model-tweaks</a>, <span data-l="en">latching mute, trig preview, scrolling names, and the firmware toolkit the flasher is ported from</span><span data-l="fr">mute verrouillé, écoute d'un pas, noms qui défilent, et la boîte à outils firmware dont le flasher est un portage</span></li>
-          <li><a href="https://github.com/mischa85/elektron-firmware-tool" target="_blank" rel="noopener">mischa85/elektron-firmware-tool</a>, <span data-l="en">the Elektron firmware container and its signature</span><span data-l="fr">le conteneur firmware Elektron et sa signature</span></li>
-          <li><a href="https://github.com/dagargo/elektroid" target="_blank" rel="noopener">dagargo/elektroid</a>, <span data-l="en">the Elektron Transfer update protocol behind the fast USB sending (GPL-3.0 license)</span><span data-l="fr">le protocole de mise à jour d'Elektron Transfer derrière l'envoi USB rapide (licence GPL-3.0)</span></li>
-          <li><a href="https://github.com/mxldyn/octamax" target="_blank" rel="noopener">mxldyn/octamax</a>, <span data-l="en">the reverse-engineering method</span><span data-l="fr">la méthode de rétro-ingénierie</span></li>
+          <li><a href="https://github.com/18nelli18/Modded-Cycles" target="_blank" rel="noopener">18nelli18/Modded-Cycles</a>, everything model27 starts from: the tools, the build, the flasher, the notes and the mods (MIT license)</li>
+          <li><a href="https://github.com/scottmetoyer/ms-multi-output" target="_blank" rel="noopener">scottmetoyer/ms-multi-output</a>, the 6-channel USB audio mod</li>
+          <li><a href="https://github.com/TinyGregAudio/Model-TG" target="_blank" rel="noopener">TinyGregAudio/Model-TG</a>, the Sampler machine, resampling, retrig and master effects, slide trigs, and a short piece of code reused by Sample preview (MIT license)</li>
+          <li><a href="https://github.com/pichenettes/eurorack" target="_blank" rel="noopener">pichenettes/eurorack</a>, Émilie Gillet's Braids code: the synthesis models of the MACRO machine (MIT license)</li>
+          <li><a href="https://github.com/drumkilla/elektron-model-tweaks" target="_blank" rel="noopener">drumkilla/elektron-model-tweaks</a>, latching mute, trig preview, scrolling names, and the firmware toolkit the flasher is ported from</li>
+          <li><a href="https://github.com/mischa85/elektron-firmware-tool" target="_blank" rel="noopener">mischa85/elektron-firmware-tool</a>, the Elektron firmware container and its signature</li>
+          <li><a href="https://github.com/dagargo/elektroid" target="_blank" rel="noopener">dagargo/elektroid</a>, the Elektron Transfer update protocol behind the fast USB sending (GPL-3.0 license)</li>
+          <li><a href="https://github.com/mxldyn/octamax" target="_blank" rel="noopener">mxldyn/octamax</a>, the reverse-engineering method</li>
         </ul>
-        <p><span data-l="en">The mods of Modded-Cycles 1.55 that model27 keeps buildable from the command line, and their authors:</span><span data-l="fr">Les mods de Modded-Cycles 1.55 que model27 garde constructibles en ligne de commande, et leurs auteurs :</span></p>
+        <p>The mods of Modded-Cycles 1.55 that model27 keeps buildable from the command line, and their authors:</p>
         <ul class="credits">
-          <li><a href="https://github.com/18nelli18/Modded-Cycles" target="_blank" rel="noopener">18nelli18</a>, <span data-l="en">the Syntakt engines, the MACRO machine (Braids by Émilie Gillet), the ACID machine (after Open303 by Robin Schmidt), the arpeggiator, tempo up to 546 BPM, the startup animation, the multi-line browser (from an idea and a script by a community member), the per-track filter, easier trig removal, the Samples OS and the Cycles OS for a Model:Samples</span><span data-l="fr">les moteurs du Syntakt, la machine MACRO (Braids d'Émilie Gillet), la machine ACID (d'après Open303 de Robin Schmidt), l'arpégiateur, le tempo jusqu'à 546 BPM, l'animation de démarrage, le navigateur sur plusieurs lignes (d'après une idée et un script d'un membre de la communauté), le filtre par piste, l'effacement plus facile des trigs, l'OS Samples et l'OS Cycles sur un Model:Samples</span></li>
-          <li><a href="https://github.com/TinyGregAudio/Model-TG" target="_blank" rel="noopener">TinyGregAudio</a>, <span data-l="en">Model-TG and, through it, the sample preview</span><span data-l="fr">Model-TG et, par lui, l'écoute des samples</span></li>
-          <li><a href="https://github.com/drumkilla/elektron-model-tweaks" target="_blank" rel="noopener">drumkilla</a>, <span data-l="en">latching mute, trig preview and scrolling names</span><span data-l="fr">le mute verrouillé, l'écoute d'un pas et les noms qui défilent</span></li>
-          <li><a href="https://github.com/AveyCole/Modded-Cycles" target="_blank" rel="noopener">AveyCole</a>, <span data-l="en">MIDI OUT while in THRU and the live MIDI OUT + THRU toggle</span><span data-l="fr">MIDI OUT pendant THRU et la bascule MIDI OUT + THRU en direct</span></li>
-          <li><a href="https://github.com/byNicoHeuser" target="_blank" rel="noopener">Nico Heuser</a>, <span data-l="en">Chord Keys</span><span data-l="fr">Chord Keys</span></li>
-          <li>DavidCaruso, <span data-l="en">the idea and first version of LFO 2, 3, 4 (Model-TG-VA-DR-v1), rewritten for Modded-Cycles</span><span data-l="fr">l'idée et la première version des LFO 2, 3, 4 (Model-TG-VA-DR-v1), réécrits pour Modded-Cycles</span></li>
-          <li>djd_oz, <span data-l="en">volume and pan as numbers, and dimmed trigless trigs</span><span data-l="fr">le volume et le pan en chiffres, et les trigless trigs atténués</span></li>
-          <li>RDS (AIM) <span data-l="en">and</span><span data-l="fr">et</span> DaftMaple, <span data-l="en">the original Model:Samples flasher and its integration into Modded-Cycles</span><span data-l="fr">le flasher d'origine pour Model:Samples et son intégration dans Modded-Cycles</span></li>
-          <li><a href="https://github.com/durchgemacht/cycles-control-all-config" target="_blank" rel="noopener">durchgemacht</a>, <span data-l="en">Control All, your choice of tracks</span><span data-l="fr">Control All : choix des pistes</span></li>
+          <li><a href="https://github.com/18nelli18/Modded-Cycles" target="_blank" rel="noopener">18nelli18</a>, the Syntakt engines, the MACRO machine (Braids by Émilie Gillet), the ACID machine (after Open303 by Robin Schmidt), the arpeggiator, tempo up to 546 BPM, the startup animation, the multi-line browser (from an idea and a script by a community member), the per-track filter, easier trig removal, the Samples OS and the Cycles OS for a Model:Samples</li>
+          <li><a href="https://github.com/TinyGregAudio/Model-TG" target="_blank" rel="noopener">TinyGregAudio</a>, Model-TG and, through it, the sample preview</li>
+          <li><a href="https://github.com/drumkilla/elektron-model-tweaks" target="_blank" rel="noopener">drumkilla</a>, latching mute, trig preview and scrolling names</li>
+          <li><a href="https://github.com/AveyCole/Modded-Cycles" target="_blank" rel="noopener">AveyCole</a>, MIDI OUT while in THRU and the live MIDI OUT + THRU toggle</li>
+          <li><a href="https://github.com/byNicoHeuser" target="_blank" rel="noopener">Nico Heuser</a>, Chord Keys</li>
+          <li>DavidCaruso, the idea and first version of LFO 2, 3, 4 (Model-TG-VA-DR-v1), rewritten for Modded-Cycles</li>
+          <li>djd_oz, volume and pan as numbers, and dimmed trigless trigs</li>
+          <li>RDS (AIM) and DaftMaple, the original Model:Samples flasher and its integration into Modded-Cycles</li>
+          <li><a href="https://github.com/durchgemacht/cycles-control-all-config" target="_blank" rel="noopener">durchgemacht</a>, Control All, your choice of tracks</li>
         </ul>
-        <p><span data-l="en">model27 is built on Modded-Cycles, released under the <a href="https://github.com/18nelli18/Modded-Cycles/blob/main/LICENSE" target="_blank" rel="noopener">MIT license</a>; model27's changes are under the same license. Third-party code keeps its own license and Elektron's firmware is not covered: see the <a href="https://github.com/durchgemacht/model27/blob/main/THIRD-PARTY-NOTICES.md" target="_blank" rel="noopener">third-party notices</a>.</span><span data-l="fr">model27 est construit sur Modded-Cycles, publié sous <a href="https://github.com/18nelli18/Modded-Cycles/blob/main/LICENSE" target="_blank" rel="noopener">licence MIT</a> ; les changements de model27 sont sous la même licence. Le code tiers garde sa propre licence et le firmware d'Elektron n'est pas couvert : voir les <a href="https://github.com/durchgemacht/model27/blob/main/THIRD-PARTY-NOTICES.md" target="_blank" rel="noopener">mentions tierces</a>.</span></p>
+        <p>model27 is built on Modded-Cycles, released under the <a href="https://github.com/18nelli18/Modded-Cycles/blob/main/LICENSE" target="_blank" rel="noopener">MIT license</a>; model27's changes are under the same license. Third-party code keeps its own license and Elektron's firmware is not covered: see the <a href="https://github.com/durchgemacht/model27/blob/main/THIRD-PARTY-NOTICES.md" target="_blank" rel="noopener">third-party notices</a>.</p>
       </section>
     </article>
   </div>
@@ -350,15 +341,14 @@
 <footer class="foot">
   <div class="wrap">
     <p>
-      <span data-l="en">Independent project, not affiliated with Elektron, nor with Modded-Cycles' maintainers. Flashing a modified firmware is at your own risk. Questions and feedback: the project's GitHub.</span>
-      <span data-l="fr">Projet indépendant, non affilié à Elektron ni aux mainteneurs de Modded-Cycles. Flasher un firmware modifié se fait à vos risques. Questions et retours : le GitHub du projet.</span>
-    </p>
+      Independent project, not affiliated with Elektron, nor with Modded-Cycles' maintainers. Flashing a modified firmware is at your own risk. Questions and feedback: the project's GitHub.
+      </p>
     <nav aria-label="Footer"><a href="https://github.com/durchgemacht/model27" target="_blank" rel="noopener">GitHub</a><a href="https://github.com/18nelli18/Modded-Cycles" target="_blank" rel="noopener">Modded-Cycles</a></nav>
   </div>
 </footer>
 
-<script src="../assets/release.js?v=2026-10-30-05"></script>
-<script src="../assets/cycles.js?v=2026-10-30-05"></script>
-<script src="../assets/site.js?v=2026-10-30-05"></script>
+<script src="../assets/release.js?v=2026-10-31-10"></script>
+<script src="../assets/cycles.js?v=2026-10-31-10"></script>
+<script src="../assets/site.js?v=2026-10-31-10"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@
 2026-10-26: « ziel ist, das man effekte wie machines auswählen kann und auf dem device auswählen kann, welcher aktiv
 ist » — effects are ticked in the flasher like machines, and the device chooses which one runs.
 
-The occasion is [PPPCCC's Model:Cycles 1.13 Mods](https://github.com/gialloinfuso/PPPCCC-Model-Cycles-1.13-Mods)
+The occasion is [PPPCCC's Model:Cycles 1.13 Mods](https://github.com/gialloinfuso/PPPCCC-M-S-Mods)
 (MIT, v1.0.0): Chorus I/II, Phaser and RAZR on the reverb slot, Digital, VIBDEL and CHODEL on the delay slot, chosen
 with TRACK + Reverb Size / Delay Time. They are a first draft and an orientation, not the shape of this design (§6).
 
@@ -1170,8 +1170,8 @@ The maintainer, 2026-10-27: « Ja, fang mit dem Web-Flasher für Effekte an. » 
 - **The card's build alone**: `39-digidelay.json` by `gen_digidelay.py`, with `LICENSE-PPPCCC`. The tweaks whose
   conflicts are computed against the folder gained `digidelay` and nothing else (`27-sampler`, `28-refmachine`,
   `29-refmachine2`, `34-refchord`, `36-chordtables`); `REGISTRY.md` regenerated.
-- **The card**: `FEATURES` (`cat` sound, experimental, credit "based on PPPCCC-Model-Cycles-1.13-Mods by
-  gialloinfuso", `license` LICENSE-PPPCCC, `package` digidelay), `OFFERED`, `fxslot` among the page's parts;
+- **The card**: `FEATURES` (`cat` sound, experimental, credit "based on PPPCCC",
+  linked to gialloinfuso/PPPCCC-M-S-Mods, `license` LICENSE-PPPCCC, `package` digidelay), `OFFERED`, `fxslot` among the page's parts;
   `tweaks.js` and `docs/flasher/LICENSE-PPPCCC.txt` generated. The page composes every ticked package card into one
   tweak, machines and effects alike (`sampler+digidelay`).
 - **`app.js`**: the card's texts (en, fr), its guide anchor, a line in the credits, the composer's log (the effect's

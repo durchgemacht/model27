@@ -271,7 +271,7 @@ window.MC_TWEAKS = {
    "credit": {
     "kind": "based",
     "who": "gialloinfuso",
-    "repo": "gialloinfuso/PPPCCC-Model-Cycles-1.13-Mods"
+    "repo": "gialloinfuso/PPPCCC-M-S-Mods"
    },
    "cat": "sound",
    "package": "digidelay",
@@ -282,7 +282,11 @@ window.MC_TWEAKS = {
    "label": "POTS (effect)",
    "desc": "A delay whose repeats go down an old telephone line: each pass darker and narrower, a little out of tune, fading and now and then dropping out, with a coarse grain on the tail. Hold TRACK and turn Delay Time to switch the pattern's delay between the stock Delay, Digital and POTS; Time and Fdbk keep their knobs.",
    "status": "tested",
-   "credit": null,
+   "credit": {
+    "kind": "by",
+    "who": "durchgemacht",
+    "repo": "durchgemacht/model27"
+   },
    "cat": "sound",
    "package": "pots"
   },
@@ -291,7 +295,11 @@ window.MC_TWEAKS = {
    "label": "Trig conditions, A:B before the percentages",
    "desc": "A trig held + CHANCE goes FILL ... !1st, then 1:2 ... 8:8, then 1% ... 99%, and the five dots under the value follow that order. A trig keeps the same condition as on the stock OS.",
    "status": "tested",
-   "credit": null,
+   "credit": {
+    "kind": "by",
+    "who": "durchgemacht",
+    "repo": "durchgemacht/model27"
+   },
    "cat": "seq",
    "variants": [
     {
