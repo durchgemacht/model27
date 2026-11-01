@@ -95,6 +95,7 @@ FX_PEAK_WARN = BLOCK_INSTR // 2              # the block of a switch, once: a wa
 # The filter slot (the track filters, notes/72): a package that names it in uses is a filter, run after
 # Volume + Dist on every track whose sound chose it (tools/machines/fltslot/); a build holds at most the part's "most".
 FILTER_POINT = "track.filter"
+FILTER_MAX = 32512                           # a value's top word (fltslot's values.max): 127 in 8.8
 REGISTRAR = MACHINES / "registrar" / "registrar.json"
 LINK = """SECTIONS
 {{
@@ -161,6 +162,8 @@ def load_manifest(mid):
             fmt = prm.get("format")
             if fmt not in ("int", "centre", "cutoff") and fmt not in roots:
                 sys.exit(f"!! {mid}: params[{k}].format: 'int', 'centre', 'cutoff' or a symbol in build.roots")
+            if "start" in prm and not (isinstance(prm["start"], int) and 0 <= prm["start"] <= FILTER_MAX):
+                sys.exit(f"!! {mid}: params[{k}].start: the word the value starts at, 0 to {FILTER_MAX} (notes/73)")
         for what, text, most in texts:
             if not isinstance(text, str) or not 0 < len(text) <= most or not all(" " <= c <= "~" for c in text):
                 sys.exit(f"!! {mid}: {what}: printable ASCII, 1 to {most} characters: {text!r}")
@@ -1164,6 +1167,11 @@ def fl_layer(img, part, filters, syms_of, at, code_end, desc_used, layer_syms, k
         for m in by_id]
     struct.pack_into(">IIII", block, d["count"], len(rows), n, layer_syms["sc_knob"], keys_next)
     struct.pack_into(">4H", block, d["neutral"], *vals["defaults"])        # the record's XOR: each value's neutral
+    for i, (_f, _p, _r, _t, m) in enumerate(rows):  # each entry's start words (fltslot 0.8): its own, else the neutral
+        prm = m["_filter"]["params"] if m else []
+        struct.pack_into(">4H", block, d["start"] + 8 * i,
+                         *(prm[p].get("start", vals["defaults"][p]) if p < len(prm) else vals["defaults"][p]
+                           for p in range(4)))
     struct.pack_into(">3I", block, d["rec_next"], *(layer_syms[r["next"]] for r in part["record"]))
     struct.pack_into(">II", block, d["desc"], g7.DESC, desc_used)
     block[d["diag"]] = 1 if diag else 0

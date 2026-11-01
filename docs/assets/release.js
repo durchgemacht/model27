@@ -7,6 +7,12 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.26", date: "2026-11-01", changes: [
+    { en: "The Filters section is now called Track FX: filters and effects that sit on a track, after Volume + Dist. Each sound chooses one of them with RETRIG + PITCH, whose popup now reads Track FX. A firmware can hold four" },
+    { en: "New card in Track FX, Crush: a lower sample rate and fewer bits on any track. RETRIG + SWEEP is Rate: off at 0, a hard hold to the right (bright, metallic), a softer one to the left. RETRIG + CONTOUR is Bits: off at 127, fewer bits to the left, a single bit at 0. Both work together and on every machine like any parameter: lock them on a trig, make them the LFO's destination, set them on all tracks with TRACK, or send CC 74 and 71" },
+    { en: "Each Track FX starts at its own values: switching to Crush gives Rate 0 and Bits 127, so it starts off; switching between two Track FX starts the new one at its start values, switching to OFF and back keeps them" },
+    { en: "Crush is checked bit for bit in an emulator and played on a Model:Cycles from the command line (2026-11-01); experimental here until flashed from this page. Samples sounds as before" },
+  ] },
   { version: "0.25", date: "2026-11-01", changes: [
     { en: "Samples is tested as this page builds it: flashed from this page and played on a Model:Cycles (2026-11-01). Its card now shows Tested" },
   ] },

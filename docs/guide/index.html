@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-11-01-04">
-<link rel="stylesheet" href="../assets/guide.css?v=2026-11-01-04">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-01-05">
+<link rel="stylesheet" href="../assets/guide.css?v=2026-11-01-05">
 <script>try{var t=localStorage.getItem("mc-theme")}catch(e){}if(t)document.documentElement.setAttribute("data-theme",t)</script>
 </head>
 <body data-page="guide">
@@ -42,6 +42,7 @@
         <li><a href="#digital-delay">Digital Delay</a></li>
         <li><a href="#pots">POTS</a></li>
         <li><a href="#samples-filter">Samples filter</a></li>
+        <li><a href="#crush">Crush</a></li>
         <li><a href="#trig-cond">Trig Condition Order</a></li>
         <li><a href="#preview">Trig Preview</a></li>
         <li><a href="#control-all">Control All Config</a></li>
@@ -69,7 +70,7 @@
       <section id="flash">
         <h2><span class="n">2</span>Flashing</h2>
         <ol>
-          <li>In the <a href="../flasher/">flasher</a>, pick the cards you want: machines, effects, filters and mods, and they combine. <b>Details</b> on a card gives its full description and a link to its page in this guide. Then press <b>Install</b> under the cards.</li>
+          <li>In the <a href="../flasher/">flasher</a>, pick the cards you want: machines, effects, Track FX and mods, and they combine. <b>Details</b> on a card gives its full description and a link to its page in this guide. Then press <b>Install</b> under the cards.</li>
           <li>Drop your OS file. The firmware is built and checked in the page.</li>
           <li>Close Elektron Transfer, connect the Model:Cycles over USB and turn it on normally: no menu to open. Allow MIDI in the browser: the page finds the Model:Cycles and shows its OS version.</li>
           <li>Flash: about 30 seconds. Then confirm the update on the Model:Cycles screen with <b>YES</b>. It writes the firmware and restarts by itself: don't turn it off before.</li>
@@ -152,9 +153,9 @@
       <section id="samples-filter">
         <h2><span class="n">6</span>Samples filter</h2>
         <p class="by">model27's own, SAMPLE's filter from Cycles One-Shot · MIT license</p>
-        <p class="lede">The Model:Samples' filter on any track, after Volume + Dist: one knob from lowpass through off to highpass, with resonance. Each sound chooses whether it has the filter.</p>
+        <p class="lede">The Model:Samples' filter on any track, after Volume + Dist: one knob from lowpass through off to highpass, with resonance. It is a Track FX: each sound chooses one, or none.</p>
         <ol>
-          <li>Hold <b>RETRIG</b> and turn <b>PITCH</b> to the right: after four detents the track's sound reads <b>SMP</b> instead of OFF. Four detents to the left switch it off again.</li>
+          <li>Hold <b>RETRIG</b> and turn <b>PITCH</b> to the right: after four detents the track's sound reads <b>SMP</b> instead of OFF (the popup is called Track FX). Four detents to the left switch it off again. With <a href="#crush">Crush</a> ticked too, four more detents to the right give <b>CRU</b>; coming back from Crush, Samples starts with Cutoff and Reso at 0.</li>
           <li>Hold <b>RETRIG</b> and turn <b>SWEEP</b> for <b>Filter Cutoff</b>: from -64 to -1 a lowpass (-64 is the most closed), at 0 off, from 1 to 63 a highpass, as on SAMPLE. <b>RETRIG</b> + <b>CONTOUR</b> is <b>Filter Reso</b>.</li>
           <li>Both are parameters like any other: hold a trig as well to lock them on that step, hold <b>LFO</b> as well to make them the LFO's destination (it reads CUTO or RESO), hold <b>TRACK</b> as well to set them on all six tracks, or send CC 74 (Cutoff) and CC 71 (Reso).</li>
           <li>Save the kit or the project: each sound keeps its filter and its settings.</li>
@@ -162,13 +163,31 @@
         <dl class="facts">
           <div><dt>Sound</dt><dd>the filter inside SAMPLE, measured on the Model:Samples: 2 poles and a resonant peak. It comes after Volume + Dist, so a hot, distorted track with a lot of resonance can clip its peaks. Moving the knob, a lock or the LFO across the middle doesn't click; in the middle the sound passes untouched.</dd></div>
           <div><dt>Processor</dt><dd>six tracks filtered at once use about a tenth of the processor's time. A silent track whose filter has rung out costs almost nothing.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE (its own filter stays on SWEEP and CONTOUR, the track filter comes on top), the effects and Control All Config. On a firmware without it, the official one too, a sound plays without the filter and keeps everything else.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE (its own filter stays on SWEEP and CONTOUR, the track filter comes on top), the effects, Crush and Control All Config. A sound has one Track FX at a time: Samples or Crush. On a firmware without it, the official one too, a sound plays without the filter and keeps everything else.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code, bit for bit against SAMPLE's filter. On a Model:Cycles (2026-11-01) from the command line: the filter's choice, Cutoff and Reso, locks, the LFO, Control All on six tracks, saving and loading, next to SAMPLE and the effects; then flashed from this page (release 0.24, the same day).</dd></div>
         </dl>
       </section>
 
+      <section id="crush">
+        <h2><span class="n">7</span>Crush</h2>
+        <p class="by">model27's own · MIT license</p>
+        <p class="lede">A lower sample rate and fewer bits on any track, after Volume + Dist: from a little grit down to a single bit. It is a Track FX: each sound chooses one, or none.</p>
+        <ol>
+          <li>Hold <b>RETRIG</b> and turn <b>PITCH</b> to the right: every four detents the track's sound steps to the next Track FX: OFF, then <b>SMP</b> if the <a href="#samples-filter">Samples filter</a> is ticked too, then <b>CRU</b>. To the left it steps back. Crush starts with Rate at 0 and Bits at 127, so nothing changes until you turn. Switching between two Track FX starts the new one at its start values; switching to OFF and back keeps them.</li>
+          <li>Hold <b>RETRIG</b> and turn <b>SWEEP</b> for <b>Crush Rate</b>: at 0 off. From 1 to 63 the sample rate drops with a hard hold, each sample held until the next: bright, metallic aliasing. From -1 to -64 it drops softer, the held samples joined by lines. At the ends about one sample in 60 is kept, around 800 Hz.</li>
+          <li>Hold <b>RETRIG</b> and turn <b>CONTOUR</b> for <b>Crush Bits</b>: at 127 off, then to the left fewer and fewer bits, from 8 down to a single one at 0; quiet sounds fall silent first. Rate and Bits work together.</li>
+          <li>Both are parameters like any other: hold a trig as well to lock them on that step, hold <b>LFO</b> as well to make them the LFO's destination (it reads RATE or BITS), hold <b>TRACK</b> as well to set them on all six tracks, or send CC 74 (Rate) and CC 71 (Bits).</li>
+          <li>Save the kit or the project: each sound keeps its Track FX and its settings.</li>
+        </ol>
+        <dl class="facts">
+          <div><dt>Sound</dt><dd>both knobs move without steps. Every note restarts the sample-rate clock. At Rate 0 and Bits 127 the sound passes untouched. Values glide in, as any parameter does on the Model:Cycles, so right after a switch you may hear them settle for a moment.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, the effects, the Samples filter and Control All Config. A sound has one Track FX at a time: Samples or Crush. On a firmware without Crush, the official one too, a sound plays without it and keeps everything else.</dd></div>
+          <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code, bit for bit against its own code built for a computer. Played on a Model:Cycles (2026-11-01) from the command line; not yet flashed from this page.</dd></div>
+        </dl>
+      </section>
+
       <section id="trig-cond">
-        <h2><span class="n">7</span>Trig Condition Order</h2>
+        <h2><span class="n">8</span>Trig Condition Order</h2>
         <p class="by">model27's own · MIT license</p>
         <p class="lede">The trig conditions in another order on the knob: the A:B conditions come right after the named ones, the percentages last. The conditions themselves stay the same.</p>
         <ol>
@@ -185,7 +204,7 @@
       </section>
 
       <section id="preview">
-        <h2><span class="n">8</span>Trig Preview</h2>
+        <h2><span class="n">9</span>Trig Preview</h2>
         <p class="by">By <a href="https://github.com/drumkilla/elektron-model-tweaks" target="_blank" rel="noopener">drumkilla</a> · MIT license</p>
         <p class="lede">Hear a single step without starting the sequencer: hold its trig and press PAGE.</p>
         <ol>
@@ -203,7 +222,7 @@
       </section>
 
       <section id="control-all">
-        <h2><span class="n">9</span>Control All Config</h2>
+        <h2><span class="n">10</span>Control All Config</h2>
         <p class="by">By <a href="https://github.com/durchgemacht/cycles-control-all-config" target="_blank" rel="noopener">durchgemacht</a></p>
         <p class="lede">Leave single tracks out of Control All: with TRACK held, a knob changes only the tracks you chose.</p>
         <ol>
@@ -222,7 +241,7 @@
       </section>
 
       <section id="mods-on-samples">
-        <h2><span class="n">10</span>Mods on a Model:Samples</h2>
+        <h2><span class="n">11</span>Mods on a Model:Samples</h2>
         <p class="lede">A Model:Samples can run the Model:Cycles OS with the same mods as a Model:Cycles. Whatever the machine, the flasher always installs the Model:Cycles OS. With the <a href="#sampler">SAMPLE</a> machine ticked, it can play the samples already on the +Drive (not yet tried on a Model:Samples).</p>
         <ol>
           <li>Back up your samples and projects with Elektron Transfer, then close Transfer.</li>
@@ -246,7 +265,7 @@
       </section>
 
       <section id="samples">
-        <h2><span class="n">11</span>Samples OS</h2>
+        <h2><span class="n">12</span>Samples OS</h2>
         <p class="lede">The Model:Cycles starts as a Model:Samples: you load and play your own samples, managed with Elektron Transfer.</p>
         <p>The <a href="../flasher/?samples">flasher, in its Samples OS tab</a>, puts the official Model:Samples OS inside your Model:Cycles firmware file:</p>
         <dl class="layers fig">
@@ -280,13 +299,13 @@
       </section>
 
       <section id="stock">
-        <h2><span class="n">12</span>Back to stock</h2>
+        <h2><span class="n">13</span>Back to stock</h2>
         <p><b>Back to the official firmware</b>, under the cards of the <a href="../flasher/">flasher</a>, sends your OS file unchanged, over USB, like a normal update. It is also a good rehearsal before a first mod: it checks the cable and the setup without changing anything.</p>
         <p>With the SAMPLE machine, first set your SAMPLE tracks back to an original machine (Kick to Chord): the official OS doesn't have SAMPLE, and a project that still names it can freeze its MACHINES page.</p>
       </section>
 
       <section id="recovery">
-        <h2><span class="n">13</span>Recovery</h2>
+        <h2><span class="n">14</span>Recovery</h2>
         <p class="lede">If the Model:Cycles no longer starts, its startup menu can always reinstall the OS: it lives in an area that updates never write.</p>
         <figure class="fig">
           <div data-device data-scenes="func @logo | func,mainvol | s4 @READY TO/>RECEIVE" data-ms="1300"></div>
@@ -300,7 +319,7 @@
       </section>
 
       <section id="trouble">
-        <h2><span class="n">14</span>Troubleshooting</h2>
+        <h2><span class="n">15</span>Troubleshooting</h2>
         <div class="faq">
           <details>
             <summary>Nothing happens on the Model:Cycles screen</summary>
@@ -366,8 +385,8 @@
   </div>
 </footer>
 
-<script src="../assets/release.js?v=2026-11-01-04"></script>
-<script src="../assets/cycles.js?v=2026-11-01-04"></script>
-<script src="../assets/site.js?v=2026-11-01-04"></script>
+<script src="../assets/release.js?v=2026-11-01-05"></script>
+<script src="../assets/cycles.js?v=2026-11-01-05"></script>
+<script src="../assets/site.js?v=2026-11-01-05"></script>
 </body>
 </html>

@@ -393,6 +393,22 @@ ALL_FEATURES = [
         "package": "smpfilter",
     },
     {
+        "id": "crush",
+        "cat": "sound",
+        "label": "Crush (Track FX)",
+        "desc": "A sample-rate and bit reduction on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a "
+                "sound Crush; RETRIG + SWEEP is Rate (off at 0, a hard hold to the right, a softer one to the left), "
+                "RETRIG + CONTOUR is Bits (off at 127, fewer to the left, one bit at 0), with p-locks, LFO and CC 74 / 71.",
+        # model27's own (notes/73): the Track FX's first effect, through the filter slot (fltslot 0.7); bit for bit
+        # the host build of the same source in emulation; on the Model:Cycles from the command line on 2026-11-01
+        # (0.1, notes/73 §10; 0.4 with fltslot 0.8, §14), not yet flashed from this page
+        "status": "experimental",
+        "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
+        # a Track FX composed in the page from its package (notes/73), with the machines, effects and Samples ticked:
+        # alone it gives 73-crush.json byte for byte, whose conflicts give its excludes
+        "package": "crush",
+    },
+    {
         "id": "trig-cond-order",
         "cat": "seq",
         "label": "Trig conditions, A:B before the percentages",
@@ -464,7 +480,8 @@ ALL_FEATURES = [
 # model27 offers a short list of cards. The other definitions above stay as they are, for the command-line build
 # (every tweak of tweaks/ is still built by tools/build.py) and so that merges from upstream apply cleanly; a card
 # comes back into the flasher by adding its id here, once it has been reviewed against the Cycles Mod Standard.
-OFFERED = ("sampler", "digidelay", "pots", "smpfilter", "control-all-config", "trig-cond-order", "trig-preview")
+OFFERED = ("sampler", "digidelay", "pots", "smpfilter", "crush", "control-all-config", "trig-cond-order",
+           "trig-preview")
 FEATURES = [f for f in ALL_FEATURES if f["id"] in OFFERED]
 _missing = set(OFFERED) - {f["id"] for f in FEATURES}
 if _missing:

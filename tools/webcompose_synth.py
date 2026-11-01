@@ -59,7 +59,11 @@ SELECTIONS = ((["sampler"], []), (["refmachine"], []), (["sampler", "refmachine"
               # behind fl_keys), and the full offered set
               (["smpfilter"], []), (["smpfilter", "refflt"], []), (["sampler", "smpfilter"], []),
               (["smpfilter", "sampler"], []), (["smpfilter", "digidelay"], []),
-              (["sampler", "digidelay", "pots", "smpfilter"], []))
+              (["sampler", "digidelay", "pots", "smpfilter"], []),
+              # notes/73: Crush alone, with Samples (two Track FX), three with an effect (more than fltslot 0.6's two),
+              # and the full offered set
+              (["crush"], []), (["smpfilter", "crush"], []), (["smpfilter", "crush", "refflt", "refdelay"], []),
+              (["sampler", "digidelay", "pots", "smpfilter", "crush"], []))
 PARTS = ("shortcuts", "dispatch", "fxslot", "fltslot")
 COMPARED = ("id", "order", "name", "version", "conflicts", "writes", "append", "symbols")
 

@@ -329,12 +329,38 @@ python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,smpfilter   # avec SAMPLE
 ```
-MAIN OS patché, `smpfilter` seul : `92f6955eaa5d286516a3309bf89a39ff6a63ab021b4a2ba4f2066b3414593d6a` ; avec SAMPLE
-(`sampler`, `smpfilter`) : `83801ea7aa81f7630d4885b98c98a6a7a580181442553f46e0d3aec96c334957` ; avec toutes les cartes
-de la page : `e6a60aa34d895db9e38084f08c2ff3058ce2dd4b4565a557a21ae592df01005a`, ceux que la page compose (`fltslot`
-0.6, Samples 0.3 : Cutoff de -64 à 63 comme SAMPLE, CUTO comme destination du LFO, note 72 §22). Avec `fltslot` 0.5 et
-Samples 0.2 (L64 … OFF … H63, FREQ), joués sur un Model:Cycles depuis la ligne de commande le 01/11/2026 (note 72
-§20) : seul `76b47553…`, avec toutes les cartes `449b7df8…`.
+MAIN OS patché, `smpfilter` seul : `854342c22acdf1950b9f505e837d2f8799dbbe33f69e9fe46f5df530f6be1f16` ; avec SAMPLE
+(`sampler`, `smpfilter`) : `9499b519180630186e1ea030eb724a946079289715737c677decf174bc253511`, ceux que la page compose
+(`fltslot` 0.8 : quatre par build, la ligne du type « Track FX », les valeurs de départ, note 73 §2, §11). Avec `fltslot` 0.6 et Samples 0.3
+(Cutoff de -64 à 63 comme SAMPLE, CUTO comme destination du LFO, note 72 §22), flashés depuis la page et joués sur un
+Model:Cycles le 01/11/2026 (note 72 §23) : seul `92f6955e…`, avec SAMPLE `83801ea7…`, avec toutes les cartes
+`e6a60aa3…`. Avec `fltslot` 0.5 et Samples 0.2 (L64 … OFF … H63, FREQ), joués sur un Model:Cycles depuis la ligne de
+commande le 01/11/2026 (note 72 §20) : seul `76b47553…`, avec toutes les cartes `449b7df8…`.
+
+### Crush (Track FX)
+
+`tweaks/model-cycles_OS1.13/73-crush.json` est produit par `tools/gen_crush.py`, qui écrit la table de l'horloge
+(`tools/machines/crush/crush_tab.h`), compile `tools/machines/crush/crush.c` et le compose seul avec `tools/compose.py` :
+le premier effet (id 2) des Track FX, la partie `fltslot` 0.7, qui prend des effets comme des filtres et quatre par
+build ([note 73](notes/73-track-fx-crush.md)). RETRIG + SWEEP est Rate (au centre rien, à droite un maintien dur, à
+gauche un maintien doux), RETRIG + CONTOUR est Bits (127 rien, puis de 8 bits à 1 bit en tournant à gauche ; un son
+qui passe à Crush part de 127, la
+valeur de départ de `fltslot` 0.8), les mêmes descripteurs 1 et 2 que Samples. La
+preuve est celle du filtre Samples, avec Crush au bit près contre le build hôte du même fichier et une sélection de
+quatre filtres dans un build :
+```sh
+python3 tools/gen_crush.py --cycles model-cycles_OS1.13.syx [--check]
+python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines crush
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush   # avec Samples
+```
+MAIN OS patché, `crush` seul : `a151818c93ad9f4624d6cf7659efb726eb4b8773c42ec86b88f5e03003f6ed5c` ; avec Samples
+(`smpfilter`, `crush`) : `cbf53b93621d6ebdec0986a3b4038f4dabb710b41240cf28be1987cefbb46527` ; avec toutes les cartes de
+la page : `388d20438a229e53af2176aaba758366a8f7ee3158b09001098c01ee83c1c2d7`, ceux que la page compose (Crush 0.4, Bits de
+8 bits à 1 bit, `fltslot` 0.8 ; avec Crush 0.3, Bits de 16 à 1 : `da5584a0…`, `167d2883…`, `2b2fae73…` ; avec Crush
+0.2, le même son que 0.3 : `365f496b…`, `01cf9060…`, `c089f700…`). Crush 0.4 joué sur un Model:Cycles depuis la ligne
+de commande le 01/11/2026 (note 73 §14). Avec Crush 0.1 (Bits à l'envers) et `fltslot` 0.7, joués sur un Model:Cycles depuis la ligne de
+commande le 01/11/2026 (note 73 §10) : seul `25aac3ea…`, avec Samples `c8cdc37c…`, avec toutes les cartes `67f0d95e…`.
 
 ### Trig Cond dans un autre ordre
 

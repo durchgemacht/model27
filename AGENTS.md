@@ -139,14 +139,18 @@ tools/machines/digidelay/     Digital Delay (notes/68 §18): PPPCCC's digital de
 tools/machines/pots/          POTS (notes/69): model27's own telephone-line delay, the delay slot's second effect (id 2), in
                               fixed point on the EMAC; tools/gen_pots.py writes its tables and builds it into
                               70-pots.json; tools/gen_hilbert.py its Hilbert pair; tools/emu/pots_host.py its host build
-tools/machines/fltslot/       the filter slot, a part (notes/72): every track runs, after Volume + Dist, the
-                              filter its sound chose (k 32's low byte); its values are descriptors 1-4 on k 28-31 (RETRIG +
-                              SWEEP / CONTOUR / COLOR / SHAPE), the type is RETRIG + PITCH; compose.py adds it, with the
-                              shortcut layer, to the builds whose packages are filters (two at most; never with a machine's
-                              knob value, rule R1); compose.py --diag-filters makes a measuring build of its load
+tools/machines/fltslot/       the filter slot, a part (notes/72; the Track FX since 0.7, notes/73): every track runs, after
+                              Volume + Dist, the filter or effect its sound chose (k 32's low byte); its values are
+                              descriptors 1-4 on k 28-31 (RETRIG + SWEEP / CONTOUR / COLOR / SHAPE), the type is RETRIG +
+                              PITCH; compose.py adds it, with the shortcut layer, to the builds whose packages are filters
+                              (four at most; never with a machine's knob value, rule R1); compose.py --diag-filters makes
+                              a measuring build of its load
 tools/machines/smpfilter/     Samples: SAMPLE's filter (Cycles One-Shot's sources, from tools/machines/sampler/src/) as
                               filter 1; tools/gen_smpfilter.py builds it into 72-smpfilter.json; refflt/: the slot's
                               reference filter, never offered; tools/emu/test_fltslot.py proves the slot and both
+tools/machines/crush/         Crush (notes/73): a sample-rate and bit reduction, the Track FX's first effect (id 2; the
+                              filter slot holds effects too since fltslot 0.7, four in a build); tools/gen_crush.py
+                              writes its clock's table and builds it into 73-crush.json; proven by test_fltslot.py
 tools/emu/                    Unicorn emulation of the OS: test_<mod>.py proofs, mcengine.py, emac.py, syntakt.py
 tools/gen_flasher_tweaks.py   FEATURES list -> docs/flasher/tweaks.js (generated); a machine card embeds its package and
                               the registrar's frame, composed in the page (notes/61)
@@ -178,7 +182,7 @@ CONTRIBUTING.md               terms for outside contributions, and how a machine
 
 Follow the shape of the last ones (tempo-max: commits `5997b4a`, `14fb9fa`, `6e592bc`; trig-hold, arp). In order:
 
-1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 72 is the last) with the
+1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 73 is the last) with the
    user's request and its source, the OS code involved (addresses, `[FAIT]`/`[HYP]`), the design, free space used and
    conflicts with other tweaks. Add a row to `notes/README.md`. See `notes/AGENTS.md`.
 2. **Write the generator** `tools/gen_<mod>.py` (and sources under `tools/machines/<mod>/` if it has code). It reads

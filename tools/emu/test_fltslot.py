@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Proof of the filter slot (the track filters, notes/72 §10 to §19) on the OS's own code, with REFF, the
-reference filter (tools/machines/refflt/), and Samples, the Model:Samples' filter (tools/machines/smpfilter/, id 1),
-through the builder's part tools/machines/fltslot/.
+"""Proof of the filter slot (the track filters, notes/72 §10 to §19; the Track FX since fltslot 0.7, notes/73) on the
+OS's own code, with REFF, the reference filter (tools/machines/refflt/), Samples, the Model:Samples' filter
+(tools/machines/smpfilter/, id 1), and Crush, a sample-rate and bit reduction (tools/machines/crush/, id 2), through
+the builder's part tools/machines/fltslot/.
 
 For each selection (by default: refflt; refflt,refflt2; sampler,refflt; refdelay,refflt; smpfilter; smpfilter,refflt;
-sampler,smpfilter; refflt2 is a copy of REFF with id 254 and names of its own, made for the test in a folder of
-packages of its own), on the official OS 1.13:
+sampler,smpfilter; crush; smpfilter,crush,refflt,refflt2, four in one build; refflt2 to refflt5 are copies of REFF
+with ids 254 to 251 and names of their own, made for the test in a folder of packages of its own), on the official
+OS 1.13:
   1. start-up: the bootstrap's own aPLib depacker reads the grown OS back; the boot hook copies the payload and clears
      the BSS;
   2. the sites: the audio block's call of Volume + Dist (0x40059852) -> jsr fl_post, the boot's call of the parameter
@@ -16,7 +18,8 @@ packages of its own), on the official OS 1.13:
      every other write as in the build without the filters; the data block: the table (entry 0 none, then the build's
      filters by id, with their process, reset, the type's name and the values' names and formatters), the build's
      values, the lookup, the gesture and the record wrappers behind the part's (the layer's sc_knob, sc_save2, sc_save1,
-     sc_load, the effect slots' fx_keys), the rows of descriptors 1 to n and 5, the neutral words, the state zero;
+     sc_load, the effect slots' fx_keys), the rows of descriptors 1 to n and 5, the neutral words, the state zero,
+     each entry's start words (fltslot 0.8: the filter's params[].start, else the neutral word);
   3. the audio: a stock engine and the build's engine side by side, block for block, on the OS's own code: the voice
      loop (0x400a7d4a) with six stock machines and trigs, then the audio function from 0x4005984a to 0x40059858 (move.l
      a2,(sp) ; pea 0x80001858 ; jsr Volume + Dist), with a2 the smoothed parameters and a3 a message whose +16 is the
@@ -24,10 +27,11 @@ packages of its own), on the official OS 1.13:
      (*0x800017ec[t], k 32 at +84), or none, and then the copy at 0x800015ae + 66 t + 64:
      - every sound with id 0, an id the build does not hold, or the machine's switches alone in k 32's high byte: the
        six tracks the stock OS's, bit for bit, and the EMAC as Volume + Dist left it;
-     - sounds choosing REFF, refflt2 or Samples: each track the model's, bit for bit: the stock output through the
-       filter its sound chose, with the track's k 28 and k 29 and its trig (REFF's arithmetic in Python; Samples' the
-       host build of SAMPLE's own sources, src/smp_filter.c's C model of the EMAC loops, as One-Shot's host tests
-       use it); the id read in the sound or, with none, in the copy;
+     - sounds choosing REFF, refflt2, Samples or Crush: each track the model's, bit for bit: the stock output
+       through the filter its sound chose, with the track's k 28 and k 29 and its trig (REFF's arithmetic in Python;
+       Samples' the host build of SAMPLE's own sources, src/smp_filter.c's C model of the EMAC loops, as One-Shot's
+       host tests use it; Crush's the host build of crush.c); the id read in the sound or, with none, in the copy; with
+       more than two filters in the build, the third and fourth on two tracks of the fourth scene;
        a change of filter (another id, a sound that chose another, none) faded across the block from the filter that
        stops (on a copy of the input) to the one that starts (after its reset), the one that stops reset after; a
        filter that comes back starting from its reset;
@@ -36,8 +40,9 @@ packages of its own), on the official OS 1.13:
      - hot tracks (Volume + Dist at 127, Reso at the top, Cutoff sweeping across the centre every block): the same;
      - what the part costs, in instructions per block (the part's code and the filters'): every track with none,
        every track with the first filter; each real filter's own cost per track and block (Samples: steady lowpass,
-       steady highpass, at the centre, gliding, the first block after its reset), written to build/filter-cost.json
-       and equal to what its manifest declares (cost.emulation);
+       steady highpass, at the centre, gliding, the first block after its reset; Crush: off, a hard hold with Bits, a
+       soft one with Bits, Bits alone, gliding, silent, the first block), written to build/filter-cost.json and equal
+       to what its manifest declares (cost.emulation);
   4. the boot (T2): the OS's own builder of the parameter tables (0x4005a274), stock and through fl_boot: descriptors
      1 to n of the table the OS uses (and of the stock one) the build's rows (group 7, k 28.., 0..127, the defaults,
      CC 74 / 71, NRPN 1:20 / 1:21, the first filter's names), descriptor 5 the type's (machine -1, k 0, no CC);
@@ -62,7 +67,9 @@ packages of its own), on the official OS 1.13:
      the handler's end with 0 and its registers, four detents for a step, the count again after a change of direction
      or 0.4 s, the steps through none and the build's filters in the selected track's sound, stopping at the ends, an
      id the build lacks counting as none, the switches in k 32's high byte kept; on another descriptor, the effect
-     slots' gesture when the build has it (PATTERN + Delay Time taken there), else isKeyHeld(2) as asked;
+     slots' gesture when the build has it (PATTERN + Delay Time taken there), else isKeyHeld(2) as asked; the start
+     words (fltslot 0.8): a step from none gives the sound those that differ from the neutral ones, a step from a
+     filter all of them, a step to none none, in the sound and in the targets of the tracks whose note plays it;
   8. the pattern's p-locks (T2, notes/47 §4.3): a pattern saved (0x4005b95c) and loaded (0x4005b766) brings back the
      p-locks of k 23 to 31 on their parameter, an update of one p-lock (0x4005ba90) too, a file without them the
      stock OS's byte for byte;
@@ -79,7 +86,7 @@ packages of its own), on the official OS 1.13:
      build's record with no destination and slot 18 on k 0 only; a SAMPLE sound keeps its key and switches;
  10. the composer's refusals: a filter with a machine or an effect in one package, an id out of 1..255, its process
      not first in build.roots, its reset not in them, a patch point, another use, a name, type name or value name too
-     long, no values or five, an unknown formatter, two filters in one package; three filters in one build, two
+     long, no values or five, an unknown formatter, two filters in one package; five filters in one build, two
      filters with one id, a filter with a machine's knob value (the rule R1: REF2, CHORD Tables).
 
 Needs Unicorn and numpy (pip install unicorn numpy) and m68k-elf-objdump; Unicorn's JIT does not run inside a sandbox
@@ -121,7 +128,7 @@ import test_sdvintage_7th as t7     # noqa: E402
 from test_sdvintage_7th import check  # noqa: E402
 
 SELECTIONS = [["refflt"], ["refflt", "refflt2"], ["sampler", "refflt"], ["refdelay", "refflt"], ["smpfilter"],
-              ["smpfilter", "refflt"], ["sampler", "smpfilter"]]
+              ["smpfilter", "refflt"], ["sampler", "smpfilter"], ["crush"], ["smpfilter", "crush", "refflt", "refflt2"]]
 PART = compose.load_part("fltslot")
 DATA = PART["data"]
 POST, VOLDIST = 0x40059852, 0x40056f58
@@ -140,7 +147,8 @@ OURS = set(JSRS) | {CONV, KNOB, *PTAB} | set(RECORD_JMPS)
 BUILDER, DESC_OP, NEW_SOUND, HANDLER_END = 0x4005a274, 0x4005a2de, 0x400618f2, 0x4001f96a
 FORMATS = {"int": 0x400456c8, "centre": 0x40045bd6}
 UI_OBJ, TIMER, STEP_AT = 0x40a71754, 0xfc07000c, -38
-REF_IDS = {"refflt": 255, "refflt2": 254, "refflt3": 253}
+REF_IDS = {"refflt": 255, "refflt2": 254, "refflt3": 253, "refflt4": 252, "refflt5": 251}
+COPIES = tuple(i for i in REF_IDS if i != "refflt")         # REFF's copies, made in a folder of their own
 FRAMES, TRACKS = 32, 6
 
 
@@ -153,7 +161,8 @@ def s32(x):
 
 
 @contextlib.contextmanager
-def folder(copies, base=("refflt", "fltslot", "refdelay", "fxslot", "sampler", "shortcuts", "dispatch")):
+def folder(copies, base=("refflt", "fltslot", "refdelay", "fxslot", "sampler", "shortcuts", "dispatch", "smpfilter",
+                         "crush")):
     """compose.MACHINES pointed at a folder of its own: the packages and parts of base, and for each (name, id) of
     copies a copy of REFF under that name with that id."""
     kept = compose.MACHINES
@@ -181,7 +190,7 @@ def folder(copies, base=("refflt", "fltslot", "refdelay", "fxslot", "sampler", "
 
 
 def built(stock, ids):
-    copies = [(i, REF_IDS[i]) for i in ids if i in ("refflt2", "refflt3")]
+    copies = [(i, REF_IDS[i]) for i in ids if i in COPIES]
     if copies:
         with folder(copies):
             return TC.built(stock, ids)
@@ -292,9 +301,15 @@ def site_tests(key, stock, tweak, info, img, runtime, mans):
     check(good, f"{key}: the rows fl_boot writes: descriptors 1 to {n} (group 7, k 28.., 0..127, the defaults, CC and "
                 f"NRPN, the first filter's names), descriptor 5 the type ({ty['long']!r}, machine -1, k 0, no CC)")
     rest = runtime[at + DATA["cur"] - compose.gs.PAY_ALONE:at + DATA["neutral"] - compose.gs.PAY_ALONE]
-    meter = runtime[at + DATA["diag"] - compose.gs.PAY_ALONE:at + DATA["size"] - compose.gs.PAY_ALONE]
+    meter = runtime[at + DATA["diag"] - compose.gs.PAY_ALONE:at + DATA["start"] - compose.gs.PAY_ALONE]
     check(not any(rest) and len(rest) == DATA["neutral"] - DATA["cur"] and not any(meter),
           f"{key}: the state zero at boot, not a measuring build")
+    starts = [list(struct.unpack_from(">4H", runtime, at + DATA["start"] + 8 * k - compose.gs.PAY_ALONE))
+              for k in range(DATA["entries"])]
+    want = [[start_word(mans, fid, p) for p in range(4)] for fid, _m in [(0, None)] + filters]
+    want += [[0] * 4] * (DATA["entries"] - len(want))
+    check(starts == want, f"{key}: each entry's start words (fltslot 0.8), the filter's own, else the neutral ones: "
+          + "; ".join(f"{fid}: {' '.join(f'{v:#06x}' for v in w)}" for (fid, _m), w in zip([(0, None)] + filters, starts)))
     return syms
 
 
@@ -365,7 +380,37 @@ class Samples:
         return list(buf)
 
 
-MODELS = {"refflt": Reff, "refflt2": Reff, "refflt3": Reff, "smpfilter": Samples}
+class Crush:
+    """Crush's arithmetic: tools/machines/crush/crush.c compiled for the host, its six states in the library's own
+    variables (exact integers within 32 bits, no EMAC: the same file is the model, bit for bit)."""
+    _lib = []
+
+    @classmethod
+    def lib(cls):
+        if not cls._lib:
+            src = HERE.parent / "machines" / "crush"
+            d = pathlib.Path(tempfile.mkdtemp(prefix="crush-host-"))
+            atexit.register(shutil.rmtree, d, True)
+            out = d / "crush.so"
+            cc = shutil.which("cc") or shutil.which("gcc") or "cc"
+            r = subprocess.run([cc, "-O2", "-std=c99", "-fwrapv", "-Wall", "-Wextra", "-Werror", f"-I{src}", "-shared",
+                                "-fPIC", "-o", str(out), str(src / "crush.c")], capture_output=True, text=True)
+            if r.returncode:
+                sys.exit("!! the host build of crush.c failed:\n" + r.stderr)
+            cls._lib.append(ctypes.CDLL(str(out)))
+        return cls._lib[0]
+
+    def reset(self, t):                                     # the part resets a track before its first block on Crush
+        self.lib().crush_reset(ctypes.c_uint32(t))
+
+    def __call__(self, x, words, t, trig):
+        buf = (ctypes.c_int32 * FRAMES)(*x)
+        w = (ctypes.c_int16 * 4)(*words)
+        self.lib().crush_process(buf, w, ctypes.c_uint32(t), ctypes.c_uint32(trig))
+        return list(buf)
+
+
+MODELS = {"refflt": Reff, "smpfilter": Samples, "crush": Crush, **{i: Reff for i in COPIES}}
 
 
 class PartModel:
@@ -481,6 +526,7 @@ def word_at(t, k):
 # the scenes: block -> {track: (k32 of the sound or None, the copy's k32)}; ids are the low byte
 def scenes(ids):
     a, b = ids[0], ids[-1]
+    c, d = (ids[1], ids[2]) if len(ids) > 2 else (a, b)    # four in a build: the other two on two tracks
     return [
         ("every sound with id 0, an id not held, or the switches alone", 0, 24, {
             0: (0x0000, None), 1: (0x0100, None), 2: (0x0300, None), 3: (0x0007, None), 4: (None, 0x0000),
@@ -490,7 +536,7 @@ def scenes(ids):
         ("changes: none, another filter, another sound, back", 64, 104, {
             0: (0x0000, None), 1: (a, None), 2: (None, b), 3: (0x0300 | a, None), 4: (b, None), 5: (0x0000, None)}),
         ("back again; a sound that chose an id the build lacks", 104, 140, {
-            0: (a, None), 1: (a, None), 2: (0x0009, None), 3: (b, None), 4: (b, None), 5: (b, None)}),
+            0: (a, None), 1: (c, None), 2: (0x0009, None), 3: (b, None), 4: (d, None), 5: (b, None)}),
         ("hot tracks: Volume + Dist at 127, Reso at the top, Cutoff sweeping across the centre", 140, 180, {
             0: (a, None), 1: (b, None), 2: (a, None), 3: (b, None), 4: (a, None), 5: (b, None)}),
     ]
@@ -600,8 +646,12 @@ def cost_tests(key, img, runtime, tweak, info, syms, ids):
 
 
 COST = {}                                                   # what filter_cost counts, for build/filter-cost.json
-COST_STATES = {"lowpass": ((0x2000, 0x5000),), "highpass": ((0x6000, 0x5000),), "centre": ((0x4000, 0x5000),),
-               "glide": ((0x3000, 0x7000), (0x5800, 0x2000)), "silent": ((0x2000, 0x5000),)}
+COST_STATES = {                                             # by package: state -> the (k 28, k 29) of its blocks
+    "smpfilter": {"lowpass": ((0x2000, 0x5000),), "highpass": ((0x6000, 0x5000),), "centre": ((0x4000, 0x5000),),
+                  "glide": ((0x3000, 0x7000), (0x5800, 0x2000)), "silent": ((0x2000, 0x5000),)},
+    "crush": {"off": ((0x4000, 0x7f00),), "hard": ((0x7000, 0x2f00),), "soft": ((0x1000, 0x2f00),),   # Bits off at
+              "bits": ((0x4000, 0x2f00),), "glide": ((0x3000, 0x5f00), (0x5800, 0x1f00)),           # the top (0.2)
+              "silent": ((0x7000, 0x2f00),)}}
 
 
 def filter_cost(key, img, runtime, tweak, info, mans):
@@ -612,11 +662,11 @@ def filter_cost(key, img, runtime, tweak, info, mans):
     selection is the filter alone (once a run)."""
     for p in info["packages"]:
         mid = p["id"]
-        if not p.get("filter_id") or mid not in ("smpfilter",) or mid in COST:
+        if not p.get("filter_id") or mid not in COST_STATES or mid in COST:
             continue
         code = [(p["code_at"], p["code_at"] + p["code"])]
         got = {}
-        for state, words in COST_STATES.items():
+        for state, words in COST_STATES[mid].items():
             a = Audio(img, runtime, tweak)
             for t in range(TRACKS):
                 a.sound(t, p["filter_id"], 0)
@@ -866,6 +916,7 @@ class Turn:
     def __init__(self, img, runtime, syms, k32=0):
         u = self.u = SH.UI(img, runtime)
         u.uc.mem_map(0xfc070000, 0x1000)
+        u.uc.mem_map(0x80000000, 0x10000)                   # SRAM: the notes' sounds and the targets (fltslot 0.8)
         u.hooks = SH.project(u, 0, 0, k32)
         self.syms, self.exits = syms, 0
 
@@ -956,6 +1007,62 @@ def type_tests(key, img, runtime, syms, mans):
     if "fx_keys" in syms:
         tk, _d, g = t3(37, 1, 8, keys=(3,))
         check(tk and g, f"{key}: PATTERN + Delay Time reaches the effect slots' fx_keys behind fl_keys, which takes it")
+    start_tests(key, img, runtime, syms, mans)
+
+
+def start_word(mans, fid, p):
+    """The word value p starts at when a sound steps to filter fid (fltslot 0.8): the filter's params[p].start, else
+    the value's neutral word."""
+    m = next((x for x in mans.values() if x["_filter"] and x["_filter"]["id"] == fid), None)
+    prm = m["_filter"]["params"] if m else []
+    return prm[p].get("start", PART["values"]["defaults"][p]) if p < len(prm) else PART["values"]["defaults"][p]
+
+
+def start_tests(key, img, runtime, syms, mans):
+    """A step of the type gives the sound the new filter's start words (fltslot 0.8): from none only those that differ
+    from the neutral ones, from a filter all of them, none of them on a step to none; into the sound's k 28.. and into
+    the targets (0x800015ae + 66 t + 56..) of the tracks whose note plays that sound, the others untouched."""
+    ids = sorted(m["_filter"]["id"] for m in mans.values() if m["_filter"])
+    order = [0] + ids
+    n = max(len(m["_filter"]["params"]) for m in mans.values() if m["_filter"])
+    neutral = PART["values"]["defaults"]
+    t = Turn(img, runtime, syms, 0)
+    uc = t.u.uc
+    vals = [0x2100, 0x1234, 0x4100, 0x3f00]                 # the sound's k 28..31 before, none of them a start word
+    uc.mem_write(SH.SOUND + 76, struct.pack(">4H", *vals))
+    other = SH.SOUND + 0x200                                # another sound (a sound lock) on track 1
+    plays = {0: SH.SOUND, 1: other, 3: SH.SOUND}
+    for tr in range(TRACKS):
+        uc.mem_write(CUR_SND + 4 * tr, struct.pack(">I", plays.get(tr, 0)))
+        uc.mem_write(TARGETS + 66 * tr + 56, struct.pack(">4H", *[0x7700 + tr] * 4))
+    want_snd, want_tgt = list(vals), {tr: [0x7700 + tr] * 4 for tr in range(TRACKS)}
+    good, cur, shown, now, acc = True, 0, [], 1000, 0
+    for d in [1] * 4 * len(ids) + [-1] * 4 * len(ids):      # up through every filter, then down to none: four detents
+        now += 1000                                         # a step, the direction changing after a whole step
+        taken, _d0, ok = t(5, d, now)
+        good &= taken and ok
+        acc += 1
+        if acc < 4:
+            continue
+        acc = 0
+        i = order.index(cur)
+        j = i + 1 if d > 0 else i - 1
+        for p in range(n if j else 0):
+            w = start_word(mans, order[j], p)
+            if i == 0 and w == neutral[p]:
+                continue
+            want_snd[p] = w
+            for tr, sn in plays.items():
+                if sn == SH.SOUND:
+                    want_tgt[tr][p] = w
+        cur = order[j]
+        got = list(struct.unpack(">4H", uc.mem_read(SH.SOUND + 76, 8)))
+        tgt = {tr: list(struct.unpack(">4H", uc.mem_read(TARGETS + 66 * tr + 56, 8))) for tr in range(TRACKS)}
+        good &= got == want_snd and tgt == want_tgt and t.k32() & 0xff == cur
+        shown.append(f"{cur}: {' '.join(f'{v:#06x}' for v in got[:n])}")
+    check(good, f"{key}: a step of the type gives the sound the new filter's start words (from none those that differ "
+                f"from the neutral ones, from a filter all, to none none), in the sound and in the targets of tracks 0 "
+                f"and 3 that play it, not track 1's sound lock nor the others: " + "; ".join(shown))
 
 
 # --- 8. the pattern's p-locks (T2, notes/47 §4.3) ----------------------------------------------------------------------
@@ -1171,7 +1278,7 @@ def load_tests(key, stock, ids, img, runtime, syms):
 
 
 def folder_call(ids, fn):
-    copies = [(i, REF_IDS[i]) for i in ids if i in ("refflt2", "refflt3")]
+    copies = [(i, REF_IDS[i]) for i in ids if i in COPIES]
     if copies:
         with folder(copies):
             return fn()
@@ -1214,8 +1321,7 @@ def refusal_tests(stock):
         compose.MACHINES = kept
     check(len(refused) == len(cases), "the composer refuses a package with " + ", ".join(refused)
           + (f"; accepts {', '.join(n for n, _c in cases if n not in refused)}" if len(refused) < len(cases) else ""))
-    for name, copies, ids in (("three filters in one build", [("refflt2", 254), ("refflt3", 253)],
-                               ["refflt", "refflt2", "refflt3"]),
+    for name, copies, ids in (("five filters in one build", [(i, REF_IDS[i]) for i in COPIES], ["refflt", *COPIES]),
                               ("two filters with one id", [("refflt2", 255)], ["refflt", "refflt2"])):
         with folder(copies):
             try:
@@ -1245,7 +1351,7 @@ def main():
     stock = T.main_os_from_syx(args.cycles)
     for ids in selections:
         key = "+".join(ids)
-        copies = [(i, REF_IDS[i]) for i in ids if i in ("refflt2", "refflt3")]
+        copies = [(i, REF_IDS[i]) for i in ids if i in COPIES]
         with folder(copies) if copies else contextlib.nullcontext():
             mans = {i: compose.load_manifest(i) for i in ids}
         if not any(m["_filter"] for m in mans.values()):

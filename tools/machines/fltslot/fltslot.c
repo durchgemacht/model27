@@ -3,7 +3,8 @@
  *
  * Every track can run a filter after Volume + Dist, the place of the Model:Samples' own filter. Each sound chooses one
  * by id in the low byte of its k 32 (0 none, 1 to 239 the filters, 240 to 255 the references; bits 8 and 9 are the
- * machine's switches, notes/63 §16); a build holds at most two filters, laid out by the composer in the data block's
+ * machine's switches, notes/63 §16); a build holds at most four (since 0.7, two before; the Track FX of notes/73: the
+ * filters and the effects of this slot), laid out by the composer in the data block's
  * table. The id is read in the sound the track's note plays (*0x800017ec[t], its k 32 at +84, as SAMPLE reads its
  * switches), or in the copy of that sound's 66 bytes the audio side keeps (0x800015ae + 66 t) when there is none: not
  * in the smoothed words, which glide. Id 0, or an id the build does not hold: the track is not touched, bit for bit.
@@ -29,7 +30,8 @@
  * type, display only (group -1, k 0: the OS builds nothing on it, and an edit that slipped through would write the
  * unused k 0): its popup names the type through fl_fmt_type, and the encoder handler's turn reaches fl_step
  * (entries.S's fl_keys at 0x4001f886) before any edit, which steps the selected track's sound's id through none and
- * the build's filters, four detents a step, as the effect slots step theirs. LFO + RETRIG + a knob makes the value
+ * the build's filters, four detents a step, as the effect slots step theirs; a step to a filter gives the sound that
+ * filter's start values (since 0.8, below). LFO + RETRIG + a knob makes the value
  * the LFO's destination through fl_lfo_desc (since 0.4: that gesture has a knob list of its own, 0x4001eaa2). The
  * pattern's p-locks of k 23 and above
  * (the OS saves them onto other parameters or loses them, notes/47 §4.3): fl_ptab and entries.S's fl_conv.
@@ -55,13 +57,21 @@
  * of a percent. A measuring build (the composer's diag) shows them instead of the values: Filter Cutoff's popup the
  * average, the type's popup the peak. In every other build they are counted and not shown.
  *
+ * The start values (since 0.8, the Track FX of notes/73): each filter declares the word each of its values starts at
+ * (its manifest's params[].start, else the value's neutral word), so that a filter whose "off" is not the neutral word
+ * (Crush's Bits, off at the top) starts off. A step of the type from none gives the sound the start words that differ
+ * from the neutral ones and keeps the others (so none <-> Samples keeps the values, as before); a step from one filter
+ * to another gives it all the new filter's start words. Written into the sound and, for each track whose note plays
+ * that sound, into the audio's targets (0x800015ae + 66 t), which the OS smooths (0x40058474) and copies again only
+ * when a note plays another sound: so a note that goes on hears them, gliding in as any parameter does.
+ *
  * The state is in the part's data block (a part has no variables of its own): written by the composer, zero at boot.
  *
  * License: MIT (LICENSE next to this file). */
 #include <stdint.h>
 
 #define TRACKS 6
-#define ENTRIES 4                                   /* none, then the build's filters (the composer allows two) */
+#define ENTRIES 5                                   /* none, then the build's filters (the composer allows four) */
 #define PARAMS 4                                    /* k 28 to k 31, descriptors 1 to 4 */
 #define FRAMES 32
 #define TYPE_DESC 5                                 /* the type's descriptor, display only */
@@ -104,17 +114,18 @@ struct data {
 	uint32_t keys_next;                         /* +12 the effect slots' fx_keys at 0x4001f886, or 0 */
 	uint32_t desc[2];                           /* +16 the stock descriptor table, the one the OS uses */
 	struct entry e[ENTRIES];                    /* +24 entry 0 none (the first filter's names), then the filters by id */
-	uint32_t rows[PARAMS + 1][14];              /* +280 the rows of descriptors 1 to 4, then 5, as fl_boot writes them */
-	uint8_t cur[TRACKS];                        /* +560 the entry each track ran in its last block */
-	uint8_t acc, last_dir;                      /* +566 the type's detents */
-	uint32_t last_time;                         /* +568 */
-	int32_t old[FRAMES];                        /* +572 in a change, the stopping filter's block */
-	uint16_t neutral[PARAMS];                   /* +700 each value's neutral word, the record's XOR (since 0.3) */
-	uint32_t rec_next[3];                       /* +708 the shortcut layer's save2, save1 and load wrappers */
-	uint8_t diag, spare2[3];                    /* +720 1 in a measuring build (since 0.5) */
-	uint32_t sum, peak;                         /* +724 the window's ticks and its dearest block */
-	uint16_t n, avg_t, peak_t, spare3;          /* +732 its blocks; the last window's average and peak, 0.1 % */
-};                                                  /* 740 bytes */
+	uint32_t rows[PARAMS + 1][14];              /* +344 the rows of descriptors 1 to 4, then 5, as fl_boot writes them */
+	uint8_t cur[TRACKS];                        /* +624 the entry each track ran in its last block */
+	uint8_t acc, last_dir;                      /* +630 the type's detents */
+	uint32_t last_time;                         /* +632 */
+	int32_t old[FRAMES];                        /* +636 in a change, the stopping filter's block */
+	uint16_t neutral[PARAMS];                   /* +764 each value's neutral word, the record's XOR (since 0.3) */
+	uint32_t rec_next[3];                       /* +772 the shortcut layer's save2, save1 and load wrappers */
+	uint8_t diag, spare2[3];                    /* +784 1 in a measuring build (since 0.5) */
+	uint32_t sum, peak;                         /* +788 the window's ticks and its dearest block */
+	uint16_t n, avg_t, peak_t, spare3;          /* +796 its blocks; the last window's average and peak, 0.1 % */
+	uint16_t start[ENTRIES][PARAMS];            /* +804 each entry's start words (since 0.8; entry 0 the neutral ones) */
+};                                                  /* 844 bytes (740 before 0.7, 804 in 0.7) */
 
 extern char fl_data[];
 #define D ((struct data *)fl_data)
@@ -350,11 +361,28 @@ void fl_fmt_cut(void *fn, int32_t v, char *buf)
 	*buf = 0;
 }
 
+static void wr16(uint8_t *a, uint32_t v);
+
+/* A step of the type from entry from to entry to (a filter): its start words into the sound snd, from none only those
+ * that differ from the neutral ones, and into the targets of the tracks whose note plays snd (since 0.8). */
+static void start_values(uint8_t *snd, uint32_t from, uint32_t to)
+{
+	for (uint32_t p = 0; p < D->params; p++) {
+		uint32_t w = D->start[to][p];
+		if (!from && w == D->neutral[p])
+			continue;
+		wr16(snd + 76 + 2 * p, w);
+		for (uint32_t t = 0; t < TRACKS; t++)
+			if (CUR_SND(t) == snd)
+				wr16((uint8_t *)TARGETS(t) + 56 + 2 * p, w);
+	}
+}
+
 /* entries.S's fl_keys, at the encoder handler's question for TRACK (0x4001f886) on descriptor 5: step, the handler's
  * step (16 bits, signed). Four detents in one direction make one step; the count starts again after a change of
  * direction or 0.4 s without a detent. A step moves the selected track's sound's id to the next or previous entry
  * of the table (none first, then the filters by id) and stops at the ends; an id the build does not hold counts as
- * none. The audio reads it in the next block. */
+ * none. A step to a filter gives the sound its start values (start_values). The audio reads them in the next block. */
 void fl_step(int32_t step)
 {
 	uint32_t now = TIMER;
@@ -368,10 +396,13 @@ void fl_step(int32_t step)
 	D->acc = 0;
 	if (!(snd = sound_of(selected())))
 		return;
-	uint32_t i = index_of(snd[SOUND_K32 + 1]);
+	uint32_t i = index_of(snd[SOUND_K32 + 1]), j;
 	if (dir == 1 ? i + 1 >= D->count : i == 0)
 		return;                                 /* at the end of the table */
-	snd[SOUND_K32 + 1] = (uint8_t)D->e[dir == 1 ? i + 1 : i - 1].id;
+	j = dir == 1 ? i + 1 : i - 1;
+	snd[SOUND_K32 + 1] = (uint8_t)D->e[j].id;
+	if (j)
+		start_values(snd, i, j);
 }
 
 static uint32_t rd16(const uint8_t *a)

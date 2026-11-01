@@ -375,3 +375,8 @@ PAN L zu verwechseln. einfach -64 und 63 nutzen wie beim SAMPLE », and as the L
 The maintainer flashed a build of the live page (`fe96f39`, release 0.24, stamp 2026-11-01-02, the page's files compared
 byte for byte with the commit) and tried Samples on their Model:Cycles: « passt ». The card is tested since release
 0.25 (`FEATURES`, the guide's line, README).
+
+## 24. The Track FX (2026-11-01)
+
+The slot holds effects as well as filters since `fltslot` 0.7, four in a build, the type's row "Track FX"; the first
+effect is Crush: [73](73-track-fx-crush.md).

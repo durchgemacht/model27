@@ -1,0 +1,257 @@
+# 73 — Track FX: effects in the filter slot, and Crush, the first
+
+The maintainer's request of 2026-11-01, after a list of insert effects that could sit next to the filters: « 1. ein slot
+für beide 2. auf 4 anheben 3. Track FX — bau als ersten Crush ». So the filter slot of [72](72-track-filters.md) holds
+effects too, a build may hold four of them, the section and the type are called Track FX, and the first effect is
+Crush, a sample-rate and bit reduction on two knobs (decided the same day: Rate and Bits on their own knobs). The part
+`fltslot` 0.7 (`tools/machines/fltslot/`), the package `crush` (`tools/machines/crush/`, id 2, "Crush"), the card's tweak
+`73-crush.json` (`tools/gen_crush.py`), proof in emulation `tools/emu/test_fltslot.py`. Addresses: VAs of OS 1.13.
+
+## In short
+
+- **Track FX is the filter slot**, with the same audio point, record, knobs and type (notes/72 §2 to §5). A sound picks
+  one Track FX (a filter or an effect) with RETRIG + PITCH; its values are on RETRIG + SWEEP / CONTOUR / COLOR / SHAPE.
+  What changes: a build holds four, the type's row reads "Track FX", the flasher's section is called Track FX.
+- **Crush** (id 2, "CRU" on screen): RETRIG + SWEEP is **Rate**, the sample rate: 0 (the centre) off, to the right
+  a hard hold (aliasing, metallic), to the left a softer one (the held samples joined by lines); RETRIG + CONTOUR is
+  **Bits**: 127 off, fewer to the left, 0 = one bit (since Crush 0.2, §11; 0 off in 0.1). Both at once, both real
+  parameters (p-locks, LFO, velocity, Control All, CC 74 / 71).
+- **Start values** (`fltslot` 0.8, §11): each Track FX declares the words its values start at; a step to it from none
+  gives those that differ from the neutral words, a step from another Track FX all of them, so Crush starts with Bits
+  off at 127 and Samples behaves as before.
+- **Off is dry**: with Rate at 0 and Bits at 127 the track passes untouched, bit for bit, and a sound that steps to
+  Crush starts there, so it sounds the same until a knob turns, as with Samples.
+- **Cost**, counted by the proof (§9): 883 instructions a track and block for the hard hold with Bits, 1 638 for the
+  soft one, 1 670 gliding: six tracks at most 10 020 a block, 9.3 % (Samples' worst 8 952, 8.3 %), under the 10 %
+  warning; at 0 / 0 30. Not measured on the machine yet.
+
+## 1. Decisions (2026-11-01)
+
+| Question | Decided | Consequence |
+|---|---|---|
+| A filter and an effect on one track at once? | No: one slot for both | no second stage; every value is already taken (notes/72 §1) and the sound has no saved place left (the key map's reading of 2026-10-31) |
+| How many in a build? | four | the part's table grows by one entry (§2); the load does not depend on it: each track runs one, and `fl_cost` counts six tracks on the dearest |
+| What is it called? | Track FX | the type's row on the device and the flasher's section; the values keep each effect's own names |
+| Crush's knobs | two: Rate on SWEEP, Bits on CONTOUR | both at once, each with its CC; SWEEP's centre is Rate's off, as Cutoff's is Samples' |
+
+## 2. `fltslot` 0.7
+
+- **Four in a build.** The table's entries are "none" and then the build's filters by id: `ENTRIES` 4 held three, so
+  5 now, and the part's `most` 4. The data block grows by one entry of 64 bytes, 740 to 804: `e[5]` moves `rows` 280 →
+  344, `cur` 560 → 624, `acc` 630, `last_time` 632, `old` 636, `neutral` 764, `rec_next` 772, `diag` 784, `sum` 788,
+  `peak` 792, `n` 796, `avg_t` 798, `peak_t` 800. `entries.S` reads `rec_next` at fixed offsets (`fl_data+708`, `+712`,
+  `+716` → `+772`, `+776`, `+780`); `part.json`'s `data` gives the composers the rest (`compose.py` and `composer.js`
+  read `entries`, the offsets and `most` from it).
+- **The type's name.** Descriptor 5's long name "Filter Type" → "Track FX" (`part.json`'s `type.long`); its short name
+  TYPE and "OFF" for none stay.
+- Nothing else: the audio, the crossfade, the knobs, the record and the load as in 0.6.
+
+## 3. Crush
+
+### 3.1 The values
+
+| Where | What | Words | Neutral |
+|---|---|---|---|
+| k 28 (RETRIG + SWEEP, CC 74) | Rate | 0..0x7f00, centre 0x4000 off; `a = |w − 0x4000|` in 8.8 (0 to 64): the rate falls to `1 / 2^(6a/64)` of 48 kHz, to 750 Hz on the left, 800 Hz on the right; right of the centre a hard hold, left a soft one | 0x4000 |
+| k 29 (RETRIG + CONTOUR, CC 71) | Bits | 0..0x7f00; since 0.2 (§11) off at the top; since 0.4 (§13) `8 − 7 b / 127` bits with b = 127 − the word in 8.8: 126 about 7.9 bits, 64 about 4.5, 0 one bit (0.2/0.3: `16 − 15 b / 127`; 0.1: off at 0, b the word) | 0 (the slot's); Crush's start word 0x7f00 |
+| k 30, k 31 | not read | | |
+
+Formats: Rate `cutoff` (-64 .. 0 .. 63, as Samples' Cutoff), Bits `int` (0 .. 127). Short names RATE and BITS (the
+LFO's destination shows them). Words outside 0..0x7f00 (an LFO can push them there) are clamped.
+
+### 3.2 The arithmetic
+
+Exact integers, the same C compiled for the host as the proof's model (as Samples' is):
+
+- **Off**: Rate at the centre and Bits at the top (0 in 0.1): the block untouched; the hold remembers the block's last frame and starts its
+  count afresh, so that turning Rate on later holds the latest sample.
+- **Rate**: a 16.16 clock `ph` adds `inc` each frame, `inc = 65536 · 2^(−6a/64)` from a table of 65 steps
+  (`INC[k]`, k = 0..64, written by the generator) with the word's low byte between two steps. When it passes 65536 it
+  wraps and takes the frame (`prev = cur, cur = x`). Hard: `y = cur`. Soft: `y` runs on a line from `prev` to `cur`
+  across the hold, `t = min(ph + inc, 65536)`: `y = 2 · (p + ⌊d · t / 65536⌋)` with `p = prev >> 1`,
+  `d = (cur >> 1) − p`, split into `(d >> 16) · t + ((d & 0xffff) · t >> 16)` so that nothing leaves 32 bits. At a step
+  of one frame (`inc` 65536) both are the input itself; the soft side lags by one hold, at most 1.3 ms.
+- **Bits**: with b = 127 − the word (since 0.2), the exponent `e = 16 + 15 b / 127` in 8.8 (16.0 to 31.0); `q(x, s)` rounds half of x to the nearest
+  multiple of `2^(s−1)` (mid-tread: small values to 0, no offset) and doubles it, saturating the top level: one bit is
+  the three levels −FS, 0, +FS. Between two whole exponents the output blends the two roundings,
+  `q(x, s) + ((q(x, s+1) − q(x, s)) >> 8) · frac`, so the knob moves without steps.
+- **Order**: Rate, then Bits (the output is quantized).
+- **A note** (the trig bit): the clock starts again so that the block's first frame is taken.
+- **A silent block** (all 32 frames 0) with a silent hold: the output is 0 anyway; only the clock moves on,
+  `ph = (ph + 32 · inc) mod 65536`.
+- **reset(track)**: the hold to 0 and the clock marked (65536), so that the next block takes its first frame at once,
+  as after a note (§7).
+
+### 3.3 Cost
+
+Estimated before the proof `[HYP]`: hard + Bits about 25 instructions a frame, soft + Bits about 40, so 800 to 1 300 a
+track and block. Counted (§9): hard + Bits 883 (28 a frame), Bits alone 705 (22, the two roundings and the blend),
+soft + Bits 1 638 (51): the soft line costs more than estimated (its split product, the clamp of t, the halves). The
+manifest declares what was counted.
+
+## 4. The proof
+
+`test_fltslot.py` with:
+
+- `Crush`, the host build of `crush.c` (ctypes) as the model; selections `crush`, and `smpfilter,crush,refflt,refflt2`
+  (four in one build: the table, the type's steps through five entries, the audio of all four);
+- the scenes as before (the hot one sweeps Rate across the centre with Bits at the top), the fourth scene giving the
+  third and fourth filter to two tracks when the build has more than two;
+- Crush's cost per state, against its manifest;
+- the type's row "Track FX"; the refusals: five in one build (was three).
+
+## 5. The flasher, the guide
+
+- The fourth section's title Filters → Track FX; the card Crush (experimental) next to Samples; its excludes from
+  `73-crush.json`'s conflicts.
+- The guide's section 6 (Samples filter) becomes Track FX, with Samples and Crush.
+- A release, README, BUILD.md, PROVENANCE.md, REGISTRY.md.
+
+## 6. Steps
+
+| Step | What | Done when |
+|---|---|---|
+| X1 | `fltslot` 0.7: four, "Track FX" | **done 2026-11-01 (§7)** |
+| X2 | Crush: package, generator, card's tweak | **done 2026-11-01 (§7)** |
+| X3 | The proof | **ALL OK** in the maintainer's run (§9) |
+| X4 | Flasher, guide, release | **done 2026-11-01 (§7)**, every check green |
+| X5 | The machine | **« passt », 2026-11-01: 0.1 (§10), 0.4 with `fltslot` 0.8 (§14)** |
+
+## 7. Built (2026-11-01)
+
+- **`fltslot` 0.7**: as §2; the code the same size (3 264 bytes), only the offsets in its immediates moved; `gen_parts.py`
+  rebuilt `fltslot.o` alone (the other parts byte for byte).
+- **Crush 0.1** (`tools/machines/crush/`: `crush.c`, `crush_tab.h`, `crush.o`, `manifest.json`, MIT): 1 216 bytes of
+  code and table, 72 bytes of variables. A host build with the undefined-behaviour sanitizer over the words' corners
+  (outside 0..0x7f00 too), full-scale and silent blocks, resets and notes: no fault; off is the input bit for bit, one
+  bit gives the three levels only, a whole bit count lands on its grid. Two corrections while testing: after a reset
+  the clock takes the first frame at once (it held the reset's 0 for up to 60 frames, a gap after the crossfade into
+  Crush), and a note sets the clock to 65535 rather than `65536 − inc`, so that the following frames are taken as early
+  as the rate lets (at a step just under one frame, every frame but one in 4 096, not one in two).
+- **`73-crush.json`** (`tools/gen_crush.py`, 15 writes, 273 conflicts); 27, 28, 29, 34, 36, 39, 70 and 72 regenerated
+  (crush in their conflicts; 72 with `fltslot` 0.7). MAIN OS: Crush alone `25aac3ea…`, with Samples `c8cdc37c…`, every
+  card `67f0d95e…`; Samples alone now `6f2a4db3…`, with SAMPLE `bef12e28…` (the part's offsets and the type's name).
+- **The proof** (§4): `--dry` ALL OK, all nine selections (the table of four: OFF, SMP, CRU, R54, REF), five refused.
+  Unicorn stops with SIGILL in this sandbox: the full run is the maintainer's (§9).
+- **Flasher**: the section Track FX, the card Crush (experimental), its texts, guide section 7 (8 to 15 renumbered),
+  release 0.26, stamp 2026-11-01-05; `REF_MAINOS` 37 combinations, `REF_MODS` 34; `webcompose_synth.py` with four
+  Crush selections. Checks: generators, parts, registrar, claims, overlaps, registry, `ref_mainos`, webbuild,
+  webflash, webcompose (identical), the smoke test with both official OS files ALL PARTS OK. `relocate_6ch.py --check`
+  differs as before this work: this machine's assembler writes a PC-relative `lea` where the committed file has an
+  absolute one (toolchain, not this change; the file left as committed).
+
+## 8. For the machine
+
+Builds in `build/crush-0.1/` (git-ignored), each checked by elektron-firmware-tool:
+
+| Build | MAIN OS |
+|---|---|
+| Crush alone | `25aac3ea…` |
+| Samples + Crush | `c8cdc37c…` |
+| every card, as the page composes it | `67f0d95e…` |
+| the same, measuring (`measure/`, `--diag-filters`) | `bbca505b…` |
+
+What to try: RETRIG + PITCH (the popup Track FX: OFF, CRU; with Samples OFF, SMP, CRU); Rate both ways and Bits, both
+at 0 the sound unchanged; a lock on a held trig, LFO + RETRIG + SWEEP (RATE), TRACK + RETRIG + SWEEP, CC 74 / 71;
+switching SMP ↔ CRU while it plays; save and reload; Samples as before (its build changed with the part); in the
+measuring build six tracks on Crush with Control All on Rate: Rate's popup the average, the type's the peak.
+
+## 9. The proof, the maintainer's run (2026-11-01)
+
+`test_fltslot.py`, all nine selections, 424 checks: **ALL OK but Crush's cost line, by design** (its manifest declared
+nothing yet). Crush bit for bit its host build in every scene (alone and four in one build: OFF, SMP, CRU, R54, REF),
+the crossfades, MACSR and the accumulators, the boot's tables, the knob lookup, LFO + a knob, the formatters, the type's
+steps through five entries, the p-locks, a machine change, the record, the load, the refusals (five in a build). The
+part with every track on none costs 263 instructions a block with one filter, 371 with four (the table's search; the
+proof's bound 400). Crush counted, instructions per track and block: off 30, hard 883, soft 1 638, bits 705, glide
+1 670, silent 163, first 1 661, now declared in its manifest (`tests.emulation.date` 2026-11-01); the composer's load
+for six tracks 10 020, 9.3 % of a block. `tweaks.js` regenerated (the manifest it embeds); the MAIN OS unchanged; the
+checks again green (claims, overlaps, registry, `ref_mainos`, webcompose identical, the smoke test ALL PARTS OK).
+
+## 10. Tested on the machine (2026-11-01)
+
+The maintainer, after the builds and the list of §8 (from the command line): « passt ». The load the measuring build
+showed was not reported. Experimental on the page until flashed from it, as Samples was (notes/72 §20, §23).
+
+## 11. Bits the other way, start values: `fltslot` 0.8, Crush 0.2 (2026-11-01)
+
+The maintainer after the machine: « kannst du den bitrate regler umkehren? er startet mit max bit auf der rechten seite
+(127) und wird nach links kleiner ». CONTOUR's neutral word is 0 for every filter (the slot's `values.defaults`, a new
+sound's value and the record's XOR; Samples' Reso needs it), so Bits off at 127 needs a start value of its own. Decided:
+start values per Track FX, no memory of the other Track FX' values (« egal, ohne gedächtnis. man wird sich daran
+gewöhnen … ist doch bei den send fx auch so »); the OS's smoothing of the jump accepted.
+
+- **`fltslot` 0.8**: `start[5][4]` at the data block's end (`+804`, 844 bytes; the other offsets unchanged), written
+  by both composers from the manifests' `params[].start` (0 to 32512, else the neutral word; `compose.py` refuses
+  another). `fl_step`, on a step to a filter: from none the start words that differ from the neutral ones, from a
+  filter all of them; on a step to none nothing. Into the sound (`+76`) and into the targets of each track whose note
+  plays that sound (`0x800015ae + 66 t + 56`). `[FAIT]` the OS's smoother `0x40058474` reads its input through the
+  caller's pointer (`0x400597a6`), keeps its state at `0x800011e8` and writes `0x8000100c`; the targets are copied from
+  the sound only when a note plays another sound (`0x40058a0a`, notes/66 §11.6: a change in the sound object alone
+  does not reach them), so the part writes them too. That the smoother's input is the targets' block is `[HYP]`
+  (the layout matches: `+14 + 66 t`); the machine will tell (a playing note hears the start values at once).
+  3 552 bytes of code (3 264).
+- **Crush 0.2**: `b = 127 − Bits` (in 8.8), the same arithmetic; off at the top. Its manifest's Bits starts at 32512.
+  The cost states with the words turned round (the same work).
+- **The proof**: the data block's start words; `start_tests` (the Turn harness with SRAM mapped: a step from none,
+  from a filter, to none; the sound and the targets of tracks 0 and 3 that play it, not track 1's sound lock).
+  `--dry` ALL OK; **the maintainer's run (2026-11-01): ALL OK but Crush's cost line** (a few instructions more for
+  `127 − Bits`): off 31, hard 885, soft 1 639, bits 708, glide 1 672, silent 163, first 1 663, now declared; six tracks
+  10 032 instructions a block, 9.3 %. The steps in four in one build: none → SMP keeps the values, SMP → CRU gives
+  Rate 0 and Bits 127, CRU → R54 → REF the neutral words, back down the same, → none keeps them. The checks again
+  green (generators, `tweaks.js`, claims, `ref_mainos`, webcompose, the smoke test ALL PARTS OK); the firmware the
+  same (the cost is not in it).
+- **Known**: right after a switch the values glide in (about 20 ms to two thirds, 70 ms nearly there): from Samples
+  with Reso low to Crush, or a fresh sound to Crush, Bits rises from a few bits to off in that time.
+- MAIN OS: Crush alone `365f496b…`, with Samples `01cf9060…`, every card `c089f700…`; Samples alone `854342c2…`, with
+  SAMPLE `9499b519…`. Checks green: generators, parts, registrar, claims, overlaps, registry, `ref_mainos`, webbuild,
+  webflash, webcompose identical, the smoke test ALL PARTS OK.
+- **For the machine**: `build/crush-0.2/` (git-ignored, each checked by elektron-firmware-tool): Crush alone, Samples +
+  Crush, every card (`c089f700…`), and the measuring build of every card (`measure/`, `55a4e4d7…`). To try: a fresh
+  sound OFF → CRU reads Bits 127 and sounds unchanged; Bits to the left; SMP (Reso up) → CRU gives Rate 0 and Bits 127,
+  CRU → SMP Cutoff 0 and Reso 0; SMP → OFF → SMP keeps Cutoff and Reso; with the pattern running the new values are
+  heard at once (the targets, the open `[HYP]`), gliding in.
+
+## 12. Lighter, the same bits: Crush 0.3 (2026-11-01)
+
+The maintainer: « kannst du schon mal prüfen ob es noch möglichkeiten zur performance optimierung gibt? », then
+« ja, übernehmen ».
+
+- **Measured outside the proof**: the ColdFire interpreter of notes/69 §20.1 (`_scratch/pots-load/cfemu.py`, outside
+  the repository) runs the device object of 0.2 and of a rewrite side by side (`_scratch/crush-opt/bench.py`): a decaying
+  tone with noise, a note every 40 blocks, silences, full scale, random words with every corner, resets: **3 000 blocks,
+  none differ**. Its signal is harder than the proof's (0.2 counts higher than the proof's numbers there), so the shares
+  matter, not the counts.
+- **Kept** (`crush.c` 0.3): the soft line's terms (`p`, `d >> 16`, `d & 0xffff`) worked out when a frame is taken, not
+  every frame; the block scanned for silence only when the hold is silent. Instructions a track and block, 0.2 → 0.3 on
+  the interpreter: soft + Bits 1 934 → 1 387 (−28 %), glide 1 970 → 1 522 (−23 %), hard + Bits 1 029 → 930 (−10 %),
+  Bits 820 → 704 (−14 %), soft alone 1 268 → 719, hard alone 363 → 263, off and silent the same. 1 802 bytes of code
+  (1 234): GCC versions the loops.
+- **Dropped**: Bits' blend with a single bound on half the frame (`h < 2^30 − 2^(s−1)`, the same bits): GCC computes
+  both paths before the branch and spills, 820 → 908. Only assembly would gain there (about 4 instructions a frame).
+- **Left for later, small**: Samples could return before its silent scan at the centre (notes/72 §18, about 0.6 % for
+  six tracks); the part could keep each track's entry instead of searching the table every block (about 0.1 %).
+- **The proof, the maintainer's run (2026-11-01): ALL OK but the cost line** (0.2's numbers still declared). Counted
+  for 0.3, now declared: off 31, hard 802, soft 1 183, bits 611, glide 1 307, silent 162, first 1 312 (0.2: 31, 885,
+  1 639, 708, 1 672, 163, 1 663): six tracks at most 7 872 instructions a block, 7.3 % (9.3 %). The checks again green. Builds in `build/crush-0.3/` (Crush alone `da5584a0…`, with Samples `167d2883…`, every card `2b2fae73…`,
+  measuring `9036b49a…`); the sound the same as 0.2's, bit for bit.
+
+## 13. Bits from 8 bits: Crush 0.4 (2026-11-01)
+
+The maintainer on 0.3: « zwischen 127 und ungefähr 45 passiert nichts hörbares ». The curve was linear in bits from
+16 to 1: 112 gave 14.2 bits, 96 12.3, 80 10.4, 64 8.6, 45 6.3, 32 4.8, 16 2.9; above about 6 bits the rounding's noise
+(−42 dB under full scale and lower) goes under in drums. Decided: « 8 bis 1 ». Crush 0.4: `e = 24 + 7 b / 127` in 8.8
+(6144 + 7 b / 127), so 126 is about 7.9 bits, 96 about 6.3, 64 about 4.5, 32 about 2.8, 0 one bit; 127 off as before,
+the step from off to 8 bits at the top. The same code otherwise (cost to be counted again: the blend and the top
+level's saturation now come at other knob positions); the sound is not 0.3's below 127.
+- Checks green (generators, parts, claims, overlaps, registry, `ref_mainos`, webbuild, webflash, webcompose, the smoke
+  test ALL PARTS OK), `test_fltslot.py --dry` ALL OK, the host build under the undefined-behaviour sanitizer clean
+  (127 untouched, 126.99 on the 8-bit grid, 0 the three levels). Builds in `build/crush-0.4/`: Crush alone
+  `a151818c…`, with Samples `cbf53b93…`, every card `388d2043…`, measuring `84d3eae9…`.
+- **The proof, the maintainer's run (2026-11-01): ALL OK**, the cost line too: 0.4 counts what 0.3 counted (off 31, hard
+  802, soft 1 183, bits 611, glide 1 307, silent 162, first 1 312; the cost states take the same loops).
+
+## 14. Tested on the machine: Crush 0.4, `fltslot` 0.8 (2026-11-01)
+
+The maintainer, after the builds of `build/crush-0.4/` and the list of §13 (from the command line): « das ist so
+geil. passt ». The load the measuring build showed was not reported. Experimental on the page until flashed from it.

@@ -613,6 +613,14 @@ function flLayer(mainOs, part, filters, symsOf, at, codeEnd, descStock, descUsed
   }));
   [rows.length, n, layerSyms.sc_knob, keysNext].forEach((v, j) => put32(block, d.count + 4 * j, v));
   vals.defaults.forEach((v, j) => { block[d.neutral + 2 * j] = v >>> 8; block[d.neutral + 2 * j + 1] = v & 255; });
+  rows.forEach((r, i) => {                        // each entry's start words (fltslot 0.8): its own, else the neutral
+    const prm = r[4] ? flEntry(r[4]).params : [];
+    for (let k = 0; k < 4; k++) {
+      const v = k < prm.length && has(prm[k], "start") ? prm[k].start : vals.defaults[k];
+      block[d.start + 8 * i + 2 * k] = v >>> 8;
+      block[d.start + 8 * i + 2 * k + 1] = v & 255;
+    }
+  });
   part.record.forEach((r, j) => put32(block, d.rec_next + 4 * j, layerSyms[r.next]));
   put32(block, d.desc, descStock);
   put32(block, d.desc + 4, descUsed);
