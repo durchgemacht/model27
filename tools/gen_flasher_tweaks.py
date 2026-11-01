@@ -381,13 +381,13 @@ ALL_FEATURES = [
         "desc": "The Model:Samples' filter on any track, after Volume + Dist: lowpass below the centre of Cutoff, "
                 "highpass above, off in the middle, with resonance. Hold RETRIG and turn PITCH to give a sound the "
                 "filter; RETRIG + SWEEP is Cutoff, RETRIG + CONTOUR is Reso, with p-locks, LFO and CC 74 / 71.",
-        # SAMPLE's filter (Cycles One-Shot's sources, unchanged) on every track, through the filter slot of the key
-        # map's step K4: bit for bit the host build in emulation; on the Model:Cycles from the command line on
+        # SAMPLE's filter (Cycles One-Shot's sources, unchanged) on every track, through the filter slot (notes/72):
+        # bit for bit the host build in emulation; on the Model:Cycles from the command line on
         # 2026-11-01, six tracks with Control All fluid after the two savings (smpfilter 0.2)
         "status": "experimental",
         "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/cycles-one-shot"},
         "license": "LICENSE-One-Shot",
-        # a filter composed in the page from its package (the key map's K4), with the machines and effects ticked:
+        # a filter composed in the page from its package (notes/72), with the machines and effects ticked:
         # alone it gives 72-smpfilter.json byte for byte, whose conflicts give its excludes
         "package": "smpfilter",
     },

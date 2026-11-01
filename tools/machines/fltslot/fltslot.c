@@ -1,4 +1,4 @@
-/* The filter slot of model27's builder, with entries.S (the track filters, the key map's step K4). Addresses are VAs of
+/* The filter slot of model27's builder, with entries.S (the track filters, notes/72). Addresses are VAs of
  * OS 1.13.
  *
  * Every track can run a filter after Volume + Dist, the place of the Model:Samples' own filter. Each sound chooses one

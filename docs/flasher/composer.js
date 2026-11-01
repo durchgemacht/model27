@@ -43,7 +43,7 @@ const FX_LINE_MAX = 0x400000;                     // compose.FX_LINE_MAX: a slot
 const BLOCK_INSTR = 108225;                       // compose.BLOCK_INSTR: instructions in a block (notes/68 §17)
 const FX_WARN = Math.floor(BLOCK_INSTR / 10), FX_REFUSE = Math.floor(BLOCK_INSTR / 4);
 const FX_PEAK_WARN = Math.floor(BLOCK_INSTR / 2);
-const FILTER_POINT = "track.filter";              // compose.FILTER_POINT: the filter slot (the key map's step K4)
+const FILTER_POINT = "track.filter";              // compose.FILTER_POINT: the filter slot (notes/72)
 
 function fromHex(s) {
   // two hexadecimal digits per byte, as everywhere in the page (builder.js); anything else is refused
@@ -566,7 +566,7 @@ function fxLayer(mainOs, part, effects, symsOf, at, codeEnd, descStock, descUsed
            info: { id: part.id, code_at: at, code: code.length, data_at: dataAt, data: data.length, slots: infoSlots } };
 }
 
-// compose.fl_layer(): the filter slot of this build (the key map's step K4): the audio block's call of Volume + Dist,
+// compose.fl_layer(): the filter slot of this build (notes/72): the audio block's call of Volume + Dist,
 // the boot's call of the parameter tables' builder, the knob lookup's vtable entry (in front of the shortcut layer's
 // sc_knob), the encoder handler's question for TRACK (in front of the effect slots' fx_keys, or none), LFO + a knob's
 // own list, the pattern's p-lock tables and the three sound record functions (in front of the layer's wrappers). The
@@ -948,7 +948,7 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
     blobs.push([at, fxs.blob]);
     codeCursor = at + fxs.blob.length;
   }
-  let fl = null;                                  // the filter slot, in the builds that have a filter (K4)
+  let fl = null;                                  // the filter slot, in the builds that have a filter (notes/72)
   if (filters.length) {
     if (!parts.fltslot) throw new Error("a filter is ticked, and the page lacks the filter slot");
     const at = align4(codeCursor);

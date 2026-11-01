@@ -54,7 +54,7 @@ SELECTIONS = ((["sampler"], []), (["refmachine"], []), (["sampler", "refmachine"
               # notes/69 §19: POTS alone, with Digital in the same slot (both orders), and with SAMPLE and Digital
               (["pots"], []), (["digidelay", "pots"], []), (["pots", "digidelay"], []),
               (["sampler", "digidelay", "pots"], []),
-              # the key map's K4: Samples alone (the shortcut layer comes with every filter build), with REFF (two
+              # notes/72: Samples alone (the shortcut layer comes with every filter build), with REFF (two
               # filters), with SAMPLE before and after it (the moved descriptor table), with the effects (fx_keys
               # behind fl_keys), and the full offered set
               (["smpfilter"], []), (["smpfilter", "refflt"], []), (["sampler", "smpfilter"], []),

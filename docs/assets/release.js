@@ -7,6 +7,11 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.23", date: "2026-11-01", changes: [
+    { en: "New card, Samples, in a new section, Filters: the Model:Samples' filter on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give the track's sound the filter, then RETRIG + SWEEP for Cutoff (lowpass to the left, off in the middle, highpass to the right) and RETRIG + CONTOUR for Reso. Both work on every machine like any parameter: lock them on a trig, make them the LFO's destination, set them on all tracks with TRACK, or send CC 74 and 71. Each sound keeps its own filter" },
+    { en: "Samples is SAMPLE's filter from Cycles One-Shot, unchanged, checked bit for bit in an emulator and played on a Model:Cycles from the command line (2026-11-01), six filtered tracks with Control All included; experimental here until flashed from this page. Goes with every other card" },
+    { en: "Each held key now has one job. PATTERN + Delay Time chooses the pattern's delay (it was TRACK + Delay Time), and TRACK + Delay Time edits as on the stock OS again. SAMPLE's Loop and Reverse are on MACHINES + PUNCH and GATE (they were on RETRIG), and a tap on MACHINES still opens the machine list. RETRIG is the filter's. Played on a Model:Cycles with every card (2026-10-31)" },
+  ] },
   { version: "0.22", date: "2026-10-31", changes: [
     { en: "The flasher is simpler: cards in three sections, Machines, Effects and Mods; tick what you want and press Install under the cards, and the install steps follow on their own page. Only the exceptions carry a tag (Experimental); every card's Details still say how it was tested" },
     { en: "The page installs over USB the fast way only. If it doesn't find the Model:Cycles, download the .syx in step 4 and install it with Elektron Transfer. The Model:Samples choices and the Samples OS tab are on their own page, linked from the guide" },

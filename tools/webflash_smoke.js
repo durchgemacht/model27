@@ -327,7 +327,7 @@ async function main() {
       && !doc.querySelector("#mod-pots .tag"),
       `POTS alone ${potsAlone}; with Digital ${potsDd}, one composed tweak; with SAMPLE ${potsSmp}; with Control All ` +
       `Config too ${potsAll}, all ticked, no clash; no sub-choice; its guide link; tested, so no tag`);
-    // Samples: a filter card, composed with the machine and effect cards into one tweak (the key map's K4)
+    // Samples: a filter card, composed with the machine and effect cards into one tweak (notes/72)
     box("feat-smpfilter").click(); await wait(5);
     const sfAlone = chosen();
     box("feat-sampler").click(); await wait(5);

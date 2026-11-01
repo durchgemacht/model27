@@ -139,7 +139,7 @@ tools/machines/digidelay/     Digital Delay (notes/68 §18): PPPCCC's digital de
 tools/machines/pots/          POTS (notes/69): model27's own telephone-line delay, the delay slot's second effect (id 2), in
                               fixed point on the EMAC; tools/gen_pots.py writes its tables and builds it into
                               70-pots.json; tools/gen_hilbert.py its Hilbert pair; tools/emu/pots_host.py its host build
-tools/machines/fltslot/       the filter slot, a part (the key map's step K4): every track runs, after Volume + Dist, the
+tools/machines/fltslot/       the filter slot, a part (notes/72): every track runs, after Volume + Dist, the
                               filter its sound chose (k 32's low byte); its values are descriptors 1-4 on k 28-31 (RETRIG +
                               SWEEP / CONTOUR / COLOR / SHAPE), the type is RETRIG + PITCH; compose.py adds it, with the
                               shortcut layer, to the builds whose packages are filters (two at most; never with a machine's
@@ -178,7 +178,7 @@ CONTRIBUTING.md               terms for outside contributions, and how a machine
 
 Follow the shape of the last ones (tempo-max: commits `5997b4a`, `14fb9fa`, `6e592bc`; trig-hold, arp). In order:
 
-1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 70 is the last) with the
+1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 72 is the last) with the
    user's request and its source, the OS code involved (addresses, `[FAIT]`/`[HYP]`), the design, free space used and
    conflicts with other tweaks. Add a row to `notes/README.md`. See `notes/AGENTS.md`.
 2. **Write the generator** `tools/gen_<mod>.py` (and sources under `tools/machines/<mod>/` if it has code). It reads

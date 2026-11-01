@@ -2,8 +2,8 @@
 """Generates the tweaks of the reference packages alone: 28-refmachine.json (REF, notes/59 §2a),
 29-refmachine2.json (REF2, notes/63) and 34-refchord.json (REFC, the reference extension of a stock machine,
 notes/66 §3); and the objects of REFD and REFR, the reference effects of the delay and reverb slots (notes/68, step
-F1), whose tweaks come with the flasher's side of the effects (step F3), and of REFF, the reference filter (the key
-map's step K4): a tweak in the folder adds a computed conflict to every other composed tweak.
+F1), whose tweaks come with the flasher's side of the effects (step F3), and of REFF, the reference filter
+(notes/72): a tweak in the folder adds a computed conflict to every other composed tweak.
 
 The reference machine is model27's smallest added machine (tools/machines/refmachine/): a parabolic sine and noise
 through the stock amp chain, four knobs, no hook into the OS. It exists to prove the composer, to be the template a
@@ -15,7 +15,7 @@ adding a machine: a shortcut and two hooks that count, nothing that sounds; neve
 (tools/machines/refdelay/) and REFR (tools/machines/refreverb/) are effects: called in place of the stock delay or
 reverb through the builder's effect slots (tools/machines/fxslot/) when the device chooses them; never offered. REFF
 (tools/machines/refflt/) is a filter: run after Volume + Dist through the builder's filter slot
-(tools/machines/fltslot/) on the tracks whose sound chose it (the key map's step K4); never offered.
+(tools/machines/fltslot/) on the tracks whose sound chose it (notes/72); never offered.
 
 For each, this generator compiles the package's sources with the manifest's recipe into its committed object
 (tools/machines/<id>/<id>.o, ld -r of the objects: notes/60 §2), then composes the machine alone through
@@ -43,7 +43,7 @@ import gen_sdvintage_7th as g7     # noqa: E402
 MACHINES = (("refmachine", compose.DEV / "28-refmachine.json", ""),
             ("refmachine2", compose.DEV / "29-refmachine2.json", ""),
             ("refchord", compose.DEV / "34-refchord.json", " (notes/66 §3)"))
-# the reference effects (notes/68, step F1) and the reference filter (the key map's K4, T1): their committed objects
+# the reference effects (notes/68, step F1) and the reference filter (notes/72 §10): their committed objects
 # only, no tweak yet
 EFFECTS = ("refdelay", "refreverb", "refflt")
 

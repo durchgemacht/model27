@@ -92,7 +92,7 @@ FX_LINE_MAX = 0x400000
 BLOCK_INSTR = 108225
 FX_WARN, FX_REFUSE = BLOCK_INSTR // 10, BLOCK_INSTR // 4
 FX_PEAK_WARN = BLOCK_INSTR // 2              # the block of a switch, once: a warning past half a block
-# The filter slot (the track filters, the key map's step K4): a package that names it in uses is a filter, run after
+# The filter slot (the track filters, notes/72): a package that names it in uses is a filter, run after
 # Volume + Dist on every track whose sound chose it (tools/machines/fltslot/); a build holds at most the part's "most".
 FILTER_POINT = "track.filter"
 REGISTRAR = MACHINES / "registrar" / "registrar.json"
@@ -135,7 +135,7 @@ def load_manifest(mid):
     if not m["_machine"] and not m["_stock"] and not m["_effect"] and not m["_filter"]:
         sys.exit(f"!! {mid}: no 'machine', 'machine.stock', 'fx.delay', 'fx.reverb' or '{FILTER_POINT}' entry in uses: "
                  "not an added machine, an extension, an effect or a filter")
-    if m["_filter"]:                         # a filter of the filter slot (the key map's step K4)
+    if m["_filter"]:                         # a filter of the filter slot (notes/72)
         u = m["_filter"]
         if sum(x["point"] == FILTER_POINT for x in m["uses"]) > 1:
             sys.exit(f"!! {mid}: a package is one filter")
@@ -1103,7 +1103,7 @@ def fx_layer(img, part, effects, syms_of, at, code_end, desc_used):
 
 
 def fl_layer(img, part, filters, syms_of, at, code_end, desc_used, layer_syms, keys_next, diag=False):
-    """The filter slot of this build (the track filters, the key map's step K4): the audio block's call of Volume +
+    """The filter slot of this build (the track filters, notes/72): the audio block's call of Volume +
     Dist (0x40059852) goes to the part, which runs it and then each track's filter; since 0.2 the boot's call of the
     parameter tables' builder (0x4004486c), the knob lookup's vtable entry (0x401005a8, in front of the shortcut
     layer's sc_knob), the encoder handler's question for TRACK (0x4001f886, in front of keys_next, the effect slots'
@@ -1356,7 +1356,7 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     added = [m for m in mans if m["_machine"]]           # numbered 6, 7, ... in the order given
     exts = [m for m in mans if m["_stock"]]              # extensions of a stock machine (notes/66 §3): CHORD
     effects = [m for m in mans if m["_effect"]]          # effects of the delay and reverb slots (notes/68 §2)
-    filters = [m for m in mans if m["_filter"]]          # filters of the filter slot (the key map's K4)
+    filters = [m for m in mans if m["_filter"]]          # filters of the filter slot (notes/72)
     if len({m["_index"] for m in exts}) != len(exts):
         sys.exit(f"!! {', '.join(m['id'] for m in exts)}: two packages extend the same stock machine")
     pay = gs.PAY_ALONE
@@ -1441,7 +1441,7 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             fxs = fx_layer(img, load_part("fxslot"), effects, syms_of, at, gs.STUBS, gs.DESCN if added else g7.DESC)
             blobs.append((at, fxs[0]))
             code_cursor = at + len(fxs[0])
-        fls = None                           # the filter slot, in the builds that have a filter (the key map's K4)
+        fls = None                           # the filter slot, in the builds that have a filter (notes/72)
         if filters:
             at = align4(code_cursor)
             fls = fl_layer(img, load_part("fltslot"), filters, syms_of, at, gs.STUBS, gs.DESCN if added else g7.DESC,

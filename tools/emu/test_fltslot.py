@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Proof of the filter slot (the track filters, the key map's step K4, T1 to T4) on the OS's own code, with REFF, the
+"""Proof of the filter slot (the track filters, notes/72 §10 to §19) on the OS's own code, with REFF, the
 reference filter (tools/machines/refflt/), and Samples, the Model:Samples' filter (tools/machines/smpfilter/, id 1),
 through the builder's part tools/machines/fltslot/.
 

@@ -1,5 +1,5 @@
-/* Samples: the Model:Samples' filter on every track whose sound chose it (the track filters, the key map's step K4,
- * T4), filter id 1 of the builder's filter slot (tools/machines/fltslot/). It is SAMPLE's filter as it is: Cycles
+/* Samples: the Model:Samples' filter on every track whose sound chose it (the track filters, notes/72,
+ * §13), filter id 1 of the builder's filter slot (tools/machines/fltslot/). It is SAMPLE's filter as it is: Cycles
  * One-Shot's src/smp_filter.c, smp_filter_cf.S and smp_filter_tab.c, compiled from SAMPLE's package
  * (tools/machines/sampler/src/, the same files as the One-Shot commit its manifest names), whose header tells its
  * laws: a 2-pole lowpass below the centre of Cutoff, a highpass above it, nothing at the centre, the resonance on

@@ -165,13 +165,13 @@ const CLASSIC_UI = false;
 // ---------------------------------------------------------------------------
 const T = {
   title: "Teach your Cycles new tricks",
-  tagline: "New machines, effects and mods for your Model:Cycles. Pick what you like and install it over USB in about 30 seconds.",
+  tagline: "New machines, effects, filters and mods for your Model:Cycles. Pick what you like and install it over USB in about 30 seconds.",
   tab_mods: "Mods",
   tab_restore: "Official firmware",
   kind_machine: "Machines", kind_effect: "Effects", kind_filter: "Filters", kind_mod: "Mods",
   // a section's one line: what all its cards share (the effect slots are model27's, notes/68)
   kind_effect_sub: "Hold PATTERN and turn Delay Time or Reverb Size to switch between the stock effect and the ones you install. Your choice is saved with each pattern.",
-  // the filter slot's (the key map's K4): what every filter card shares
+  // the filter slot's (notes/72): what every filter card shares
   kind_filter_sub: "A filter on any track, after Volume + Dist. Hold RETRIG and turn PITCH to choose a sound's filter, then RETRIG + SWEEP and CONTOUR to set it. Each sound keeps its own.",
   // the sections of the old list, still searched (search from SEARCH_FROM cards)
   cat_pack: "Packs", cat_sound: "Sounds & machines", cat_seq: "Sequencer", cat_live: "Live playing",
@@ -749,7 +749,7 @@ function shortOf(f) {
 }
 const catOf = (f) => (f.cat && CATS.includes(f.cat) ? f.cat : "other");
 // The four sections of step 1: added machines, effects (a package that takes an effect slot, notes/68), filters (a
-// package of the filter slot, the key map's K4), mods.
+// package of the filter slot, notes/72), mods.
 const KINDS = ["machine", "effect", "filter", "mod"];
 function kindOf(f) {
   const p = f.package && window.MC_TWEAKS.packages && window.MC_TWEAKS.packages[f.package];

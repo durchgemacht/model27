@@ -11,8 +11,8 @@ with the committed object.
 
 Today four parts: shortcuts, the machine shortcuts and the sound record chain (tools/machines/shortcuts/, B4b);
 dispatch, the dispatchers of the points two machines share (tools/machines/dispatch/, B4c); fxslot, the effect
-slots (tools/machines/fxslot/, notes/68 step F1); and fltslot, the filter slot (tools/machines/fltslot/, the key map's
-step K4). Needs the m68k toolchain; compose.py does not.
+slots (tools/machines/fxslot/, notes/68 step F1); and fltslot, the filter slot (tools/machines/fltslot/,
+notes/72). Needs the m68k toolchain; compose.py does not.
 
     python3 tools/gen_parts.py [--check]
 """

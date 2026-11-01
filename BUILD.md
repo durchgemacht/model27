@@ -310,6 +310,31 @@ composés : `b37a17848ea281fc15467f9388238eb55d257de4b757c4a24803b50ff6f236b2` ;
 d'origine avant la boucle des voix (note 68 §21, l'idée de Model-TG), jouée sur un Model:Cycles depuis la page le
 29/10/2026 : un projet chargé tourne et sonne pareil (§21.8).
 
+### Filtre Samples (filtre de piste)
+
+`tweaks/model-cycles_OS1.13/72-smpfilter.json` est produit par `tools/gen_smpfilter.py`, qui compile le filtre de
+SAMPLE (les sources de Cycles One-Shot de `tools/machines/sampler/src/`, inchangées) avec sa colle
+`tools/machines/smpfilter/smpfilter.c` et le compose seul avec `tools/compose.py` : le premier filtre (id 1) de la
+partie `fltslot` (`tools/gen_parts.py`), qui fait passer chaque piste, après Volume + Dist, par le filtre que son son a
+choisi ([note 72](notes/72-track-filters.md)). RETRIG + PITCH choisit le filtre, RETRIG + SWEEP / CONTOUR règlent
+Cutoff et Reso (k 28 et 29, descripteurs 1 et 2 de toutes les machines : p-locks, LFO, Control All, CC 74 / 71). REFF
+(`tools/machines/refflt/`, id 255), jamais proposé, sert à la preuve. Celle-ci fait tourner le vrai bloc audio, les
+tables construites au démarrage, la recherche des potards, le chemin du LFO, les p-locks du pattern et l'enregistrement
+des sons, d'origine et modifiés, Samples au bit près contre le build hôte des sources de SAMPLE, et compte la charge :
+```sh
+python3 tools/gen_parts.py --check
+python3 tools/gen_refmachine.py --cycles model-cycles_OS1.13.syx --check
+python3 tools/gen_smpfilter.py --cycles model-cycles_OS1.13.syx [--check]
+python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,smpfilter   # avec SAMPLE
+```
+MAIN OS patché, `smpfilter` seul : `76b4755373e5609ffc356b71e4320dce2a045d2d1e3d7e3f978f8eb7a9a5ca93` ; avec SAMPLE
+(`sampler`, `smpfilter`) : `081740df00636c081b98287b99e024a10007ac4b87d16994a7c9c30e47837dfd` ; avec toutes les cartes
+de la page : `449b7df8499e3a1db5585a0d87bbd284dd9271f8b545f7b0d941a2cb3099d8ef`, ceux que la page compose (`fltslot`
+0.5, Samples 0.2). Le premier et le dernier ont été joués sur un Model:Cycles depuis la ligne de commande le 01/11/2026
+(note 72 §20).
+
 ### Trig Cond dans un autre ordre
 
 `tweaks/model-cycles_OS1.13/80-trig-cond-order.json` est produit par `tools/gen_trig_cond_order.py`, qui assemble

@@ -1,4 +1,4 @@
-/* The entries of model27's filter slot, with fltslot.c (the track filters, the key map's step K4): a part the composer
+/* The entries of model27's filter slot, with fltslot.c (the track filters, notes/72): a part the composer
  * adds to a build when one of its packages is a filter. Built once by tools/gen_parts.py into fltslot.o and placed by
  * tools/relocate.py like a package; the composer writes the data block right after it and resolves fl_data, the
  * block's address, as a patch point. Addresses are VAs of OS 1.13.

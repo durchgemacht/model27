@@ -1,4 +1,4 @@
-/* REFF: model27's reference filter (the track filters, the key map's step K4, T1). It proves the filter slot: the audio
+/* REFF: model27's reference filter (the track filters, notes/72 §10). It proves the filter slot: the audio
  * block's call of Volume + Dist reaches the builder's part (tools/machines/fltslot/), which calls REFF on the tracks
  * whose sound chose id 255, with the track's block, its smoothed k 28 to k 31 and whether a note started on it. Never
  * offered to users.
