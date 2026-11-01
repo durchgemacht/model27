@@ -329,11 +329,12 @@ python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,smpfilter   # avec SAMPLE
 ```
-MAIN OS patché, `smpfilter` seul : `76b4755373e5609ffc356b71e4320dce2a045d2d1e3d7e3f978f8eb7a9a5ca93` ; avec SAMPLE
-(`sampler`, `smpfilter`) : `081740df00636c081b98287b99e024a10007ac4b87d16994a7c9c30e47837dfd` ; avec toutes les cartes
-de la page : `449b7df8499e3a1db5585a0d87bbd284dd9271f8b545f7b0d941a2cb3099d8ef`, ceux que la page compose (`fltslot`
-0.5, Samples 0.2). Le premier et le dernier ont été joués sur un Model:Cycles depuis la ligne de commande le 01/11/2026
-(note 72 §20).
+MAIN OS patché, `smpfilter` seul : `92f6955eaa5d286516a3309bf89a39ff6a63ab021b4a2ba4f2066b3414593d6a` ; avec SAMPLE
+(`sampler`, `smpfilter`) : `83801ea7aa81f7630d4885b98c98a6a7a580181442553f46e0d3aec96c334957` ; avec toutes les cartes
+de la page : `e6a60aa34d895db9e38084f08c2ff3058ce2dd4b4565a557a21ae592df01005a`, ceux que la page compose (`fltslot`
+0.6, Samples 0.3 : Cutoff de -64 à 63 comme SAMPLE, CUTO comme destination du LFO, note 72 §22). Avec `fltslot` 0.5 et
+Samples 0.2 (L64 … OFF … H63, FREQ), joués sur un Model:Cycles depuis la ligne de commande le 01/11/2026 (note 72
+§20) : seul `76b47553…`, avec toutes les cartes `449b7df8…`.
 
 ### Trig Cond dans un autre ordre
 

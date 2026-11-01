@@ -329,8 +329,9 @@ void fl_fmt_type(void *fn, int32_t v, char *buf)
 		;
 }
 
-/* Filter Cutoff's formatter, as Pan's (0x40045aee): L64 .. L1, OFF at the centre, H1 .. H63, three characters at most
- * (the screen shows no more, notes/47 §5); in a measuring build the last window's average load. */
+/* Filter Cutoff's formatter, as SAMPLE's (smp_fmt_cutoff) and the Model:Samples': -64 .. -1 the lowpass side, 0 off,
+ * 1 .. 63 the highpass side (since 0.6; L64 .. OFF .. H63 before, too close to Pan's L), three characters at most (the
+ * screen shows no more, notes/47 §5); in a measuring build the last window's average load. */
 void fl_fmt_cut(void *fn, int32_t v, char *buf)
 {
 	int32_t d = (v - 0x4000) >> 8;
@@ -339,13 +340,10 @@ void fl_fmt_cut(void *fn, int32_t v, char *buf)
 		share(D->avg_t, buf);
 		return;
 	}
-	if (v == 0x4000) {
-		buf[0] = 'O', buf[1] = 'F', buf[2] = 'F', buf[3] = 0;
-		return;
-	}
-	*buf++ = d < 0 ? 'L' : 'H';
-	if (d < 0)
+	if (d < 0) {
+		*buf++ = '-';
 		d = -d;
+	}
 	if (d >= 10)
 		*buf++ = (char)('0' + d / 10);
 	*buf++ = (char)('0' + d % 10);

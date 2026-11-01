@@ -534,11 +534,13 @@ async function main() {
     await clearAll();
     // search: only from 20 mods
     check(feats.length < 20 && box("mod-find").hidden, `no search field with ${feats.length} mods (it appears from 20)`);
-    // the Effects section says what its cards share; Details come in paragraphs
-    check(/Hold PATTERN and turn Delay Time or Reverb Size/.test(textOf(doc, "#grp-effect .grp-sub")) && !doc.querySelector("#grp-mod .grp-sub")
-      && /Hold RETRIG and turn PITCH/.test(textOf(doc, "#grp-filter .grp-sub"))
+    // the Effects section says what its cards share, naming only the slots they play in (no reverb card yet);
+    // Details come in paragraphs
+    check(/Hold PATTERN and turn Delay Time to switch between the stock delay and/.test(textOf(doc, "#grp-effect .grp-sub"))
+      && !/Reverb|\{/.test(textOf(doc, "#grp-effect .grp-sub")) && !doc.querySelector("#grp-mod .grp-sub")
+      && /Hold RETRIG and turn PITCH .* saved with each sound/.test(textOf(doc, "#grp-filter .grp-sub"))
       && doc.querySelectorAll("#det-pots > p").length === 2 && doc.querySelectorAll("#det-sampler > p").length === 2,
-      "the Effects section's one line; Details in paragraphs");
+      "the Effects and Filters sections' one line each, the Effects one with Delay Time only; Details in paragraphs");
     check(errors.length === 0, "no JS error in the mod picker " + (errors.length ? JSON.stringify(errors) : ""));
   }
   // flasher/?samples: the tabs and the machine picker come back

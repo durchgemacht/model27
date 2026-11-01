@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.24", date: "2026-11-01", changes: [
+    { en: "Samples' Cutoff reads -64 to 63, as on SAMPLE: below 0 a lowpass, 0 off, above 0 a highpass. It read L64 … OFF … H63 before, which looked too much like Pan. As the LFO's destination it now reads CUTO instead of FREQ" },
+    { en: "Only the display changes; the sound is the same, checked in an emulator. Samples stays experimental until flashed from this page" },
+  ] },
   { version: "0.23", date: "2026-11-01", changes: [
     { en: "New card, Samples, in a new section, Filters: the Model:Samples' filter on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give the track's sound the filter, then RETRIG + SWEEP for Cutoff (lowpass to the left, off in the middle, highpass to the right) and RETRIG + CONTOUR for Reso. Both work on every machine like any parameter: lock them on a trig, make them the LFO's destination, set them on all tracks with TRACK, or send CC 74 and 71. Each sound keeps its own filter" },
     { en: "Samples is SAMPLE's filter from Cycles One-Shot, unchanged, checked bit for bit in an emulator and played on a Model:Cycles from the command line (2026-11-01), six filtered tracks with Control All included; experimental here until flashed from this page. Goes with every other card" },

@@ -355,3 +355,18 @@ OS the page composes (`REF_MAINOS`). Experimental on the page until flashed from
 - T7: Env depth and AD in Samples, under the same id (k 30, k 31, the trig bit).
 - A second filter (the Modded-Cycles track filter could follow, with its envelope).
 - The standard's text (§6), only on the maintainer's word.
+
+## 22. Cutoff as on SAMPLE, CUTO for the LFO (2026-11-01, release 0.24)
+
+The maintainer after 0.23: « "L64" und "H63" sieht nicht gut aus und besonders das L ist irreführend bzw leicht mit
+PAN L zu verwechseln. einfach -64 und 63 nutzen wie beim SAMPLE », and as the LFO's destination « CUTO » rather than
+« FREQ ».
+
+- **`fltslot` 0.6**: `fl_fmt_cut` writes -64 .. -1 (the lowpass side), 0 (off), 1 .. 63 (the highpass side), as SAMPLE's
+  `smp_fmt_cutoff` (`(word >> 8) - 64`, the same value for every word, fine steps included); a measuring build still
+  shows the load there. 3 264 bytes of code.
+- **Samples 0.3**: Cutoff's short name, which the LFO's destination shows, is CUTO.
+- **The proof**: section 6 expects SAMPLE's 128 values; the normal build's Cutoff at the centre reads 0. Unicorn, the
+  maintainer's run (2026-11-01): **ALL OK**, all seven selections.
+- MAIN OS (`REF_MAINOS`): Samples alone `92f6955e…`, with SAMPLE `83801ea7…`, every card `e6a60aa3…`. The builds of
+  §20 (`76b47553…`, `449b7df8…`) showed L64 .. OFF .. H63 and FREQ; only the display changed, not on the machine yet.

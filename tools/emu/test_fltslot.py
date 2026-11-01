@@ -56,7 +56,7 @@ packages of its own), on the official OS 1.13:
      read in the descriptor's row, which fl_boot writes) with the records filled as at boot: with RETRIG
      held, COLOR..CONTOUR set the destination to the filter's values the build has (k 28 + its place), also with FUNC
      or TRACK; every other knob, and everything without RETRIG, the destination of the build without the filters;
-  6. the formatters: Filter Cutoff's (fl_fmt_cut) over the 128 steps, L64 .. OFF .. H63, three characters at most; the
+  6. the formatters: Filter Cutoff's (fl_fmt_cut) over the 128 steps, -64 .. 0 .. 63 as SAMPLE's, three characters at most; the
      type's (fl_fmt_type) naming the selected track's filter, OFF for none or an id the build lacks;
   7. the type (T2): fl_keys as the encoder handler calls it at 0x4001f886, with the handler's frame: on descriptor 5
      the handler's end with 0 and its registers, four detents for a step, the count again after a change of direction
@@ -838,7 +838,7 @@ def formatter_tests(key, img, runtime, syms, mans):
         u.uc.mem_write(BUF, b"\xee" * 16)
         u.call(syms["fl_fmt_cut"], 0, v << 8, BUF)
         steps.append(u.cstr(BUF))
-    check(steps == [f"L{64 - v}" for v in range(64)] + ["OFF"] + [f"H{v - 64}" for v in range(65, 128)]
+    check(steps == [str(v - 64) for v in range(128)]                 # as SAMPLE's smp_fmt_cutoff, since fltslot 0.6
           and all(len(x) <= 3 for x in steps) and not u.bad,
           f"{key}: Filter Cutoff's formatter over the 128 steps: {steps[0]} .. {steps[63]}, {steps[64]}, {steps[65]} .. "
           f"{steps[127]}, three characters at most")
@@ -1165,7 +1165,7 @@ def load_tests(key, stock, ids, img, runtime, syms):
         diag = w.uc.mem_read(sy["fl_data"] + DATA["diag"], 1)[0]
         shown[name + " flag"] = diag
     check(shown["measuring"] == ["6.4", "12", "0.5", "99", "99", "99"] and shown["measuring flag"] == 1
-          and shown["normal flag"] == 0 and shown["normal"][0::2] == ["OFF"] * 3,
+          and shown["normal flag"] == 0 and shown["normal"][0::2] == ["0"] * 3,
           f"{key}: a measuring build shows the load (Cutoff's popup the average, the type's the peak: "
           f"{', '.join(shown['measuring'])}); this build the values ({', '.join(shown['normal'][:2])})")
 

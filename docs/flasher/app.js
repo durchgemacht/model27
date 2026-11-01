@@ -34,32 +34,32 @@ const REF_MAINOS = {
   "sampler": "c09236d30e8ca5f2d45a0be916a1f9baefcf106d8831d94e58455477b6374fea",
   "digidelay": "280f662b39263d5c77f841a2e699dcff71bf6833712df5d411e7f2afec82425b",
   "pots": "19ef3b58909ae07f070a948623dd58c426917280b9287c5cc154563e52ca2385",
-  "smpfilter": "76b4755373e5609ffc356b71e4320dce2a045d2d1e3d7e3f978f8eb7a9a5ca93",
+  "smpfilter": "92f6955eaa5d286516a3309bf89a39ff6a63ab021b4a2ba4f2066b3414593d6a",
   "trig-cond-order": "018690231f705e49422a5032a36d1685637db2dd682c65942277759d7da351f1",
   // every pair of cards the page lets you tick together
   "control-all-config+trig-preview": "cb9d13f3d0be7763e9b3e37e18c88a382110f5ec0521947cb1beee39e145373c",
   "control-all-config+sampler": "e09f1d9de60e9f03d9ab2774d84703e7cac6fd2892c64729d9f28eedf98833c4",
   "control-all-config+digidelay": "d955ddfb37584fa961414d7629dc3ba1d6b60ffd040ff9246cf9422d8a681e35",
   "control-all-config+pots": "9ec27bb9ea6dad3be86f53b460c6159c33c8db1394feb6fafd0ce3fb68d855eb",
-  "control-all-config+smpfilter": "c4f392acb03826479333689eca40e11e2acac94c8b679dfab0d50f021c021dce",
+  "control-all-config+smpfilter": "85d7a1fd457eb861867654f153bffce6098bc60dd7456cdcb1721cf262b6df4d",
   "control-all-config+trig-cond-order": "86a1c9ff23fc31f9153fc75cb68ab456e6d5ecee27d1033b58aa72396cd57188",
   "trig-preview+sampler": "1e4f9ef418c4c756865fede7cc14525950bb84136a046cc5c1a5a2756ea30522",
   "trig-preview+digidelay": "bc8b0c78fc4d627f2882b8f1bc6f0886a146407329be7a7b173be6bfa0c4ae39",
   "trig-preview+pots": "8a5eb857e624c8d7ffdae9c5b7fd9eeceafd5e4163d4beb76fbba1104c9a4d1c",
-  "trig-preview+smpfilter": "aba9dae8a36786a0c050135b476ba21194cdeb5e91a4a729f389a9a4c374bfac",
+  "trig-preview+smpfilter": "f3539216cddeb12c0539633c603197e1d71abd9f09f7c4e97a50ff9c72d7ed49",
   "trig-preview+trig-cond-order": "948c90e0a40f2d120d098a08d48da20ce40c76f3d39d7bc2a968ed0857fa740d",
   "sampler+digidelay": "83b6060851cf7c4f9765c55753d5b5c00271d4423a6a8ae243bb5e81d1495406",
   "sampler+pots": "70341d1189108fe4f91f2a4f235f452eb281e4e9fc1fd3cbc80516ca467d131e",
-  "sampler+smpfilter": "081740df00636c081b98287b99e024a10007ac4b87d16994a7c9c30e47837dfd",
+  "sampler+smpfilter": "83801ea7aa81f7630d4885b98c98a6a7a580181442553f46e0d3aec96c334957",
   "sampler+trig-cond-order": "d061f20b23cf293e29b2f39eb01a12c7929ecbcf0d261f7a1667ce264d187c14",
   "digidelay+pots": "b37a17848ea281fc15467f9388238eb55d257de4b757c4a24803b50ff6f236b2",
-  "digidelay+smpfilter": "93cd92c99b415f4d35ff220aba13aa4027f3158d10a55262ab73b4bad8d81726",
+  "digidelay+smpfilter": "d335dc65d481313b2053ece7a28e3355b3c5a11f8b95210278558edb68c0cd0d",
   "digidelay+trig-cond-order": "c17bc71b2473a6c6fcd0960bb77e9b5377f391dcd5b2cb7a2fbfcc635f3f1548",
-  "pots+smpfilter": "31b327fac3009a224966b20b5694cb340fe2b9b8855ef82c9caf24ffed154085",
+  "pots+smpfilter": "106e091b7cad647198878358c96282727fe4bb1e346aa440a57a5e259ae7ea84",
   "pots+trig-cond-order": "2c9ff45d8b2dc3a62b6eda6bdceeea4abe26ee341b36fcaad90b7d82fa83564f",
-  "smpfilter+trig-cond-order": "870293fbbfb679ebc953fcbab6f861fa05ac0a19c0cb301b274ac51795c2ff5f",
+  "smpfilter+trig-cond-order": "382697fe7cfc5b529abfa2d1bea8b34e1d1e5509853324401d19584cd6561bc2",
   // the largest combinations: every compatible card ticked, from each card, both ways, with and without the Syntakt engines, with and without each of the machines that join them
-  "control-all-config+trig-preview+sampler+digidelay+pots+smpfilter+trig-cond-order": "449b7df8499e3a1db5585a0d87bbd284dd9271f8b545f7b0d941a2cb3099d8ef",
+  "control-all-config+trig-preview+sampler+digidelay+pots+smpfilter+trig-cond-order": "e6a60aa34d895db9e38084f08c2ff3058ce2dd4b4565a557a21ae592df01005a",
 };
 const REF_MODS = {
   "control-all-config": {"w": "b47aa26f4f855c750735a03eae7453847356c376f47a4010cf4f1a5bf316be5e"},
@@ -68,18 +68,18 @@ const REF_MODS = {
   "sampler": {"w": "b4cf254509fba02ece5e9e30b8c3f869dd9932e48965408805cd572ee3adbd38", "p": "39011131a39447665237e4cb3e837e302ebd276cd30e299693235c5857896616"},
   "digidelay": {"w": "07958d2514f79e19612f26d706fca995350f6dc837c8084d914b2afb6a9b413c", "p": "3e79516c96eba983ac619102f61fba78e0d8aa45136ea4178baf8ae898741268"},
   "pots": {"w": "c12b7a591e3eaffb1b2d8ab75c8e2fe4085fedde47e05da992684ebdd3d0f171", "p": "233ac95ece72ab18018b19535ae2d005098396e589e37eb8ac25f4e64d0f6ec6"},
-  "smpfilter": {"w": "b693db9c9635cf11166149cd297a1a11e8c28e50ff9796bafe410ec04bb835e7", "p": "597d81dbba0ae6ffd1f6d3b19f11fadf5186204d8a942422b99bb8c950f92bf0"},
+  "smpfilter": {"w": "73eabfea49a3fbf642a34709aabf9f918dd9abf858143a310e3e75d8559620fd", "p": "67c85b7051c37fd0972f3aa7c7a9c7959cd953d14462b2bd3a9ac0d6f05d53a5"},
   "sampler+digidelay": {"w": "0f02f9e770008bd097ba7aa24a01bff3b9d21dc882a8e08c42aaca52818b6152", "p": "b03cec5fbb11ed5eaa6ca4984e83c68378e8d0cd2090d1ed15817a45d96bbead"},
   "sampler+pots": {"w": "ffc88cfbdcb598649c786fde7be18c4e4cfaa9e7767d030cd3eb5f76cbd739d5", "p": "0d439d9d129998c685ab3d7816e5d78179a16f53f94c3601facb2c2f25c1988f"},
-  "sampler+smpfilter": {"w": "9058124036b178275e7d64b285228c2924d3184180eecbf7f9efa3b751edb5d0", "p": "6e43707c6892965f41f8f7c867e272bc3bf5790185e2f3c4dbe54bbdd8253d84"},
+  "sampler+smpfilter": {"w": "4343f6fb2aa02b0a6fe2404b91e0c1b0ffbdbbc548800753680a4cb62f064dc4", "p": "c08d676676225706592ee969be3c9e640eec926cade59546905c26db3f900c04"},
   "digidelay+pots": {"w": "c74b7acb628ec84fb9a26992d9a5785eb76eec39fc88e0c25986cbe4a103934d", "p": "dc947c628d79c7cc16acb5eb7bdecd811189f8239c2b794877664c13f82c0e9a"},
-  "digidelay+smpfilter": {"w": "22f99dc929961ade307e260e420061a61e5dafb04b581b33205e2771aa04f1f1", "p": "965d363b684ac414196f50df0fbae3707f45792775132141f42960ac1ce8cf4f"},
-  "pots+smpfilter": {"w": "0225a565aedd074b346036dfe0afaa95fe4bf15efad67b5b053a73d40dbf5478", "p": "0c4e5fdd7e7ddea9581c71e80000bc4dd938d3d07cd46339ca7ae60db51d57e4"},
+  "digidelay+smpfilter": {"w": "c252bcb4028c46f3f76084f4e7306245d81ebc058350dbd5d1e2d0cf38767f6a", "p": "f9b9af258b7100772288dd09b30baef347d4818e984646575bd988b4cd254f73"},
+  "pots+smpfilter": {"w": "676eb3dd928350513722c3c7f77d91104283be50e91d948edf027a25c39a2a75", "p": "99a454703eda1cd39e9a5d3680b87c5c41824d1ebb2dfc685d641e3d5a2ff3d9"},
   "sampler+digidelay+pots": {"w": "a79a59309a15d8659271d9b4aedb5c0b31346d8380d4e1409212ceb938bde60b", "p": "d86a328747c040f2b15b0c048365dea86c6fdc0b03e99e718dc666fa321abbda"},
-  "sampler+digidelay+smpfilter": {"w": "a47b70cc17b7a76285d2e79c8e277e078cf85a222dad1e92cb1e9e28863c654d", "p": "55c15de760b84a881e0db3c2894894efced7fc317fe5d9729ad06752c4c1f934"},
-  "sampler+pots+smpfilter": {"w": "808bed7e495a156013508042cc291afae05ff005c6c71caa80ed8850e0e96c8d", "p": "dcc3fc43319912bb9e6dde1ae0ed2e2b4e33359cd68db7da24ce14a05de404b0"},
-  "digidelay+pots+smpfilter": {"w": "2bb9817c256dbd71e68408aa4307bb5766270c5f7e6d8fb5984e1b6e249873cb", "p": "3a633e29bb2b0a630fbc1e7d3f99698b9897906708ac6fd178a790d9f90a7155"},
-  "sampler+digidelay+pots+smpfilter": {"w": "21f2afd8285ba4467a0c035b7884240771748bf56462285d3f9f6fd61266e54a", "p": "19cbba6e927f946fd09fa8b7fb093d3f0442e72df4ff24f4152062174872f618"},
+  "sampler+digidelay+smpfilter": {"w": "1869cf88bc34cda8c2a8aa1c62f6adef98ef9994746a028fbe03283d1ef56b0e", "p": "cfbef50a8503fdd973de9d68ebfdde62931b42e8a929c8bdd52d2e67756665ae"},
+  "sampler+pots+smpfilter": {"w": "28117cdeda4691e14b408c3ccd706d2f00e8cf86e6023679ec809e1a6396fb9f", "p": "d74a266e622874abc78763b1ea1a1fdb6c43564bf4da46d2a318de7efc99c1bb"},
+  "digidelay+pots+smpfilter": {"w": "b3e641069e24a594203320210fb3801736f834d789d83032da299a49bec78612", "p": "e8be54c6cef747f6dea4735dce7795c47d8bc873ecd2bd5e38b46f2cef8e5627"},
+  "sampler+digidelay+pots+smpfilter": {"w": "f99ce831e7f8c6255de55afc37ee602020735b576bbd583820ae71a9364ffcbb", "p": "9c88fcb369a863b8e7cc8b97fbb26db5c52c56f88e5b8fb5deb37fe65bac7c8e"},
 };
 
 // "Samples OS" tab: official Model:Samples OS 1.13 inside the official Model:Cycles container
@@ -169,10 +169,13 @@ const T = {
   tab_mods: "Mods",
   tab_restore: "Official firmware",
   kind_machine: "Machines", kind_effect: "Effects", kind_filter: "Filters", kind_mod: "Mods",
-  // a section's one line: what all its cards share (the effect slots are model27's, notes/68)
-  kind_effect_sub: "Hold PATTERN and turn Delay Time or Reverb Size to switch between the stock effect and the ones you install. Your choice is saved with each pattern.",
+  // a section's one line: what all its cards share (the effect slots are model27's, notes/68); {knobs} and {stock}
+  // name only the slots that the offered effect cards play in (fxSub)
+  kind_effect_sub: "Hold PATTERN and turn {knobs} to switch between {stock} and the ones you install. Your choice is saved with each pattern.",
+  fx_knob_delay: "Delay Time", fx_knob_reverb: "Reverb Size", fx_or: " or ",
+  fx_stock_delay: "the stock delay", fx_stock_reverb: "the stock reverb", fx_stock: "the stock effect",
   // the filter slot's (notes/72): what every filter card shares
-  kind_filter_sub: "A filter on any track, after Volume + Dist. Hold RETRIG and turn PITCH to choose a sound's filter, then RETRIG + SWEEP and CONTOUR to set it. Each sound keeps its own.",
+  kind_filter_sub: "Hold RETRIG and turn PITCH to switch a sound between no filter and the ones you install, then turn the other knobs with RETRIG to set it. Your choice is saved with each sound.",
   // the sections of the old list, still searched (search from SEARCH_FROM cards)
   cat_pack: "Packs", cat_sound: "Sounds & machines", cat_seq: "Sequencer", cat_live: "Live playing",
   cat_screen: "Screen & browsing", cat_io: "USB & MIDI", cat_other: "Other mods",
@@ -471,7 +474,7 @@ const FEAT = {
     desc: "Every repeat goes down an old telephone line once more. The echoes get darker and narrower, drift further out of tune, fade in and out, and pick up a coarse grain as they die away.\n\nWhile it plays, Time and Fdbk work as usual and are labelled POTS Time and POTS Fdbk. Even at full feedback the repeats never run away. The delay is mono." },
   smpfilter: { label: "Samples filter",
     short: "The Model:Samples' filter on any track: lowpass, off or highpass on one knob, with resonance.",
-    desc: "Hold RETRIG and turn PITCH to give the track's sound a filter: OFF, then SMP. Then hold RETRIG and turn SWEEP for Cutoff: lowpass to the left (L64 is the most closed), off in the middle, highpass to the right (H63). RETRIG + CONTOUR sets the resonance.\n\nBoth are real parameters of every machine: lock them on a trig, make them the LFO's destination (hold LFO and RETRIG and turn the knob), set them on all tracks with TRACK, or send CC 74 and 71. Each sound keeps its own filter and settings, saved with it. The filter is the one inside SAMPLE, measured on the Model:Samples, and comes after Volume + Dist.",
+    desc: "Hold RETRIG and turn PITCH to give the track's sound a filter: OFF, then SMP. Then hold RETRIG and turn SWEEP for Cutoff: below 0 a lowpass (-64 is the most closed), 0 off, above 0 a highpass, as on SAMPLE. RETRIG + CONTOUR sets the resonance.\n\nBoth are real parameters of every machine: lock them on a trig, make them the LFO's destination (hold LFO and RETRIG and turn the knob), set them on all tracks with TRACK, or send CC 74 and 71. Each sound keeps its own filter and settings, saved with it. The filter is the one inside SAMPLE, measured on the Model:Samples, and comes after Volume + Dist.",
     note: "Six tracks filtered at once use about a tenth of the processor's time. A sound saved on this firmware loses its filter on another firmware, nothing else." },
   "trig-cond-order": { label: "Trig Condition Order",
     short: "On the CHANCE knob, the A:B conditions now come before the percentages.",
@@ -757,6 +760,13 @@ function kindOf(f) {
   if (p) return (p.uses || []).some((u) => /^fx\./.test(u.point || "")) ? "effect" : "machine";
   return f.engines ? "machine" : "mod";
 }
+// the Effects section's knobs and stock effect: only the slots (fx.delay, fx.reverb) the offered effect cards play in
+function fxSub(cards) {
+  const uses = (f) => (window.MC_TWEAKS.packages[f.package] || {}).uses || [];
+  const slots = ["delay", "reverb"].filter((s) => cards.some((f) => uses(f).some((u) => u.point === "fx." + s)));
+  return { knobs: slots.map((s) => t("fx_knob_" + s)).join(t("fx_or")),
+    stock: t(slots.length === 1 ? "fx_stock_" + slots[0] : "fx_stock") };
+}
 // display order: by section, then CATS, then FEATURES order
 const order = () => KINDS.flatMap((k) => CATS.flatMap((c) => features().filter((f) => kindOf(f) === k && catOf(f) === c)));
 // the real "excludes" (explained to the user); excludes() above also counts what a pack includes
@@ -881,7 +891,7 @@ function renderFeatures() {
     g.id = "grp-" + k;
     g.setAttribute("aria-labelledby", "grp-h-" + k);
     g.hidden = !mine.some(matches);
-    const sub = T["kind_" + k + "_sub"];
+    const sub = T["kind_" + k + "_sub"] && t("kind_" + k + "_sub", k === "effect" ? fxSub(mine) : undefined);
     g.innerHTML = `<h2 class="grp-h" id="grp-h-${k}">${esc(t("kind_" + k))}</h2>` + (sub ? `<p class="grp-sub">${esc(sub)}</p>` : "");
     const body = document.createElement("div");
     body.className = "grp-body";
