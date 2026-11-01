@@ -2,11 +2,12 @@
  * slot (tools/machines/fltslot/), which calls it after Volume + Dist with the track's block and its smoothed k 28 to
  * k 31: p-locks, the LFO and the velocity move the bands as they move any parameter.
  *
- * Low, k 28 (RETRIG + SWEEP, CC 74): a low shelf at 100 Hz. High, k 29 (RETRIG + CONTOUR, CC 71): a high shelf at
- * 8 kHz. Mid, k 30 (RETRIG + COLOR): a bell's gain. Mid Freq, k 31 (RETRIG + SHAPE): the bell's centre, 1000 Hz *
- * 5^((k - 64) / 64): 200 Hz at 0, 1 kHz at 64, about 4.9 kHz at 127. Every gain is 12 dB * (k - 64) / 64: -12 dB at
- * 0, flat at 64 (the word 0x4000), +11.8 dB at 127. High starts at 64 too (its start word, fltslot 0.8: CONTOUR's
- * neutral word is 0), so a sound that steps to EQ is flat on every band. The bands are the Audio EQ Cookbook's: the
+ * Since 0.4 the frequency on SWEEP and the amount on CONTOUR, as the other Track FX: Mid Freq, k 28 (RETRIG + SWEEP,
+ * CC 74): the bell's centre, 1000 Hz * 5^((k - 64) / 64): 200 Hz at 0, 1 kHz at 64, about 4.9 kHz at 127. Mid, k 29
+ * (RETRIG + CONTOUR, CC 71): the bell's gain. Low, k 30 (RETRIG + COLOR): a low shelf at 100 Hz. High, k 31 (RETRIG +
+ * SHAPE): a high shelf at 8 kHz. (0.1 to 0.3: Low on k 28, High on k 29, Mid on k 30, Mid Freq on k 31.) Every gain
+ * is 12 dB * (k - 64) / 64: -12 dB at 0, flat at 64 (the word 0x4000), +11.8 dB at 127. Mid starts at 64 too (its
+ * start word, fltslot 0.8: CONTOUR's neutral word is 0), so a sound that steps to EQ is flat on every band. The bands are the Audio EQ Cookbook's: the
  * shelves with the slope S = 1, the bell with Q 1, constant Q (a cut is the mirror of the same boost). They run Low,
  * then Mid, then High.
  *
@@ -166,7 +167,7 @@ static int rung_out(const int32_t (*s)[4])
 void eq_process(int32_t *block, const int16_t *words, uint32_t track, uint32_t triggered)
 {
 	struct track *t;
-	int32_t lo = words[0], hi = words[1], mg = words[2], mf = words[3];   /* clamped when worked out */
+	int32_t mf = words[0], mg = words[1], lo = words[2], hi = words[3];   /* clamped when worked out */
 	uint32_t on;
 	int k;
 	(void)triggered;
