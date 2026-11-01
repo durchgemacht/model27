@@ -401,8 +401,9 @@ ALL_FEATURES = [
                 "RETRIG + CONTOUR is Bits (off at 127, fewer to the left, one bit at 0), with p-locks, LFO and CC 74 / 71.",
         # model27's own (notes/73): the Track FX's first effect, through the filter slot (fltslot 0.7); bit for bit
         # the host build of the same source in emulation; on the Model:Cycles from the command line on 2026-11-01
-        # (0.1, notes/73 §10; 0.4 with fltslot 0.8, §14), not yet flashed from this page
-        "status": "experimental",
+        # (0.1, notes/73 §10; 0.4 with fltslot 0.8, §14), then flashed from this page (release 0.26) the same day
+        # (notes/73 §15)
+        "status": "tested",
         "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
         # a Track FX composed in the page from its package (notes/73), with the machines, effects and Samples ticked:
         # alone it gives 73-crush.json byte for byte, whose conflicts give its excludes

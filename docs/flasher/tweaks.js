@@ -308,7 +308,7 @@ window.MC_TWEAKS = {
    "id": "crush",
    "label": "Crush (Track FX)",
    "desc": "A sample-rate and bit reduction on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a sound Crush; RETRIG + SWEEP is Rate (off at 0, a hard hold to the right, a softer one to the left), RETRIG + CONTOUR is Bits (off at 127, fewer to the left, one bit at 0), with p-locks, LFO and CC 74 / 71.",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "by",
     "who": "durchgemacht",

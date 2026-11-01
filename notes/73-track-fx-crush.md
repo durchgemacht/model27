@@ -115,7 +115,7 @@ manifest declares what was counted.
 | X2 | Crush: package, generator, card's tweak | **done 2026-11-01 (§7)** |
 | X3 | The proof | **ALL OK** in the maintainer's run (§9) |
 | X4 | Flasher, guide, release | **done 2026-11-01 (§7)**, every check green |
-| X5 | The machine | **« passt », 2026-11-01: 0.1 (§10), 0.4 with `fltslot` 0.8 (§14)** |
+| X5 | The machine | **« passt », 2026-11-01: 0.1 (§10), 0.4 with `fltslot` 0.8 (§14), from the page (§15)** |
 
 ## 7. Built (2026-11-01)
 
@@ -255,3 +255,10 @@ level's saturation now come at other knob positions); the sound is not 0.3's bel
 
 The maintainer, after the builds of `build/crush-0.4/` and the list of §13 (from the command line): « das ist so
 geil. passt ». The load the measuring build showed was not reported. Experimental on the page until flashed from it.
+
+## 15. Tested from the page (2026-11-01, release 0.27)
+
+The maintainer flashed a build of the live page (`6ef171e`, release 0.26, stamp 2026-11-01-05, the page's files
+compared byte for byte with the commit) on their Model:Cycles: « flash von live site passt ». The card is tested since
+release 0.27 (`FEATURES`, the guide's line, README). No tag for now (the maintainer: « tag kommt später vielleicht
+mal »).

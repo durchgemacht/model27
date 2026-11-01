@@ -359,9 +359,9 @@ async function main() {
     check(crAlone === "crush" && crSf === "smpfilter+crush" && crAll === "control-all-config,sampler+digidelay+pots+smpfilter+crush"
       && crOn && !chosen().length && doc.querySelector('#grp-filter #feat-crush')
       && doc.querySelector('#features a[href$="#crush"]') && doc.querySelectorAll('input[name="var-crush"]').length === 0
-      && /Experimental/.test((doc.querySelector("#mod-crush .tag") || {}).textContent || ""),
+      && !doc.querySelector("#mod-crush .tag"),
       `Crush alone ${crAlone}; with Samples ${crSf}, one composed tweak; with SAMPLE, the effects and Control All Config ` +
-      `${crAll}, all ticked, no clash; in Track FX; no sub-choice; its guide link; experimental, so tagged`);
+      `${crAll}, all ticked, no clash; in Track FX; no sub-choice; its guide link; tested, so no tag`);
     // Trig conditions: a tweak card, after the composed tweak of the machine and effect cards in the build
     box("feat-trig-cond-order").click(); await wait(5);
     const tcoAlone = chosen();

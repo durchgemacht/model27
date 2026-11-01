@@ -23,8 +23,8 @@ Model:Cycles over USB. Modded-Cycles has since moved to a single OS with 2.0; mo
 together, so that a new machine fits next to the others. The rules a mod follows for that are the
 **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.5), written alongside.
 
-**Status: beta, release 0.26.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers eight
-cards, seven of them tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
+**Status: beta, release 0.27.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers eight
+cards, all tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
 [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples on the +Drive,
 [Control All Config](https://github.com/durchgemacht/cycles-control-all-config), **Digital Delay**, the first
 effect: a second delay for the delay slot, chosen per pattern with PATTERN + Delay Time, based on the digital delay of
@@ -34,8 +34,8 @@ the percentages**, model27's own, puts the A:B conditions before the percentages
 value following. The sixth, **Trig preview** by
 [drumkilla](https://github.com/drumkilla/elektron-model-tweaks), plays a held trig's step when you press PAGE with the
 sequencer stopped. The seventh, **Samples**, the first Track FX, puts SAMPLE's filter, the Model:Samples' own, on
-any track after Volume + Dist, chosen per sound. The eighth, **Crush**, model27's own second Track FX and still
-experimental, lowers a track's sample rate and bits on two knobs. The
+any track after Volume + Dist, chosen per sound. The eighth, **Crush**, model27's own second Track FX, lowers a
+track's sample rate and bits on two knobs. The
 [guide](https://durchgemacht.github.io/model27/guide/) explains them. Combining machines is proven with two internal
 reference machines: SAMPLE with the first one on a Model:Cycles; the second one, with a shortcut, and sharing the
 main screen, the knob view, the screen's tick and the browser with SAMPLE, in emulation so far, composed by the page

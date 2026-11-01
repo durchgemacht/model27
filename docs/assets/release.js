@@ -7,6 +7,9 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.27", date: "2026-11-01", changes: [
+    { en: "Crush is tested as this page builds it: flashed from this page and played on a Model:Cycles (2026-11-01). Its card now shows Tested" },
+  ] },
   { version: "0.26", date: "2026-11-01", changes: [
     { en: "The Filters section is now called Track FX: filters and effects that sit on a track, after Volume + Dist. Each sound chooses one of them with RETRIG + PITCH, whose popup now reads Track FX. A firmware can hold four" },
     { en: "New card in Track FX, Crush: a lower sample rate and fewer bits on any track. RETRIG + SWEEP is Rate: off at 0, a hard hold to the right (bright, metallic), a softer one to the left. RETRIG + CONTOUR is Bits: off at 127, fewer bits to the left, a single bit at 0. Both work together and on every machine like any parameter: lock them on a trig, make them the LFO's destination, set them on all tracks with TRACK, or send CC 74 and 71" },
