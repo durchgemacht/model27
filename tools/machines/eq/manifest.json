@@ -1,9 +1,9 @@
 {
  "schema": "cycles-mod/0.1",
  "id": "eq",
- "version": "0.1",
+ "version": "0.2",
  "name": "EQ: a three-band equalizer on every track, Low and High shelves on SWEEP and CONTOUR, a sweepable Mid on COLOR and SHAPE",
- "description": "A Track FX of model27 (the filter slot of notes/72, notes/73), on any track whose sound chose it (RETRIG + PITCH), after Volume + Dist: three bands, each -12 dB at 0, flat at the centre, +12 dB at the top. RETRIG + SWEEP is Low, a low shelf at 100 Hz; RETRIG + CONTOUR is High, a high shelf at 8 kHz, which starts at its centre (its start word, fltslot 0.8); RETRIG + COLOR is Mid, a bell of Q 1 whose centre RETRIG + SHAPE moves from 200 Hz through 1 kHz (its centre) to about 4.9 kHz. The Audio EQ Cookbook's biquads, the cuts the mirror of the boosts, on the EMAC with their coefficients from tables, worked out only when a value moves; a boost of a hot track clips at full scale. All four are real parameters of every machine: p-locks, LFO, velocity, Control All, CC 74 and 71 on Low and High. With every band at its centre the track passes untouched, bit for bit, and a sound that steps to EQ starts there.",
+ "description": "A Track FX of model27 (the filter slot of notes/72, notes/73), on any track whose sound chose it (RETRIG + PITCH), after Volume + Dist: three bands, each -12 dB at 0, flat at the centre, +12 dB at the top. RETRIG + SWEEP is Low, a low shelf at 100 Hz; RETRIG + CONTOUR is High, a high shelf at 8 kHz, which starts at its centre (its start word, fltslot 0.8); RETRIG + COLOR is Mid, a bell of Q 1 whose centre RETRIG + SHAPE moves from 200 Hz through 1 kHz (its centre) to about 4.9 kHz. The Audio EQ Cookbook's biquads, the cuts the mirror of the boosts, on the EMAC with their coefficients from tables, worked out only when a value moves; a boost of a hot track clips at full scale. All four are real parameters of every machine: p-locks, LFO, velocity, Control All, CC 74 and 71 on Low and High. With every band at its centre the track passes untouched, bit for bit, and a sound that steps to EQ starts there. Since 0.2 the values are named EQ Low Gain, EQ High Gain, EQ Mid Gain and EQ Mid Freq, LOWG, HIGG, MIDG and MIDF as the LFO's destination (EQ Low, EQ High, EQ Mid, LOW, HIGH, MID, FREQ before).",
  "license": "MIT",
  "credit": {"kind": "own", "who": "durchgemacht and Claude", "repo": "durchgemacht/model27"},
  "device": "Model:Cycles",
@@ -23,10 +23,10 @@
  "uses": [
   {"point": "track.filter", "id": 5, "process": "eq_process", "reset": "eq_reset",
    "name": "EQ", "short": "EQ",
-   "params": [{"long": "EQ Low", "short": "LOW", "format": "cutoff"},
-              {"long": "EQ High", "short": "HIGH", "format": "cutoff", "start": 16384},
-              {"long": "EQ Mid", "short": "MID", "format": "cutoff"},
-              {"long": "EQ Mid Freq", "short": "FREQ", "format": "int"}],
+   "params": [{"long": "EQ Low Gain", "short": "LOWG", "format": "cutoff"},
+              {"long": "EQ High Gain", "short": "HIGG", "format": "cutoff", "start": 16384},
+              {"long": "EQ Mid Gain", "short": "MIDG", "format": "cutoff"},
+              {"long": "EQ Mid Freq", "short": "MIDF", "format": "int"}],
    "why": "an effect of the Track FX (the filter slot): called after Volume + Dist as (block, k 28 to k 31, track, triggered) on the tracks whose sound chose id 5"}
  ],
  "claims": {},
