@@ -373,9 +373,9 @@ async function main() {
       for (const i of ["smpfilter", "crush", id]) { box("feat-" + i).click(); await wait(5); }
       check(alone === id && withTwo === "smpfilter+crush+" + id && !chosen().length && doc.querySelector(`#grp-filter #feat-${id}`)
         && doc.querySelector(`#features a[href$="#${id}"]`) && doc.querySelectorAll(`input[name="var-${id}"]`).length === 0
-        && /Experimental/.test((doc.querySelector(`#mod-${id} .tag`) || {}).textContent || ""),
+        && !doc.querySelector(`#mod-${id} .tag`),
         `${id} alone ${alone}; with Samples and Crush ${withTwo}, one composed tweak; in Track FX; no sub-choice; its guide link; ` +
-        "experimental, so tagged");
+        "tested, so no tag");
     }
     const every = ["sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "control-all-config", "trig-cond-order", "trig-preview"];
     for (const i of every) { box("feat-" + i).click(); await wait(5); }

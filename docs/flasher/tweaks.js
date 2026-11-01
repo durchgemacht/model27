@@ -321,7 +321,7 @@ window.MC_TWEAKS = {
    "id": "ring",
    "label": "Ring (Track FX)",
    "desc": "A ring modulator on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a sound Ring; RETRIG + SWEEP is Freq (the carrier's note, 0 to 127), RETRIG + CONTOUR is Mix (0 dry, 127 the ring alone), RETRIG + COLOR is Shape (sine to square), with p-locks, LFO and CC 74 / 71.",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "by",
     "who": "durchgemacht",
@@ -334,7 +334,7 @@ window.MC_TWEAKS = {
    "id": "reso",
    "label": "Reso (Track FX)",
    "desc": "A tuned resonator on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a sound Reso; RETRIG + SWEEP is Pitch (the MIDI note, 60 = C4), RETRIG + CONTOUR Amount (0 off), RETRIG + COLOR Tone, RETRIG + SHAPE Decay, with p-locks, LFO and CC 74 / 71.",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "by",
     "who": "durchgemacht",
@@ -347,7 +347,7 @@ window.MC_TWEAKS = {
    "id": "eq",
    "label": "EQ (Track FX)",
    "desc": "A three-band equalizer on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a sound the EQ; RETRIG + SWEEP is the Mid's frequency, RETRIG + CONTOUR its gain, RETRIG + COLOR the Low shelf, RETRIG + SHAPE the High shelf, each 12 dB either way, with p-locks, LFO and CC 74 / 71.",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "by",
     "who": "durchgemacht",

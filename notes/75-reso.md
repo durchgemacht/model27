@@ -442,3 +442,9 @@ tools/machines/reso/          Reso (notes/75): a tuned resonator, a comb, the Tr
 `tweaks/model-cycles_OS1.13/REGISTRY.md` (`tools/registry.py`), the composed tweaks whose conflicts gain reso (27,
 28, 29, 34, 36, 39, 70, 72, 73 through their generators), `webcompose_synth.py`'s selections if Reso joins them, the
 lists of `tools/webflash_smoke.js`; then the checks of AGENTS.md, with the firmware.
+
+## 16. Merged, tested from the page (2026-11-01)
+
+Merged into `main` with Ring and EQ (notes/73 §17, release 0.28): the maintainer's proof on the merge ALL OK, the build of
+every card played on the Model:Cycles, then a build flashed from the page: « getestet, passt » (notes/73 §18, release
+0.29). The card is tested.

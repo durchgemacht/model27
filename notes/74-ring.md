@@ -381,3 +381,9 @@ and in « Adding a feature for users », the last note and the reserved ones as 
 Ring among them), `tweaks.js`, `REF_MAINOS` / `REF_MODS` (`ref_mainos.py`: Ring alone and its pairs), and the
 checks' lists: `webflash_smoke.js` (the cards' order, the packages, `KIND` `ring: "filter"`, the credits),
 `webcompose_synth.py` (selections with Ring: alone, with Samples and Crush, every card).
+
+## 12. Merged, tested from the page (2026-11-01)
+
+Merged into `main` with Reso and EQ (notes/73 §17, release 0.28): the maintainer's proof on the merge ALL OK, the build of
+every card played on the Model:Cycles, then a build flashed from the page: « getestet, passt » (notes/73 §18, release
+0.29). The card is tested.

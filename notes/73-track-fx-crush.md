@@ -381,3 +381,9 @@ directly over 20 000 blocks, give the same bits, so 0.3 sounds as 0.2; the proof
 host build were never affected. A second fault, indexed displacements read as decimal, was found by the Reso session;
 Crush uses none above 9. The interpreter's copies stay outside the repository.
 
+## 18. Ring, Reso and EQ tested from the page (2026-11-01, release 0.29)
+
+The maintainer flashed a build of the live page (`d119203`, release 0.28, stamp `2026-11-01-07`, the page's seven files
+compared byte for byte with the commit) on their Model:Cycles: « getestet, passt ». Ring, Reso and EQ are tested
+(release 0.29): their status in `FEATURES` and `tweaks.js`, the guide's *Tested* lines, `README.md` (all eleven cards
+tested), `tools/webflash_smoke.js` (no tag on their cards), stamp `2026-11-01-08`.

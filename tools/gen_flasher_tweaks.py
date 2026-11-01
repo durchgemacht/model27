@@ -417,8 +417,9 @@ ALL_FEATURES = [
                 "RETRIG + SWEEP is Freq (the carrier's note, 0 to 127), RETRIG + CONTOUR is Mix (0 dry, 127 the ring "
                 "alone), RETRIG + COLOR is Shape (sine to square), with p-locks, LFO and CC 74 / 71.",
         # model27's own (notes/74): a Track FX through the filter slot (fltslot 0.9); bit for bit the host build of
-        # the same source in emulation; on the Model:Cycles from the command line on 2026-11-01 (notes/74 §9, §10)
-        "status": "experimental",
+        # the same source in emulation; on the Model:Cycles from the command line on 2026-11-01 (notes/74 §9, §10),
+        # then flashed from this page (release 0.28) the same day (notes/73 §18)
+        "status": "tested",
         "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
         # a Track FX composed in the page from its package (notes/74), with the machines, effects and the other Track
         # FX ticked: alone it gives 74-ring.json byte for byte, whose conflicts give its excludes
@@ -432,8 +433,9 @@ ALL_FEATURES = [
                 "RETRIG + SWEEP is Pitch (the MIDI note, 60 = C4), RETRIG + CONTOUR Amount (0 off), RETRIG + COLOR "
                 "Tone, RETRIG + SHAPE Decay, with p-locks, LFO and CC 74 / 71.",
         # model27's own (notes/75): a comb through the filter slot (fltslot 0.9); bit for bit the host build of the
-        # same source in emulation; on the Model:Cycles from the command line on 2026-11-01 (notes/75 §12, §14)
-        "status": "experimental",
+        # same source in emulation; on the Model:Cycles from the command line on 2026-11-01 (notes/75 §12, §14),
+        # then flashed from this page (release 0.28) the same day (notes/73 §18)
+        "status": "tested",
         "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
         # a Track FX composed in the page from its package (notes/75), with the machines, effects and the other
         # Track FX ticked: alone it gives 75-reso.json byte for byte, whose conflicts give its excludes
@@ -448,8 +450,9 @@ ALL_FEATURES = [
                 "shelf, RETRIG + SHAPE the High shelf, each 12 dB either way, with p-locks, LFO and CC 74 / 71.",
         # model27's own (notes/76): the Audio EQ Cookbook's biquads on the EMAC through the filter slot (fltslot
         # 0.9); bit for bit the host build of the same source in emulation; on the Model:Cycles from the command
-        # line on 2026-11-01 (notes/76 §10, §14)
-        "status": "experimental",
+        # line on 2026-11-01 (notes/76 §10, §14), then flashed from this page (release 0.28) the same day (notes/73
+        # §18)
+        "status": "tested",
         "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
         # a Track FX composed in the page from its package (notes/76), with the machines, effects and the other
         # Track FX ticked: alone it gives 76-eq.json byte for byte, whose conflicts give its excludes
