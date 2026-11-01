@@ -29,6 +29,7 @@ manifest's `proof` section, notes/73 §16, no change to the proof). Branch `trac
   block, 128 for a silent track, 23 off. Six tracks at most 7 398 instructions a block, 6.8 % (Samples' worst 8 952,
   8.3 %). The frame loop is ColdFire assembly (`reso_cf.S`, 20 instructions a frame, MAC with load); `reso.c`'s C
   loop is its host model, bit for bit. Not measured on the machine yet.
+- **On the machine** (2026-11-01): Reso with Samples and Crush, flashed from the command line: « passt » (§12).
 
 ## 1. Decisions (2026-11-01)
 
@@ -245,7 +246,14 @@ After the proof, from `build/reso-0.1/`:
 - The wet path carries a DC of the EMAC's truncation, estimated at most about −66 dBFS (§4).
 - `[HYP]` the load on the device (the measuring build tells; the proof counts 6.8 % of a block for six tracks).
 
-## 12. For the integration
+## 12. Tested on the machine (2026-11-01)
+
+The maintainer flashed the build with Samples, Crush and Reso from `build/reso-0.1/`
+(`model-cycles_OS1.13-smpfilter+crush+reso.syx`, MAIN OS `b274ee03…`, from the command line) on their Model:Cycles,
+after the list of §10: « passt ». The load the measuring build shows was not reported. Experimental on the page until
+flashed from it, as Samples and Crush were (notes/72 §20, notes/73 §15).
+
+## 13. For the integration
 
 What the shared files get when Reso is merged (they stay untouched on this branch, notes/73 §16.2).
 
@@ -260,7 +268,8 @@ What the shared files get when Reso is merged (they stay untouched on this branc
                 "RETRIG + SWEEP is Pitch (the MIDI note, 60 = C4), RETRIG + CONTOUR Amount (0 off), RETRIG + COLOR "
                 "Decay, RETRIG + SHAPE Brightness, with p-locks, LFO and CC 74 / 71.",
         # model27's own (notes/75): a comb through the filter slot (fltslot 0.9); bit for bit the host build of the
-        # same source in emulation
+        # same source in emulation; on the Model:Cycles with Samples and Crush from the command line on 2026-11-01
+        # (notes/75 §12)
         "status": "experimental",
         "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},
         # a Track FX composed in the page from its package (notes/75), with the machines, effects and the other
@@ -300,7 +309,7 @@ in the contents; Samples' and Crush's lists of Track FX and "Other mods" name Re
         <dl class="facts">
           <div><dt>Sound</dt><dd>the pitch is the knob's: it does not follow the notes you play. Noise comes out about as loud as it goes in; a single hit rings quieter the longer it rings. A dull or high pitch rings shorter than Decay asks. At Amount 0 the sound passes untouched. Values glide in, as any parameter does on the Model:Cycles.</dd></div>
           <div><dt>Other mods</dt><dd>goes with SAMPLE, the effects, the Samples filter, Crush and Control All Config. A sound has one Track FX at a time. On a firmware without Reso, the official one too, a sound plays without it and keeps everything else.</dd></div>
-          <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code, bit for bit against its own code built for a computer. Not played on a Model:Cycles yet.</dd></div>
+          <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code, bit for bit against its own code built for a computer. Played on a Model:Cycles (2026-11-01) from the command line.</dd></div>
         </dl>
       </section>
 ```
@@ -309,7 +318,7 @@ in the contents; Samples' and Crush's lists of Track FX and "Other mods" name Re
 
 ```js
     { en: "New card in Track FX, Reso: a tuned resonator on any track, so that hats, noise and hits ring at a pitch. RETRIG + SWEEP is Pitch, the MIDI note (60 = C4), RETRIG + CONTOUR is Amount (0 off), RETRIG + COLOR is Decay (20 ms to 10 s), RETRIG + SHAPE is Brightness (dull to metallic). All four work on every machine like any parameter: lock them on a trig, make them the LFO's destination, set them on all tracks with TRACK, or send CC 74 and 71" },
-    { en: "Reso is checked bit for bit in an emulator; experimental until played on a Model:Cycles" },
+    { en: "Reso is checked bit for bit in an emulator and played on a Model:Cycles from the command line (2026-11-01); experimental here until flashed from this page" },
 ```
 
 **`README.md`** (the overview paragraph, after Crush): « The ninth, **Reso**, model27's own third Track FX, makes a
@@ -334,6 +343,7 @@ Samples, avec Reso au bit près contre le build hôte de `reso.c` (la boucle en 
 MAIN OS patché, `reso` seul : `0a4eba0e9076b59598d37aeb3af090d1e288aade6c330c52708278523f969373` ; avec Samples et
 Crush : `b274ee03706d3e5211e5bcb3f2d7288b8d56c6ba506b41cdbde25782e4751547` ; avec toutes les cartes de la page :
 `5a8d16a68a296a2240d6a5c0c412ed77199ec21926fdea68c3bff9fd3531c971` (sur `fltslot` 0.9, avant la fusion avec Ring et EQ).
+Reso avec Samples et Crush joué sur un Model:Cycles depuis la ligne de commande le 01/11/2026 (note 75 §12).
 ```
 
 **`tweaks/model-cycles_OS1.13/PROVENANCE.md`**:
@@ -345,7 +355,7 @@ Crush : `b274ee03706d3e5211e5bcb3f2d7288b8d56c6ba506b41cdbde25782e4751547` ; ave
 **`notes/README.md`**:
 
 ```markdown
-| [75-reso.md](75-reso.md) | **Reso: a tuned resonator in the Track FX (2026-11-01, English)**: the maintainer's decisions (a comb rather than a bank of modes; Pitch on SWEEP as the MIDI note, Amount on CONTOUR, 0 dry and the start, Decay on COLOR, Brightness on SHAPE); id 4, "RES"; the comb: a DC blocker, the line through a first-order allpass, a one-pole damping whose phase at the pitch is exact (q = sin P / sin(w0 + P)), the loss given back up to a gain of 1 − 2⁻¹² (its DC mode), the input scaled for noise; in tune within 0.2 cents (C1 to C7), Decay as asked when bright; the line cleared lazily, a silent track skipped; the frame loop in ColdFire assembly (MAC with load, 20 instructions a frame), its C model the proof's; cost counted by the proof 709 held, 1 083 gliding, 1 233 first, six tracks 6.8 % of a block (Samples 8.3 %); sanitizers and 3 000 blocks bit for bit in the interpreter; **`test_fltslot.py` ALL OK in the maintainer's run (2026-11-01)**; not played on the machine yet. |
+| [75-reso.md](75-reso.md) | **Reso: a tuned resonator in the Track FX (2026-11-01, English)**: the maintainer's decisions (a comb rather than a bank of modes; Pitch on SWEEP as the MIDI note, Amount on CONTOUR, 0 dry and the start, Decay on COLOR, Brightness on SHAPE); id 4, "RES"; the comb: a DC blocker, the line through a first-order allpass, a one-pole damping whose phase at the pitch is exact (q = sin P / sin(w0 + P)), the loss given back up to a gain of 1 − 2⁻¹² (its DC mode), the input scaled for noise; in tune within 0.2 cents (C1 to C7), Decay as asked when bright; the line cleared lazily, a silent track skipped; the frame loop in ColdFire assembly (MAC with load, 20 instructions a frame), its C model the proof's; cost counted by the proof 709 held, 1 083 gliding, 1 233 first, six tracks 6.8 % of a block (Samples 8.3 %); sanitizers and 3 000 blocks bit for bit in the interpreter; **`test_fltslot.py` ALL OK in the maintainer's run (2026-11-01)**; **played on the machine 2026-11-01** (with Samples and Crush, from the command line, « passt »). |
 ```
 
 **`AGENTS.md`** (the repository map, after `tools/machines/crush/`; and in « Adding a feature », 77 the next free note):
