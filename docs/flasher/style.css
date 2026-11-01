@@ -160,12 +160,12 @@ code{font:.9em var(--f);background:none;padding:0;border-radius:0}
 .restore-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px;margin:40px 0 0;font-size:13.5px}
 .restore-row .lnk{font-size:14px}
 
-/* the end of the cards: the picked names, then one big button that says what happens ("Install 2 mods");
-   nothing picked, a dashed frame that sends you back to the cards */
-#features>.grp:last-child{margin-bottom:3rem}
-.sel-sum{margin:0 0 8px;font-size:13.5px;line-height:1.45}
+/* the end of the cards: one big button that says what happens ("Install 2 mods"), its text and arrow in the middle;
+   nothing picked, a dashed frame that sends you back to the cards. The picked names stay in the markup, hidden (the
+   cards show what is ticked; screen readers hear the names from the live region) */
+.sel-sum{display:none}
 .sel-need,.sel-msg{margin:0 0 8px;font-size:14px}
-.btn.sel-next{justify-content:space-between;width:100%;min-height:64px;padding:0 20px;font-size:15px}
+.btn.sel-next{justify-content:center;width:100%;min-height:64px;padding:0 20px;font-size:15px}
 .btn.sel-next.empty{background:transparent;color:var(--ink);border-style:dashed}
 .btn.sel-next.empty:hover{background:var(--ink);color:var(--paper)}
 

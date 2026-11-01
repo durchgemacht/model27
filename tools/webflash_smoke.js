@@ -480,7 +480,7 @@ async function main() {
     const go = textOf(doc, "#mod-sel .sel-next");
     check(/Install 2 mods/.test(go) && !nx().classList.contains("empty") && /SAMPLE/.test(textOf(doc, "#mod-sel .sel-names"))
       && /Control All/.test(textOf(doc, "#mod-sel .sel-names")) && !nx().disabled,
-      "end of the cards: the names, then " + go.trim());
+      "end of the cards: the names (hidden by the stylesheet), then " + go.trim());
     // Continue: the install screen, its step 1 names the cards; Change goes back with the choice kept
     await click(doc.querySelector("#mod-sel .sel-next"));
     const inst = box("step-choose").hidden && !box("screen-install").hidden && /SAMPLE/.test(text(doc, "picked"))
@@ -538,7 +538,7 @@ async function main() {
     // Details come in paragraphs
     check(/Hold PATTERN and turn Delay Time to switch between the stock delay and/.test(textOf(doc, "#grp-effect .grp-sub"))
       && !/Reverb|\{/.test(textOf(doc, "#grp-effect .grp-sub")) && !doc.querySelector("#grp-mod .grp-sub")
-      && /Hold RETRIG and turn PITCH .* saved with each sound/.test(textOf(doc, "#grp-filter .grp-sub"))
+      && textOf(doc, "#grp-filter .grp-sub") === "Hold RETRIG and turn PITCH to choose a filter."
       && doc.querySelectorAll("#det-pots > p").length === 2 && doc.querySelectorAll("#det-sampler > p").length === 2,
       "the Effects and Filters sections' one line each, the Effects one with Delay Time only; Details in paragraphs");
     check(errors.length === 0, "no JS error in the mod picker " + (errors.length ? JSON.stringify(errors) : ""));

@@ -175,7 +175,7 @@ const T = {
   fx_knob_delay: "Delay Time", fx_knob_reverb: "Reverb Size", fx_or: " or ",
   fx_stock_delay: "the stock delay", fx_stock_reverb: "the stock reverb", fx_stock: "the stock effect",
   // the filter slot's (notes/72): what every filter card shares
-  kind_filter_sub: "Hold RETRIG and turn PITCH to switch a sound between no filter and the ones you install, then turn the other knobs with RETRIG to set it. Your choice is saved with each sound.",
+  kind_filter_sub: "Hold RETRIG and turn PITCH to choose a filter.",
   // the sections of the old list, still searched (search from SEARCH_FROM cards)
   cat_pack: "Packs", cat_sound: "Sounds & machines", cat_seq: "Sequencer", cat_live: "Live playing",
   cat_screen: "Screen & browsing", cat_io: "USB & MIDI", cat_other: "Other mods",
