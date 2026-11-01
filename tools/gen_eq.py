@@ -9,7 +9,9 @@ the object); the tables and compose.py do not.
 The bands are the Audio EQ Cookbook's biquads (R. Bristow-Johnson): a low shelf at 100 Hz and a high shelf at 8 kHz,
 slope S = 1, and a peaking bell of Q 1 from 200 Hz to 5 kHz; every gain 12 dB * (k - 64) / 64 for the knob value k.
 The tables hold the coefficients normalized by a0, scaled as eq_cf.S multiplies them (over 2, High over 4), rounded
-to Q31; eq.c derives each band's last coefficient from the others.
+to Q31; eq.c derives each band's last coefficient from the others. EQ_HIGH_FIT is the first word of High whose
+coefficients, as eq.c works them out, do not all fit over 2: below it eq.c doubles them and the loop doubles once
+(since EQ 0.3).
 
     python3 tools/gen_eq.py --cycles model-cycles_OS1.13.syx [--check]
     python3 tools/gen_eq.py --response           # the bands' response from the tables against the cookbook's
@@ -96,8 +98,32 @@ def tables():
     return low, high, mid
 
 
+def lerp(a, b, t):
+    """eq.c's lerp: 8 bits of the difference dropped (Python's >> floors as the ColdFire's asr)."""
+    return a + ((b - a) >> 8) * t
+
+
+def high_fit():
+    """The first word of High whose five coefficients, interpolated and b2 derived as eq.c does them over 4, do not
+    all fit over 2 (under 2^30 over 4); every word below must fit and none from it, or eq.c's test would be wrong."""
+    high = tables()[1]
+
+    def fits(w):
+        p, q = high[w >> 8], high[(w >> 8) + 1]
+        b0, b1, a1, a2 = (lerp(p[i], q[i], w & 0xff) for i in range(4))
+        b2 = (1 << 29) + (a1 - b1) + (a2 - b0)
+        return all(-(1 << 30) <= c < (1 << 30) for c in (b2, b0, b1, a1, a2))
+
+    ok = [fits(w) for w in range(0x7f01)]
+    first = ok.index(False)
+    if not all(ok[:first]) or any(ok[first:]):
+        raise SystemExit("!! High's coefficients fit over 2 below a word and not from it: no single threshold")
+    return first
+
+
 def header():
     low, high, mid = tables()
+    fit = high_fit()
 
     def rows(t):
         return ",\n\t".join("{" + ", ".join(f"{v:11d}" for v in r) + "}" for r in t)
@@ -109,17 +135,16 @@ def header():
             f" * EQ_LOW: the low shelf at {LOW_HZ:g} Hz (S {SLOPE:g}), b0, b1, a1, a2 over 2, by knob value k = 0 .. 128, the gain\n"
             f" * {DB:g} dB * (k - 64) / 64. EQ_HIGH: the high shelf at {HIGH_HZ:g} Hz, the same, over 4. EQ_MID: the bell (Q {MID_Q:g}), b0,\n"
             f" * a1, a2 over 2, by gain every {MID_G} knob steps (17 rows) then centre every {MID_F} (33 columns), the centre\n"
-            " * 1000 Hz * 5^((k - 64) / 64). The last coefficient of each band comes from the others (eq.c). */\n"
+            " * 1000 Hz * 5^((k - 64) / 64).\n"
+            f" * EQ_HIGH_FIT: the first word of High ({fit / 256:.1f}, {gain_db(fit / 256):+.1f} dB) whose coefficients do not all fit over\n"
+            " * 2; below it eq.c doubles them, and the loop doubles the sum once.\n"
+            " * The last coefficient of each band comes from the others (eq.c). */\n"
             "#ifndef EQ_TAB_H\n#define EQ_TAB_H\n#include <stdint.h>\n\n"
+            f"#define EQ_HIGH_FIT {fit:#06x}\n\n"
             f"static const int32_t EQ_LOW[{STEPS + 1}][4] = {{\n\t" + rows(low) + "\n};\n\n"
             f"static const int32_t EQ_HIGH[{STEPS + 1}][4] = {{\n\t" + rows(high) + "\n};\n\n"
             f"static const int32_t EQ_MID[{STEPS // MID_G + 1}][{STEPS // MID_F + 1}][3] = {{\n\t" + mids + "\n};\n\n"
             "#endif\n")
-
-
-def lerp(a, b, t):
-    """eq.c's lerp: 8 bits of the difference dropped (Python's >> floors as the ColdFire's asr)."""
-    return a + ((b - a) >> 8) * t
 
 
 def from_tables(band, w, f=0x4000):

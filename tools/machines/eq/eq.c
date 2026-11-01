@@ -11,20 +11,22 @@
  * then Mid, then High.
  *
  * Each band is a biquad in direct form I on the EMAC (eq_cf.S): y = b0 x + b1 x1 + b2 x2 - a1 y1 - a2 y2, its
- * coefficients over 2 (Low and Mid: all of them under 2) or over 4 (High: b0 reaches 2.5 at +12 dB), the sum read and
- * doubled once or twice, saturated: a boost of a hot track clips at full scale, it does not wrap. The coefficients
+ * coefficients over 2 (Low and Mid always, High below EQ_HIGH_FIT, about +9.2 dB: all of them under 2) or over 4
+ * (High above it: b0 reaches 2.5 at +12 dB; over 4 throughout before 0.3), the sum read and doubled once or twice,
+ * saturated: a boost of a hot track clips at full scale, it does not wrap. The coefficients
  * come from tables (eq_tab.h, written by tools/gen_eq.py): Low and High by gain at every knob step, the word's low
  * byte between two; Mid by gain every 8 knob steps and centre every 4, bilinear (at most 0.05 dB from the Cookbook's
  * bell). Each band's last coefficient comes from the others, so that the band is flat where it should be whatever the
  * tables' rounding: Low at the top of the spectrum, High at DC, Mid at both. They are worked out only when a value
- * has moved.
+ * has moved (the words compared as they come, clamped only then, since 0.3).
  *
  * Flat (every gain at 64): the block is not touched, bit for bit, and the states follow the input, so that a gain
  * turned away from 64 starts from where the signal is; a band at 64 while another is not is skipped in the same way.
- * With all three on, one loop runs them frame by frame (eq_frames3: about 30 instructions a frame instead of 35);
+ * With all three on, one loop runs them frame by frame (eq_frames3: about 29 instructions a frame instead of 35);
  * otherwise each band that is on runs over the block (eq_frames). A silent block (all 32 frames 0) whose states have
- * rung out (under 2^14, -102 dB, as Samples') is left silent and the states are cleared. reset(track) clears the
- * states; the next block starts them at its first frame. The trig bit is not read: an equalizer has no notes.
+ * rung out (under 2^14, -102 dB, as Samples') is left silent and the states are cleared. reset(track) forgets the
+ * words; the next block follows the input (flat) or starts the states at its first frame, so it need not clear them
+ * (since 0.3). The trig bit is not read: an equalizer has no notes.
  *
  * Everything here is the device's but the frame loops, eq_frames and eq_frames3: eq_cf.S on the ColdFire, and below
  * (#ifndef __mcoldfire__) their model for the host with the EMAC's arithmetic in fractional, saturating mode (each
@@ -36,7 +38,7 @@
  *
  * License: MIT (LICENSE next to this file). */
 #include <stdint.h>
-#include "eq_tab.h"                                 /* EQ_LOW, EQ_HIGH, EQ_MID, written by tools/gen_eq.py */
+#include "eq_tab.h"                                 /* EQ_LOW, EQ_HIGH, EQ_MID, EQ_HIGH_FIT, by tools/gen_eq.py */
 
 #define TRACKS 6
 #define FRAMES 32
@@ -51,23 +53,23 @@
 #define B1 2
 #define A1 3
 #define A2 4
+#define NONE 0x10000                                /* a word no int16_t is */
 
 struct track {
 	int32_t s[3][4];                            /* each band's x1 x2 y1 y2: its input's and its output's last two
 	                                               frames, the newest first; a band's x is the band ahead's y */
 	int32_t c[3][5];                            /* each band's coefficients over 2^shift, Q31: b2 b0 b1 a1 a2 */
-	int16_t w[4];                               /* the words the coefficients were worked out for, -1 after a
-	                                               reset */
+	int32_t w[4];                               /* the words (as they came, unclamped) the coefficients were worked
+	                                               out for; after a reset NONE, which no word is */
 	uint8_t set;                                /* 0 after a reset: the next block that is not flat starts the
 	                                               states at its first frame */
+	uint8_t hs;                                 /* High's shift: 1 while its coefficients are under 2, else 2 */
 };
 
 static struct track state[TRACKS];
 
-static const uint8_t SHIFT[3] = {1, 1, 2};          /* the coefficients over 2^shift, by band */
-
 void eq_frames(const int32_t *c, int32_t *s, int32_t *block, uint32_t shift);
-void eq_frames3(const int32_t (*c)[5], int32_t (*s)[4], int32_t *block);
+void eq_frames3(const int32_t *c, int32_t (*s)[4], int32_t *block, uint32_t hshift);
 
 /* A band whose output is its input, the newest frame f1 and the one before f2 (flat, or after a reset or silence). */
 static void follow(int32_t *s, int32_t f1, int32_t f2)
@@ -78,11 +80,9 @@ static void follow(int32_t *s, int32_t f1, int32_t f2)
 
 void eq_reset(uint32_t track)
 {
-	if (track < TRACKS) {
-		for (int k = 0; k < 3; k++)
-			follow(state[track].s[k], 0, 0);
+	if (track < TRACKS) {                       /* the states: the next block follows or starts them */
 		for (int k = 0; k < 4; k++)
-			state[track].w[k] = -1;
+			state[track].w[k] = NONE;
 		state[track].set = 0;
 	}
 }
@@ -101,15 +101,27 @@ static int32_t lerp(int32_t a, int32_t b, int32_t t)
 /* A shelf at the word w from its table (b0 b1 a1 a2): the gain's two rows, the word's low byte between them. b2 from
  * the others: flat at the top of the spectrum (Low, dc 0: b0 - b1 + b2 = 1 - a1 + a2) or at DC (High, dc 1), summed
  * from the small differences b1 - a1 and a2 - b0 so that nothing on the way leaves 32 bits. */
-static void shelf(int32_t *c, const int32_t (*tab)[4], int32_t w, int32_t one, int dc)
+static void shelf(int32_t *c, const int32_t (*tab)[4], int32_t w, int32_t one, int dc, int twice)
 {
 	const int32_t *p = tab[w >> 8], *q = tab[(w >> 8) + 1];
-	int32_t t = w & 0xff;
-	c[B0] = lerp(p[0], q[0], t);
-	c[B1] = lerp(p[1], q[1], t);
-	c[A1] = lerp(p[2], q[2], t);
-	c[A2] = lerp(p[3], q[3], t);
-	c[B2] = one + (dc ? c[A1] - c[B1] : c[B1] - c[A1]) + (c[A2] - c[B0]);
+	int32_t t = w & 0xff, b0, b1, b2, a1, a2;
+	b0 = lerp(p[0], q[0], t);
+	b1 = lerp(p[1], q[1], t);
+	a1 = lerp(p[2], q[2], t);
+	a2 = lerp(p[3], q[3], t);
+	b2 = one + (dc ? a1 - b1 : b1 - a1) + (a2 - b0);
+	if (twice) {                                /* High under EQ_HIGH_FIT: every coefficient under 2 */
+		b0 *= 2;
+		b1 *= 2;
+		b2 *= 2;
+		a1 *= 2;
+		a2 *= 2;
+	}
+	c[B2] = b2;
+	c[B0] = b0;
+	c[B1] = b1;
+	c[A1] = a1;
+	c[A2] = a2;
 }
 
 /* One coefficient of the bell, bilinear: p its value at the gain row and centre column below the words, the next
@@ -154,21 +166,21 @@ static int rung_out(const int32_t (*s)[4])
 void eq_process(int32_t *block, const int16_t *words, uint32_t track, uint32_t triggered)
 {
 	struct track *t;
-	int32_t lo, hi, mg, mf;
+	int32_t lo = words[0], hi = words[1], mg = words[2], mf = words[3];   /* clamped when worked out */
 	uint32_t on;
 	int k;
 	(void)triggered;
 	if (track >= TRACKS)
 		return;
 	t = &state[track];
-	if (words[0] == CENTRE && words[1] == CENTRE && words[2] == CENTRE) {   /* flat: untouched, the states */
-		int32_t f1 = block[FRAMES - 1], f2 = block[FRAMES - 2];         /* follow the input */
+	if (lo == CENTRE && hi == CENTRE && mg == CENTRE) {   /* flat: untouched, the states follow the input */
+		int32_t f1 = block[FRAMES - 1], f2 = block[FRAMES - 2];
 		for (k = 0; k < 3; k++)
 			follow(t->s[k], f1, f2);
 		t->set = 1;
 		return;
 	}
-	on = (words[0] != CENTRE) | (words[2] != CENTRE) << MID | (words[1] != CENTRE) << HIGH;
+	on = (lo != CENTRE) | (mg != CENTRE) << MID | (hi != CENTRE) << HIGH;
 	if (!t->set) {                              /* after a reset: the states start at the first frame */
 		for (k = 0; k < 3; k++)
 			follow(t->s[k], block[0], block[0]);
@@ -184,31 +196,29 @@ void eq_process(int32_t *block, const int16_t *words, uint32_t track, uint32_t t
 			return;
 		}
 	}
-	lo = clamp(words[0]);
-	hi = clamp(words[1]);
-	mg = clamp(words[2]);
-	mf = clamp(words[3]);
 	/* the coefficients of the bands that are on, when their words moved (a flat band's wait) */
 	if (on & 1 << LOW && lo != t->w[0]) {
-		t->w[0] = (int16_t)lo;
-		shelf(t->c[LOW], EQ_LOW, lo, 1 << 30, 0);
+		t->w[0] = lo;
+		shelf(t->c[LOW], EQ_LOW, clamp(lo), 1 << 30, 0, 0);
 	}
 	if (on & 1 << MID && (mg != t->w[2] || mf != t->w[3])) {
-		t->w[2] = (int16_t)mg;
-		t->w[3] = (int16_t)mf;
-		bell(t->c[MID], mg, mf);
+		t->w[2] = mg;
+		t->w[3] = mf;
+		bell(t->c[MID], clamp(mg), clamp(mf));
 	}
 	if (on & 1 << HIGH && hi != t->w[1]) {
-		t->w[1] = (int16_t)hi;
-		shelf(t->c[HIGH], EQ_HIGH, hi, 1 << 29, 1);
+		t->w[1] = hi;
+		hi = clamp(hi);
+		t->hs = hi < EQ_HIGH_FIT ? 1 : 2;
+		shelf(t->c[HIGH], EQ_HIGH, hi, 1 << 29, 1, t->hs == 1);
 	}
 	if (on == 7) {                              /* every band: one loop */
-		eq_frames3(t->c, t->s, block);
+		eq_frames3(t->c[0], t->s, block, t->hs);
 		return;
 	}
 	for (k = 0; k < 3; k++, on >>= 1) {
 		if (on & 1)
-			eq_frames(t->c[k], t->s[k], block, SHIFT[k]);
+			eq_frames(t->c[k], t->s[k], block, k == HIGH ? t->hs : 1);
 		else                                /* flat: its output is its input */
 			follow(t->s[k], block[FRAMES - 1], block[FRAMES - 2]);
 	}
@@ -252,9 +262,9 @@ void eq_frames(const int32_t *c, int32_t *s, int32_t *block, uint32_t shift)
 }
 
 /* The three bands frame by frame on the device; band by band here, the same arithmetic in each band's accumulator. */
-void eq_frames3(const int32_t (*c)[5], int32_t (*s)[4], int32_t *block)
+void eq_frames3(const int32_t *c, int32_t (*s)[4], int32_t *block, uint32_t hshift)
 {
 	for (int k = 0; k < 3; k++)
-		eq_frames(c[k], s[k], block, SHIFT[k]);
+		eq_frames(c + 5 * k, s[k], block, k == HIGH ? hshift : 1);
 }
 #endif

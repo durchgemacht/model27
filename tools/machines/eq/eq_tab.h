@@ -3,10 +3,15 @@
  * EQ_LOW: the low shelf at 100 Hz (S 1), b0, b1, a1, a2 over 2, by knob value k = 0 .. 128, the gain
  * 12 dB * (k - 64) / 64. EQ_HIGH: the high shelf at 8000 Hz, the same, over 4. EQ_MID: the bell (Q 1), b0,
  * a1, a2 over 2, by gain every 8 knob steps (17 rows) then centre every 4 (33 columns), the centre
- * 1000 Hz * 5^((k - 64) / 64). The last coefficient of each band comes from the others (eq.c). */
+ * 1000 Hz * 5^((k - 64) / 64).
+ * EQ_HIGH_FIT: the first word of High (113.1, +9.2 dB) whose coefficients do not all fit over
+ * 2; below it eq.c doubles them, and the loop doubles the sum once.
+ * The last coefficient of each band comes from the others (eq.c). */
 #ifndef EQ_TAB_H
 #define EQ_TAB_H
 #include <stdint.h>
+
+#define EQ_HIGH_FIT 0x711c
 
 static const int32_t EQ_LOW[129][4] = {
 	{ 1066762225, -2119544096, -2119408435,  1046028947},
