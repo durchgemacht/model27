@@ -18,13 +18,16 @@ states). No OS address of its own: the filter slot calls it (notes/72, notes/73)
   towards a square at 127. k 31 (SHAPE) is not read.
 - **A note starts the carrier at its peak**, so every hit sounds the same and its attack comes through.
 - **Off is dry**: at Mix 0 the track passes untouched, bit for bit; the carrier runs on underneath.
-- **Exact integers**, no EMAC: the host build of `ring.c` is the proof's model, bit for bit.
-- **Cost**, counted by the proof (§5) and declared: off 38, sine 996, shape 1 235, glide 1 217, silent 264, first
-  1 003 instructions a track and block; six tracks at most 7 410 a block, 6.8 % (Samples' worst 8 952, 8.3 %; Crush's
-  7 872, 7.3 %). The proof averages six tracks of which one is silent; six playing tracks with Shape count about
-  8 600, 7.9 % (§4). The load not measured on the machine yet.
+- **Exact integers**: the host build of `ring.c` is the proof's model, bit for bit; since 0.2 (§10) each frame's
+  product runs on the EMAC on the device, the same bits as 0.1's split.
+- **Cost** (0.2, §10), counted by the proof and declared: off 39, sine 727, shape 967, glide 948, silent 202, first
+  734 instructions a track and block; six tracks at most 5 802 a block, 5.4 % (0.1: 7 410, 6.8 %; Samples' worst
+  8 952, 8.3 %; Crush's 7 872, 7.3 %). The proof averages six tracks of which one is silent; six playing tracks with
+  Shape count about 6 700, 6.2 % (§4, §10). The load not measured on the machine yet.
 - **Played on the Model:Cycles** from the command line (2026-11-01, §9): « passt ». Experimental until flashed
   from the page.
+- **Ring 0.2** (§10): the same output, bit for bit, in about three quarters of the instructions (each frame's product
+  on the EMAC); the maintainer's run ALL OK, its counts declared; played on the Model:Cycles: « getestet, passt ».
 
 ## 1. Decisions (2026-11-01)
 
@@ -74,7 +77,8 @@ Exact integers, the same C compiled for the host as the proof's model (as Crush)
 - **Mix**: the gain `g = (32768 − m) + ((m · c) >> 15)`, from −32767 to 32768 (−32768 cannot happen: at m = 32768
   it is c).
 - **The product**: `y = ⌊x · g / 2^15⌋` split at 16 bits, `2 · ((x >> 16) · g) + (((x & 0xffff) · g) >> 15)`: each
-  term and the sum within 32 bits for any frame and any g of that range, and `|y| ≤ |x|` but for the floor.
+  term and the sum within 32 bits for any frame and any g of that range, and `|y| ≤ |x|` but for the floor. Since
+  0.2 the device computes it on the EMAC and the host as here (§10).
 - **Off**: Mix 0: the block untouched; the phase moves on by 32 · inc, so that a Mix that opens in a note (a lock, the
   LFO) finds the carrier where it would have been.
 - **The silent start of a block**: the frames before the first that is not 0 give 0 whatever the carrier; only the
@@ -166,7 +170,7 @@ silent; "first" the block in which the tracks come to it from none).
   `74-ring.json` (15 writes, 274 conflicts) up to date.
 - `check_overlaps.py`, `claims.py --check --self-test`: ALL OK (294 tweaks).
 - `webcompose_check.sh`: composer.js places `ring.o` as `relocate.py` does (23 of 23 placements); with the official
-  file the composed selections identical (they do not hold Ring yet, §10).
+  file the composed selections identical (they do not hold Ring yet, §11).
 - `gen_flasher_tweaks.py --check` up to date (no card yet); `py_compile` of the generator.
 - `registry.py --check` reports `REGISTRY.md` out of date, as expected: it gains Ring's payload row and Ring among
   the targets of the slot's hooks, and is generated again at the merge (notes/73 §16.2), as the other composed
@@ -215,7 +219,55 @@ The maintainer, after the builds of `build/ring-0.1/` and the list of §8 (from 
 the measuring build showed was not reported. Experimental on the page until flashed from it, as Samples and Crush were
 (notes/72 §20, §23; notes/73 §10, §15).
 
-## 10. For the integration
+## 10. The same bits, fewer instructions: Ring 0.2 (2026-11-01)
+
+The maintainer: « prüfen welche performance optimierungen möglich sind », then « Ja, übernehmen ».
+
+- **Measured outside the proof**, as Crush 0.3 (notes/73 §12): the device objects in the ColdFire interpreter, now the
+  Reso session's copy (`_scratch/reso-bench/cfemu.py`: its indexed displacements read in hex, as objdump prints them,
+  `btst`, MAC with load, the accumulator's moves in fractional mode, and the `ext.l` of §4; Ring's 0.1 object uses
+  displacements of 0, 2 and 4 only, so its counts of §4 stand), against the host build of the same source.
+- **Kept** (`ring.c` 0.2), three changes, the output 0.1's bit for bit:
+  - **The product on the EMAC**: `mac.l` x, g << 16 and `movclr.l` from a clear acc0 give ⌊x · g · 2^16 / 2^31⌋, the
+    product truncated (MACSR 0xa0: signed, fractional, saturating, truncating), as `tools/emu/emac.py` executes it,
+    which is 0.1's ⌊x · g / 2^15⌋ for every g of −32767 .. 32767 (g ≤ 32767 whenever Mix is on: at c = 32767,
+    ⌊m · 32767 / 2^15⌋ = m − 1). Two instructions a frame where the split took ten. On the host the split stays (the
+    proof's model, `#ifdef __mcoldfire__`). Ring sets MACSR to 0xa0 and clears acc0 at each block's start, as the slot
+    calls it (two instructions a block; POTS does the same), so it does not depend on what ran before.
+  - **The gain's shift is a mask**: ⌊m · c / 2^15⌋ · 2^16 is 2m · c with its low 16 bits cleared, so g << 16 =
+    (32768 − m) · 2^16 + (2m · c & 0xffff0000): a multiply, an `and.l` and an add where a multiply, a shift by 15,
+    an add and a `swap` / `clr.w` were. 2m is kept even (2 · ⌊128 w / 127⌋) so that the first term has no low half;
+    `w · 256 / 127` gave other bits in 466 of 1 500 blocks (odd values carry half an LSB of g).
+  - **The silent start scanned by pointer**: four instructions a frame where the index and its compare with 32 took
+    seven.
+- **Checked**: the 0.2 object in the interpreter against its host build, 1 500 blocks: none differ; the host builds
+  of 0.2 and 0.1 against each other, 300 000 blocks (every corner of the words, full scale, random and partly silent
+  blocks, notes, resets): none differ; the host build under the sanitizers as in §5: no fault; `gen_ring.py --check`,
+  `test_fltslot.py --dry` ALL OK, `check_overlaps.py`, `claims.py`, `webcompose_check.sh` with and without the
+  official file. `emac.py` knows each form the object uses (`mac.l %a1,%d0,%acc0`, `movclr.l`, `move.l #0,%acc0`,
+  `move.l #160,%macsr`).
+- **Instructions a playing track and block**, the interpreter, 0.1 → 0.2: off 38 → 39, sine 1 142 → 831 (−27 %),
+  shape 1 429 → 1 119 (−22 %), glide 1 407 → 1 097 (−22 %), silent 264 → 202 (−23 %); 1 914 bytes of code and
+  tables (1 884). In the proof's average (five playing tracks and a silent one, §4) about sine 726, shape 966, glide
+  948: six tracks about 5 800 a block, 5.4 % (6.8 %); six playing tracks with Shape 6 714, 6.2 % (7.9 %).
+- **Dropped** (estimated, not built): MAC with load for the next frame (one instruction a frame, but a pipelined
+  loop and the last frame apart, or a read past the block); the loops in assembly (two or three a frame); a larger
+  cosine without interpolation (five a frame, but phase noise at −56 to −62 dB, another sound); the clip through the
+  EMAC's saturation (only with a change of mode in each frame).
+- **The proof, the maintainer's run (2026-11-01): ALL OK but Ring's cost line, by design** (0.1's counts still
+  declared): Ring 0.2 bit for bit its host build in every scene, alone and eight in one build, with the EMAC as
+  `emac.py` executes it; MACSR and the accumulators after the part as the stock OS's. Counted for 0.2, now declared:
+  **off 39, sine 727, shape 967, glide 948, silent 202, first 734** (0.1: 38, 996, 1 235, 1 217, 264, 1 003), as
+  predicted from the interpreter (five playing tracks and a silent one, §4); the composer's load for six tracks 5 802,
+  5.4 % of a block (6.8 %).
+- MAIN OS: Ring alone `3cdd61c0…`, with Samples and Crush `b5a8c7e9…`, every card `6960abd2…`, measuring `61128e62…`.
+  Builds in `build/ring-0.2/` (git-ignored), made and read back by `compose.py`. **For the machine**: Ring must sound
+  as 0.1 (§8's list, with Shape and Mix at their ends, on six tracks at once); new is only that the EMAC computes the
+  product on the device.
+- **Tested on the machine (2026-11-01)**: the maintainer, after the builds of `build/ring-0.2/` (from the command
+  line): « getestet, passt ». The load the measuring build showed was not reported.
+
+## 11. For the integration
 
 What the merge adds outside this package (the files of notes/73 §16.2), ready to paste.
 
@@ -300,10 +352,11 @@ python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines ring
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush,ring   # avec Samples et Crush
 ```
-MAIN OS patché, `ring` seul : `a32b09d0a422cf56f455816aac51ea8b517bdae2936a1d440c1426e57c2f09b7` ; avec Samples et
-Crush : `ce50adf3c62ae3ef5fff2b3705437f4a2f9345116b3739b537e3f71f7b9a877f` ; avec toutes les cartes de la page :
-`9647a93b90412c4b8bf84f6ee91fd3c9dc65b9661ebf3ef4784fb582211e1ac4` (Ring 0.1, `fltslot` 0.9 ; à recalculer à la fusion
-avec Reso et EQ).
+MAIN OS patché, `ring` seul : `3cdd61c01181408642e1ed3b58458bf98ffcb2d0d30986a48e692c7b4ed2ec4d` ; avec Samples et
+Crush : `b5a8c7e99016f066e6f469e9f7c1cbc217e6344a02e90dca65066eca7a4d52a9` ; avec toutes les cartes de la page :
+`6960abd2a932360ca61df9cc785208681a2ed261a0a04312ff4fdb902c1971f1` (Ring 0.2, le produit sur l'EMAC, `fltslot` 0.9, joués sur un Model:Cycles depuis la ligne de commande le
+01/11/2026 ; à recalculer à la fusion avec Reso et EQ ; avec Ring 0.1, le même son, joués sur un Model:Cycles depuis la ligne de
+commande le 01/11/2026 : `a32b09d0…`, `ce50adf3…`, `9647a93b…`).
 ~~~
 
 **`tweaks/model-cycles_OS1.13/PROVENANCE.md`**, after `73-crush.json`:
@@ -312,7 +365,7 @@ avec Reso et EQ).
 
 **`notes/README.md`**, after 73:
 
-| [74-ring.md](74-ring.md) | **Ring: a ring modulator in the Track FX (2026-11-01, English)**: id 3, "RNG"; Freq on RETRIG + SWEEP (the carrier's note, MIDI 0 .. 127, 8.2 Hz to 12.5 kHz), Mix on RETRIG + CONTOUR (0 dry, amplitude modulation at the middle, the ring alone at 127), Shape on RETRIG + COLOR (a sine driven into a clip towards a square, start word 0; on COLOR because the values have no gaps from k 28); a note starts the carrier at its peak; off is dry bit for bit; exact integers (a cosine table of 256 steps, the product split at 16 bits), the host build the proof's model; the cost measured first in the ColdFire interpreter (`cfemu.py`'s `ext.l` fixed in a copy), the host build under the sanitizers over the words' corners; the proof's states from the manifest, ALL OK in the maintainer's run, the cost declared (at most 1 235 a track and block, six tracks 6.8 %; the proof's counts average five playing tracks and a silent one, Crush's too); known: the values' glide after a switch, from none, RETRIG + COLOR named Ring Shape on other tracks |
+| [74-ring.md](74-ring.md) | **Ring: a ring modulator in the Track FX (2026-11-01, English)**: id 3, "RNG"; Freq on RETRIG + SWEEP (the carrier's note, MIDI 0 .. 127, 8.2 Hz to 12.5 kHz), Mix on RETRIG + CONTOUR (0 dry, amplitude modulation at the middle, the ring alone at 127), Shape on RETRIG + COLOR (a sine driven into a clip towards a square, start word 0; on COLOR because the values have no gaps from k 28); a note starts the carrier at its peak; off is dry bit for bit; exact integers (a cosine table of 256 steps, the product split at 16 bits), the host build the proof's model; since 0.2 each frame's product on the EMAC (the same bits, about three quarters of the instructions); the cost measured first in the ColdFire interpreter (`cfemu.py`'s `ext.l` fixed in a copy), the host build under the sanitizers over the words' corners; the proof's states from the manifest, ALL OK in the maintainer's run, the cost declared (0.2: at most 967 a track and block, six tracks 5.4 %; the proof's counts average five playing tracks and a silent one, Crush's too); known: the values' glide after a switch, from none, RETRIG + COLOR named Ring Shape on other tracks |
 
 **`AGENTS.md`**, the map, after `tools/machines/crush/`:
 
