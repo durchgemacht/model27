@@ -3,8 +3,8 @@
  *
  * Every track can run a filter after Volume + Dist, the place of the Model:Samples' own filter. Each sound chooses one
  * by id in the low byte of its k 32 (0 none, 1 to 239 the filters, 240 to 255 the references; bits 8 and 9 are the
- * machine's switches, notes/63 §16); a build holds at most four (since 0.7, two before; the Track FX of notes/73: the
- * filters and the effects of this slot), laid out by the composer in the data block's
+ * machine's switches, notes/63 §16); a build holds at most eight (since 0.9; four in 0.7 and 0.8, two before; the
+ * Track FX of notes/73: the filters and the effects of this slot), laid out by the composer in the data block's
  * table. The id is read in the sound the track's note plays (*0x800017ec[t], its k 32 at +84, as SAMPLE reads its
  * switches), or in the copy of that sound's 66 bytes the audio side keeps (0x800015ae + 66 t) when there is none: not
  * in the smoothed words, which glide. Id 0, or an id the build does not hold: the track is not touched, bit for bit.
@@ -71,7 +71,7 @@
 #include <stdint.h>
 
 #define TRACKS 6
-#define ENTRIES 5                                   /* none, then the build's filters (the composer allows four) */
+#define ENTRIES 9                                   /* none, then the build's filters (the composer allows eight) */
 #define PARAMS 4                                    /* k 28 to k 31, descriptors 1 to 4 */
 #define FRAMES 32
 #define TYPE_DESC 5                                 /* the type's descriptor, display only */
@@ -114,24 +114,26 @@ struct data {
 	uint32_t keys_next;                         /* +12 the effect slots' fx_keys at 0x4001f886, or 0 */
 	uint32_t desc[2];                           /* +16 the stock descriptor table, the one the OS uses */
 	struct entry e[ENTRIES];                    /* +24 entry 0 none (the first filter's names), then the filters by id */
-	uint32_t rows[PARAMS + 1][14];              /* +344 the rows of descriptors 1 to 4, then 5, as fl_boot writes them */
-	uint8_t cur[TRACKS];                        /* +624 the entry each track ran in its last block */
-	uint8_t acc, last_dir;                      /* +630 the type's detents */
-	uint32_t last_time;                         /* +632 */
-	int32_t old[FRAMES];                        /* +636 in a change, the stopping filter's block */
-	uint16_t neutral[PARAMS];                   /* +764 each value's neutral word, the record's XOR (since 0.3) */
-	uint32_t rec_next[3];                       /* +772 the shortcut layer's save2, save1 and load wrappers */
-	uint8_t diag, spare2[3];                    /* +784 1 in a measuring build (since 0.5) */
-	uint32_t sum, peak;                         /* +788 the window's ticks and its dearest block */
-	uint16_t n, avg_t, peak_t, spare3;          /* +796 its blocks; the last window's average and peak, 0.1 % */
-	uint16_t start[ENTRIES][PARAMS];            /* +804 each entry's start words (since 0.8; entry 0 the neutral ones) */
-};                                                  /* 844 bytes (740 before 0.7, 804 in 0.7) */
+	uint32_t rows[PARAMS + 1][14];              /* +600 the rows of descriptors 1 to 4, then 5, as fl_boot writes them */
+	uint8_t cur[TRACKS];                        /* +880 the entry each track ran in its last block */
+	uint8_t acc, last_dir;                      /* +886 the type's detents */
+	uint32_t last_time;                         /* +888 */
+	int32_t old[FRAMES];                        /* +892 in a change, the stopping filter's block */
+	uint16_t neutral[PARAMS];                   /* +1020 each value's neutral word, the record's XOR (since 0.3) */
+	uint32_t rec_next[3];                       /* +1028 the shortcut layer's save2, save1 and load wrappers */
+	uint8_t diag, spare2[3];                    /* +1040 1 in a measuring build (since 0.5) */
+	uint32_t sum, peak;                         /* +1044 the window's ticks and its dearest block */
+	uint16_t n, avg_t, peak_t, spare3;          /* +1052 its blocks; the last window's average and peak, 0.1 % */
+	uint16_t start[ENTRIES][PARAMS];            /* +1060 each entry's start words (since 0.8; entry 0 the neutral ones) */
+};                                                  /* 1 132 bytes (740 before 0.7, 804 in 0.7, 844 in 0.8) */
 
 extern char fl_data[];
 #define D ((struct data *)fl_data)
 
 static uint32_t index_of(uint32_t id)
 {
+	if (!id)                                    /* none: no search (since 0.9; the filters' ids are 1 to 255) */
+		return 0;
 	for (uint32_t i = 1; i < D->count; i++)
 		if (D->e[i].id == id)
 			return i;

@@ -329,9 +329,9 @@ python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,smpfilter   # avec SAMPLE
 ```
-MAIN OS patché, `smpfilter` seul : `854342c22acdf1950b9f505e837d2f8799dbbe33f69e9fe46f5df530f6be1f16` ; avec SAMPLE
-(`sampler`, `smpfilter`) : `9499b519180630186e1ea030eb724a946079289715737c677decf174bc253511`, ceux que la page compose
-(`fltslot` 0.8 : quatre par build, la ligne du type « Track FX », les valeurs de départ, note 73 §2, §11). Avec `fltslot` 0.6 et Samples 0.3
+MAIN OS patché, `smpfilter` seul : `adb6d1bf800160d442be58a0f98cac6bcd901bee72b028ece42a1bc34b51fbaa` ; avec SAMPLE
+(`sampler`, `smpfilter`) : `62f07d89d70c43ae5fb3bb655be45c7c37177247959df02b6c2859f9277619c5`, ceux que la page compose
+(`fltslot` 0.9 : huit par build, pas de recherche pour « aucun », note 73 §16 ; avec 0.8 : `854342c2…`, `9499b519…`). Avec `fltslot` 0.6 et Samples 0.3
 (Cutoff de -64 à 63 comme SAMPLE, CUTO comme destination du LFO, note 72 §22), flashés depuis la page et joués sur un
 Model:Cycles le 01/11/2026 (note 72 §23) : seul `92f6955e…`, avec SAMPLE `83801ea7…`, avec toutes les cartes
 `e6a60aa3…`. Avec `fltslot` 0.5 et Samples 0.2 (L64 … OFF … H63, FREQ), joués sur un Model:Cycles depuis la ligne de
@@ -354,10 +354,10 @@ python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines crush
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush   # avec Samples
 ```
-MAIN OS patché, `crush` seul : `a151818c93ad9f4624d6cf7659efb726eb4b8773c42ec86b88f5e03003f6ed5c` ; avec Samples
-(`smpfilter`, `crush`) : `cbf53b93621d6ebdec0986a3b4038f4dabb710b41240cf28be1987cefbb46527` ; avec toutes les cartes de
-la page : `388d20438a229e53af2176aaba758366a8f7ee3158b09001098c01ee83c1c2d7`, ceux que la page compose (Crush 0.4, Bits de
-8 bits à 1 bit, `fltslot` 0.8 ; avec Crush 0.3, Bits de 16 à 1 : `da5584a0…`, `167d2883…`, `2b2fae73…` ; avec Crush
+MAIN OS patché, `crush` seul : `8f78c2034f530bfa27d50999d19176977ed47d6df022876ac0bd2164dda4293c` ; avec Samples
+(`smpfilter`, `crush`) : `2b6d98a79dc9ba5df990354219bfc60c29b9887c311b8d585e4f5208106b4db2` ; avec toutes les cartes de
+la page : `74ac09138cf0d7fc3a5f48283683e3023ec5bed9ab11466c373f60d55d7a8093`, ceux que la page compose (Crush 0.4, Bits de
+8 bits à 1 bit, `fltslot` 0.9 ; avec `fltslot` 0.8, joués et testés depuis la page : `a151818c…`, `cbf53b93…`, `388d2043…` ; avec Crush 0.3, Bits de 16 à 1 : `da5584a0…`, `167d2883…`, `2b2fae73…` ; avec Crush
 0.2, le même son que 0.3 : `365f496b…`, `01cf9060…`, `c089f700…`). Crush 0.4 joué sur un Model:Cycles depuis la ligne
 de commande le 01/11/2026 (note 73 §14). Avec Crush 0.1 (Bits à l'envers) et `fltslot` 0.7, joués sur un Model:Cycles depuis la ligne de
 commande le 01/11/2026 (note 73 §10) : seul `25aac3ea…`, avec Samples `c8cdc37c…`, avec toutes les cartes `67f0d95e…`.

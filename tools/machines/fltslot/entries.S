@@ -134,16 +134,16 @@ fl_conv:
 	.p2align 2
 	.globl	fl_save2, fl_save1, fl_load
 fl_save2:
-	movea.l	fl_data+772, %a0		/* rec_next: the layer's sc_save2 */
+	movea.l	fl_data+1028, %a0		/* rec_next: the layer's sc_save2 */
 	bra.s	1f
 fl_save1:
-	movea.l	fl_data+776, %a0		/* the layer's sc_save1 */
+	movea.l	fl_data+1032, %a0		/* the layer's sc_save1 */
 1:	move.l	8(%sp), -(%sp)			/* (record, sound) */
 	move.l	8(%sp), -(%sp)
 	pea	fl_post_save
 	jmp	(%a0)
 fl_load:
-	movea.l	fl_data+780, %a0		/* the layer's sc_load */
+	movea.l	fl_data+1036, %a0		/* the layer's sc_load */
 	move.l	8(%sp), -(%sp)			/* (sound, record) */
 	move.l	8(%sp), -(%sp)
 	pea	fl_post_load

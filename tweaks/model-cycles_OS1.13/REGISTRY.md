@@ -531,8 +531,8 @@ Code trop gros pour un masque, ajouté à la fin de l'image (`at`) et copié au 
 | chordtables | 36 | `0x401aa140` | 6 088 | `0x401ab908` | `0x43000000` | 222 292 |  |
 | digidelay | 39 | `0x401aa140` | 3 832 | `0x401ab038` | `0x43000000` | 1 269 784 |  |
 | pots | 70 | `0x401aa140` | 11 872 | `0x401acfa0` | `0x43000000` | 483 676 |  |
-| smpfilter | 72 | `0x401aa140` | 25 480 | `0x401b04c8` | `0x43000000` | 221 628 |  |
-| crush | 73 | `0x401aa140` | 7 344 | `0x401abdf0` | `0x43000000` | 221 256 |  |
+| smpfilter | 72 | `0x401aa140` | 25 592 | `0x401b0538` | `0x43000000` | 221 628 |  |
+| crush | 73 | `0x401aa140` | 7 456 | `0x401abe60` | `0x43000000` | 221 256 |  |
 | syntakt-meter | 90 | `0x401aa140` | 269 056 | `0x401ebc40` | `0x43000000` | 269 056 |  |
 | syntakt-tg-meter | 91 | `0x401bf8c0` | 243 472 | `0x401fafd0` | `0x46700000` | 269 056 | model-tg-st |
 | syntakt-tg-profile | 92 | `0x401bf8c0` | 243 904 | `0x401fb180` | `0x46700000` | 269 056 | model-tg-st |
@@ -863,8 +863,8 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | midi-live-both | 6 | 0 | 4 | 0 | 1 | 1 | 0 |  | notes/53 |
 | lfo-plus | 30 | 0 | 12 | 4 | 7 | 7 | 0 |  | notes/56 |
 | pots | 10 | 0 | 8 | 0 | 1 | 1 | 0 | 11 872 o | notes/69 |
-| smpfilter | 15 | 0 | 10 | 3 | 1 | 1 | 0 | 25 480 o | notes/72 |
-| crush | 15 | 0 | 10 | 3 | 1 | 1 | 0 | 7 344 o | notes/73 |
+| smpfilter | 15 | 0 | 10 | 3 | 1 | 1 | 0 | 25 592 o | notes/72 |
+| crush | 15 | 0 | 10 | 3 | 1 | 1 | 0 | 7 456 o | notes/73 |
 | trig-cond-order | 4 | 0 | 1 | 1 | 1 | 1 | 0 |  | notes/70 |
 
 ## 8. Key combinations (declared claims, notes/65)

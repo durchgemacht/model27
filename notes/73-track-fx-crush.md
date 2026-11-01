@@ -262,3 +262,59 @@ The maintainer flashed a build of the live page (`6ef171e`, release 0.26, stamp 
 compared byte for byte with the commit) on their Model:Cycles: « flash von live site passt ». The card is tested since
 release 0.27 (`FEATURES`, the guide's line, README). No tag for now (the maintainer: « tag kommt später vielleicht
 mal »).
+
+## 16. Ready for more Track FX: `fltslot` 0.9, the proof from the manifests (2026-11-01)
+
+The maintainer: « dann lass uns erst alles vorbereiten und danach werden parallel die fx gebaut ». Ring, Reso and EQ
+(the list of §1's request) are built at the same time, each in a session of its own, on a branch of its own from the
+branch `trackfx`, which holds this preparation; `main` stays on release 0.27 (tested) until they are merged.
+
+- **Eight in a build** (`fltslot` 0.9; the maintainer: no hard limit at four, so as many as are offered): the table
+  nine entries with none, the data block 1 132 bytes (`rows` 600, `cur` 880, `acc` 886, `old` 892, `neutral` 1020,
+  `rec_next` 1028 — `entries.S` reads it there —, `diag` 1040, `sum` 1044, `peak` 1048, `n` 1052, `avg_t` 1054,
+  `peak_t` 1056, `start` 1060), `most` 8. Each Track FX costs 72 bytes there; the image has about 265 KB left with every
+  card. RETRIG + PITCH takes four detents a type, so a build with all of them is a longer turn. A track on none no
+  longer searches the table (`index_of` returns at id 0), so the part's cost on such tracks does not grow with the
+  table.
+- **The proof from the manifests**: a Track FX whose manifest has `"proof": {"host": {"sources", "include",
+  "defines"}, "cost_states": {state: [[k 28, k 29(, k 30, k 31)], ...]}}` gets, with no change to `test_fltslot.py`,
+  its host build as the model (`HostModel`: the sources compiled with `cc -O2 -std=c99 -fwrapv`, called as
+  `process(block, words, track, triggered)` / `reset(track)`), a selection of its own, a place in the full selection
+  (Samples, the hosted ones, then REFF and its copies up to eight) and its cost counted in those states ("silent"
+  plays no note). Crush moved there (the same states). REFF's copies go to `refflt9` (id 247); nine are refused.
+  `--dry` ALL OK, eight in one build included. `compose.web_package` does not carry the proof section to the page.
+- MAIN OS on the branch: Samples alone `adb6d1bf…`, with SAMPLE `62f07d89…`, Crush alone `8f78c203…`, with Samples
+  `2b6d98a7…`, every card `74ac0913…` (not played: the part's offsets and the search only).
+
+### 16.1 What is reserved
+
+| Track FX | Package | Filter id | Type on screen | Note | Tweak and order | Branch |
+|---|---|---|---|---|---|---|
+| Ring | `tools/machines/ring/` | 3 | RNG | `notes/74-ring.md` | `74-ring.json`, order 74 | `trackfx-ring` |
+| Reso | `tools/machines/reso/` | 4 | RES | `notes/75-reso.md` | `75-reso.json`, order 75 | `trackfx-reso` |
+| EQ | `tools/machines/eq/` | 5 | EQ | `notes/76-eq.md` | `76-eq.json`, order 76 | `trackfx-eq` |
+
+Note 71 stays MODAL's (stashed, not to be touched); 77 is the next free one after these.
+
+### 16.2 What a Track FX session does, and what it leaves
+
+- **Its own files only**: its package (sources, `manifest.json` with `uses` `track.filter`, `params` with `start`
+  where its off is not the neutral word, `proof`, `cost`, `LICENSE` MIT), its generator `tools/gen_<id>.py` (as
+  `tools/gen_crush.py`), its tweak, its note. Generated files that change with it on the branch (the other composed
+  tweaks' conflicts, `REGISTRY.md`) are generated again at the merge, not merged by hand.
+- **Not touched**: `fltslot`, `compose.py`, `composer.js`, `test_fltslot.py`, `docs/`, `README.md`, `BUILD.md`,
+  `AGENTS.md`, `notes/README.md`, `PROVENANCE.md`, `gen_flasher_tweaks.py`, `webflash_smoke.js`,
+  `webcompose_synth.py`. If one of them needs a change, the session stops there and says so. The card's texts, the
+  guide section, the release line and the rows for those files go into the note's last section, « For the
+  integration ».
+- **The values**: four at most (k 28 to k 31: SWEEP and CONTOUR with CC 74 / 71, COLOR and SHAPE without a CC, all
+  with p-locks, LFO, velocity, Control All); off is dry and is the start (a sound that steps to it sounds the same
+  until a knob turns); exact integers or the EMAC with a C model of it for the host build (as Samples, POTS).
+- **The load**: at most Samples' (about 1 500 instructions a track and block), measured first in the ColdFire
+  interpreter outside the repository (`_scratch/pots-load/cfemu.py`, `_scratch/crush-opt/bench.py` as the pattern),
+  declared from the maintainer's Unicorn run.
+- **Checks**: its generator `--check`, `test_fltslot.py --dry`, `check_overlaps.py`, `claims.py --check
+  --self-test`; Unicorn stops with SIGILL in the sandbox, so the full proof is the maintainer's. The official files
+  are in the main checkout's `firmware/` (a worktree has none).
+- **Commits** only with the maintainer's word, on its branch, with the trailer `Co-Authored-By: Claude`; no push, no
+  merge.

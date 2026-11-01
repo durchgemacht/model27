@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Proof of the filter slot (the track filters, notes/72 §10 to §19; the Track FX since fltslot 0.7, notes/73) on the
 OS's own code, with REFF, the reference filter (tools/machines/refflt/), Samples, the Model:Samples' filter
-(tools/machines/smpfilter/, id 1), and Crush, a sample-rate and bit reduction (tools/machines/crush/, id 2), through
-the builder's part tools/machines/fltslot/.
+(tools/machines/smpfilter/, id 1), and every Track FX whose manifest names its host build ("proof": {"host": ...,
+"cost_states": ...}, notes/73 §16; Crush, tools/machines/crush/, id 2, the first), through the builder's part
+tools/machines/fltslot/. A new Track FX needs no change here: its manifest's proof section is its model and its cost.
 
 For each selection (by default: refflt; refflt,refflt2; sampler,refflt; refdelay,refflt; smpfilter; smpfilter,refflt;
-sampler,smpfilter; crush; smpfilter,crush,refflt,refflt2, four in one build; refflt2 to refflt5 are copies of REFF
-with ids 254 to 251 and names of their own, made for the test in a folder of packages of its own), on the official
-OS 1.13:
+sampler,smpfilter; each hosted Track FX alone; and the full table: Samples, the hosted ones, then REFF and its copies,
+up to the part's most, eight; refflt2 to refflt9 are copies of REFF with ids 254 to 247 and names of their own, made
+for the test in a folder of packages of its own), on the official OS 1.13:
   1. start-up: the bootstrap's own aPLib depacker reads the grown OS back; the boot hook copies the payload and clears
      the BSS;
   2. the sites: the audio block's call of Volume + Dist (0x40059852) -> jsr fl_post, the boot's call of the parameter
@@ -30,7 +31,7 @@ OS 1.13:
      - sounds choosing REFF, refflt2, Samples or Crush: each track the model's, bit for bit: the stock output
        through the filter its sound chose, with the track's k 28 and k 29 and its trig (REFF's arithmetic in Python;
        Samples' the host build of SAMPLE's own sources, src/smp_filter.c's C model of the EMAC loops, as One-Shot's
-       host tests use it; Crush's the host build of crush.c); the id read in the sound or, with none, in the copy; with
+       host tests use it; a hosted Track FX's its host build); the id read in the sound or, with none, in the copy; with
        more than two filters in the build, the third and fourth on two tracks of the fourth scene;
        a change of filter (another id, a sound that chose another, none) faded across the block from the filter that
        stops (on a copy of the input) to the one that starts (after its reset), the one that stops reset after; a
@@ -40,7 +41,8 @@ OS 1.13:
      - hot tracks (Volume + Dist at 127, Reso at the top, Cutoff sweeping across the centre every block): the same;
      - what the part costs, in instructions per block (the part's code and the filters'): every track with none,
        every track with the first filter; each real filter's own cost per track and block (Samples: steady lowpass,
-       steady highpass, at the centre, gliding, the first block after its reset; Crush: off, a hard hold with Bits, a
+       steady highpass, at the centre, gliding, the first block after its reset; a hosted Track FX the states its
+       manifest names, Crush: off, a hard hold with Bits, a
        soft one with Bits, Bits alone, gliding, silent, the first block), written to build/filter-cost.json and equal
        to what its manifest declares (cost.emulation);
   4. the boot (T2): the OS's own builder of the parameter tables (0x4005a274), stock and through fl_boot: descriptors
@@ -86,7 +88,7 @@ OS 1.13:
      build's record with no destination and slot 18 on k 0 only; a SAMPLE sound keeps its key and switches;
  10. the composer's refusals: a filter with a machine or an effect in one package, an id out of 1..255, its process
      not first in build.roots, its reset not in them, a patch point, another use, a name, type name or value name too
-     long, no values or five, an unknown formatter, two filters in one package; five filters in one build, two
+     long, no values or five, an unknown formatter, two filters in one package; nine filters in one build, two
      filters with one id, a filter with a machine's knob value (the rule R1: REF2, CHORD Tables).
 
 Needs Unicorn and numpy (pip install unicorn numpy) and m68k-elf-objdump; Unicorn's JIT does not run inside a sandbox
@@ -127,8 +129,6 @@ import test_sdvintage_exact as X    # noqa: E402
 import test_sdvintage_7th as t7     # noqa: E402
 from test_sdvintage_7th import check  # noqa: E402
 
-SELECTIONS = [["refflt"], ["refflt", "refflt2"], ["sampler", "refflt"], ["refdelay", "refflt"], ["smpfilter"],
-              ["smpfilter", "refflt"], ["sampler", "smpfilter"], ["crush"], ["smpfilter", "crush", "refflt", "refflt2"]]
 PART = compose.load_part("fltslot")
 DATA = PART["data"]
 POST, VOLDIST = 0x40059852, 0x40056f58
@@ -147,8 +147,33 @@ OURS = set(JSRS) | {CONV, KNOB, *PTAB} | set(RECORD_JMPS)
 BUILDER, DESC_OP, NEW_SOUND, HANDLER_END = 0x4005a274, 0x4005a2de, 0x400618f2, 0x4001f96a
 FORMATS = {"int": 0x400456c8, "centre": 0x40045bd6}
 UI_OBJ, TIMER, STEP_AT = 0x40a71754, 0xfc07000c, -38
-REF_IDS = {"refflt": 255, "refflt2": 254, "refflt3": 253, "refflt4": 252, "refflt5": 251}
+REF_IDS = {"refflt": 255, **{f"refflt{k}": 256 - k for k in range(2, 10)}}   # refflt2 254 .. refflt9 247
 COPIES = tuple(i for i in REF_IDS if i != "refflt")         # REFF's copies, made in a folder of their own
+
+
+def hosted():
+    """The Track FX whose manifest names its host build ("proof": {"host": ...}, notes/73 §16), by filter id: each gets
+    a selection of its own and goes into the full one, with no change here."""
+    out = []
+    for d in sorted(compose.MACHINES.iterdir()):
+        mf = d / "manifest.json"
+        if not mf.is_file():
+            continue
+        m = json.loads(mf.read_text(encoding="utf-8"))
+        u = next((x for x in m.get("uses", []) if x.get("point") == compose.FILTER_POINT), None)
+        if u and m.get("proof", {}).get("host"):
+            out.append((u["id"], m["id"]))
+    return [mid for _i, mid in sorted(out)]
+
+
+def default_selections():
+    """The default selections: the slot's references, Samples, each hosted Track FX alone, and the full table, the
+    build's most (Samples, the hosted ones, then REFF and its copies)."""
+    base = [["refflt"], ["refflt", "refflt2"], ["sampler", "refflt"], ["refdelay", "refflt"], ["smpfilter"],
+            ["smpfilter", "refflt"], ["sampler", "smpfilter"]]
+    own = hosted()
+    full = (["smpfilter", *own] + ["refflt", *COPIES])[:PART["most"]]
+    return base + [[mid] for mid in own] + [full]
 FRAMES, TRACKS = 32, 6
 
 
@@ -161,16 +186,15 @@ def s32(x):
 
 
 @contextlib.contextmanager
-def folder(copies, base=("refflt", "fltslot", "refdelay", "fxslot", "sampler", "shortcuts", "dispatch", "smpfilter",
-                         "crush")):
-    """compose.MACHINES pointed at a folder of its own: the packages and parts of base, and for each (name, id) of
+def folder(copies):
+    """compose.MACHINES pointed at a folder of its own: every package and part (1 MB or so), and for each (name, id) of
     copies a copy of REFF under that name with that id."""
     kept = compose.MACHINES
     with tempfile.TemporaryDirectory() as d:
         compose.MACHINES = pathlib.Path(d)
         try:
-            for pid in base:
-                shutil.copytree(kept / pid, compose.MACHINES / pid)
+            for src in sorted(x for x in kept.iterdir() if x.is_dir()):
+                shutil.copytree(src, compose.MACHINES / src.name)
             for name, fid in copies:
                 two = compose.MACHINES / name
                 shutil.copytree(kept / "refflt", two)
@@ -380,37 +404,57 @@ class Samples:
         return list(buf)
 
 
-class Crush:
-    """Crush's arithmetic: tools/machines/crush/crush.c compiled for the host, its six states in the library's own
-    variables (exact integers within 32 bits, no EMAC: the same file is the model, bit for bit)."""
-    _lib = []
+class HostModel:
+    """A Track FX's arithmetic from its host build (its manifest's "proof": {"host": {"sources", "include", "defines"}},
+    notes/73 §16): the package's sources compiled for the host, called through the device contract,
+    process(block, words, track, triggered) and reset(track), its states in the library's own variables. One library
+    a package; the part resets a track before its first block on a filter, so the library's earlier state does not
+    matter."""
+    _libs = {}
+
+    def __init__(self, mid):
+        self.lib = self.build(mid)
+        u = compose.load_manifest(mid)["_filter"]
+        self.process, self.reset_fn = getattr(self.lib, u["process"]), getattr(self.lib, u["reset"])
 
     @classmethod
-    def lib(cls):
-        if not cls._lib:
-            src = HERE.parent / "machines" / "crush"
-            d = pathlib.Path(tempfile.mkdtemp(prefix="crush-host-"))
+    def build(cls, mid):
+        if mid not in cls._libs:
+            src = compose.MACHINES / mid
+            h = json.loads((src / "manifest.json").read_text(encoding="utf-8"))["proof"]["host"]
+            d = pathlib.Path(tempfile.mkdtemp(prefix=f"{mid}-host-"))
             atexit.register(shutil.rmtree, d, True)
-            out = d / "crush.so"
+            out = d / f"{mid}.so"
             cc = shutil.which("cc") or shutil.which("gcc") or "cc"
-            r = subprocess.run([cc, "-O2", "-std=c99", "-fwrapv", "-Wall", "-Wextra", "-Werror", f"-I{src}", "-shared",
-                                "-fPIC", "-o", str(out), str(src / "crush.c")], capture_output=True, text=True)
+            r = subprocess.run([cc, "-O2", "-std=c99", "-fwrapv", "-Wall", "-Wextra", "-Werror", "-shared", "-fPIC",
+                                *[f"-I{src / i}" for i in h.get("include", ["."])],
+                                *[f"-D{k}={v}" for k, v in h.get("defines", {}).items()],
+                                "-o", str(out), *[str(src / f) for f in h["sources"]]], capture_output=True, text=True)
             if r.returncode:
-                sys.exit("!! the host build of crush.c failed:\n" + r.stderr)
-            cls._lib.append(ctypes.CDLL(str(out)))
-        return cls._lib[0]
+                sys.exit(f"!! the host build of {mid} failed:\n" + r.stderr)
+            cls._libs[mid] = ctypes.CDLL(str(out))
+        return cls._libs[mid]
 
-    def reset(self, t):                                     # the part resets a track before its first block on Crush
-        self.lib().crush_reset(ctypes.c_uint32(t))
+    def reset(self, t):
+        self.reset_fn(ctypes.c_uint32(t))
 
     def __call__(self, x, words, t, trig):
         buf = (ctypes.c_int32 * FRAMES)(*x)
         w = (ctypes.c_int16 * 4)(*words)
-        self.lib().crush_process(buf, w, ctypes.c_uint32(t), ctypes.c_uint32(trig))
+        self.process(buf, w, ctypes.c_uint32(t), ctypes.c_uint32(trig))
         return list(buf)
 
 
-MODELS = {"refflt": Reff, "smpfilter": Samples, "crush": Crush, **{i: Reff for i in COPIES}}
+MODELS = {"refflt": Reff, "smpfilter": Samples, **{i: Reff for i in COPIES}}
+
+
+def model_of(mid):
+    """The model class (a factory) of filter package mid: REFF's, Samples', or the host build its manifest names."""
+    if mid in MODELS:
+        return MODELS[mid]
+    if mid in hosted():
+        return lambda: HostModel(mid)
+    return None
 
 
 class PartModel:
@@ -568,7 +612,7 @@ def audio_tests(key, stock, img, runtime, tweak, info, syms, mans, blocks):
             a.setw(t, 29, WORDS[t][1])
             a.setw(t, 30, 0x4000 + t)
             a.setw(t, 31, 0x4000 - t)
-    model = PartModel({m["_filter"]["id"]: MODELS[i] for i, m in mans.items() if m["_filter"]})
+    model = PartModel({m["_filter"]["id"]: model_of(i) for i, m in mans.items() if m["_filter"]})
     bad, quiet, untouched, filtered, changes, emac_ok, contract, peak = [], 0, 0, 0, 0, True, True, 0
     for name, lo, hi, scene in scenes(ids):
         for t, (k32, copy) in scene.items():
@@ -646,12 +690,17 @@ def cost_tests(key, img, runtime, tweak, info, syms, ids):
 
 
 COST = {}                                                   # what filter_cost counts, for build/filter-cost.json
-COST_STATES = {                                             # by package: state -> the (k 28, k 29) of its blocks
+COST_STATES = {                                             # by package: state -> the (k 28, k 29[, k 30, k 31]) of its
     "smpfilter": {"lowpass": ((0x2000, 0x5000),), "highpass": ((0x6000, 0x5000),), "centre": ((0x4000, 0x5000),),
-                  "glide": ((0x3000, 0x7000), (0x5800, 0x2000)), "silent": ((0x2000, 0x5000),)},
-    "crush": {"off": ((0x4000, 0x7f00),), "hard": ((0x7000, 0x2f00),), "soft": ((0x1000, 0x2f00),),   # Bits off at
-              "bits": ((0x4000, 0x2f00),), "glide": ((0x3000, 0x5f00), (0x5800, 0x1f00)),           # the top (0.2)
-              "silent": ((0x7000, 0x2f00),)}}
+                  "glide": ((0x3000, 0x7000), (0x5800, 0x2000)), "silent": ((0x2000, 0x5000),)}}   # blocks, in turn
+
+
+def cost_states(mid, man):
+    """A filter's cost states: Samples' above, else its manifest's "proof": {"cost_states": {state: [[k 28, k 29(,
+    k 30, k 31)], ...]}} (notes/73 §16); "silent" plays no note."""
+    if mid in COST_STATES:
+        return COST_STATES[mid]
+    return {k: tuple(tuple(w) for w in v) for k, v in man.get("proof", {}).get("cost_states", {}).items()}
 
 
 def filter_cost(key, img, runtime, tweak, info, mans):
@@ -662,20 +711,21 @@ def filter_cost(key, img, runtime, tweak, info, mans):
     selection is the filter alone (once a run)."""
     for p in info["packages"]:
         mid = p["id"]
-        if not p.get("filter_id") or mid not in COST_STATES or mid in COST:
+        states = cost_states(mid, mans[mid]) if p.get("filter_id") else {}
+        if not states or mid in COST:
             continue
         code = [(p["code_at"], p["code_at"] + p["code"])]
         got = {}
-        for state, words in COST_STATES[mid].items():
+        for state, words in states.items():
             a = Audio(img, runtime, tweak)
             for t in range(TRACKS):
                 a.sound(t, p["filter_id"], 0)
             counts = []
             for blk in range(16):
-                c, r = words[blk % len(words)]
+                ws = words[blk % len(words)]
                 for t in range(TRACKS):
-                    a.setw(t, 28, c)
-                    a.setw(t, 29, r)
+                    for k, v in enumerate(ws):              # k 28, k 29 (and k 30, k 31 when the state names them)
+                        a.setw(t, 28 + k, v)
                 if blk == 8:
                     a.count(code)
                 n0 = a.instr
@@ -1321,7 +1371,7 @@ def refusal_tests(stock):
         compose.MACHINES = kept
     check(len(refused) == len(cases), "the composer refuses a package with " + ", ".join(refused)
           + (f"; accepts {', '.join(n for n, _c in cases if n not in refused)}" if len(refused) < len(cases) else ""))
-    for name, copies, ids in (("five filters in one build", [(i, REF_IDS[i]) for i in COPIES], ["refflt", *COPIES]),
+    for name, copies, ids in (("nine filters in one build", [(i, REF_IDS[i]) for i in COPIES], ["refflt", *COPIES]),
                               ("two filters with one id", [("refflt2", 255)], ["refflt", "refflt2"])):
         with folder(copies):
             try:
@@ -1347,7 +1397,7 @@ def main():
     ap.add_argument("--blocks", type=int, default=40, help="blocks per scene, at most")
     ap.add_argument("--dry", action="store_true", help="the builds and their sites only, without Unicorn")
     args = ap.parse_args()
-    selections = [[i.strip() for i in s.split(",") if i.strip()] for s in args.machines] if args.machines else SELECTIONS
+    selections = [[i.strip() for i in s.split(",") if i.strip()] for s in args.machines] if args.machines else default_selections()
     stock = T.main_os_from_syx(args.cycles)
     for ids in selections:
         key = "+".join(ids)
@@ -1356,8 +1406,8 @@ def main():
             mans = {i: compose.load_manifest(i) for i in ids}
         if not any(m["_filter"] for m in mans.values()):
             sys.exit(f"!! {key}: the proof needs a filter (refflt)")
-        if any(m["_filter"] and i not in MODELS for i, m in mans.items()):
-            sys.exit(f"!! {key}: only {', '.join(MODELS)} have a model here")
+        if any(m["_filter"] and not model_of(i) for i, m in mans.items()):
+            sys.exit(f"!! {key}: a filter without a model: REFF and its copies, Samples, or a manifest's proof.host")
         tweak, info, img, runtime = built(stock, ids)
         print(f"\n{key}: filters " + ", ".join(f"{fid} ({i})" for fid, i in info["filters"]["filters"])
               + f"; payload {len(runtime)} bytes at {compose.gs.PAY_ALONE:#x}")

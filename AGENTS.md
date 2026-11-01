@@ -143,14 +143,16 @@ tools/machines/fltslot/       the filter slot, a part (notes/72; the Track FX si
                               Volume + Dist, the filter or effect its sound chose (k 32's low byte); its values are
                               descriptors 1-4 on k 28-31 (RETRIG + SWEEP / CONTOUR / COLOR / SHAPE), the type is RETRIG +
                               PITCH; compose.py adds it, with the shortcut layer, to the builds whose packages are filters
-                              (four at most; never with a machine's knob value, rule R1); compose.py --diag-filters makes
+                              (eight at most; never with a machine's knob value, rule R1); compose.py --diag-filters makes
                               a measuring build of its load
 tools/machines/smpfilter/     Samples: SAMPLE's filter (Cycles One-Shot's sources, from tools/machines/sampler/src/) as
                               filter 1; tools/gen_smpfilter.py builds it into 72-smpfilter.json; refflt/: the slot's
                               reference filter, never offered; tools/emu/test_fltslot.py proves the slot and both
 tools/machines/crush/         Crush (notes/73): a sample-rate and bit reduction, the Track FX's first effect (id 2; the
-                              filter slot holds effects too since fltslot 0.7, four in a build); tools/gen_crush.py
-                              writes its clock's table and builds it into 73-crush.json; proven by test_fltslot.py
+                              filter slot holds effects too since fltslot 0.7, eight in a build since 0.9);
+                              tools/gen_crush.py writes its clock's table and builds it into 73-crush.json; proven by
+                              test_fltslot.py, which takes a Track FX's model and cost states from its manifest's
+                              proof section
 tools/emu/                    Unicorn emulation of the OS: test_<mod>.py proofs, mcengine.py, emac.py, syntakt.py
 tools/gen_flasher_tweaks.py   FEATURES list -> docs/flasher/tweaks.js (generated); a machine card embeds its package and
                               the registrar's frame, composed in the page (notes/61)
@@ -182,9 +184,10 @@ CONTRIBUTING.md               terms for outside contributions, and how a machine
 
 Follow the shape of the last ones (tempo-max: commits `5997b4a`, `14fb9fa`, `6e592bc`; trig-hold, arp). In order:
 
-1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 73 is the last) with the
-   user's request and its source, the OS code involved (addresses, `[FAIT]`/`[HYP]`), the design, free space used and
-   conflicts with other tweaks. Add a row to `notes/README.md`. See `notes/AGENTS.md`.
+1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 73 is the last, 74 to 76 are
+   reserved for the Track FX Ring, Reso and EQ, notes/73 §16) with the user's request and its source, the OS code
+   involved (addresses, `[FAIT]`/`[HYP]`), the design, free space used and conflicts with other tweaks. Add a row to
+   `notes/README.md`. See `notes/AGENTS.md`.
 2. **Write the generator** `tools/gen_<mod>.py` (and sources under `tools/machines/<mod>/` if it has code). It reads
    the official `.syx`, checks the stock bytes, and writes `tweaks/model-cycles_OS1.13/NN-<id>.json`; `--check`
    compares with the committed file. See `tools/AGENTS.md` and `tweaks/AGENTS.md`.
