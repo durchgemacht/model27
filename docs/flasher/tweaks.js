@@ -294,7 +294,7 @@ window.MC_TWEAKS = {
    "id": "smpfilter",
    "label": "Samples (filter)",
    "desc": "The Model:Samples' filter on any track, after Volume + Dist: lowpass below the centre of Cutoff, highpass above, off in the middle, with resonance. Hold RETRIG and turn PITCH to give a sound the filter; RETRIG + SWEEP is Cutoff, RETRIG + CONTOUR is Reso, with p-locks, LFO and CC 74 / 71.",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "by",
     "who": "durchgemacht",

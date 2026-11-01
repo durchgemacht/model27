@@ -340,9 +340,9 @@ async function main() {
     check(sfAlone === "smpfilter" && sfSmp === "sampler+smpfilter" && sfAll === "control-all-config,sampler+digidelay+pots+smpfilter"
       && sfOn && !chosen().length && doc.querySelector('#grp-filter #feat-smpfilter')
       && doc.querySelector('#features a[href$="#samples-filter"]') && doc.querySelectorAll('input[name="var-smpfilter"]').length === 0
-      && /Experimental/.test((doc.querySelector("#mod-smpfilter .tag") || {}).textContent || ""),
+      && !doc.querySelector("#mod-smpfilter .tag"),
       `Samples alone ${sfAlone}; with SAMPLE ${sfSmp}, one composed tweak; with the effects and Control All Config ` +
-      `${sfAll}, all ticked, no clash; in Filters; no sub-choice; its guide link; experimental, so tagged`);
+      `${sfAll}, all ticked, no clash; in Filters; no sub-choice; its guide link; tested, so no tag`);
     // Trig conditions: a tweak card, after the composed tweak of the machine and effect cards in the build
     box("feat-trig-cond-order").click(); await wait(5);
     const tcoAlone = chosen();

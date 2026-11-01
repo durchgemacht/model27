@@ -383,8 +383,9 @@ ALL_FEATURES = [
                 "filter; RETRIG + SWEEP is Cutoff, RETRIG + CONTOUR is Reso, with p-locks, LFO and CC 74 / 71.",
         # SAMPLE's filter (Cycles One-Shot's sources, unchanged) on every track, through the filter slot (notes/72):
         # bit for bit the host build in emulation; on the Model:Cycles from the command line on
-        # 2026-11-01, six tracks with Control All fluid after the two savings (smpfilter 0.2)
-        "status": "experimental",
+        # 2026-11-01, six tracks with Control All fluid after the two savings (smpfilter 0.2), then flashed from
+        # this page (release 0.24) the same day (notes/72 §23)
+        "status": "tested",
         "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/cycles-one-shot"},
         "license": "LICENSE-One-Shot",
         # a filter composed in the page from its package (notes/72), with the machines and effects ticked:

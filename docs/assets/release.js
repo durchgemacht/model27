@@ -7,6 +7,9 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.25", date: "2026-11-01", changes: [
+    { en: "Samples is tested as this page builds it: flashed from this page and played on a Model:Cycles (2026-11-01). Its card now shows Tested" },
+  ] },
   { version: "0.24", date: "2026-11-01", changes: [
     { en: "Samples' Cutoff reads -64 to 63, as on SAMPLE: below 0 a lowpass, 0 off, above 0 a highpass. It read L64 … OFF … H63 before, which looked too much like Pan. As the LFO's destination it now reads CUTO instead of FREQ" },
     { en: "Only the display changes; the sound is the same, checked in an emulator. Samples stays experimental until flashed from this page" },

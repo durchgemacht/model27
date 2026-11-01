@@ -23,8 +23,8 @@ never offered), the card's tweak `72-smpfilter.json` (`tools/gen_smpfilter.py`),
 - **Cost:** about 0.25 % of a block for the part; Samples 922 to 1 492 instructions a track and block while it filters,
   160 at the centre, by the emulator's count; on the machine, six filters with Control All on Cutoff took at most
   10.0 % of a block (§18).
-- Proven in emulation (§7) and tested on the Model:Cycles from the command line (§20); on the page as an experimental
-  card, Filters section.
+- Proven in emulation (§7), tested on the Model:Cycles from the command line (§20) and from the page (§23); a card of
+  the flasher's Filters section.
 
 ## 1. What a sound keeps
 
@@ -350,7 +350,6 @@ OS the page composes (`REF_MAINOS`). Experimental on the page until flashed from
 
 ## 21. What is left
 
-- Flashed from the page: the card's status to tested (`FEATURES`, the guide's line, the release notes, README).
 - Samples' early return at the centre (§18).
 - T7: Env depth and AD in Samples, under the same id (k 30, k 31, the trig bit).
 - A second filter (the Modded-Cycles track filter could follow, with its envelope).
@@ -370,3 +369,9 @@ PAN L zu verwechseln. einfach -64 und 63 nutzen wie beim SAMPLE », and as the L
   maintainer's run (2026-11-01): **ALL OK**, all seven selections.
 - MAIN OS (`REF_MAINOS`): Samples alone `92f6955e…`, with SAMPLE `83801ea7…`, every card `e6a60aa3…`. The builds of
   §20 (`76b47553…`, `449b7df8…`) showed L64 .. OFF .. H63 and FREQ; only the display changed, not on the machine yet.
+
+## 23. Tested from the page (2026-11-01, release 0.25)
+
+The maintainer flashed a build of the live page (`fe96f39`, release 0.24, stamp 2026-11-01-02, the page's files compared
+byte for byte with the commit) and tried Samples on their Model:Cycles: « passt ». The card is tested since release
+0.25 (`FEATURES`, the guide's line, README).
