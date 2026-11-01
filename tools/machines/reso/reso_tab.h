@@ -1,7 +1,7 @@
 /* Reso's tables (notes/75 §3), written by tools/gen_reso.py. By value 0 .. 128 (the last for the
  * interpolation of 127): RESO_L the period of note n, 48000 / f(n) frames in 20.12 (f(n) = 440 * 2^((n - 69) / 12),
  * Pitch is the MIDI note), RESO_SH and RESO_CH sin and cos of half its pitch, w0 / 2 = pi f(n) / 48000;
- * RESO_P the damping's phase P at the pitch in turns, Q32:
+ * RESO_P the damping's phase P at the pitch in turns by Tone, Q32:
  * atan(1 / R) / 2pi with R = 4 * 64^(b / 127) harmonics, less its value at 127 times b / 127,
  * 0 at 127 (no damping), RESO_SP2 and RESO_CP2 sin and cos of half of it; RESO_E log2(1000) / (48000 * T60) by
  * Decay, Q37, T60 = 0.02 * 500^(d / 127) s. RESO_ETA the allpass (1 - D) / (1 + D) for a delay

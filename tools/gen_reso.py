@@ -28,7 +28,7 @@ TABLE = compose.MACHINES / PACKAGE / "reso_tab.h"
 OUT = compose.DEV / "75-reso.json"
 SR = 48000
 T60 = (0.02, 10.0)                 # Decay 0 and 127, seconds; exponential between
-DAMP = (4.0, 256.0)                # Brightness 0 and 127: the damping's cutoff, harmonics of the pitch; none at 127
+DAMP = (4.0, 256.0)                # Tone 0 and 127: the damping's cutoff, harmonics of the pitch; none at 127
 ONE = 2 ** 31 - 1
 
 
@@ -41,7 +41,7 @@ def q31(v):
 
 
 def tables():
-    """name -> (C type, values): the pitch, the damping and the decay by value (0 .. 128, the last one for the
+    """name -> (C type, values): the pitch, the damping (Tone) and the decay by value (0 .. 128, the last one for the
     interpolation of 127), the allpass by its fraction, and the functions."""
     L = [round(SR / note_hz(n) * 4096) for n in range(129)]                     # the period, frames in 20.12
     half = [math.pi * note_hz(n) / SR for n in range(129)]                      # w0 / 2, radians
@@ -67,7 +67,7 @@ def header():
     out = ["/* Reso's tables (notes/75 §3), written by tools/gen_reso.py. By value 0 .. 128 (the last for the",
            " * interpolation of 127): RESO_L the period of note n, 48000 / f(n) frames in 20.12 (f(n) = 440 * 2^((n - 69) / 12),",
            " * Pitch is the MIDI note), RESO_SH and RESO_CH sin and cos of half its pitch, w0 / 2 = pi f(n) / 48000;",
-           " * RESO_P the damping's phase P at the pitch in turns, Q32:",
+           " * RESO_P the damping's phase P at the pitch in turns by Tone, Q32:",
            f" * atan(1 / R) / 2pi with R = {DAMP[0]:g} * {DAMP[1] / DAMP[0]:g}^(b / 127) harmonics, less its value at 127 times b / 127,",
            " * 0 at 127 (no damping), RESO_SP2 and RESO_CP2 sin and cos of half of it; RESO_E log2(1000) / (48000 * T60) by",
            f" * Decay, Q37, T60 = {T60[0]:g} * {T60[1] / T60[0]:g}^(d / 127) s. RESO_ETA the allpass (1 - D) / (1 + D) for a delay",

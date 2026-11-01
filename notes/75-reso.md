@@ -15,9 +15,10 @@ manifest's `proof` section, notes/73 §16, no change to the proof). Branch `trac
   MODAL prototype (`_scratch/modal-proto/`, notes/71) is the sound reference; a bank of modes did not fit the load
   (§1).
 - **Four values** (RETRIG + SWEEP / CONTOUR / COLOR / SHAPE, k 28 to k 31): **Pitch** the MIDI note (60 = C4, 69 =
-  A4 = 440 Hz, 8 Hz to 12.5 kHz), **Amount** (0 the track untouched, 127 the resonance alone), **Decay** (20 ms to
-  10 s for the pitch to fall by 60 dB, the same on every pitch), **Brightness** (dull at 0, every harmonic ringing as
-  long as the pitch at 127). All with p-locks, LFO, velocity, Control All; CC 74 / 71 on Pitch and Amount.
+  A4 = 440 Hz, 8 Hz to 12.5 kHz), **Amount** (0 the track untouched, 127 the resonance alone), **Tone** on COLOR (dull
+  at 0, every harmonic ringing as long as the pitch at 127), **Decay** on SHAPE (20 ms to 10 s for the pitch to fall
+  by 60 dB, the same on every pitch). All with p-locks, LFO, velocity, Control All; CC 74 / 71 on Pitch and Amount.
+  Since Reso 0.3 (§14): Decay on COLOR and Tone, called Brightness, on SHAPE before.
 - **Off is dry and is the start**: Amount 0 gives the block back untouched, bit for bit; Amount's neutral word is 0,
   so a sound that steps to Reso starts there. Pitch starts at C4 (its start word 0x3c00, fltslot 0.8).
 - **In tune at the pitch**: the allpass and the damping's phase are worked out so that the loop is exactly a period
@@ -29,7 +30,8 @@ manifest's `proof` section, notes/73 §16, no change to the proof). Branch `trac
   the first block, 128 for a silent track, 24 off. Six tracks at most 6 636 instructions a block, 6.1 % (Samples'
   worst 8 952, 8.3 %; Reso 0.1 7 398, 6.8 %, §8). The frame loop is ColdFire assembly (`reso_cf.S`, 19 instructions a
   frame, MAC with load); `reso.c`'s C loop is its host model, bit for bit. Not measured on the machine yet.
-- **On the machine** (2026-11-01): Reso with Samples and Crush, flashed from the command line: « passt » (§12).
+- **On the machine** (2026-11-01): Reso with Samples and Crush, flashed from the command line: « passt » (§12); Reso
+  0.3, Tone on COLOR and Decay on SHAPE, the popups checked: « getestet, passt » (§14).
 
 ## 1. Decisions (2026-11-01)
 
@@ -39,6 +41,7 @@ Asked one at a time, with a recommendation each:
 |---|---|---|
 | Comb or a small modal bank (four modes with MODAL's material ratios)? | « Kamm » (the recommendation) | a comb: all harmonics, about 21 instructions a frame; four modes would cost about 1 300 to 1 500 a track and block and, as MODAL's round 1 heard, leave mostly a sine (MODAL's eight modes cost about 4 000) |
 | The knobs: SWEEP Pitch (the MIDI note), CONTOUR Amount (0 dry), COLOR Decay, SHAPE Brightness? | « Wie vorgeschlagen » | Pitch and Amount on the two knobs with a CC |
+| (Reso 0.3, after the stock machines' knobs were compared) COLOR and SHAPE swapped, Brightness renamed? | « beide tauschen », « pass auch direct das word "Brightness" an, das ist zu lang für den kasten in dem es steht » | Tone on COLOR, Decay on SHAPE; the names Reso Tone / TONE (§14) |
 
 Decided here, within that design (for the maintainer to change after listening):
 
@@ -47,7 +50,7 @@ Decided here, within that design (for the maintainer to change after listening):
 | Pitch's scale | the value is the MIDI note, `int` format 0 .. 127, whole values semitones, FUNC for the fine tune | the slot has no note formatter (`int`, `centre`, `cutoff`); a note number reads at once, p-locks make melodies |
 | Pitch's start | C4 (0x3c00) | the neutral word 0x4000 would be E4 |
 | Decay | T60 = 20 ms · 500^(d/127): 0.46 s at 64, 2.2 s at 96, 10 s at 127 | MODAL's range (20 ms to 8 s), a little longer |
-| Brightness | the damping's cutoff from 4 harmonics of the pitch at 0 to 256 at 126, none at 127 | dull to metallic; the cutoff follows the pitch, so the timbre does not change with it |
+| Tone (Brightness until 0.3) | the damping's cutoff from 4 harmonics of the pitch at 0 to 256 at 126, none at 127 | dull to metallic; the cutoff follows the pitch, so the timbre does not change with it |
 | The level | white noise in, as loud out (the input scaled by √(1 − g²), g the loop's gain a period) | no growth with Decay, no clipping of noise; a single hit's ring gets quieter as it gets longer (the same energy), a drum loop at Amount 127 comes out 2 to 8 dB under the dry one (§7) |
 | A note (the trig bit) | not read: the comb rings on | a resonator's tail is the point; a choke cannot reach the line's far end in time |
 
@@ -57,11 +60,12 @@ Decided here, within that design (for the maintainer to change after listening):
 |---|---|---|---|
 | k 28 (RETRIG + SWEEP, CC 74) | Pitch | 0 .. 0x7f00, the note in 8.8 | 0x4000 / **0x3c00** (C4) |
 | k 29 (RETRIG + CONTOUR, CC 71) | Amount | 0 .. 0x7f00: 0 untouched, 0x7f00 the comb alone, a crossfade between | 0 (the start: off) |
-| k 30 (RETRIG + COLOR) | Decay | 0 .. 0x7f00 | 0x4000 (0.46 s) |
-| k 31 (RETRIG + SHAPE) | Brightness | 0 .. 0x7f00 | 0x4000 (32 harmonics) |
+| k 30 (RETRIG + COLOR) | Tone | 0 .. 0x7f00 | 0x4000 (32 harmonics) |
+| k 31 (RETRIG + SHAPE) | Decay | 0 .. 0x7f00 | 0x4000 (0.46 s) |
 
-Names: Reso Pitch / PTCH, Reso Amount / AMT, Reso Decay / DEC, Reso Brightness / BRT; all `int`. Words outside
-0 .. 0x7f00 (an LFO pushes them there) are clamped.
+Names: Reso Pitch / PTCH, Reso Amount / AMT, Reso Tone / TONE, Reso Decay / DEC; all `int`. Words outside 0 .. 0x7f00
+(an LFO pushes them there) are clamped. Until 0.3 (§14) k 30 was Decay and k 31 Brightness (Reso Brightness / BRT,
+15 characters, too long for the popup's box).
 
 ## 3. The comb
 
@@ -75,7 +79,7 @@ Per frame, all products on the EMAC (signed, fractional, truncating: MACSR 0xa0,
    cos(w0/2) a pass, which made the decay of high notes depend on their fraction). η = (1 − Δ)/(1 + Δ) from a table of
    65 steps of Δ (`RESO_ETA`): exact at low pitches, +5 cents at 8 kHz.
 3. **The damping**, a one-pole lowpass `lp = kq v + q lp`. Its pole is chosen so that its phase at the pitch is exactly
-   the phase P of Brightness's table: q = sin P / sin(w0 + P) (from tan P = q sin w0 / (1 − q cos w0)); the line is then
+   the phase P of Tone's table: q = sin P / sin(w0 + P) (from tan P = q sin w0 / (1 − q cos w0)); the line is then
    read P / w0 frames earlier, so that line, allpass and damping together are a period long at the pitch. Computed as
    `kq = 1 − q = 2 cos(P + w0/2) sin(w0/2) / sin(w0 + P)`, a product with no cancellation at low pitches, and one
    division (`divq`: the divisor's 16 top bits, 2⁻¹⁴ of the quotient). P = atan(1/R) less its value at 127 times b/127,
@@ -83,14 +87,14 @@ Per frame, all products on the EMAC (signed, fractional, truncating: MACSR 0xa0,
 4. **The loop**: `y = hp + gt lp`, saturated, written back into the line. gt is the gain a period for the Decay,
    g = 2^(−L E), E = log2(1000) / (48000 T60) (`RESO_E`, `RESO_EXP`), times the damping's loss at the pitch given back,
    `1 / |H(w0)| = cos(w0/2) / cos(P + w0/2)`, the excess `2 sin((w0 + P)/2) sin(P/2) / cos(P + w0/2)` (one division),
-   so that Decay holds whatever the brightness, as long as gt stays under **G_MAX = 1 − 2⁻¹²**. G_MAX is the loop's
+   so that Decay holds whatever the tone, as long as gt stays under **G_MAX = 1 − 2⁻¹²**. G_MAX is the loop's
    gain at DC too (the damping passes DC whole): it must stay under 1, so a dull or high pitch held long decays sooner
    than Decay asks (§7, §11).
 5. **The input's scale**: nrm = √(1 − g²) (`RESO_SQRT` after an even shift): white noise comes out as loud as it went
    in when nothing damps it.
 6. **The output**: `(1 − a) x + a y`, a = Amount (0x7f00 → just under 1).
 
-The coefficients are worked out only when Pitch, Decay or Brightness has moved (the words of the last time kept), from
+The coefficients are worked out only when Pitch, Tone or Decay has moved (the words of the last time kept), from
 tables by value interpolated on the word's low byte: the period in 20.12 (`RESO_L`), sin and cos of w0/2 (`RESO_SH`,
 `RESO_CH`), P and sin, cos of P/2 (`RESO_P`, `RESO_SP2`, `RESO_CP2`); sin and cos of w0 and of P come from them by the
 double angle, cos(P + w0/2), sin(w0 + P) and sin((w0 + P)/2) by the sum, all in Q31 products. Linear interpolation of
@@ -111,7 +115,7 @@ the period between semitones: at most 0.7 cents off in the middle.
   block's RMS, from its energy in acc1, every frame in 0.1); after a whole line of them, a silent block (all 32 frames 0) is not run, the comb starts again from nothing (128 instructions). After a
   reset or Off the line counts as silent at once, so a track that gets nothing costs nothing from its first block.
 - The EMAC truncates, so the loop carries a small DC of its own (−0.5 LSB a sum, gained by the loop at DC): estimated
-  at most about −66 dBFS with the longest, dullest settings (measured −75 dBFS with kicks at C2, Brightness 0, §7),
+  at most about −66 dBFS with the longest, dullest settings (measured −75 dBFS with kicks at C2, Tone 0, §7),
   inaudible; it can keep a track from counting as silent there (it then costs as a playing one).
 
 ## 5. The device code
@@ -154,20 +158,20 @@ mode, `move.l %acc0,Rx`, `btst` and MAC with load were missing.
 
 `_scratch/reso-bench/sound.py` on the host build (the same arithmetic as the device, §5):
 
-- **Pitch** (an impulse, Amount 127, Decay 127, the spectral peak): Brightness 127 and 64 within 0.13 cents from note
-  24 to 96, +5 to +6 at 108; Brightness 0 within 0.2 cents to 84, −0.5 at 96, −1.4 at 108; between semitones −0.5 to
+- **Pitch** (an impulse, Amount 127, Decay 127, the spectral peak): Tone 127 and 64 within 0.13 cents from note
+  24 to 96, +5 to +6 at 108; Tone 0 within 0.2 cents to 84, −0.5 at 96, −1.4 at 108; between semitones −0.5 to
   −0.7 cents (the table's interpolation).
 - **Decay** (C4, the fundamental's −10 to −40 dB, doubled): 0.467 s for 0.458 at 64, 2.19 for 2.19 at 96, 10.0 for 10
-  at 127, with Brightness 127 or 64; Brightness 32 holds up to 4.8 s, Brightness 0 to 0.76 s (G_MAX, §3.4). At C6
-  with Decay 96: 2.19 s bright, 0.14 s at Brightness 0; at C7: 2.19 bright, 0.71 at 64, 0.05 at 0. Short decays are
+  at 127, with Tone 127 or 64; Tone 32 holds up to 4.8 s, Tone 0 to 0.76 s (G_MAX, §3.4). At C6
+  with Decay 96: 2.19 s bright, 0.14 s at Tone 0; at C7: 2.19 bright, 0.71 at 64, 0.05 at 0. Short decays are
   under this measure's resolution.
-- **Level**: white noise in, Amount 127: 0 dB at Decay 0, −4 to −7 at 64, −14 to −18 at 127 (Brightness 64: the
+- **Level**: white noise in, Amount 127: 0 dB at Decay 0, −4 to −7 at 64, −14 to −18 at 127 (Tone 64: the
   damped harmonics give their energy up faster than the fundamental the scale is set for). A drum loop (kick, snare,
   hats, peaks at full scale) at Amount 127: the loudest 300 ms 2 to 5 dB under the dry loop when bright, 2.5 to 8 dB
-  at Brightness 20; peaks reach full scale at short decays (saturated, no wrap).
-- **DC**: kicks every 0.5 s at C2, Decay 127: −75 dBFS at Brightness 0 (the truncation's own, §4), −69 falling to
+  at Tone 20; peaks reach full scale at short decays (saturated, no wrap).
+- **DC**: kicks every 0.5 s at C2, Decay 127: −75 dBFS at Tone 0 (the truncation's own, §4), −69 falling to
   −116 at 64.
-- **A full-scale sine at the pitch**, Decay 127, Brightness 127: the comb saturates (86 % of the frames at full
+- **A full-scale sine at the pitch**, Decay 127, Tone 127: the comb saturates (86 % of the frames at full
   scale), bounded.
 - **Amount 0**: the input bit for bit.
 - Listening samples, rendered by the host build: `_scratch/reso-bench/audio/` (hats dry, through Reso at C4, a
@@ -184,7 +188,7 @@ Done here (2026-11-01):
   blocks, notes, resets, a track out of range, 20 000 random blocks: **no fault**; Amount 0 untouched in all 16 524
   blocks that had it; and **14.6 million coefficient sets** on a fine grid of the words, all in range (0 < kq ≤ 1,
   kq + q = 1, 0 ≤ gt ≤ G_MAX, η within (−¼, ½), 1 ≤ dint ≤ LEN − 34). The sanitizer found one fault, fixed: `divq`
-  overflowed to a negative coefficient when the quotient came within 2⁻¹⁵ of 1 (Brightness just under 127); device and
+  overflowed to a negative coefficient when the quotient came within 2⁻¹⁵ of 1 (Tone just under 127); device and
   host had the same fault, so the bit-for-bit comparison could not see it;
 - `tools/emu/emac.py` takes all 32 EMAC instructions of `reso_cf.S` (MAC with load included), run through its
   decoders without Unicorn;
@@ -227,7 +231,7 @@ After the proof, from `build/reso-0.1/`:
   0, and sounds unchanged.
 - Hats or a noisy snare, Amount 127: a pitched ring; Pitch by semitones (a p-lock per step: a melody on one track);
   against a tuned instrument at the same note: in tune?
-- Decay 0 → 127; Brightness 0 → 127 (dull to metallic); the dull end at a high pitch decays sooner (§7).
+- Tone 0 → 127 (dull to metallic), Decay 0 → 127; the dull end at a high pitch decays sooner (§7).
 - A kick through it, Amount half way; a long decay with kicks: no thumping, no growing offset.
 - Pitch at 0 to 16: short metallic echoes. LFO + RETRIG + SWEEP (PTCH) on Pitch, TRACK + RETRIG + a knob, CC 74 / 71.
 - Switching SMP ↔ CRU ↔ RES while it plays; save and reload.
@@ -239,8 +243,8 @@ After the proof, from `build/reso-0.1/`:
 - The pitch is the knob's: it cannot follow the played note (the slot passes the block, the four values, the track
   and the trig bit only).
 - A dull or high pitch cannot ring as long as Decay asks: the damping takes its loss at the pitch, and the loop's
-  gain may not go over G_MAX to give it back (its DC mode would grow). Brightness 0 holds up to about 0.76 s at C4 and
-  0.14 s at C6; Brightness 64 up to 0.7 s at C7. A pitch-dependent darkness (gentler at high pitches) or a second-order
+  gain may not go over G_MAX to give it back (its DC mode would grow). Tone 0 holds up to about 0.76 s at C4 and
+  0.14 s at C6; Tone 64 up to 0.7 s at C7. A pitch-dependent darkness (gentler at high pitches) or a second-order
   damping (a flatter passband, about +8 instructions a frame) would ease it, if the maintainer wants.
 - The allpass's coefficient is exact at low pitches only: +5 cents at 8 kHz.
 - The wet path carries a DC of the EMAC's truncation, estimated at most about −66 dBFS (§4).
@@ -286,7 +290,39 @@ The maintainer: « prüfen ob ud wie performance optimiert werden kann », then 
   674 (709), low 706 (772), high 664 (698), glide 961 (1 083), silent 128 (128), first 1 106 (1 233): −5 to −11 %,
   as the interpreter said. Six tracks at most 6 636 instructions a block, 6.1 % (6.8 %).
 
-## 14. For the integration
+## 14. Tone on COLOR, Decay on SHAPE: Reso 0.3 (2026-11-01)
+
+The maintainer, after the main session compared the stock machines' knobs: « beide tauschen », and « pass auch direct
+das word "Brightness" an, das ist zu lang für den kasten in dem es steht ».
+
+- **Why**: on the stock machines COLOR holds the colour or the tuning of the sound (a tune offset, a ratio, an
+  inharmonicity) and SHAPE its strength, often with feedback (METAL, KICK, SNARE: modulation amount and feedback). The
+  damping is the comb's colour; Decay is its feedback.
+- **Reso 0.3**: k 30 (RETRIG + COLOR) is **Tone**, Brightness's law unchanged (dull at 0, every harmonic ringing as
+  long as the pitch at 127), named **Reso Tone / TONE**; k 31 (RETRIG + SHAPE) is **Decay**, its law unchanged. The
+  name: "Reso Brightness", 15 characters, does not fit the popup's box on the device ("Reso Amount", 11, and "Filter
+  Cutoff", 13, do); "Reso Tone" has 9. In the code only `work_out`'s two last arguments change places (k 30 the tone,
+  k 31 the decay); the cost states of the manifest have their two last words swapped to stay the same states.
+- **The start words** are unchanged: the neutral words of k 30 and k 31 are both 0x4000 and neither declares a start
+  (`--dry`: 4: 0x3c00 0x0000 0x4000 0x4000).
+- **The same sound**: 0.3 with the words (pitch, amount, tone, decay) against 0.2 with (pitch, amount, decay, tone), the
+  host builds, 20 000 blocks of random words, notes, silences and resets: **none differ**. The device object against
+  its host build in the interpreter, 3 000 blocks: none differ (the cost there as 0.2's: 771 held, 1 128 gliding). The
+  sanitizers and the coefficient sweep clean; `gen_reso.py --check`, `check_overlaps.py`, `claims.py --check
+  --self-test` green; `test_fltslot.py --dry` ALL OK.
+- **Known**: a sound saved with Reso 0.1 or 0.2 reads its two values the other way round (its Decay as Tone, its
+  Brightness as Decay): only the maintainer's test sounds, nothing was published.
+- MAIN OS: Reso alone `c92e3d14…`, with Samples and Crush `8dc2d4c2…`, every card of the page with Reso `f14b2b21…`,
+  the same measuring `b09f4824…` (the slot's data block 5 bytes shorter: the names). Builds in `build/reso-0.3/`, each
+  checked by elektron-firmware-tool.
+- **The proof, the maintainer's run (2026-11-01): ALL OK**, the cost line too: Reso 0.3 counts what 0.2 counted (off
+  24, mid 674, low 706, high 664, glide 961, silent 128, first 1 106; the swapped states take the same paths); the knob
+  lookup names the values Reso Pitch .. in every build, the record keeps slots 28 to 31 as before.
+- **On the machine (2026-11-01)**: the maintainer, after the build with Samples and Crush from `build/reso-0.3/` and
+  the check asked for (Reso Tone on RETRIG + COLOR, Reso Decay on RETRIG + SHAPE, both in the popup's box): « getestet,
+  passt ».
+
+## 15. For the integration
 
 What the shared files get when Reso is merged (they stay untouched on this branch, notes/73 §16.2).
 
@@ -299,7 +335,7 @@ What the shared files get when Reso is merged (they stay untouched on this branc
         "label": "Reso (Track FX)",
         "desc": "A tuned resonator on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a sound Reso; "
                 "RETRIG + SWEEP is Pitch (the MIDI note, 60 = C4), RETRIG + CONTOUR Amount (0 off), RETRIG + COLOR "
-                "Decay, RETRIG + SHAPE Brightness, with p-locks, LFO and CC 74 / 71.",
+                "Tone, RETRIG + SHAPE Decay, with p-locks, LFO and CC 74 / 71.",
         # model27's own (notes/75): a comb through the filter slot (fltslot 0.9); bit for bit the host build of the
         # same source in emulation; on the Model:Cycles with Samples and Crush from the command line on 2026-11-01
         # (notes/75 §12)
@@ -318,7 +354,7 @@ and `"reso"` in `OFFERED`.
 ```js
   reso: { label: "Reso",
     short: "A tuned resonator on any track: noise and hits ring at a pitch you set.",
-    desc: "Hold RETRIG and turn PITCH to give the track's sound Reso (RES). Then hold RETRIG and turn SWEEP for Pitch: the value is the MIDI note, 60 is middle C (C4), 69 is A at 440 Hz; under about 16 it turns into a short metallic echo. RETRIG + CONTOUR sets Amount: 0 leaves the sound untouched, 127 leaves only the ringing. RETRIG + COLOR sets Decay, from 20 ms to 10 seconds; RETRIG + SHAPE sets Brightness, dull at 0 (the overtones die fast), every overtone ringing at 127. Each time you switch to Reso it starts at C4 with Amount 0.\n\nAll four are real parameters of every machine: lock them on a trig (a melody of pitches on one track), make them the LFO's destination (hold LFO and RETRIG and turn the knob), set them on all tracks with TRACK, or send CC 74 (Pitch) and 71 (Amount). Each sound keeps its own settings, saved with it. The pitch does not follow the notes you play: it is the knob's. Reso comes after Volume + Dist.",
+    desc: "Hold RETRIG and turn PITCH to give the track's sound Reso (RES). Then hold RETRIG and turn SWEEP for Pitch: the value is the MIDI note, 60 is middle C (C4), 69 is A at 440 Hz; under about 16 it turns into a short metallic echo. RETRIG + CONTOUR sets Amount: 0 leaves the sound untouched, 127 leaves only the ringing. RETRIG + COLOR sets Tone, dull at 0 (the overtones die fast), every overtone ringing at 127; RETRIG + SHAPE sets Decay, from 20 ms to 10 seconds. Each time you switch to Reso it starts at C4 with Amount 0.\n\nAll four are real parameters of every machine: lock them on a trig (a melody of pitches on one track), make them the LFO's destination (hold LFO and RETRIG and turn the knob), set them on all tracks with TRACK, or send CC 74 (Pitch) and 71 (Amount). Each sound keeps its own settings, saved with it. The pitch does not follow the notes you play: it is the knob's. Reso comes after Volume + Dist.",
     note: "A dull or high pitch rings shorter than Decay asks. A sound saved on this firmware loses Reso on another firmware, nothing else." },
 ```
 
@@ -334,9 +370,9 @@ in the contents; Samples' and Crush's lists of Track FX and "Other mods" name Re
           <li>Hold <b>RETRIG</b> and turn <b>PITCH</b> to the right: every four detents the track's sound steps to the next Track FX: OFF, then <b>SMP</b> and <b>CRU</b> if the <a href="#samples-filter">Samples filter</a> and <a href="#crush">Crush</a> are ticked too, then <b>RES</b>. To the left it steps back. Reso starts at C4 with Amount 0, so nothing changes until you turn.</li>
           <li>Hold <b>RETRIG</b> and turn <b>CONTOUR</b> for <b>Reso Amount</b>: at 0 the sound passes untouched, at 127 only the ringing is left, in between both.</li>
           <li>Hold <b>RETRIG</b> and turn <b>SWEEP</b> for <b>Reso Pitch</b>: the value is the MIDI note, 60 is middle C (C4), 69 is A at 440 Hz, 72 is C5; one step is a semitone, FUNC turns finer. From 0 to about 16 it is a short metallic echo rather than a tone.</li>
-          <li>Hold <b>RETRIG</b> and turn <b>COLOR</b> for <b>Reso Decay</b>: how long it rings, from 20 ms at 0 to 10 seconds at 127 (half a second at 64), the same on every pitch.</li>
-          <li>Hold <b>RETRIG</b> and turn <b>SHAPE</b> for <b>Reso Brightness</b>: at 0 dull, the overtones die fast and the pitch rings on; at 127 every overtone rings as long as the pitch, bright and metallic.</li>
-          <li>All four are parameters like any other: hold a trig as well to lock them on that step (a pitch per step plays a melody), hold <b>LFO</b> as well to make them the LFO's destination (it reads PTCH, AMT, DEC or BRT), hold <b>TRACK</b> as well to set them on all six tracks, or send CC 74 (Pitch) and CC 71 (Amount).</li>
+          <li>Hold <b>RETRIG</b> and turn <b>COLOR</b> for <b>Reso Tone</b>: at 0 dull, the overtones die fast and the pitch rings on; at 127 every overtone rings as long as the pitch, bright and metallic.</li>
+          <li>Hold <b>RETRIG</b> and turn <b>SHAPE</b> for <b>Reso Decay</b>: how long it rings, from 20 ms at 0 to 10 seconds at 127 (half a second at 64), the same on every pitch.</li>
+          <li>All four are parameters like any other: hold a trig as well to lock them on that step (a pitch per step plays a melody), hold <b>LFO</b> as well to make them the LFO's destination (it reads PTCH, AMT, TONE or DEC), hold <b>TRACK</b> as well to set them on all six tracks, or send CC 74 (Pitch) and CC 71 (Amount).</li>
           <li>Save the kit or the project: each sound keeps its Track FX and its settings.</li>
         </ol>
         <dl class="facts">
@@ -350,7 +386,7 @@ in the contents; Samples' and Crush's lists of Track FX and "Other mods" name Re
 **The release** (`docs/assets/release.js`, a new entry or the merge's):
 
 ```js
-    { en: "New card in Track FX, Reso: a tuned resonator on any track, so that hats, noise and hits ring at a pitch. RETRIG + SWEEP is Pitch, the MIDI note (60 = C4), RETRIG + CONTOUR is Amount (0 off), RETRIG + COLOR is Decay (20 ms to 10 s), RETRIG + SHAPE is Brightness (dull to metallic). All four work on every machine like any parameter: lock them on a trig, make them the LFO's destination, set them on all tracks with TRACK, or send CC 74 and 71" },
+    { en: "New card in Track FX, Reso: a tuned resonator on any track, so that hats, noise and hits ring at a pitch. RETRIG + SWEEP is Pitch, the MIDI note (60 = C4), RETRIG + CONTOUR is Amount (0 off), RETRIG + COLOR is Tone (dull to metallic), RETRIG + SHAPE is Decay (20 ms to 10 s). All four work on every machine like any parameter: lock them on a trig, make them the LFO's destination, set them on all tracks with TRACK, or send CC 74 and 71" },
     { en: "Reso is checked bit for bit in an emulator and played on a Model:Cycles from the command line (2026-11-01); experimental here until flashed from this page" },
 ```
 
@@ -366,17 +402,18 @@ track ring at a pitch you set, like a plucked string or a struck tube, on four k
 (`tools/machines/reso/reso_tab.h`), compile `tools/machines/reso/reso.c` et `reso_cf.S` et le compose seul avec
 `tools/compose.py` : le Track FX 4 du slot de filtre, un résonateur en peigne ([note 75](notes/75-reso.md)). RETRIG +
 SWEEP est Pitch (la note MIDI, 60 = C4 ; un son qui passe à Reso part de C4), RETRIG + CONTOUR Amount (0 : la piste
-intacte, au bit près), RETRIG + COLOR Decay (20 ms à 10 s), RETRIG + SHAPE Brightness. La preuve est celle du filtre
+intacte, au bit près), RETRIG + COLOR Tone (de sourd à métallique), RETRIG + SHAPE Decay (20 ms à 10 s). La preuve est celle du filtre
 Samples, avec Reso au bit près contre le build hôte de `reso.c` (la boucle en C, modèle de `reso_cf.S`).
 
     python3 tools/gen_reso.py --cycles model-cycles_OS1.13.syx [--check]
     python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines reso
     python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush,reso   # avec Samples et Crush
 
-MAIN OS patché, `reso` seul : `54ec2859409764f33e2b3a61b9a687b330d4313a443d1bc82a3c766500d08b89` ; avec Samples et
-Crush : `4e31c87fe423f1aff0a45205275984111a3490d9024cdc1a99335d005d41ad06` ; avec toutes les cartes de la page :
-`8dede451f981ab9dcc412a1c7069efe49e10eb45535e7bc9f494d2739584f710` (Reso 0.2, sur `fltslot` 0.9, avant la fusion avec
-Ring et EQ ; avec Reso 0.1, le même son : `0a4eba0e…`, `b274ee03…`, `5a8d16a6…`). Reso 0.1 avec Samples et Crush joué
+MAIN OS patché, `reso` seul : `c92e3d1462638eb255b46b43441eeac9524722848fe362d7a5a9fb5447119cef` ; avec Samples et
+Crush : `8dc2d4c26dfc1a205fc78c74dd0176fa83d2874be271275c1fecec59590ec7cb` ; avec toutes les cartes de la page :
+`f14b2b21591c1dbf58105b12256e6a0fc7a4fdb9072f4969fca9daf29dc87dd1` (Reso 0.3, Tone sur COLOR et Decay sur SHAPE, sur
+`fltslot` 0.9, avant la fusion avec Ring et EQ ; avec Reso 0.2, Decay sur COLOR et Brightness sur SHAPE : `54ec2859…`,
+`4e31c87f…`, `8dede451…` ; avec Reso 0.1, le même son : `0a4eba0e…`, `b274ee03…`, `5a8d16a6…`). Reso 0.1 avec Samples et Crush joué
 sur un Model:Cycles depuis la ligne de commande le 01/11/2026 (note 75 §12).
 ```
 
@@ -389,7 +426,7 @@ sur un Model:Cycles depuis la ligne de commande le 01/11/2026 (note 75 §12).
 **`notes/README.md`**:
 
 ```markdown
-| [75-reso.md](75-reso.md) | **Reso: a tuned resonator in the Track FX (2026-11-01, English)**: the maintainer's decisions (a comb rather than a bank of modes; Pitch on SWEEP as the MIDI note, Amount on CONTOUR, 0 dry and the start, Decay on COLOR, Brightness on SHAPE); id 4, "RES"; the comb: a DC blocker, the line through a first-order allpass, a one-pole damping whose phase at the pitch is exact (q = sin P / sin(w0 + P)), the loss given back up to a gain of 1 − 2⁻¹² (its DC mode), the input scaled for noise; in tune within 0.2 cents (C1 to C7), Decay as asked when bright; the line cleared lazily, a silent track skipped; the frame loop in ColdFire assembly (MAC with load, 20 instructions a frame), its C model the proof's; cost counted by the proof 709 held, 1 083 gliding, 1 233 first, six tracks 6.8 % of a block (Samples 8.3 %); 0.2 the same sound in 5 to 11 % fewer instructions (the loop four frames a turn, the silence test on acc1, the clearing by movem, the coefficients apart, §13): 674 held, 961 gliding, 1 106 first, 6.1 %, ALL OK in the maintainer's run; sanitizers and 3 000 blocks bit for bit in the interpreter; **`test_fltslot.py` ALL OK in the maintainer's run (2026-11-01)**; **played on the machine 2026-11-01** (with Samples and Crush, from the command line, « passt »). |
+| [75-reso.md](75-reso.md) | **Reso: a tuned resonator in the Track FX (2026-11-01, English)**: the maintainer's decisions (a comb rather than a bank of modes; Pitch on SWEEP as the MIDI note, Amount on CONTOUR, 0 dry and the start, Tone on COLOR, Decay on SHAPE, swapped and renamed from Brightness in 0.3, §14); id 4, "RES"; the comb: a DC blocker, the line through a first-order allpass, a one-pole damping whose phase at the pitch is exact (q = sin P / sin(w0 + P)), the loss given back up to a gain of 1 − 2⁻¹² (its DC mode), the input scaled for noise; in tune within 0.2 cents (C1 to C7), Decay as asked when bright; the line cleared lazily, a silent track skipped; the frame loop in ColdFire assembly (MAC with load, 20 instructions a frame), its C model the proof's; cost counted by the proof 709 held, 1 083 gliding, 1 233 first, six tracks 6.8 % of a block (Samples 8.3 %); 0.2 the same sound in 5 to 11 % fewer instructions (the loop four frames a turn, the silence test on acc1, the clearing by movem, the coefficients apart, §13): 674 held, 961 gliding, 1 106 first, 6.1 %, ALL OK in the maintainer's run; sanitizers and 3 000 blocks bit for bit in the interpreter; **`test_fltslot.py` ALL OK in the maintainer's run (2026-11-01)**; **played on the machine 2026-11-01** (with Samples and Crush, from the command line, « passt »). |
 ```
 
 **`AGENTS.md`** (the repository map, after `tools/machines/crush/`; and in « Adding a feature », 77 the next free note):

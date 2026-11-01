@@ -12,16 +12,18 @@
  * Pitch, k 28 (RETRIG + SWEEP): the MIDI note, 0 .. 127 in 8.8 (60 = C4, 69 = A4 = 440 Hz), 8 Hz to 12.5 kHz; under
  * about 20 Hz the comb is a short metallic echo. Its start word is C4 (the filter slot gives it to a sound that steps
  * to Reso, fltslot 0.8). Amount, k 29 (RETRIG + CONTOUR): 0 the input untouched, bit for bit (the start: the slot's
- * neutral word), 127 the comb alone. Decay, k 30 (RETRIG + COLOR): the time the pitch takes to fall by 60 dB, 20 ms
- * to 10 s, exponential (0.46 s at 64), the same on every pitch. Brightness, k 31 (RETRIG + SHAPE): the damping's
- * cutoff in harmonics of the pitch, from 4 at 0 (dull: the harmonics die fast, the pitch rings) to 256 at 126, none at
- * 127 (every harmonic rings as long as the pitch).
+ * neutral word), 127 the comb alone. Tone, k 30 (RETRIG + COLOR): the damping's cutoff in harmonics of the pitch, from
+ * 4 at 0 (dull: the harmonics die fast, the pitch rings) to 256 at 126, none at 127 (every harmonic rings as long as
+ * the pitch). Decay, k 31 (RETRIG + SHAPE): the time the pitch takes to fall by 60 dB, 20 ms to 10 s, exponential
+ * (0.46 s at 64), the same on every pitch. (Since 0.3, the maintainer's choice: the colour of the sound on COLOR and
+ * its strength, the comb's feedback, on SHAPE, as the stock machines have them; Decay on COLOR and Tone, then called
+ * Brightness, on SHAPE before.)
  *
  * The period is right at the pitch: the damping's pole gives it exactly the phase P of its table there, q = sin(P) /
  * sin(w0 + P), and the line is read P / w0 frames earlier; the allpass's coefficient for the fraction D of a frame is
  * (1 - D) / (1 + D) (RESO_ETA), exact at low pitches, a few cents sharp at the top (+5 at 8 kHz). The damping's loss
  * at the pitch, cos(P + w0/2) / cos(w0/2), is given back in the loop's gain, so that Decay holds whatever the
- * brightness, as long as the gain stays under 1 - 2^-12 (its DC mode); past that (a dull or high pitch held long) the
+ * tone, as long as the gain stays under 1 - 2^-12 (its DC mode); past that (a dull or high pitch held long) the
  * pitch decays sooner. The coefficients are worked out when a word has moved, from tables by value, in product forms
  * that do not cancel at low pitches.
  *
@@ -116,7 +118,7 @@ struct track {
 	uint32_t fill;                              /* frames written since the comb started, up to LEN */
 	uint32_t quiet;                             /* frames since a block's RMS last reached 2^-15, up to LEN */
 	uint32_t dint;                              /* the line read dint frames back, then the allpass */
-	int16_t key[3];                             /* Pitch, Decay and Brightness the coefficients are for */
+	int16_t key[3];                             /* the words of Pitch, Tone and Decay the coefficients are for */
 	uint8_t set;                                /* the coefficients are worked out */
 };
 #ifndef RESO_HOST                                   /* reso_cf.S's offsets (the host's pointers are wider) */
@@ -201,18 +203,18 @@ static int32_t sqrtq(int32_t u)                     /* sqrt(u), Q31 */
 #ifndef RESO_HOST
 __attribute__((noinline))                           /* on its own GCC keeps reso_process's registers (since 0.2) */
 #endif
-static void work_out(struct track *c, uint32_t pitch, uint32_t decay, uint32_t bright)
+static void work_out(struct track *c, uint32_t pitch, uint32_t tone, uint32_t decay)
 {
 	uint32_t n = pitch >> 8, f = pitch & 0xff, L, P, D, e;
 	int32_t sh, ch, kq = ONE, tau = 0, dmp = 0, g, dg;
 	L = RESO_L[n] - (((RESO_L[n] - RESO_L[n + 1]) * f) >> 8);          /* the period, 20.12 */
 	sh = lerp(RESO_SH, pitch);                                          /* sin, cos of w0 / 2 */
 	ch = lerp(RESO_CH, pitch);
-	n = bright >> 8;
-	f = bright & 0xff;
+	n = tone >> 8;
+	f = tone & 0xff;
 	P = RESO_P[n] - (((RESO_P[n] - RESO_P[n + 1]) * f) >> 8);          /* the damping's phase, turns, Q32 */
 	if (P) {
-		int32_t s2 = lerp(RESO_SP2, bright), c2 = lerp(RESO_CP2, bright), sp, cq, sw, cw, cp, swp, shp;
+		int32_t s2 = lerp(RESO_SP2, tone), c2 = lerp(RESO_CP2, tone), sp, cq, sw, cw, cp, swp, shp;
 		sp = mul2(s2, c2);                                          /* sin, cos of P and of w0 */
 		cq = ONE - mul2(s2, s2);
 		sw = mul2(sh, ch);
