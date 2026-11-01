@@ -356,11 +356,81 @@ python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,c
 ```
 MAIN OS patché, `crush` seul : `8f78c2034f530bfa27d50999d19176977ed47d6df022876ac0bd2164dda4293c` ; avec Samples
 (`smpfilter`, `crush`) : `2b6d98a79dc9ba5df990354219bfc60c29b9887c311b8d585e4f5208106b4db2` ; avec toutes les cartes de
-la page : `74ac09138cf0d7fc3a5f48283683e3023ec5bed9ab11466c373f60d55d7a8093`, ceux que la page compose (Crush 0.4, Bits de
-8 bits à 1 bit, `fltslot` 0.9 ; avec `fltslot` 0.8, joués et testés depuis la page : `a151818c…`, `cbf53b93…`, `388d2043…` ; avec Crush 0.3, Bits de 16 à 1 : `da5584a0…`, `167d2883…`, `2b2fae73…` ; avec Crush
+la page (onze, release 0.28) : `a1736027d09b20e8076da4cd3a8e5e485d800d8e150280ca4be117954cc6a9ae`, ceux que la page compose (Crush 0.4, Bits de
+8 bits à 1 bit, `fltslot` 0.9 ; avec les huit cartes de la release 0.27 : `74ac0913…` ; avec `fltslot` 0.8, joués et testés depuis la page : `a151818c…`, `cbf53b93…`, `388d2043…` ; avec Crush 0.3, Bits de 16 à 1 : `da5584a0…`, `167d2883…`, `2b2fae73…` ; avec Crush
 0.2, le même son que 0.3 : `365f496b…`, `01cf9060…`, `c089f700…`). Crush 0.4 joué sur un Model:Cycles depuis la ligne
 de commande le 01/11/2026 (note 73 §14). Avec Crush 0.1 (Bits à l'envers) et `fltslot` 0.7, joués sur un Model:Cycles depuis la ligne de
 commande le 01/11/2026 (note 73 §10) : seul `25aac3ea…`, avec Samples `c8cdc37c…`, avec toutes les cartes `67f0d95e…`.
+
+### Ring (Track FX)
+
+`tweaks/model-cycles_OS1.13/74-ring.json` est produit par `tools/gen_ring.py`, qui écrit les tables de la porteuse
+(`tools/machines/ring/ring_tab.h` : le pas de phase par note, le cosinus), compile `tools/machines/ring/ring.c` et le
+compose seul avec `tools/compose.py` : le deuxième effet (id 3) des Track FX ([note 74](notes/74-ring.md)). RETRIG +
+SWEEP est Freq (la note de la porteuse, de 8,2 Hz à 12,5 kHz), RETRIG + CONTOUR est Mix (0 sec, 127 l'anneau seul),
+RETRIG + COLOR est Shape (du sinus au carré ; un son qui passe à Ring part du sinus, sa valeur de départ), les
+descripteurs 1 à 3. La preuve est celle des Track FX, avec Ring au bit près contre le build hôte du même fichier et
+une sélection de huit dans un build :
+```sh
+python3 tools/gen_ring.py --cycles model-cycles_OS1.13.syx [--check]
+python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines ring
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush,ring   # avec Samples et Crush
+```
+MAIN OS patché, `ring` seul : `3cdd61c01181408642e1ed3b58458bf98ffcb2d0d30986a48e692c7b4ed2ec4d` ; avec Samples et
+Crush : `b5a8c7e99016f066e6f469e9f7c1cbc217e6344a02e90dca65066eca7a4d52a9` ; avec toutes les cartes de la page (onze,
+release 0.28) : `a1736027d09b20e8076da4cd3a8e5e485d800d8e150280ca4be117954cc6a9ae` (Ring 0.2, le produit sur l'EMAC, `fltslot` 0.9 ;
+avec les cartes de la release 0.27 : `6960abd2…`). Ring 0.2 joué sur un Model:Cycles depuis la ligne de commande le
+01/11/2026 (note 74 §10). Avec Ring 0.1, le même son, joués sur un Model:Cycles depuis la ligne de commande le
+01/11/2026 : `a32b09d0…`, `ce50adf3…`, `9647a93b…`.
+
+### Reso (Track FX)
+
+`tweaks/model-cycles_OS1.13/75-reso.json` est produit par `tools/gen_reso.py`, qui écrit les tables
+(`tools/machines/reso/reso_tab.h`), compile `tools/machines/reso/reso.c` et `reso_cf.S` et le compose seul avec
+`tools/compose.py` : le Track FX 4 du slot de filtre, un résonateur en peigne ([note 75](notes/75-reso.md)). RETRIG +
+SWEEP est Pitch (la note MIDI, 60 = C4 ; un son qui passe à Reso part de C4), RETRIG + CONTOUR Amount (0 : la piste
+intacte, au bit près), RETRIG + COLOR Tone (de sourd à métallique), RETRIG + SHAPE Decay (20 ms à 10 s). La preuve est
+celle des Track FX, avec Reso au bit près contre le build hôte de `reso.c` (la boucle en C, modèle de `reso_cf.S`) :
+```sh
+python3 tools/gen_reso.py --cycles model-cycles_OS1.13.syx [--check]
+python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines reso
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush,reso   # avec Samples et Crush
+```
+MAIN OS patché, `reso` seul : `c92e3d1462638eb255b46b43441eeac9524722848fe362d7a5a9fb5447119cef` ; avec Samples et
+Crush : `8dc2d4c26dfc1a205fc78c74dd0176fa83d2874be271275c1fecec59590ec7cb` ; avec toutes les cartes de la page (onze,
+release 0.28) : `a1736027d09b20e8076da4cd3a8e5e485d800d8e150280ca4be117954cc6a9ae` (Reso 0.3, Tone sur COLOR et Decay sur SHAPE, `fltslot` 0.9 ; avec les cartes de la
+release 0.27 : `f14b2b21…` ; avec Reso 0.2, Decay sur COLOR et Brightness sur SHAPE : `54ec2859…`, `4e31c87f…`,
+`8dede451…` ; avec Reso 0.1, le même son : `0a4eba0e…`, `b274ee03…`, `5a8d16a6…`). Reso 0.1 avec Samples et Crush joué
+sur un Model:Cycles depuis la ligne de commande le 01/11/2026 (note 75 §12), Reso 0.3 aussi (note 75 §14).
+
+### EQ (Track FX)
+
+`tweaks/model-cycles_OS1.13/76-eq.json` est produit par `tools/gen_eq.py`, qui écrit les tables des coefficients
+(`tools/machines/eq/eq_tab.h`, d'après les formules de l'Audio EQ Cookbook), compile `tools/machines/eq/eq.c` et
+`eq_cf.S` et le compose seul avec `tools/compose.py` : le Track FX 5, un égaliseur trois bandes
+([note 76](notes/76-eq.md)). RETRIG + SWEEP est la fréquence du Mid (cloche Q 1, 200 Hz à 4,9 kHz), RETRIG + CONTOUR
+son gain (part du centre, sa valeur de départ), RETRIG + COLOR Low (shelf à 100 Hz), RETRIG + SHAPE High (shelf à
+8 kHz) ; ±12 dB, plat au centre, intouché au bit près. La preuve est celle des Track FX, avec EQ au bit près
+contre le build hôte du même fichier :
+```sh
+python3 tools/gen_eq.py --cycles model-cycles_OS1.13.syx [--check]
+python3 tools/gen_eq.py --response
+python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines eq
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush,eq   # avec Samples et Crush
+```
+MAIN OS patché (EQ 0.5), `eq` seul : `31e4456f980ffa5ffa29b4386b2e9af68195136e96669f0e6d15298b201fbc4f` ; avec Samples et
+Crush : `be915b719076cb2853f09e591bb6288ddaccc0b03b2bf1045a71cdd3b884fa94` ; avec toutes les cartes de la page (onze,
+release 0.28) : `a1736027d09b20e8076da4cd3a8e5e485d800d8e150280ca4be117954cc6a9ae` (`fltslot` 0.9 ; avec les cartes de la release 0.27 : `7351d116…`).
+EQ 0.4 (les noms EQ Mid Freq … EQ High Gain, que l'écran coupait à « EQ Mid ») : `47d7d40b…`, `076475d6…`, `49241853…`.
+EQ 0.3 (Low sur SWEEP, High sur CONTOUR, le Mid sur COLOR et SHAPE ; le même son) : `14aeae02…`, `1e2385b8…`,
+`6d9eeda5…`.
+EQ 0.2 (le même son, en plus d'instructions) : `4fe6c32d…`, `8fd0bc5f…`, `4c47d8c3…`.
+EQ 0.1 (les noms EQ Low, EQ High, EQ Mid), joué sur un Model:Cycles depuis la ligne de commande le 01/11/2026 (note 76
+§10) : seul `c2a00bed…`, avec Samples et Crush `31369bf8…`, avec toutes les cartes `9f57b1a0…`. EQ 0.5 joué sur un
+Model:Cycles le 01/11/2026 (note 76 §14).
 
 ### Trig Cond dans un autre ordre
 

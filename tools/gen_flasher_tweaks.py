@@ -410,6 +410,52 @@ ALL_FEATURES = [
         "package": "crush",
     },
     {
+        "id": "ring",
+        "cat": "sound",
+        "label": "Ring (Track FX)",
+        "desc": "A ring modulator on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a sound Ring; "
+                "RETRIG + SWEEP is Freq (the carrier's note, 0 to 127), RETRIG + CONTOUR is Mix (0 dry, 127 the ring "
+                "alone), RETRIG + COLOR is Shape (sine to square), with p-locks, LFO and CC 74 / 71.",
+        # model27's own (notes/74): a Track FX through the filter slot (fltslot 0.9); bit for bit the host build of
+        # the same source in emulation; on the Model:Cycles from the command line on 2026-11-01 (notes/74 §9, §10)
+        "status": "experimental",
+        "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
+        # a Track FX composed in the page from its package (notes/74), with the machines, effects and the other Track
+        # FX ticked: alone it gives 74-ring.json byte for byte, whose conflicts give its excludes
+        "package": "ring",
+    },
+    {
+        "id": "reso",
+        "cat": "sound",
+        "label": "Reso (Track FX)",
+        "desc": "A tuned resonator on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a sound Reso; "
+                "RETRIG + SWEEP is Pitch (the MIDI note, 60 = C4), RETRIG + CONTOUR Amount (0 off), RETRIG + COLOR "
+                "Tone, RETRIG + SHAPE Decay, with p-locks, LFO and CC 74 / 71.",
+        # model27's own (notes/75): a comb through the filter slot (fltslot 0.9); bit for bit the host build of the
+        # same source in emulation; on the Model:Cycles from the command line on 2026-11-01 (notes/75 §12, §14)
+        "status": "experimental",
+        "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
+        # a Track FX composed in the page from its package (notes/75), with the machines, effects and the other
+        # Track FX ticked: alone it gives 75-reso.json byte for byte, whose conflicts give its excludes
+        "package": "reso",
+    },
+    {
+        "id": "eq",
+        "cat": "sound",
+        "label": "EQ (Track FX)",
+        "desc": "A three-band equalizer on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a sound "
+                "the EQ; RETRIG + SWEEP is the Mid's frequency, RETRIG + CONTOUR its gain, RETRIG + COLOR the Low "
+                "shelf, RETRIG + SHAPE the High shelf, each 12 dB either way, with p-locks, LFO and CC 74 / 71.",
+        # model27's own (notes/76): the Audio EQ Cookbook's biquads on the EMAC through the filter slot (fltslot
+        # 0.9); bit for bit the host build of the same source in emulation; on the Model:Cycles from the command
+        # line on 2026-11-01 (notes/76 §10, §14)
+        "status": "experimental",
+        "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
+        # a Track FX composed in the page from its package (notes/76), with the machines, effects and the other
+        # Track FX ticked: alone it gives 76-eq.json byte for byte, whose conflicts give its excludes
+        "package": "eq",
+    },
+    {
         "id": "trig-cond-order",
         "cat": "seq",
         "label": "Trig conditions, A:B before the percentages",
@@ -481,8 +527,8 @@ ALL_FEATURES = [
 # model27 offers a short list of cards. The other definitions above stay as they are, for the command-line build
 # (every tweak of tweaks/ is still built by tools/build.py) and so that merges from upstream apply cleanly; a card
 # comes back into the flasher by adding its id here, once it has been reviewed against the Cycles Mod Standard.
-OFFERED = ("sampler", "digidelay", "pots", "smpfilter", "crush", "control-all-config", "trig-cond-order",
-           "trig-preview")
+OFFERED = ("sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "control-all-config",
+           "trig-cond-order", "trig-preview")
 FEATURES = [f for f in ALL_FEATURES if f["id"] in OFFERED]
 _missing = set(OFFERED) - {f["id"] for f in FEATURES}
 if _missing:

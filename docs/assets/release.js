@@ -7,6 +7,11 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.28", date: "2026-11-01", changes: [
+    { en: "Three new cards in Track FX, model27's own. Ring, a ring modulator: RETRIG + SWEEP is Freq, the carrier's note; RETRIG + CONTOUR is Mix, 0 dry; RETRIG + COLOR is Shape, from sine to square. Reso, a tuned resonator that makes hats, noise and hits ring at a pitch: RETRIG + SWEEP is Pitch, the MIDI note; RETRIG + CONTOUR is Amount, 0 off; RETRIG + COLOR is Tone; RETRIG + SHAPE is Decay, 20 ms to 10 s. EQ, a three-band equalizer: RETRIG + SWEEP is the Mid's frequency, RETRIG + CONTOUR its gain, RETRIG + COLOR the lows, RETRIG + SHAPE the highs, each 12 dB either way" },
+    { en: "All five Track FX can be ticked together; RETRIG + PITCH steps through them in the order of the cards, and each starts where it leaves the sound untouched. Every value works on every machine like any parameter: lock it on a trig, make it the LFO's destination, set it on all tracks with TRACK; CC 74 and 71 on SWEEP and CONTOUR" },
+    { en: "Ring, Reso and EQ are checked bit for bit in an emulator and played on a Model:Cycles from the command line (2026-11-01); experimental here until flashed from this page. Samples and Crush sound as before" },
+  ] },
   { version: "0.27", date: "2026-11-01", changes: [
     { en: "Crush is tested as this page builds it: flashed from this page and played on a Model:Cycles (2026-11-01). Its card now shows Tested" },
   ] },

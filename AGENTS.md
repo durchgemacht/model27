@@ -153,6 +153,18 @@ tools/machines/crush/         Crush (notes/73): a sample-rate and bit reduction,
                               tools/gen_crush.py writes its clock's table and builds it into 73-crush.json; proven by
                               test_fltslot.py, which takes a Track FX's model and cost states from its manifest's
                               proof section
+tools/machines/ring/          Ring (notes/74): a ring modulator, the Track FX's second effect (id 3): Freq, Mix and the
+                              carrier's Shape on RETRIG + SWEEP / CONTOUR / COLOR; tools/gen_ring.py writes its tables
+                              and builds it into 74-ring.json; proven by test_fltslot.py from its manifest
+tools/machines/reso/          Reso (notes/75): a tuned resonator, a comb, the Track FX's id 4: Pitch, Amount, Tone and
+                              Decay on RETRIG + SWEEP / CONTOUR / COLOR / SHAPE; reso_cf.S its frame loop (EMAC, MAC
+                              with load), reso.c the rest and the loop's C model for the host; tools/gen_reso.py writes
+                              its tables and builds it into 75-reso.json; proven by test_fltslot.py from its manifest
+tools/machines/eq/            EQ (notes/76): a three-band equalizer, the Track FX's id 5 (a sweepable Mid bell, Low and
+                              High shelves, the Audio EQ Cookbook's biquads on the EMAC: eq_cf.S, its model in eq.c):
+                              the Mid's frequency and gain on RETRIG + SWEEP / CONTOUR, Low and High on COLOR / SHAPE;
+                              tools/gen_eq.py writes its coefficient tables and builds it into 76-eq.json, --response
+                              compares them with the Cookbook
 tools/emu/                    Unicorn emulation of the OS: test_<mod>.py proofs, mcengine.py, emac.py, syntakt.py
 tools/gen_flasher_tweaks.py   FEATURES list -> docs/flasher/tweaks.js (generated); a machine card embeds its package and
                               the registrar's frame, composed in the page (notes/61)
@@ -184,10 +196,9 @@ CONTRIBUTING.md               terms for outside contributions, and how a machine
 
 Follow the shape of the last ones (tempo-max: commits `5997b4a`, `14fb9fa`, `6e592bc`; trig-hold, arp). In order:
 
-1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 73 is the last, 74 to 76 are
-   reserved for the Track FX Ring, Reso and EQ, notes/73 §16) with the user's request and its source, the OS code
-   involved (addresses, `[FAIT]`/`[HYP]`), the design, free space used and conflicts with other tweaks. Add a row to
-   `notes/README.md`. See `notes/AGENTS.md`.
+1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 76 is the last, notes/73
+   §16.1) with the user's request and its source, the OS code involved (addresses, `[FAIT]`/`[HYP]`), the design, free
+   space used and conflicts with other tweaks. Add a row to `notes/README.md`. See `notes/AGENTS.md`.
 2. **Write the generator** `tools/gen_<mod>.py` (and sources under `tools/machines/<mod>/` if it has code). It reads
    the official `.syx`, checks the stock bytes, and writes `tweaks/model-cycles_OS1.13/NN-<id>.json`; `--check`
    compares with the committed file. See `tools/AGENTS.md` and `tweaks/AGENTS.md`.

@@ -221,7 +221,10 @@ The maintainer: « kannst du schon mal prüfen ob es noch möglichkeiten zur per
   the repository) runs the device object of 0.2 and of a rewrite side by side (`_scratch/crush-opt/bench.py`): a decaying
   tone with noise, a note every 40 blocks, silences, full scale, random words with every corner, resets: **3 000 blocks,
   none differ**. Its signal is harder than the proof's (0.2 counts higher than the proof's numbers there), so the shares
-  matter, not the counts.
+  matter, not the counts. **Corrected (§17.3)**: that interpreter ran `ext.l` as `ext.w`, and 0.2's soft line uses
+  `ext.l`, so its comparison could not see a difference on the soft side. The host builds of 0.2 and 0.3, compared
+  directly over 20 000 blocks (about 10 000 on the soft side), give the same bits; the proof checks 0.3 and 0.4 bit for
+  bit against their host build. The counts below are the interpreter's shares; the declared ones are the proof's.
 - **Kept** (`crush.c` 0.3): the soft line's terms (`p`, `d >> 16`, `d & 0xffff`) worked out when a frame is taken, not
   every frame; the block scanned for silence only when the hold is silent. Instructions a track and block, 0.2 → 0.3 on
   the interpreter: soft + Bits 1 934 → 1 387 (−28 %), glide 1 970 → 1 522 (−23 %), hard + Bits 1 029 → 930 (−10 %),
@@ -318,3 +321,63 @@ Note 71 stays MODAL's (stashed, not to be touched); 77 is the next free one afte
   are in the main checkout's `firmware/` (a worktree has none).
 - **Commits** only with the maintainer's word, on its branch, with the trailer `Co-Authored-By: Claude`; no push, no
   merge.
+
+## 17. Ring, Reso and EQ merged: release 0.28 (2026-11-01)
+
+The maintainer, after the three sessions of §16 had committed on their branches: « Ja, mergen ».
+
+### 17.1 Before the merge
+
+- **The branches** (all from `df1b562`): `trackfx-ring` Ring 0.2 (`7917d3f`), `trackfx-reso` Reso 0.3 (`f1288cc`),
+  `trackfx-eq` EQ 0.5 (`69c2fdd`); each proven by the maintainer's run of `test_fltslot.py` and played on the
+  Model:Cycles from the command line (notes/74 §10, notes/75 §14, notes/76 §14).
+- **The knobs** (the maintainer, after comparing them with the stock machines' COLOR as the timbre, SHAPE as the amount
+  and feedback, SWEEP as the pitch, CONTOUR as the depth): Reso's Tone on COLOR and Decay on SHAPE, Brightness renamed
+  Tone (too long for the popup); EQ's Mid on SWEEP and CONTOUR, its shelves on COLOR and SHAPE, as every Track FX has
+  its frequency on SWEEP and its amount on CONTOUR (notes/75 §14, notes/76 §13). The popup breaks a long name into two
+  lines at a space, about six characters each (notes/76 §14).
+- **A trial merge** in memory (`git merge-tree`), Ring, Reso, EQ in that order: no conflict; in a worktree of it
+  `test_fltslot.py --dry` ALL OK with Samples, Crush, Ring, Reso, EQ and three copies of REFF in one build, and
+  `composer.js` composing the five with SAMPLE and both effects as `compose.py`.
+- **History**: Reso's and EQ's notes held an absolute path of the maintainer's machine in the proof's command; with
+  the maintainer's word their branches were rewritten (only that line, the messages, authors and dates kept) before
+  the merge.
+
+### 17.2 The merge
+
+- Three merge commits on `trackfx`, Ring, Reso, EQ; no conflict. Generated again rather than merged: the composed
+  tweaks' conflicts (27, 28, 29, 34, 36, 39, 70, 72 to 76 through their generators: `ring`, `reso`, `eq` added, the
+  objects unchanged), `REGISTRY.md`, `tweaks.js` (eleven cards), `REF_MAINOS` (67 combinations) and `REF_MODS`.
+- **Cards** (experimental): `FEATURES` and `OFFERED` in `tools/gen_flasher_tweaks.py`, `FEAT` and `GUIDE_OF` in
+  `docs/flasher/app.js`, the texts of notes/74 §11, notes/75 §15 and notes/76 §15. **Guide**: sections 8 Ring, 9 Reso,
+  10 EQ (the later ones moved on by three); RETRIG + PITCH steps through the ticked Track FX in the order of the cards
+  (SMP, CRU, RNG, RES, EQ), in every Track FX section; on a track whose Track FX has no value on a knob, RETRIG + that
+  knob shows the first ticked Track FX's name for it and changes nothing heard (notes/72's naming rule). **Release**
+  0.28, stamp `2026-11-01-07`; `README.md` (eleven cards, the first eight tested), `BUILD.md`, `PROVENANCE.md`,
+  `notes/README.md`, the `AGENTS.md` map (76 the last note).
+- **Checks' lists**: `tools/webflash_smoke.js` (eleven cards, the three in Track FX, tagged experimental, each alone and
+  with Samples and Crush, every card in one build), `tools/webcompose_synth.py` (the three alone, each with Samples and
+  Crush, the full offered set).
+- MAIN OS: Ring alone `3cdd61c0…`, Reso alone `c92e3d14…`, EQ alone `31e4456f…` (as on their branches); with Samples
+  and Crush `b5a8c7e9…`, `8dc2d4c2…`, `be915b71…` (the same); the five Track FX `7b039982…`; every card of the page
+  `a1736027…`, also `REF_MAINOS`' key of every card, the same measuring (`--diag-filters`) `f256bb57…`. Builds in
+  `build/trackfx-0.28/` (git-ignored).
+- **The proof, the maintainer's run on the merge (2026-11-01): ALL OK**, 590 checks: each Track FX alone and the eight
+  in one build (Samples, Crush, Ring, Reso, EQ and three copies of REFF) bit for bit their host builds, nineteen changes
+  of Track FX in the audio, RETRIG + PITCH through ids 0, 1 to 5, 253 to 255 with each one's start words, the names
+  after the track's Track FX; every cost line as its manifest declares (Samples, Crush, Ring 0.2, Reso 0.3, EQ 0.5, so
+  Ring's and EQ's last declared counts are checked now too).
+- **On the machine (2026-11-01)**: the maintainer, after the build of every card from `build/trackfx-0.28/every-card/`
+  (from the command line) and the list asked for (the five Track FX in turn on RETRIG + PITCH, Samples and Crush on
+  `fltslot` 0.9, the popups' names, six tracks on different Track FX, a knob without a value, saving and loading):
+  « getestet, passt ». The load the measuring build shows was not reported. Experimental on the page until flashed
+  from it.
+
+### 17.3 Corrected
+
+§12's comparison in the interpreter (3 000 blocks, Crush 0.2 against 0.3) could not see the soft side: the
+interpreter ran `ext.l` as `ext.w` (found by the Ring session, fixed in `_scratch/`). The host builds of both, compared
+directly over 20 000 blocks, give the same bits, so 0.3 sounds as 0.2; the proof's checks of 0.3 and 0.4 against their
+host build were never affected. A second fault, indexed displacements read as decimal, was found by the Reso session;
+Crush uses none above 9. The interpreter's copies stay outside the repository.
+
