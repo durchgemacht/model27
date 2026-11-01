@@ -53,8 +53,14 @@ SELECTIONS = ((["sampler"], []), (["refmachine"], []), (["sampler", "refmachine"
               (["digidelay", "refreverb", "refmachine2", "sampler"], []), (["chordtables", "digidelay"], []),
               # notes/69 §19: POTS alone, with Digital in the same slot (both orders), and with SAMPLE and Digital
               (["pots"], []), (["digidelay", "pots"], []), (["pots", "digidelay"], []),
-              (["sampler", "digidelay", "pots"], []))
-PARTS = ("shortcuts", "dispatch", "fxslot")
+              (["sampler", "digidelay", "pots"], []),
+              # the key map's K4: Samples alone (the shortcut layer comes with every filter build), with REFF (two
+              # filters), with SAMPLE before and after it (the moved descriptor table), with the effects (fx_keys
+              # behind fl_keys), and the full offered set
+              (["smpfilter"], []), (["smpfilter", "refflt"], []), (["sampler", "smpfilter"], []),
+              (["smpfilter", "sampler"], []), (["smpfilter", "digidelay"], []),
+              (["sampler", "digidelay", "pots", "smpfilter"], []))
+PARTS = ("shortcuts", "dispatch", "fxslot", "fltslot")
 COMPARED = ("id", "order", "name", "version", "conflicts", "writes", "append", "symbols")
 
 

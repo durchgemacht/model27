@@ -223,18 +223,19 @@ async function main() {
       "MCBuilder + MCComposer + MCFlasher present");
     const ids = w.MC_TWEAKS.tweaks.map((x) => x.id), cards = w.MC_TWEAKS.features;
     const smp = cards.find((f) => f.id === "sampler") || {}, dd = cards.find((f) => f.id === "digidelay") || {};
-    const pots = cards.find((f) => f.id === "pots") || {};
+    const pots = cards.find((f) => f.id === "pots") || {}, sf = cards.find((f) => f.id === "smpfilter") || {};
     check(ids.join() === "control-all-config,trig-preview,trig-cond-order"
-      && cards.map((f) => f.id).join() === "control-all-config,trig-preview,sampler,digidelay,pots,trig-cond-order"
+      && cards.map((f) => f.id).join() === "control-all-config,trig-preview,sampler,digidelay,pots,smpfilter,trig-cond-order"
       && smp.package === "sampler" && !smp.variants && dd.package === "digidelay" && !dd.variants
-      && pots.package === "pots" && !pots.variants
-      && Object.keys(w.MC_TWEAKS.packages).join() === "sampler,digidelay,pots"
-      && Object.keys(w.MC_TWEAKS.parts || {}).join() === "shortcuts,dispatch,fxslot"
+      && pots.package === "pots" && !pots.variants && sf.package === "smpfilter" && !sf.variants
+      && Object.keys(w.MC_TWEAKS.packages).join() === "sampler,digidelay,pots,smpfilter"
+      && Object.keys(w.MC_TWEAKS.parts || {}).join() === "shortcuts,dispatch,fxslot,fltslot"
       && w.MC_TWEAKS.registrar && w.MC_TWEAKS.registrar.schema === "model27-registrar-frame/0.1"
       && !cards.some((f) => f.engines || f.needs) && !w.MC_TWEAKS.tweaks.some((x) => x.append && x.append.syntakt),
-      "MC_TWEAKS: model27's six cards, Control All Config, Trig preview and Trig conditions (their tweaks), SAMPLE (a " +
+      "MC_TWEAKS: model27's seven cards, Control All Config, Trig preview and Trig conditions (their tweaks), SAMPLE (a " +
       "machine card), " +
-      "Digital Delay and POTS (effect cards): their packages, the registrar's frame and the parts, composed in the page, " +
+      "Digital Delay and POTS (effect cards), Samples (a filter card): their packages, the registrar's frame and the " +
+      "parts, composed in the page, " +
       "nothing that needs the Syntakt OS: " + ids.join());
     check(/build \d{4}-/.test(text(doc, "build-stamp")), "version stamp shown");
     const srcs = [...doc.querySelectorAll("script[src]")].map((x) => x.getAttribute("src"));
@@ -246,11 +247,11 @@ async function main() {
     // display order: by section (Sounds & machines, Sequencer, then Live playing), FEATURES order inside a section;
     // the build keeps FEATURES order (checked in 1b)
     const feats = [...doc.querySelectorAll("#features input[type=checkbox]")].map((c) => c.id);
-    check(feats.join() === "feat-sampler,feat-digidelay,feat-pots,feat-trig-preview,feat-trig-cond-order,feat-control-all-config",
-      "6 feature rows, by section: " + JSON.stringify(feats));
-    const KIND = { sampler: "machine", digidelay: "effect", pots: "effect" };
+    check(feats.join() === "feat-sampler,feat-digidelay,feat-pots,feat-smpfilter,feat-trig-preview,feat-trig-cond-order,feat-control-all-config",
+      "7 feature rows, by section: " + JSON.stringify(feats));
+    const KIND = { sampler: "machine", digidelay: "effect", pots: "effect", smpfilter: "filter" };
     check(cards.every((f) => doc.querySelector(`#grp-${KIND[f.id] || "mod"} #mod-${f.id} #feat-${f.id}`)),
-      "every card in its section: SAMPLE in Machines, Digital Delay and POTS in Effects, the others in Mods");
+      "every card in its section: SAMPLE in Machines, Digital Delay and POTS in Effects, Samples in Filters, the others in Mods");
     // tested is the rule and goes unsaid on a card; only the exceptions carry a tag
     const tags = cards.map((f) => f.id + ":" + ((doc.querySelector(`#mod-${f.id} .tag`) || {}).textContent || "-"));
     check(tags.join() === cards.map((f) => f.id + ":" + (f.status === "tested" ? "-" : "Experimental")).join(),
@@ -258,8 +259,9 @@ async function main() {
     check(doc.getElementById("drop3-wrap").hidden, "no Syntakt drop zone: no card needs the Syntakt OS");
     const credits = [...doc.querySelectorAll("#features .credit a")].map((a) => a.href);
     const creditOf = (id) => [...doc.querySelectorAll(`#mod-${id} .credit a`)].map((a) => a.href);
-    check(credits.length === 10
+    check(credits.length === 12
       && creditOf("sampler")[0] === "https://github.com/durchgemacht/cycles-one-shot" && /\/LICENSE-One-Shot\.txt$/.test(creditOf("sampler")[1])
+      && creditOf("smpfilter")[0] === "https://github.com/durchgemacht/cycles-one-shot" && /\/LICENSE-One-Shot\.txt$/.test(creditOf("smpfilter")[1])
       && creditOf("digidelay")[0] === "https://github.com/gialloinfuso/PPPCCC-M-S-Mods"
       && /\/LICENSE-PPPCCC\.txt$/.test(creditOf("digidelay")[1])
       && creditOf("control-all-config")[0] === "https://github.com/durchgemacht/cycles-control-all-config"
@@ -268,7 +270,8 @@ async function main() {
       && /\/LICENSE-elektron-model-tweaks\.txt$/.test(creditOf("trig-preview")[1])
       && creditOf("pots").join() === "https://github.com/durchgemacht/model27" && !doc.querySelector("#features label .credit")
       && creditOf("trig-cond-order").join() === "https://github.com/durchgemacht/model27",
-      "each card credits its author (outside its label: the link doesn't tick it), with a link to the MIT license of the code it carries; POTS and Trig conditions, " +
+      "each card credits its author (outside its label: the link doesn't tick it), with a link to the MIT license of the code it carries (SAMPLE and " +
+      "Samples both One-Shot's); POTS and Trig conditions, " +
       "model27's own, link the model27 repository: " +
       JSON.stringify(credits));
     const list = [...doc.querySelectorAll("#credits-list a")].map((a) => a.textContent);
@@ -324,6 +327,22 @@ async function main() {
       && !doc.querySelector("#mod-pots .tag"),
       `POTS alone ${potsAlone}; with Digital ${potsDd}, one composed tweak; with SAMPLE ${potsSmp}; with Control All ` +
       `Config too ${potsAll}, all ticked, no clash; no sub-choice; its guide link; tested, so no tag`);
+    // Samples: a filter card, composed with the machine and effect cards into one tweak (the key map's K4)
+    box("feat-smpfilter").click(); await wait(5);
+    const sfAlone = chosen();
+    box("feat-sampler").click(); await wait(5);
+    const sfSmp = chosen();
+    for (const i of ["digidelay", "pots", "control-all-config"]) { box("feat-" + i).click(); await wait(5); }
+    const sfAll = chosen();
+    const sfOn = ["sampler", "digidelay", "pots", "smpfilter", "control-all-config"].every((i) => box("feat-" + i).checked)
+      && !doc.querySelector("#features .say.clash");
+    for (const i of ["smpfilter", "sampler", "digidelay", "pots", "control-all-config"]) { box("feat-" + i).click(); await wait(5); }
+    check(sfAlone === "smpfilter" && sfSmp === "sampler+smpfilter" && sfAll === "control-all-config,sampler+digidelay+pots+smpfilter"
+      && sfOn && !chosen().length && doc.querySelector('#grp-filter #feat-smpfilter')
+      && doc.querySelector('#features a[href$="#samples-filter"]') && doc.querySelectorAll('input[name="var-smpfilter"]').length === 0
+      && /Experimental/.test((doc.querySelector("#mod-smpfilter .tag") || {}).textContent || ""),
+      `Samples alone ${sfAlone}; with SAMPLE ${sfSmp}, one composed tweak; with the effects and Control All Config ` +
+      `${sfAll}, all ticked, no clash; in Filters; no sub-choice; its guide link; experimental, so tagged`);
     // Trig conditions: a tweak card, after the composed tweak of the machine and effect cards in the build
     box("feat-trig-cond-order").click(); await wait(5);
     const tcoAlone = chosen();
@@ -368,7 +387,7 @@ async function main() {
     // English only: no language switch; the cards by their names, their credits and guide links
     const names = [...doc.querySelectorAll("#features .nm")].map((e) => e.textContent);
     check(!doc.querySelector(".lang") && doc.documentElement.lang === "en" && /new tricks/.test(text(doc, "h1s"))
-      && names.join() === "SAMPLE,Digital Delay,POTS,Trig Preview,Trig Condition Order,Control All Config"
+      && names.join() === "SAMPLE,Digital Delay,POTS,Samples filter,Trig Preview,Trig Condition Order,Control All Config"
       && /by drumkilla/.test(text(doc, "features")) && /by durchgemacht/.test(text(doc, "features"))
       && doc.querySelector('#features a[href$="#control-all"]') && doc.querySelector('#features a[href$="#sampler"]'),
       "English only, no language switch; the cards by their names: " + names.join());
@@ -414,9 +433,10 @@ async function main() {
       for (const id of [...doc.querySelectorAll("#features input[type=checkbox]:checked")].map((c) => c.id)) await click(box(id));
     };
     const sections = [...doc.querySelectorAll("#features section.grp")].map((g) => g.id.slice(4));
-    check(sections.join() === "machine,effect,mod" && /Machines/.test(textOf(doc, "#grp-h-machine"))
-      && /Effects/.test(textOf(doc, "#grp-h-effect")) && /Mods/.test(textOf(doc, "#grp-h-mod")) && !box("cats").children.length,
-      "three sections, Machines, Effects, Mods, no section chips: " + sections.join());
+    check(sections.join() === "machine,effect,filter,mod" && /Machines/.test(textOf(doc, "#grp-h-machine"))
+      && /Effects/.test(textOf(doc, "#grp-h-effect")) && /Filters/.test(textOf(doc, "#grp-h-filter"))
+      && /Mods/.test(textOf(doc, "#grp-h-mod")) && !box("cats").children.length,
+      "four sections, Machines, Effects, Filters, Mods, no section chips: " + sections.join());
     // the build keeps FEATURES order whatever the display order
     await click(box("feat-sampler"));
     await click(box("feat-control-all-config"));
@@ -516,6 +536,7 @@ async function main() {
     check(feats.length < 20 && box("mod-find").hidden, `no search field with ${feats.length} mods (it appears from 20)`);
     // the Effects section says what its cards share; Details come in paragraphs
     check(/Hold PATTERN and turn Delay Time or Reverb Size/.test(textOf(doc, "#grp-effect .grp-sub")) && !doc.querySelector("#grp-mod .grp-sub")
+      && /Hold RETRIG and turn PITCH/.test(textOf(doc, "#grp-filter .grp-sub"))
       && doc.querySelectorAll("#det-pots > p").length === 2 && doc.querySelectorAll("#det-sampler > p").length === 2,
       "the Effects section's one line; Details in paragraphs");
     check(errors.length === 0, "no JS error in the mod picker " + (errors.length ? JSON.stringify(errors) : ""));

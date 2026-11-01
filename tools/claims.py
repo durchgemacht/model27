@@ -584,6 +584,20 @@ def build_holders(mans, part=None):
     return out
 
 
+def narrowed(c, by):
+    """Claims c (to_json) without the sound slots, record slots and descriptors that claims by (to_json) hold: the
+    shortcut layer in a build with filters, whose k 28..31, record slots 28..31 and descriptors 1..4 are the filter
+    slot's there (the key map's rule R1: such a build has no machine's knob value, so the layer takes none of them)."""
+    out = dict(c)
+    for key in ("sound_slots", "record_slots", "descriptors"):
+        if key in c:
+            taken = {n for n, _s in by.get(key, [])}
+            out[key] = [[n, s] for n, s in c[key] if n not in taken]
+            if not out[key]:
+                del out[key]
+    return out
+
+
 def check_build(holders):
     """Two holders of one build that clash: [reason]. A package meets a part with its claims beyond the part's."""
     out = []

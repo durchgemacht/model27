@@ -34,25 +34,32 @@ const REF_MAINOS = {
   "sampler": "c09236d30e8ca5f2d45a0be916a1f9baefcf106d8831d94e58455477b6374fea",
   "digidelay": "280f662b39263d5c77f841a2e699dcff71bf6833712df5d411e7f2afec82425b",
   "pots": "19ef3b58909ae07f070a948623dd58c426917280b9287c5cc154563e52ca2385",
+  "smpfilter": "76b4755373e5609ffc356b71e4320dce2a045d2d1e3d7e3f978f8eb7a9a5ca93",
   "trig-cond-order": "018690231f705e49422a5032a36d1685637db2dd682c65942277759d7da351f1",
   // every pair of cards the page lets you tick together
   "control-all-config+trig-preview": "cb9d13f3d0be7763e9b3e37e18c88a382110f5ec0521947cb1beee39e145373c",
   "control-all-config+sampler": "e09f1d9de60e9f03d9ab2774d84703e7cac6fd2892c64729d9f28eedf98833c4",
   "control-all-config+digidelay": "d955ddfb37584fa961414d7629dc3ba1d6b60ffd040ff9246cf9422d8a681e35",
   "control-all-config+pots": "9ec27bb9ea6dad3be86f53b460c6159c33c8db1394feb6fafd0ce3fb68d855eb",
+  "control-all-config+smpfilter": "c4f392acb03826479333689eca40e11e2acac94c8b679dfab0d50f021c021dce",
   "control-all-config+trig-cond-order": "86a1c9ff23fc31f9153fc75cb68ab456e6d5ecee27d1033b58aa72396cd57188",
   "trig-preview+sampler": "1e4f9ef418c4c756865fede7cc14525950bb84136a046cc5c1a5a2756ea30522",
   "trig-preview+digidelay": "bc8b0c78fc4d627f2882b8f1bc6f0886a146407329be7a7b173be6bfa0c4ae39",
   "trig-preview+pots": "8a5eb857e624c8d7ffdae9c5b7fd9eeceafd5e4163d4beb76fbba1104c9a4d1c",
+  "trig-preview+smpfilter": "aba9dae8a36786a0c050135b476ba21194cdeb5e91a4a729f389a9a4c374bfac",
   "trig-preview+trig-cond-order": "948c90e0a40f2d120d098a08d48da20ce40c76f3d39d7bc2a968ed0857fa740d",
   "sampler+digidelay": "83b6060851cf7c4f9765c55753d5b5c00271d4423a6a8ae243bb5e81d1495406",
   "sampler+pots": "70341d1189108fe4f91f2a4f235f452eb281e4e9fc1fd3cbc80516ca467d131e",
+  "sampler+smpfilter": "081740df00636c081b98287b99e024a10007ac4b87d16994a7c9c30e47837dfd",
   "sampler+trig-cond-order": "d061f20b23cf293e29b2f39eb01a12c7929ecbcf0d261f7a1667ce264d187c14",
   "digidelay+pots": "b37a17848ea281fc15467f9388238eb55d257de4b757c4a24803b50ff6f236b2",
+  "digidelay+smpfilter": "93cd92c99b415f4d35ff220aba13aa4027f3158d10a55262ab73b4bad8d81726",
   "digidelay+trig-cond-order": "c17bc71b2473a6c6fcd0960bb77e9b5377f391dcd5b2cb7a2fbfcc635f3f1548",
+  "pots+smpfilter": "31b327fac3009a224966b20b5694cb340fe2b9b8855ef82c9caf24ffed154085",
   "pots+trig-cond-order": "2c9ff45d8b2dc3a62b6eda6bdceeea4abe26ee341b36fcaad90b7d82fa83564f",
+  "smpfilter+trig-cond-order": "870293fbbfb679ebc953fcbab6f861fa05ac0a19c0cb301b274ac51795c2ff5f",
   // the largest combinations: every compatible card ticked, from each card, both ways, with and without the Syntakt engines, with and without each of the machines that join them
-  "control-all-config+trig-preview+sampler+digidelay+pots+trig-cond-order": "17b0634fb3b72a8e919828533cb3ba45fa18e21bf219eee75067b56bc781522d",
+  "control-all-config+trig-preview+sampler+digidelay+pots+smpfilter+trig-cond-order": "449b7df8499e3a1db5585a0d87bbd284dd9271f8b545f7b0d941a2cb3099d8ef",
 };
 const REF_MODS = {
   "control-all-config": {"w": "b47aa26f4f855c750735a03eae7453847356c376f47a4010cf4f1a5bf316be5e"},
@@ -61,10 +68,18 @@ const REF_MODS = {
   "sampler": {"w": "b4cf254509fba02ece5e9e30b8c3f869dd9932e48965408805cd572ee3adbd38", "p": "39011131a39447665237e4cb3e837e302ebd276cd30e299693235c5857896616"},
   "digidelay": {"w": "07958d2514f79e19612f26d706fca995350f6dc837c8084d914b2afb6a9b413c", "p": "3e79516c96eba983ac619102f61fba78e0d8aa45136ea4178baf8ae898741268"},
   "pots": {"w": "c12b7a591e3eaffb1b2d8ab75c8e2fe4085fedde47e05da992684ebdd3d0f171", "p": "233ac95ece72ab18018b19535ae2d005098396e589e37eb8ac25f4e64d0f6ec6"},
+  "smpfilter": {"w": "b693db9c9635cf11166149cd297a1a11e8c28e50ff9796bafe410ec04bb835e7", "p": "597d81dbba0ae6ffd1f6d3b19f11fadf5186204d8a942422b99bb8c950f92bf0"},
   "sampler+digidelay": {"w": "0f02f9e770008bd097ba7aa24a01bff3b9d21dc882a8e08c42aaca52818b6152", "p": "b03cec5fbb11ed5eaa6ca4984e83c68378e8d0cd2090d1ed15817a45d96bbead"},
   "sampler+pots": {"w": "ffc88cfbdcb598649c786fde7be18c4e4cfaa9e7767d030cd3eb5f76cbd739d5", "p": "0d439d9d129998c685ab3d7816e5d78179a16f53f94c3601facb2c2f25c1988f"},
+  "sampler+smpfilter": {"w": "9058124036b178275e7d64b285228c2924d3184180eecbf7f9efa3b751edb5d0", "p": "6e43707c6892965f41f8f7c867e272bc3bf5790185e2f3c4dbe54bbdd8253d84"},
   "digidelay+pots": {"w": "c74b7acb628ec84fb9a26992d9a5785eb76eec39fc88e0c25986cbe4a103934d", "p": "dc947c628d79c7cc16acb5eb7bdecd811189f8239c2b794877664c13f82c0e9a"},
+  "digidelay+smpfilter": {"w": "22f99dc929961ade307e260e420061a61e5dafb04b581b33205e2771aa04f1f1", "p": "965d363b684ac414196f50df0fbae3707f45792775132141f42960ac1ce8cf4f"},
+  "pots+smpfilter": {"w": "0225a565aedd074b346036dfe0afaa95fe4bf15efad67b5b053a73d40dbf5478", "p": "0c4e5fdd7e7ddea9581c71e80000bc4dd938d3d07cd46339ca7ae60db51d57e4"},
   "sampler+digidelay+pots": {"w": "a79a59309a15d8659271d9b4aedb5c0b31346d8380d4e1409212ceb938bde60b", "p": "d86a328747c040f2b15b0c048365dea86c6fdc0b03e99e718dc666fa321abbda"},
+  "sampler+digidelay+smpfilter": {"w": "a47b70cc17b7a76285d2e79c8e277e078cf85a222dad1e92cb1e9e28863c654d", "p": "55c15de760b84a881e0db3c2894894efced7fc317fe5d9729ad06752c4c1f934"},
+  "sampler+pots+smpfilter": {"w": "808bed7e495a156013508042cc291afae05ff005c6c71caa80ed8850e0e96c8d", "p": "dcc3fc43319912bb9e6dde1ae0ed2e2b4e33359cd68db7da24ce14a05de404b0"},
+  "digidelay+pots+smpfilter": {"w": "2bb9817c256dbd71e68408aa4307bb5766270c5f7e6d8fb5984e1b6e249873cb", "p": "3a633e29bb2b0a630fbc1e7d3f99698b9897906708ac6fd178a790d9f90a7155"},
+  "sampler+digidelay+pots+smpfilter": {"w": "21f2afd8285ba4467a0c035b7884240771748bf56462285d3f9f6fd61266e54a", "p": "19cbba6e927f946fd09fa8b7fb093d3f0442e72df4ff24f4152062174872f618"},
 };
 
 // "Samples OS" tab: official Model:Samples OS 1.13 inside the official Model:Cycles container
@@ -126,6 +141,7 @@ const GUIDE_OF = {
   sampler: "sampler",
   digidelay: "digital-delay",
   pots: "pots",
+  smpfilter: "samples-filter",
   "trig-cond-order": "trig-cond",
   "chord-keys": "chord-keys",
   "track-filter": "track-filter",
@@ -152,9 +168,11 @@ const T = {
   tagline: "New machines, effects and mods for your Model:Cycles. Pick what you like and install it over USB in about 30 seconds.",
   tab_mods: "Mods",
   tab_restore: "Official firmware",
-  kind_machine: "Machines", kind_effect: "Effects", kind_mod: "Mods",
+  kind_machine: "Machines", kind_effect: "Effects", kind_filter: "Filters", kind_mod: "Mods",
   // a section's one line: what all its cards share (the effect slots are model27's, notes/68)
   kind_effect_sub: "Hold PATTERN and turn Delay Time or Reverb Size to switch between the stock effect and the ones you install. Your choice is saved with each pattern.",
+  // the filter slot's (the key map's K4): what every filter card shares
+  kind_filter_sub: "A filter on any track, after Volume + Dist. Hold RETRIG and turn PITCH to choose a sound's filter, then RETRIG + SWEEP and CONTOUR to set it. Each sound keeps its own.",
   // the sections of the old list, still searched (search from SEARCH_FROM cards)
   cat_pack: "Packs", cat_sound: "Sounds & machines", cat_seq: "Sequencer", cat_live: "Live playing",
   cat_screen: "Screen & browsing", cat_io: "USB & MIDI", cat_other: "Other mods",
@@ -451,6 +469,10 @@ const FEAT = {
   pots: { label: "POTS",
     short: "A lo-fi delay like an old phone line: each repeat darker and more out of tune.",
     desc: "Every repeat goes down an old telephone line once more. The echoes get darker and narrower, drift further out of tune, fade in and out, and pick up a coarse grain as they die away.\n\nWhile it plays, Time and Fdbk work as usual and are labelled POTS Time and POTS Fdbk. Even at full feedback the repeats never run away. The delay is mono." },
+  smpfilter: { label: "Samples filter",
+    short: "The Model:Samples' filter on any track: lowpass, off or highpass on one knob, with resonance.",
+    desc: "Hold RETRIG and turn PITCH to give the track's sound a filter: OFF, then SMP. Then hold RETRIG and turn SWEEP for Cutoff: lowpass to the left (L64 is the most closed), off in the middle, highpass to the right (H63). RETRIG + CONTOUR sets the resonance.\n\nBoth are real parameters of every machine: lock them on a trig, make them the LFO's destination (hold LFO and RETRIG and turn the knob), set them on all tracks with TRACK, or send CC 74 and 71. Each sound keeps its own filter and settings, saved with it. The filter is the one inside SAMPLE, measured on the Model:Samples, and comes after Volume + Dist.",
+    note: "Six tracks filtered at once use about a tenth of the processor's time. A sound saved on this firmware loses its filter on another firmware, nothing else." },
   "trig-cond-order": { label: "Trig Condition Order",
     short: "On the CHANCE knob, the A:B conditions now come before the percentages.",
     desc: "Hold a trig and turn CHANCE: FILL to !1st come first, then the A:B conditions from 1:2 to 8:8, then the percentages from 1% to 99%. The stock OS puts the percentages first.\n\nThe five dots under the value follow the new order. Only the knob changes: every trig keeps its condition, so your patterns play the same with or without the mod." },
@@ -726,10 +748,12 @@ function shortOf(f) {
   return featText(f.id, "short", "") || (d.match(/^.*?[.!?](?=\s|$)/) || [d])[0];
 }
 const catOf = (f) => (f.cat && CATS.includes(f.cat) ? f.cat : "other");
-// The three sections of step 1: added machines, effects (a package that takes an effect slot, notes/68), mods.
-const KINDS = ["machine", "effect", "mod"];
+// The four sections of step 1: added machines, effects (a package that takes an effect slot, notes/68), filters (a
+// package of the filter slot, the key map's K4), mods.
+const KINDS = ["machine", "effect", "filter", "mod"];
 function kindOf(f) {
   const p = f.package && window.MC_TWEAKS.packages && window.MC_TWEAKS.packages[f.package];
+  if (p && (p.uses || []).some((u) => u.point === "track.filter")) return "filter";
   if (p) return (p.uses || []).some((u) => /^fx\./.test(u.point || "")) ? "effect" : "machine";
   return f.engines ? "machine" : "mod";
 }

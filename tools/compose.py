@@ -92,6 +92,9 @@ FX_LINE_MAX = 0x400000
 BLOCK_INSTR = 108225
 FX_WARN, FX_REFUSE = BLOCK_INSTR // 10, BLOCK_INSTR // 4
 FX_PEAK_WARN = BLOCK_INSTR // 2              # the block of a switch, once: a warning past half a block
+# The filter slot (the track filters, the key map's step K4): a package that names it in uses is a filter, run after
+# Volume + Dist on every track whose sound chose it (tools/machines/fltslot/); a build holds at most the part's "most".
+FILTER_POINT = "track.filter"
 REGISTRAR = MACHINES / "registrar" / "registrar.json"
 LINK = """SECTIONS
 {{
@@ -121,14 +124,46 @@ def load_manifest(mid):
     m["_machine"] = next((u for u in m["uses"] if u["point"] == "machine"), None)
     m["_stock"] = next((u for u in m["uses"] if u["point"] == "machine.stock"), None)
     m["_effect"] = next((u for u in m["uses"] if u["point"] in FX_POINTS), None)
+    m["_filter"] = next((u for u in m["uses"] if u["point"] == FILTER_POINT), None)
     if m["_machine"] and m["_stock"]:
         sys.exit(f"!! {mid}: a 'machine' and a 'machine.stock' entry in uses: an added machine or an extension of a "
                  "stock machine, not both")
     if m["_effect"] and (m["_machine"] or m["_stock"]):
         sys.exit(f"!! {mid}: an effect and a machine in uses: an effect is a package of its own (notes/68 §2)")
-    if not m["_machine"] and not m["_stock"] and not m["_effect"]:
-        sys.exit(f"!! {mid}: no 'machine', 'machine.stock', 'fx.delay' or 'fx.reverb' entry in uses: not an added "
-                 "machine, an extension or an effect")
+    if m["_filter"] and (m["_machine"] or m["_stock"] or m["_effect"]):
+        sys.exit(f"!! {mid}: a filter and a machine or an effect in uses: a filter is a package of its own")
+    if not m["_machine"] and not m["_stock"] and not m["_effect"] and not m["_filter"]:
+        sys.exit(f"!! {mid}: no 'machine', 'machine.stock', 'fx.delay', 'fx.reverb' or '{FILTER_POINT}' entry in uses: "
+                 "not an added machine, an extension, an effect or a filter")
+    if m["_filter"]:                         # a filter of the filter slot (the key map's step K4)
+        u = m["_filter"]
+        if sum(x["point"] == FILTER_POINT for x in m["uses"]) > 1:
+            sys.exit(f"!! {mid}: a package is one filter")
+        if not isinstance(u.get("id"), int) or not 1 <= u["id"] <= 255:
+            sys.exit(f"!! {mid}: the filter's id must be 1 to 255 (0 is none): {u.get('id')!r}")
+        roots = m["build"].get("roots", [])
+        if not roots or roots[0] != u.get("process"):
+            sys.exit(f"!! {mid}: a filter names its process first in build.roots (it has no update and render)")
+        if u.get("reset") and u["reset"] not in roots:
+            sys.exit(f"!! {mid}: the filter's reset {u['reset']} is not in build.roots")
+        if m["build"].get("patch_points"):
+            sys.exit(f"!! {mid}: a filter has no patch points: its state is in its own variables")
+        other = [x["point"] for x in m["uses"] if x["point"] not in (FILTER_POINT, "memory.ram")]
+        if other:
+            sys.exit(f"!! {mid}: a filter uses its slot and its RAM only, not {', '.join(other)}")
+        texts = [("name", u.get("name"), 15), ("short", u.get("short"), 3)]   # short: the type on screen (notes/47 §5)
+        params = u.get("params")
+        if not isinstance(params, list) or not 1 <= len(params) <= 4:
+            sys.exit(f"!! {mid}: a filter names its values in params, 1 to 4, in the order of k 28 to k 31 (Cutoff, "
+                     "Reso, Env, AD: RETRIG + SWEEP, CONTOUR, COLOR, SHAPE)")
+        for k, prm in enumerate(params):
+            texts += [(f"params[{k}].long", prm.get("long"), 15), (f"params[{k}].short", prm.get("short"), 4)]
+            fmt = prm.get("format")
+            if fmt not in ("int", "centre", "cutoff") and fmt not in roots:
+                sys.exit(f"!! {mid}: params[{k}].format: 'int', 'centre', 'cutoff' or a symbol in build.roots")
+        for what, text, most in texts:
+            if not isinstance(text, str) or not 0 < len(text) <= most or not all(" " <= c <= "~" for c in text):
+                sys.exit(f"!! {mid}: {what}: printable ASCII, 1 to {most} characters: {text!r}")
     if m["_effect"]:                         # an effect of the delay or reverb slot (notes/68 §2)
         u = m["_effect"]
         if sum(x["point"] in FX_POINTS for x in m["uses"]) > 1:
@@ -182,9 +217,10 @@ def load_manifest(mid):
 
 def roots_of(m):
     """The entry points a package's object is laid out from: an added machine's update and render, then its kept
-    symbols; an extension's or an effect's build.roots (its first two in the places of update and render)."""
+    symbols; an extension's, an effect's or a filter's build.roots (its first two in the places of update and
+    render)."""
     b = m["build"]
-    if m.get("_stock") or m.get("_effect"):
+    if m.get("_stock") or m.get("_effect") or m.get("_filter"):
         r = b["roots"]
         return r[0], r[1] if len(r) > 1 else r[0], list(dict.fromkeys(r[2:] + b.get("keep", [])))
     return b["symbols"]["update"], b["symbols"]["render"], b.get("keep", [])
@@ -322,6 +358,8 @@ def placed(p):
     """One package of a build in its tweak's description."""
     if p.get("slot"):
         return f"{p['id']} as effect {p['fx_id']} of the {p['slot']} slot"
+    if p.get("filter_id"):
+        return f"{p['id']} as filter {p['filter_id']}"
     if p.get("extends"):
         return f"{p['id']} extending {p['extends']} (machine {p['index']})"
     return f"{p['id']} as machine {p['index']}"
@@ -344,15 +382,15 @@ def web_package(mid):
         sys.exit(f"!! {mid}: {path} is missing: run the package's generator (it writes the object)")
     lay = relocate.layout(path.read_bytes(), upd, rnd, keep, mid)
     uses = [{k: v for k, v in u.items() if k != "why"} for u in m["uses"]
-            if u["point"] in ("machine", "machine.stock", "memory.ram", "shortcut") + FX_POINTS
+            if u["point"] in ("machine", "machine.stock", "memory.ram", "shortcut", FILTER_POINT) + FX_POINTS
             or "hook" in u or "vtable" in u]
     names = [upd, rnd, *keep] if m["_machine"] else list(dict.fromkeys([upd, rnd, *keep]))
     out = {"id": mid, "name": m["name"], "order": m["order"], "version": m["version"],
            "symbols": {"update": upd, "render": rnd}, "keep": keep, "patch_points": pps, "uses": uses,
            "conflicts_declared": [c["with"] for c in m.get("compat", {}).get("conflicts_declared", [])],
            "claims": cl.package_claims(m), "bundle": relocate.bundle(lay, names)}
-    if m["_effect"]:                         # an effect's load (notes/68 §17), which the page computes as fx_cost()
-        out["cost"] = m.get("cost", {})
+    if m["_effect"] or m["_filter"]:         # an effect's or a filter's load, which the page computes as fx_cost()
+        out["cost"] = m.get("cost", {})      # or fl_cost()
     return out
 
 
@@ -371,9 +409,10 @@ def web_part(pid):
     out = {"id": pid, "version": p["version"], "roots": roots, "patch_points": b["patch_points"],
            "data": p["data"], "bundle": relocate.bundle(lay, roots)}
     for key in ("sites", "shortcut", "slots", "track", "release", "load", "init", "early", "late", "formatter_sites",
-                "int_format", "cost"):
-        if key in p:                         # the effect slots' (notes/68) besides the shortcut layer's and dispatchers'
-            out[key] = p[key]
+                "int_format", "cost", "post", "boot", "keys", "lfo", "conv", "knob", "ptab", "record", "values", "type",
+                "formats", "most"):
+        if key in p:                         # the effect slots' (notes/68) and the filter slot's besides the shortcut
+            out[key] = p[key]                # layer's and dispatchers' 
     if "claims" in p:                        # notes/65: what the part claims, in tools/claims.py's to_json form
         out["claims"] = cl.part_claims(p)
     if p.get("conflicts_declared"):
@@ -1063,6 +1102,138 @@ def fx_layer(img, part, effects, syms_of, at, code_end, desc_used):
     return blob, out, writes, taken, info
 
 
+def fl_layer(img, part, filters, syms_of, at, code_end, desc_used, layer_syms, keys_next, diag=False):
+    """The filter slot of this build (the track filters, the key map's step K4): the audio block's call of Volume +
+    Dist (0x40059852) goes to the part, which runs it and then each track's filter; since 0.2 the boot's call of the
+    parameter tables' builder (0x4004486c), the knob lookup's vtable entry (0x401005a8, in front of the shortcut
+    layer's sc_knob), the encoder handler's question for TRACK (0x4001f886, in front of keys_next, the effect slots'
+    fx_keys, or 0) and the pattern's p-lock tables (0x4005b998, 0x4005baca, 0x4005aa34) too; since 0.3 the three sound
+    record functions (in front of the layer's wrappers, layer_syms its symbols); since 0.4 LFO + a knob's own knob
+    list (0x4001ead8). The data block
+    after the part's code: the table of the build's filters by id (entry 0 none, then each filter's id, process, reset,
+    the type's name on screen and its values' names and formatters, a value it does not declare named after the first
+    filter that does), the rows of descriptors 1 to n (n the most values a filter declares) and 5 that fl_boot writes
+    into the stock table and desc_used, then the state, all zero, then the strings. At most the part's "most" filters,
+    each id once. diag: a measuring build (fltslot 0.5), whose popups show the filters' load instead of the values.
+    Returns (blob, symbols, writes, the sites taken, info)."""
+    d, vals, ty = part["data"], part["values"], part["type"]
+    path = object_path(part)
+    if not path.is_file():
+        sys.exit(f"!! {path} is missing: run tools/gen_parts.py")
+    if len(filters) > part["most"]:
+        sys.exit(f"!! {', '.join(m['id'] for m in filters)}: {len(filters)} filters, a build holds {part['most']} at most")
+    seen = {}
+    for m in filters:
+        u = m["_filter"]
+        if u["id"] in seen:
+            sys.exit(f"!! {seen[u['id']]} and {m['id']}: the same filter id {u['id']}")
+        seen[u["id"]] = m["id"]
+    by_id = sorted(filters, key=lambda m: m["_filter"]["id"])
+    if len(by_id) + 1 > d["entries"]:
+        sys.exit(f"!! {len(by_id)} filters: the part's table holds {d['entries'] - 1}")
+    n = max(len(m["_filter"]["params"]) for m in by_id)
+    roots = part["build"]["roots"]
+    lay = relocate.layout(path.read_bytes(), roots[0], roots[1], roots[2:], part["id"])
+    data_at = align4(at + len(lay["code"]))
+    pps = part["build"]["patch_points"]
+    values = {"fl_data": data_at}
+    code, syms, _ = relocate.apply(lay, at, at, code_end, {pp["symbol"]: values[pp["kind"]] for pp in pps})
+    block, strings, str_at = bytearray(d["size"]), bytearray(), {}
+
+    def string(text):
+        if text not in str_at:
+            str_at[text] = data_at + d["size"] + len(strings)
+            strings.extend(text.encode("ascii") + b"\0")
+        return str_at[text]
+
+    def fmt(m, prm):
+        f = prm["format"]
+        if f in part["formats"]:
+            v = part["formats"][f]
+            return int(v, 16) if v.startswith("0x") else syms[v]
+        return syms_of[m["id"]][f]
+
+    def names(m, p):                         # value p's names: the filter's own, else the first filter's that has it
+        src = m if m and p < len(m["_filter"]["params"]) else next(x for x in by_id if p < len(x["_filter"]["params"]))
+        prm = src["_filter"]["params"][p]
+        return string(prm["long"]), string(prm["short"]), fmt(src, prm)
+
+    rows = [(0, 0, 0, string(ty["none"]), None)] + [
+        (m["_filter"]["id"], syms_of[m["id"]][m["_filter"]["process"]],
+         syms_of[m["id"]][m["_filter"]["reset"]] if m["_filter"].get("reset") else 0, string(m["_filter"]["short"]), m)
+        for m in by_id]
+    struct.pack_into(">IIII", block, d["count"], len(rows), n, layer_syms["sc_knob"], keys_next)
+    struct.pack_into(">4H", block, d["neutral"], *vals["defaults"])        # the record's XOR: each value's neutral
+    struct.pack_into(">3I", block, d["rec_next"], *(layer_syms[r["next"]] for r in part["record"]))
+    struct.pack_into(">II", block, d["desc"], g7.DESC, desc_used)
+    block[d["diag"]] = 1 if diag else 0
+    for i, (fid, proc, reset, tag, m) in enumerate(rows):
+        e = d["entry"] + d["entry_size"] * i
+        struct.pack_into(">IIII", block, e, fid, proc, reset, tag)
+        for p in range(n):
+            struct.pack_into(">III", block, e + 16 + 12 * p, *names(m, p))
+    for p in range(n):                       # descriptors 1..n, as the track filter's (notes/47 §3)
+        long_, short, _f = names(None, p)
+        row = (7, vals["sound_slots"][p], 0, vals["max"], vals["defaults"][p], 0, int(vals["cc"][p], 16),
+               int(vals["nrpn"][p], 16), 0, int(vals["flags"], 16), vals["sort"][p], long_, int(vals["group_name"], 16),
+               short)
+        struct.pack_into(">14I", block, d["rows"] + 56 * p, *row)
+    five = list(struct.unpack_from(">14I", img, g7.DESC + g7.DSTRIDE * ty["descriptor"] - BASE))
+    if five[0] != 0xffffffff:
+        sys.exit(f"!! descriptor {ty['descriptor']} is not the OS's unused one (machine -1)")
+    five[1:6] = [0, 0, vals["max"], 0, 0]    # k 0, the OS's unused parameter; a range, no default
+    five[6:9] = [0xffffffff, 0xffffffff, 0]  # no CC (the stock row carries CC 10), no NRPN
+    five[11], five[13] = string(ty["long"]), string(ty["short"])
+    struct.pack_into(">14I", block, d["rows"] + 56 * len(vals["descriptors"]), *five)
+    blob_data = bytes(block) + bytes(strings)
+    if data_at + len(blob_data) > code_end:
+        sys.exit(f"!! the filter slot ends at {data_at + len(blob_data):#x}, past {code_end:#x}")
+    blob = code + bytes(data_at - at - len(code)) + blob_data
+    writes, taken = [], set()
+
+    def w(va, old, new_):
+        if img[va - BASE:va - BASE + len(old)] != old:
+            sys.exit(f"!! {va:#x}: {old.hex()} expected, {img[va - BASE:va - BASE + len(old)].hex()} found")
+        writes.append({"off": va - BASE, "old": old.hex(), "new": new_.hex()})
+        taken.add(va)
+    for name in ("post", "boot", "keys", "lfo"):
+        s = part[name]
+        w(int(s["hook"], 16), bytes.fromhex(s["stock"]), bytes.fromhex("4eb9") + g7.be32(syms[s["symbol"]]))
+    s = part["conv"]
+    w(int(s["jmp"], 16), bytes.fromhex(s["stock"]), bytes.fromhex("4ef9") + g7.be32(syms[s["symbol"]]))
+    for s in part["record"]:                 # jmp and a nop over each record function's first 8 bytes, as the layer
+        w(int(s["at"], 16), bytes.fromhex(s["stock"]),
+          bytes.fromhex("4ef9") + g7.be32(syms[s["symbol"]]) + bytes.fromhex("4e71"))
+    s = part["knob"]
+    va, method = int(s["vtable"], 16), int(s["stock_ptr"], 16)
+    if g7.refs32(img, method) != [va]:
+        sys.exit(f"!! references to {method:#x}: {[hex(r) for r in g7.refs32(img, method)]}")
+    w(va, g7.be32(method), g7.be32(syms[s["symbol"]]))
+    s = part["ptab"]
+    stock_tab = int(s["stock"], 16)
+    for a in s["operands"]:                  # the pattern's two; the sound record's own (0x4005aff4, 0x4005b0a8) stay
+        w(int(a, 16), g7.be32(stock_tab), g7.be32(syms[s["symbol"]]))
+    out = {r: syms[r] for r in roots}
+    out.update({pp["symbol"]: values[pp["kind"]] for pp in pps})
+    info = dict(id=part["id"], code_at=at, code=len(code), data_at=data_at, data=len(blob_data), values=n,
+                filters=[(r[0], r[4]["id"]) for r in rows[1:]])
+    return blob, out, writes, taken, info
+
+
+def fl_cost(filters):
+    """The filter slot's load, from the filters' declared cost.emulation (instructions per track and block): six
+    tracks on the dearest state of the dearest filter, {dearest, steady, share}, or {missing: [ids]} when a filter
+    declares none. The part's own (about 260 a block) is left out, as fx_cost leaves fxslot's stock path out."""
+    costs = {m["id"]: {k: v for k, v in m.get("cost", {}).get("emulation", {}).items() if isinstance(v, int)}
+             for m in filters}
+    missing = [i for i, c in costs.items() if not c]
+    if missing:
+        return {"missing": missing}
+    dearest = max(costs, key=lambda i: max(costs[i].values()))
+    steady = 6 * max(costs[dearest].values())
+    return {"dearest": dearest, "steady": steady, "share": steady / BLOCK_INSTR}
+
+
 def fx_cost(effects, part):
     """The load of each slot that has effects (notes/68 §17), from the effects' declared cost.emulation and fxslot's:
     {slot: {dearest, steady, peak, share}}, steady the dearest effect's maximum plus what fxslot adds with an effect,
@@ -1168,14 +1339,15 @@ def computed_conflicts(writes, ram, declared, tweaks=None):
 
 
 def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime", compare_b1=False, against=None,
-            against_claims=None):
+            against_claims=None, diag_filters=False):
     """Builds the tweak for the machines named in ids, in that order. relocator: "python" places each
     package's committed object with tools/relocate.py (no toolchain), "ld" compiles and links it as B1 did;
     compare_ld does both and compares them byte for byte (the proof of the relocator). registrar: "runtime" writes
     the registrar's part itself from the committed runtime and stub template (B2c, no assembler), "b1" calls
     gen_macro.added_machine (assembles the detours per build); compare_b1 does both and compares (notes/60 §5.4).
     against: the tweaks the conflicts are computed against (default: the folder's); against_claims: their claims,
-    {id: claims} (default: the folder's, tools/claims.py.tweak_claims). Returns (tweak, info)."""
+    {id: claims} (default: the folder's, tools/claims.py.tweak_claims). diag_filters: a measuring build of the filter
+    slot (its popups show the filters' load, fltslot 0.5), never offered. Returns (tweak, info)."""
     if not ids:
         sys.exit("!! name at least one package")
     if len(ids) != len(set(ids)):
@@ -1184,6 +1356,7 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     added = [m for m in mans if m["_machine"]]           # numbered 6, 7, ... in the order given
     exts = [m for m in mans if m["_stock"]]              # extensions of a stock machine (notes/66 §3): CHORD
     effects = [m for m in mans if m["_effect"]]          # effects of the delay and reverb slots (notes/68 §2)
+    filters = [m for m in mans if m["_filter"]]          # filters of the filter slot (the key map's K4)
     if len({m["_index"] for m in exts}) != len(exts):
         sys.exit(f"!! {', '.join(m['id'] for m in exts)}: two packages extend the same stock machine")
     pay = gs.PAY_ALONE
@@ -1240,11 +1413,16 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             info_pkgs.append(dict(id=m["id"], index=first + i if mc else m.get("_index"), desc=76 + 5 * i if mc else None,
                                   extends=m["_stock"]["machine"] if m["_stock"] else None,
                                   slot=fx["point"][3:] if fx else None, fx_id=fx["id"] if fx else None,
+                                  filter_id=m["_filter"]["id"] if m["_filter"] else None,
                                   code_at=code_at, code=len(blob), bss_at=bss_at, bss=bss_end - bss_at))
             code_cursor, bss_cursor = code_at + len(blob), bss_end
         layer, part = None, None             # the shortcut layer, in the builds whose machines declare a shortcut
-        if any(u["point"] == "shortcut" for m in mans for u in m["uses"]):
+        if any(u["point"] == "shortcut" for m in mans for u in m["uses"]) or filters:   # and in every filter build
             part = load_part("shortcuts")
+            if filters and shortcut_uses(table, part):   # the key map's rule R1: k 28..31 hold one meaning
+                sys.exit(f"!! {', '.join(m['id'] for m in filters)} and a machine's value on MACHINES + a knob "
+                         f"({', '.join(m['id'] for m in table if any(u['point'] == 'shortcut' and 'knob' in u for u in m['uses']))}): "
+                         "a build has either filters or a machine's knob values, both live in k 28..31")
             at = align4(code_cursor)
             layer = shortcut_layer(img, part, table, syms_of, shortcut_uses(table, part), at, gs.STUBS, tab_first,
                                    gs.DESCN if added else g7.DESC)
@@ -1263,6 +1441,18 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             fxs = fx_layer(img, load_part("fxslot"), effects, syms_of, at, gs.STUBS, gs.DESCN if added else g7.DESC)
             blobs.append((at, fxs[0]))
             code_cursor = at + len(fxs[0])
+        fls = None                           # the filter slot, in the builds that have a filter (the key map's K4)
+        if filters:
+            at = align4(code_cursor)
+            fls = fl_layer(img, load_part("fltslot"), filters, syms_of, at, gs.STUBS, gs.DESCN if added else g7.DESC,
+                           layer[1], fxs[1]["fx_keys"] if fxs else 0, diag_filters)
+            blobs.append((at, fls[0]))
+            code_cursor = at + len(fls[0])
+            # the knob lookup, the record functions and the question for TRACK go to the filter slot first, which
+            # chains the layer's and the effect slots' behind it
+            layer = (layer[0], layer[1], [x for x in layer[2] if x["off"] + BASE not in fls[3]], layer[3], layer[4])
+            if fxs:
+                fxs = (fxs[0], fxs[1], [x for x in fxs[2] if x["off"] + BASE not in fls[3]], fxs[3], fxs[4])
         for m in mans:                       # a package's RAM claim must lie outside the payload
             for lo, hi in ram_claims(m):
                 if lo < bss_cursor and pay < hi:
@@ -1283,10 +1473,11 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                     compare_b1_(reg, writes, append, writes1, append1)
             else:
                 writes, append = writes1, append1
-    skip = (layer[3] if layer else set()) | (dispatch[3] if dispatch else set()) | (fxs[3] if fxs else set())
+    skip = ((layer[3] if layer else set()) | (dispatch[3] if dispatch else set()) | (fxs[3] if fxs else set())
+            | (fls[3] if fls else set()))
     for m in mans:
         writes += package_writes(m, img, syms_of[m["id"]], skip)
-    for extra in (layer, dispatch, fxs):
+    for extra in (layer, dispatch, fxs, fls):
         if extra:
             writes += extra[2]
     writes.sort(key=lambda x: x["off"])
@@ -1302,11 +1493,20 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     if fxs:                                  # the effect slots' claims (the pattern header's bytes, notes/68 §14)
         fxc = cl.part_claims(load_part("fxslot"))
         holders.append(("fxslot", fxc, fxc, True))
+    if fls:                                  # the filter slot's claims; the layer's k 28..31 are the slot's (R1)
+        flc = cl.part_claims(load_part("fltslot"))
+        holders = [(n, cl.narrowed(c, flc), cl.narrowed(x, flc), True) if n == "shortcuts" and part_ else (n, c, x, part_)
+                   for n, c, x, part_ in holders]
+        holders.append(("fltslot", flc, flc, True))
     load = fx_cost(effects, load_part("fxslot")) if fxs else {}
     for point, c in load.items():             # notes/68 §17: a slot's dearest effect past FX_REFUSE is refused
         if c.get("steady", 0) > FX_REFUSE:
             sys.exit(f"!! the {point[3:]} slot: {c['dearest']} costs {c['steady']} instructions a block above the stock "
                      f"effect ({c['share']:.0%} of a block), past {FX_REFUSE} (notes/68 §17)")
+    fl_load = fl_cost(filters) if fls else {}
+    if fl_load.get("steady", 0) > FX_REFUSE:  # the effects' rule (notes/68 §17), for six tracks on the dearest filter
+        sys.exit(f"!! the filters: {fl_load['dearest']} on six tracks costs {fl_load['steady']} instructions a block "
+                 f"({fl_load['share']:.0%} of a block), past {FX_REFUSE}")
     clash = cl.check_build(holders)
     if clash:
         sys.exit(f"!! the build's own claims clash (notes/65): {'; '.join(clash)}")
@@ -1362,9 +1562,15 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                                                  for pt, (a, n) in lines.items()) + ".")
         tweak["symbols"].update({f"fx_line_{pt[3:]}": f"{a:#x}" for pt, (a, _n) in lines.items()})
         tweak["symbols"].update({k: f"{v:#x}" for k, v in fxs[1].items()})
+    if fls:
+        li = fls[4]
+        tweak["description"].insert(6, f"With the filter slot (tools/machines/fltslot/) at {li['code_at']:#x}, its data "
+                                       f"at {li['data_at']:#x}: " + ", ".join(f"{mid} ({i})" for i, mid in li["filters"]) + ".")
+        tweak["symbols"].update({k: f"{v:#x}" for k, v in fls[1].items()})
     info = dict(pay=pay, end=bss_cursor, image=sum(n for _, n in append["pack"]), packages=info_pkgs,
                 part=layer[4] if layer else None, dispatch=dispatch[4] if dispatch else None,
-                fx=fxs[4] if fxs else None, fx_lines=lines, fx_load=load,
+                fx=fxs[4] if fxs else None, fx_lines=lines, fx_load=load, filters=fls[4] if fls else None,
+                fl_load=fl_load,
                 claims=dict(by_claims={i: w for i, w in sorted(by_claims.items()) if i != tid},
                             declared_only=sorted(declared - by_bytes - set(by_claims) - {tid}),
                             views=cl.claim_views(holders, others)))
@@ -1452,15 +1658,19 @@ def main():
     ap.add_argument("--registrar", choices=("runtime", "b1"), default="runtime",
                     help="runtime: the committed registrar runtime and stub template (default, no assembler); b1: gen_macro.added_machine")
     ap.add_argument("--compare-b1", action="store_true", help="do both and compare them (notes/60 §5.4)")
+    ap.add_argument("--diag-filters", action="store_true",
+                    help="a measuring build: Filter Cutoff's popup shows the filters' average load, the type's the peak")
     args = ap.parse_args()
     raw = pathlib.Path(args.cycles).read_bytes()
     img = g7.cycles_main(args.cycles)
     if len(img) != gx.IMAGE_LEN:
         sys.exit("!! not the official MAIN OS 1.13")
     ids = [i.strip() for i in args.machines.split(",") if i.strip()]
-    tweak, info = compose(img, ids, args.relocator, args.compare_ld, args.registrar, args.compare_b1)
+    tweak, info = compose(img, ids, args.relocator, args.compare_ld, args.registrar, args.compare_b1,
+                          diag_filters=args.diag_filters)
     for p in info["packages"]:
         what = (f"effect {p['fx_id']} of the {p['slot']} slot" if p.get("slot")
+                else f"filter {p['filter_id']}" if p.get("filter_id")
                 else f"extends {p['extends']} (machine {p['index']})" if p.get("extends")
                 else f"machine {p['index']}, descriptors {p['desc']}..{p['desc'] + 4}")
         print(f"  {p['id']:12s} {what}, code {p['code']} bytes at {p['code_at']:#x}, variables {p['bss']} bytes at "
@@ -1486,6 +1696,16 @@ def main():
                 print(f"  {'warning, ' if warn else ''}the {point[3:]} slot's load: {c['dearest']} at "
                       f"most {c['steady']:+d} instructions a block on the stock effect ({c['share']:+.1%} of a block), "
                       f"{c['peak']:+d} in the block of a switch")
+    if info["filters"]:
+        p = info["filters"]
+        print(f"  {p['id']:12s} code {p['code']} bytes at {p['code_at']:#x}, data {p['data']} bytes at {p['data_at']:#x}, "
+              f"{p['values']} value(s), filters " + ", ".join(f"{mid} ({i})" for i, mid in p["filters"]))
+        c = info["fl_load"]
+        if "missing" in c:
+            print(f"  warning, the filters' load is not known: no cost declared by {', '.join(c['missing'])}")
+        else:
+            print(f"  {'warning, ' if c['steady'] > FX_WARN else ''}the filters' load: {c['dearest']} on six tracks at "
+                  f"most {c['steady']} instructions a block ({c['share']:.1%} of a block)")
     print(f"  tweak {tweak['id']}: {len(tweak['writes'])} writes, payload {info['pay']:#x}..{info['end']:#x}, "
           f"{info['image']} bytes added to the image, {len(tweak['conflicts'])} conflicts computed")
     ci = info["claims"]

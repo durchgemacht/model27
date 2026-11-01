@@ -1,0 +1,35 @@
+{
+ "schema": "cycles-mod/0.1",
+ "id": "refflt",
+ "version": "0.2",
+ "name": "REFF: model27's reference filter, a one-pole lowpass on every track whose sound chose it",
+ "description": "The smallest filter package (the track filters, the key map's step K4, T1): it proves the filter slot before a real filter uses it. The audio block's call of Volume + Dist goes to the builder's part (tools/machines/fltslot/), which calls REFF on each track whose sound chose id 255, after Volume + Dist. REFF is a one-pole lowpass whose pole follows k 28 and an attenuation that follows k 29, restarted by a note. Never offered to users.",
+ "license": "MIT",
+ "credit": {"kind": "own", "who": "durchgemacht and Claude", "repo": "durchgemacht/model27"},
+ "device": "Model:Cycles",
+ "os": "1.13",
+ "order": 37,
+ "build": {
+  "sources": ["refflt.c"],
+  "include": ["."],
+  "cflags": ["-std=c99", "-mcpu=54418", "-O2", "-ffreestanding", "-fno-builtin", "-fno-tree-loop-distribute-patterns",
+             "-nostdlib", "-fno-pic", "-fno-common", "-ffunction-sections", "-fdata-sections", "-Wall", "-Wextra",
+             "-Werror"],
+  "defines": {},
+  "objects": ["refflt.o"],
+  "patch_points": [],
+  "roots": ["reff_process", "reff_reset"]
+ },
+ "uses": [
+  {"point": "track.filter", "id": 255, "process": "reff_process", "reset": "reff_reset",
+   "name": "REF Filter", "short": "REF",
+   "params": [{"long": "REFF Pole", "short": "POLE", "format": "int"}, {"long": "REFF Atten", "short": "ATTN", "format": "int"}],
+   "why": "a filter of the filter slot: called after Volume + Dist as (block, k 28 to k 31, track, triggered) on the tracks whose sound chose id 255"}
+ ],
+ "claims": {},
+ "stock_behaviour": {"changes": [], "fixes": [], "unchanged": ["every track whose sound has not chosen REFF"]},
+ "compat": {"built_against": ["model27"], "requires": [], "conflicts_declared": []},
+ "tests": {"emulation": {"tool": "tools/emu/test_fltslot.py (Unicorn, the OS's own code)", "date": null,
+                         "build": "alone"},
+           "hardware": null, "status": "experimental"}
+}

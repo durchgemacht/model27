@@ -375,6 +375,23 @@ ALL_FEATURES = [
         "package": "pots",
     },
     {
+        "id": "smpfilter",
+        "cat": "sound",
+        "label": "Samples (filter)",
+        "desc": "The Model:Samples' filter on any track, after Volume + Dist: lowpass below the centre of Cutoff, "
+                "highpass above, off in the middle, with resonance. Hold RETRIG and turn PITCH to give a sound the "
+                "filter; RETRIG + SWEEP is Cutoff, RETRIG + CONTOUR is Reso, with p-locks, LFO and CC 74 / 71.",
+        # SAMPLE's filter (Cycles One-Shot's sources, unchanged) on every track, through the filter slot of the key
+        # map's step K4: bit for bit the host build in emulation; on the Model:Cycles from the command line on
+        # 2026-11-01, six tracks with Control All fluid after the two savings (smpfilter 0.2)
+        "status": "experimental",
+        "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/cycles-one-shot"},
+        "license": "LICENSE-One-Shot",
+        # a filter composed in the page from its package (the key map's K4), with the machines and effects ticked:
+        # alone it gives 72-smpfilter.json byte for byte, whose conflicts give its excludes
+        "package": "smpfilter",
+    },
+    {
         "id": "trig-cond-order",
         "cat": "seq",
         "label": "Trig conditions, A:B before the percentages",
@@ -446,7 +463,7 @@ ALL_FEATURES = [
 # model27 offers a short list of cards. The other definitions above stay as they are, for the command-line build
 # (every tweak of tweaks/ is still built by tools/build.py) and so that merges from upstream apply cleanly; a card
 # comes back into the flasher by adding its id here, once it has been reviewed against the Cycles Mod Standard.
-OFFERED = ("sampler", "digidelay", "pots", "control-all-config", "trig-cond-order", "trig-preview")
+OFFERED = ("sampler", "digidelay", "pots", "smpfilter", "control-all-config", "trig-cond-order", "trig-preview")
 FEATURES = [f for f in ALL_FEATURES if f["id"] in OFFERED]
 _missing = set(OFFERED) - {f["id"] for f in FEATURES}
 if _missing:
@@ -718,7 +735,7 @@ def render():
         "registrar": json.loads((HERE / "machines" / "registrar" / "frame.json").read_text(encoding="utf-8"))
         if packages else None,
         # model27, Level B (notes/63, B4e): the builder's parts, which the machines' shortcuts and shared points need
-        "parts": {pid: __import__("compose").web_part(pid) for pid in ("shortcuts", "dispatch", "fxslot")}
+        "parts": {pid: __import__("compose").web_part(pid) for pid in ("shortcuts", "dispatch", "fxslot", "fltslot")}
         if packages else None,
         # model27, Level C (notes/65, C2): the declared claims of the offered tweaks, which the machine cards are
         # composed against (tools/claims.py's to_json form)

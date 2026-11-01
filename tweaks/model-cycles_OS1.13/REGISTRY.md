@@ -6,11 +6,11 @@ Adresses : VA de l'OS 1.13 (la section 3 commence en `0x40000400`). Un mod qui v
 
 ## En bref
 
-- 291 tweaks, 32 194 écritures.
+- 292 tweaks, 32 209 écritures.
 - Masques de sprites libérables : 164 (35 960 o), dont 52 pris (18 000 o) et **112 libres (17 960 o)**.
-- Crochets sur l'OS : 118 adresses détournées, dont 72 à l'identique par des mods de familles différentes.
+- Crochets sur l'OS : 119 adresses détournées, dont 72 à l'identique par des mods de familles différentes.
 - Pointeurs réécrits : 67 adresses. Écritures dans des octets 0xFF hors masques : 14 zones.
-- Charges utiles ajoutées après l'OS : 269 tweaks ; place restante au §3.
+- Charges utiles ajoutées après l'OS : 270 tweaks ; place restante au §3.
 - Declared claims (notes/65): 16 holders; the saved data in §6, the key combinations in §8, the descriptors, formatters, p-lock rows and MIDI in §9, the views in §10.
 
 ## 1. Masques de sprites libérés
@@ -235,7 +235,7 @@ Trois masques entièrement à 0xFF, les plus grands ; plusieurs mods s'y partage
 | masque | taille | constante | état | mods (octets écrits) |
 |---|---|---|---|---|
 | `0x4015c044` | 720 o | `0x400b6434` | pris (550/720 o) | 6ch-usbup (384 o), acid (208 o), macro (208 o), macro-acid (208 o), model-tg (208 o), model-tg-st (208 o), syntakt-* (32/32, 208 o), syntakt-*-acid (31/31, 208 o), syntakt-*-macro (31/31, 208 o), syntakt-*-macro-acid (31/31, 208 o), trig-hold (166 o) |
-| `0x4016cae8` | 1024 o | `0x400b1106` | pris (1016/1024 o) | acid (104 o), acid-tg (96 o), arp (824 o), chordtables (80 o), digidelay (80 o), macro (104 o), macro-acid (112 o), macro-acid-tg (104 o), macro-tg (96 o), pots (80 o), refchord (80 o), refmachine (112 o), refmachine2 (112 o), sampler (112 o), sdvintage-7th (40 o), sdvintage-exact (40 o), sdvintage-snare (973 o), syntakt-* (32/32, 80 o), syntakt-*-acid (31/31, 188 o), syntakt-*-macro (31/31, 188 o), syntakt-*-macro-acid (31/31, 188 o), syntakt-tg-* (33/33, 172–188 o), syntakt-tg-*-acid (31/31, 180 o), syntakt-tg-*-macro (31/31, 180 o), syntakt-tg-*-macro-acid (31/31, 180 o), syntakt-vintage (40 o) |
+| `0x4016cae8` | 1024 o | `0x400b1106` | pris (1016/1024 o) | acid (104 o), acid-tg (96 o), arp (824 o), chordtables (80 o), digidelay (80 o), macro (104 o), macro-acid (112 o), macro-acid-tg (104 o), macro-tg (96 o), pots (80 o), refchord (80 o), refmachine (112 o), refmachine2 (112 o), sampler (112 o), sdvintage-7th (40 o), sdvintage-exact (40 o), sdvintage-snare (973 o), smpfilter (80 o), syntakt-* (32/32, 80 o), syntakt-*-acid (31/31, 188 o), syntakt-*-macro (31/31, 188 o), syntakt-*-macro-acid (31/31, 188 o), syntakt-tg-* (33/33, 172–188 o), syntakt-tg-*-acid (31/31, 180 o), syntakt-tg-*-macro (31/31, 180 o), syntakt-tg-*-macro-acid (31/31, 180 o), syntakt-vintage (40 o) |
 | `0x4018a788` | 1024 o | `0x400ad1aa` | pris (1016/1024 o) | arp (1016 o), sdvintage-snare (638 o) |
 
 ## 2. Autres écritures dans des octets 0xFF (caves)
@@ -531,6 +531,7 @@ Code trop gros pour un masque, ajouté à la fin de l'image (`at`) et copié au 
 | chordtables | 36 | `0x401aa140` | 6 088 | `0x401ab908` | `0x43000000` | 222 292 |  |
 | digidelay | 39 | `0x401aa140` | 3 832 | `0x401ab038` | `0x43000000` | 1 269 784 |  |
 | pots | 70 | `0x401aa140` | 11 872 | `0x401acfa0` | `0x43000000` | 483 676 |  |
+| smpfilter | 72 | `0x401aa140` | 25 164 | `0x401b038c` | `0x43000000` | 221 628 |  |
 | syntakt-meter | 90 | `0x401aa140` | 269 056 | `0x401ebc40` | `0x43000000` | 269 056 |  |
 | syntakt-tg-meter | 91 | `0x401bf8c0` | 243 472 | `0x401fafd0` | `0x46700000` | 269 056 | model-tg-st |
 | syntakt-tg-profile | 92 | `0x401bf8c0` | 243 904 | `0x401fb180` | `0x46700000` | 269 056 | model-tg-st |
@@ -543,7 +544,7 @@ Instructions de l'OS remplacées par un détour (`jsr`, `jmp`, `bsr.l`, `bra.l`)
 
 | adresse | origine (hex) | détour | vers | mods | notes |
 |---|---|---|---|---|---|
-| `0x400004b2` | `4feffff048d700f0` | jmp | masque `0x4016cae8` +0x0 | acid, chordtables, digidelay, macro, macro-acid, pots, refchord, refmachine, refmachine2, sampler, sdvintage-7th, sdvintage-exact, syntakt-* (32/32), syntakt-*-acid (31/31), syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31), syntakt-vintage | notes/17, notes/18, notes/36, notes/60, notes/63, notes/65, notes/66, notes/68, notes/69 |
+| `0x400004b2` | `4feffff048d700f0` | jmp | masque `0x4016cae8` +0x0 | acid, chordtables, digidelay, macro, macro-acid, pots, refchord, refmachine, refmachine2, sampler, sdvintage-7th, sdvintage-exact, smpfilter, syntakt-* (32/32), syntakt-*-acid (31/31), syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31), syntakt-vintage | notes/17, notes/18, notes/36, notes/60, notes/63, notes/65, notes/66, notes/68, notes/69 |
 | `0x4000154a` | `4eb940044df8` | jsr | masque `0x40192ba4` +0x70 `midi_gate` | midi-live-both | notes/53 |
 | `0x4000156a` | `4eb940044df8` | jsr | masque `0x40192ba4` +0x70 `midi_gate` | midi-live-both | notes/53 |
 | `0x40001590` | `4eb940044df8` | jsr | masque `0x40192ba4` +0x70 `midi_gate` | midi-live-both | notes/53 |
@@ -568,7 +569,7 @@ Instructions de l'OS remplacées par un détour (`jsr`, `jmp`, `bsr.l`, `bra.l`)
 | `0x4001ac7a` | `2f022f034e92` | jmp | masque `0x4018bb48` +0x0 `cac_loop4` | control-all-config | notes/58 |
 | `0x4001b22a` | `4e56ffc048d73cfc` | jmp | masque `0x4018f4b4` +0x78 | level-pan-values | notes/44 |
 | `0x4001c3dc` | `4eb940025798` | jsr | masque `0x40173848` +0xa8 `lfo_ctor` | lfo-plus | notes/56 |
-| `0x4001ca1e` | `2f034e93588f` | jsr | charge utile (mémoire), 4 cibles selon la combinaison | chordtables, refchord, refmachine2, sampler | notes/60, notes/63, notes/66 |
+| `0x4001ca1e` | `2f034e93588f` | jsr | charge utile (mémoire), 5 cibles selon la combinaison | chordtables, refchord, refmachine2, sampler, smpfilter | notes/60, notes/63, notes/66 |
 | `0x4001cb3e` | `4eb94002d138` | jsr | masque `0x40179730` +0x0 `ck_ui_menu_ctor` | chord-keys | notes/42 |
 | `0x4001cc86` | `2a004a8257c0` | jsr | charge utile (mémoire), 2 cibles selon la combinaison | refmachine2, sampler | notes/60, notes/63 |
 | `0x4001d25e` | `4eb940016086` | jsr | masque `0x4018a788` +0x1a | arp | notes/32 |
@@ -577,8 +578,9 @@ Instructions de l'OS remplacées par un détour (`jsr`, `jmp`, `bsr.l`, `bra.l`)
 | `0x4001d91c` | `2045e78ced88` | jsr | masque `0x40152d38` +0x4a `tco_dots` | trig-cond-order | notes/70 |
 | `0x4001e4ca` | `4eb94000b22a` | jsr | masque `0x40183118` +0x13c `ck_shape_name` | chord-keys | notes/42 |
 | `0x4001e8da` | `202f0020226a0068` | jsr | charge utile (mémoire), 29 cibles selon la combinaison | acid, acid-tg, macro, macro-acid, macro-acid-tg, macro-tg, refmachine, refmachine2, sampler, sdvintage-7th, syntakt-* (32/32), syntakt-*-acid (31/31), syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31), syntakt-tg-* (33/33), syntakt-tg-*-acid (31/31), syntakt-tg-*-macro (31/31), syntakt-tg-*-macro-acid (31/31), syntakt-vintage | notes/18, notes/31, notes/36, notes/43, notes/54, notes/60, notes/63, notes/65 |
+| `0x4001ead8` | `24302c004a88` | jsr | charge utile (mémoire) +0x5e00 | smpfilter | notes/63 |
 | `0x4001ebd2` | `205248780020` | jmp | masque `0x4018b9c8` +0x80 `cac_loop3` | control-all-config | notes/58 |
-| `0x4001f886` | `487800024e94` | jsr | charge utile (mémoire), 2 cibles selon la combinaison | digidelay, pots | notes/68, notes/69 |
+| `0x4001f886` | `487800024e94` | jsr | charge utile (mémoire), 3 cibles selon la combinaison | digidelay, pots, smpfilter | notes/63, notes/68, notes/69 |
 | `0x40020dca` | `202a00847207` | jsr | charge utile (mémoire), 2 cibles selon la combinaison | digidelay, pots | notes/68, notes/69 |
 | `0x40021f56` | `2f034e944879404a8cb8…` | jsr | charge utile (image) +0x4f16 | model-tg, model-tg-st | notes/31, notes/36 |
 | `0x4002249c` | `4eb940072490` | jsr | masque `0x4015c044` +0x28 `th_press` | trig-hold | notes/33 |
@@ -591,6 +593,7 @@ Instructions de l'OS remplacées par un détour (`jsr`, `jmp`, `bsr.l`, `bra.l`)
 | `0x4002f7d8` | `4cef7c7c0018` | jmp | charge utile (image) +0x11350 | model-tg, model-tg-st | notes/31, notes/36 |
 | `0x40032aee` | `4cef7c7c0018` | jmp | charge utile (image) +0xd424 | model-tg, model-tg-st | notes/31, notes/36 |
 | `0x4003560a` | `4eb940044df84a8057c0…` | jmp | masque `0x40192ba4` +0x0 `midi_key` | midi-live-both | notes/53 |
+| `0x4004486c` | `4eb94005a274` | jsr | charge utile (mémoire) +0x5dbc | smpfilter | notes/63 |
 | `0x4004486c` | `4eb94005a274` | jsr | masque `0x40166760` +0xaa `tf_boot` | track-filter | notes/47 |
 | `0x4004df40` | `704c222f0004` | jmp | charge utile (mémoire), 3 cibles selon la combinaison | acid, acid-tg, macro, macro-acid, macro-acid-tg, macro-tg, refmachine, refmachine2, sampler, sdvintage-7th, syntakt-* (32/32), syntakt-*-acid (31/31), syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31), syntakt-tg-* (33/33), syntakt-tg-*-acid (31/31), syntakt-tg-*-macro (31/31), syntakt-tg-*-macro-acid (31/31), syntakt-vintage | notes/18, notes/31, notes/36, notes/43, notes/54, notes/60, notes/63, notes/65 |
 | `0x4004df5c` | `7206202f0004` | jmp | charge utile (mémoire), 10 cibles selon la combinaison | acid, macro, macro-acid, refmachine, refmachine2, sampler, sdvintage-7th, syntakt-* (32/32), syntakt-*-acid (31/31), syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31), syntakt-vintage | notes/18, notes/36, notes/60, notes/63, notes/65 |
@@ -615,6 +618,7 @@ Instructions de l'OS remplacées par un détour (`jsr`, `jmp`, `bsr.l`, `bra.l`)
 | `0x400597c6` | `4eb940091ab2` | jsr | masque `0x401835b8` +0x8e `lfo_audio` | lfo-plus | notes/56 |
 | `0x4005981e` | `4eb9400a7d4a` | jsr | charge utile (mémoire), 2 cibles selon la combinaison | digidelay, pots | notes/68, notes/69 |
 | `0x4005981e` | `4eb9401b715c` | jsr | charge utile (mémoire) +0x3350e | syntakt-tg-* (1/33) | notes/31 |
+| `0x40059852` | `4eb940056f58` | jsr | charge utile (mémoire) +0x5220 | smpfilter | notes/63 |
 | `0x40059852` | `4eb940056f58` | jsr | masque `0x4014ab5c` +0x0 `tf_post` | track-filter | notes/47 |
 | `0x40059872` | `4eb9401b7b54` | jsr | charge utile (mémoire) +0x3353e | syntakt-tg-* (1/33) | notes/31 |
 | `0x40059dea` | `76ff781533c38c000000` | jmp | masque `0x40192734` +0x0 `td_led` | trigless-dim | notes/45 |
@@ -628,16 +632,17 @@ Instructions de l'OS remplacées par un détour (`jsr`, `jmp`, `bsr.l`, `bra.l`)
 | `0x4005a6b6` | `eb8a41f940a7` | jmp | charge utile (image) +0x47f6 | model-tg, model-tg-st | notes/31, notes/36 |
 | `0x4005a8f0` | `7405b4816532` | jmp | charge utile (mémoire), 3 cibles selon la combinaison | acid, acid-tg, macro, macro-acid, macro-acid-tg, macro-tg, refmachine, refmachine2, sampler, sdvintage-7th, syntakt-* (32/32), syntakt-*-acid (31/31), syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31), syntakt-tg-* (33/33), syntakt-tg-*-acid (31/31), syntakt-tg-*-macro (31/31), syntakt-tg-*-macro-acid (31/31), syntakt-vintage | notes/18, notes/31, notes/36, notes/43, notes/54, notes/60, notes/63, notes/65 |
 | `0x4005aa22` | `202f000cb481` | jmp | masque `0x40185308` +0x82 `lfo_plk_load` | lfo-plus | notes/56 |
+| `0x4005aa34` | `7417b480640c` | jmp | charge utile (mémoire) +0x5e18 | smpfilter | notes/63 |
 | `0x4005aa34` | `7417b480640c` | jmp | masque `0x40166760` +0x8a `tf_conv` | track-filter | notes/47 |
-| `0x4005aecc` | `4feffff448d71c00` | jmp | charge utile (mémoire), 4 cibles selon la combinaison | chordtables, refchord, refmachine2, sampler | notes/60, notes/63, notes/66 |
+| `0x4005aecc` | `4feffff448d71c00` | jmp | charge utile (mémoire), 5 cibles selon la combinaison | chordtables, refchord, refmachine2, sampler, smpfilter | notes/60, notes/63, notes/66 |
 | `0x4005aecc` | `4feffff448d7` | jmp | charge utile (image) +0x9b66 | model-tg, model-tg-st | notes/31, notes/36 |
 | `0x4005aecc` | `4feffff448d7` | jmp | masque `0x40166760` +0x0 `tf_load` | track-filter | notes/47 |
 | `0x4005af1c` | `41f94010eea8` | jsr | masque `0x40184df8` +0x0 `lfo_unpack` | lfo-plus | notes/56 |
-| `0x4005afa0` | `4feffff448d71c00` | jmp | charge utile (mémoire), 4 cibles selon la combinaison | chordtables, refchord, refmachine2, sampler | notes/60, notes/63, notes/66 |
+| `0x4005afa0` | `4feffff448d71c00` | jmp | charge utile (mémoire), 5 cibles selon la combinaison | chordtables, refchord, refmachine2, sampler, smpfilter | notes/60, notes/63, notes/66 |
 | `0x4005afa0` | `4feffff448d7` | jmp | charge utile (image) +0x9ace | model-tg, model-tg-st | notes/31, notes/36 |
 | `0x4005afa0` | `4feffff448d7` | jmp | masque `0x4016616c` +0x0 `tf_save2` | track-filter | notes/47 |
 | `0x4005b028` | `356b005e005c` | jsr | masque `0x40185308` +0x0 `lfo_pack` | lfo-plus | notes/56 |
-| `0x4005b054` | `4feffff448d71c00` | jmp | charge utile (mémoire), 4 cibles selon la combinaison | chordtables, refchord, refmachine2, sampler | notes/60, notes/63, notes/66 |
+| `0x4005b054` | `4feffff448d71c00` | jmp | charge utile (mémoire), 5 cibles selon la combinaison | chordtables, refchord, refmachine2, sampler, smpfilter | notes/60, notes/63, notes/66 |
 | `0x4005b054` | `4feffff448d7` | jmp | charge utile (image) +0x9ae8 | model-tg, model-tg-st | notes/31, notes/36 |
 | `0x4005b054` | `4feffff448d7` | jmp | masque `0x4016616c` +0x1c `tf_save1` | track-filter | notes/47 |
 | `0x4005b0dc` | `356b005e005c` | jsr | masque `0x40185308` +0x0 `lfo_pack` | lfo-plus | notes/56 |
@@ -731,7 +736,9 @@ Constantes 32 bits de l'OS (tables de fonctions, données) qui pointent maintena
 | `0x4005a848` | `4010dce0` | charge utile (mémoire) +0x34000 | acid, acid-tg, macro, macro-acid, macro-acid-tg, macro-tg, refmachine, refmachine2, sampler, sdvintage-7th, syntakt-* (32/32), syntakt-*-acid (31/31), syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31), syntakt-tg-* (33/33), syntakt-tg-*-acid (31/31), syntakt-tg-*-macro (31/31), syntakt-tg-*-macro-acid (31/31), syntakt-vintage |
 | `0x4005a86a` | `4010dce0` | charge utile (mémoire) +0x34000 | acid, acid-tg, macro, macro-acid, macro-acid-tg, macro-tg, refmachine, refmachine2, sampler, sdvintage-7th, syntakt-* (32/32), syntakt-*-acid (31/31), syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31), syntakt-tg-* (33/33), syntakt-tg-*-acid (31/31), syntakt-tg-*-macro (31/31), syntakt-tg-*-macro-acid (31/31), syntakt-vintage |
 | `0x4005a912` | `40a7ada4` | charge utile (mémoire), 4 valeurs selon la combinaison | acid, acid-tg, macro, macro-acid, macro-acid-tg, macro-tg, refmachine, refmachine2, sampler, sdvintage-7th, syntakt-* (32/32), syntakt-*-acid (31/31), syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31), syntakt-tg-* (33/33), syntakt-tg-*-acid (31/31), syntakt-tg-*-macro (31/31), syntakt-tg-*-macro-acid (31/31), syntakt-vintage |
+| `0x4005b998` | `4010ee4c` | charge utile (mémoire) +0x5ea4 | smpfilter |
 | `0x4005b998` | `4010ee4c` | masque `0x40160e6c` +0x7c | track-filter |
+| `0x4005baca` | `4010ee4c` | charge utile (mémoire) +0x5ea4 | smpfilter |
 | `0x4005baca` | `4010ee4c` | masque `0x40160e6c` +0x7c | track-filter |
 | `0x400a2614` | `401177e4` | charge utile (mémoire) +0x33800 | acid, macro, macro-acid, refmachine, refmachine2, sampler, sdvintage-7th, syntakt-* (32/32), syntakt-*-acid (31/31), syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31), syntakt-vintage |
 | `0x400a2614` | `401bf51a` | charge utile (mémoire) +0x33800 | acid-tg, macro-acid-tg, macro-tg, syntakt-tg-* (33/33), syntakt-tg-*-acid (31/31), syntakt-tg-*-macro (31/31), syntakt-tg-*-macro-acid (31/31) |
@@ -746,7 +753,7 @@ Constantes 32 bits de l'OS (tables de fonctions, données) qui pointent maintena
 | `0x400ff9cc` | `4001a0d2` | masque `0x40185018` +0x0 | chord-keys |
 | `0x400ffe30` | `4001b22a` | charge utile (mémoire), 2 valeurs selon la combinaison | refmachine2, sampler |
 | `0x4010053c` | `4001e40a` | charge utile (mémoire), 2 valeurs selon la combinaison | refmachine2, sampler |
-| `0x401005a8` | `4001e814` | charge utile (mémoire), 4 valeurs selon la combinaison | chordtables, refchord, refmachine2, sampler |
+| `0x401005a8` | `4001e814` | charge utile (mémoire), 5 valeurs selon la combinaison | chordtables, refchord, refmachine2, sampler, smpfilter |
 | `0x401005a8` | `4001e814` | masque `0x401625bc` +0x0 | track-filter |
 | `0x40100ee8` | `40024078` | masque `0x4018cbc8` +0x0 | control-all-config |
 | `0x40100f98` | `40023d8c` | masque `0x4018d038` +0x0 | control-all-config |
@@ -855,6 +862,7 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | midi-live-both | 6 | 0 | 4 | 0 | 1 | 1 | 0 |  | notes/53 |
 | lfo-plus | 30 | 0 | 12 | 4 | 7 | 7 | 0 |  | notes/56 |
 | pots | 10 | 0 | 8 | 0 | 1 | 1 | 0 | 11 872 o | notes/69 |
+| smpfilter | 15 | 0 | 10 | 3 | 1 | 1 | 0 | 25 164 o | notes/63 |
 | trig-cond-order | 4 | 0 | 1 | 1 | 1 | 1 | 0 |  | notes/70 |
 
 ## 8. Key combinations (declared claims, notes/65)

@@ -1,0 +1,41 @@
+{
+ "schema": "cycles-mod/0.1",
+ "id": "smpfilter",
+ "version": "0.2",
+ "name": "Samples: the Model:Samples' filter on every track, lowpass below the centre of Cutoff, highpass above",
+ "description": "The first real filter of model27's filter slot (the track filters, the key map's step K4): SAMPLE's filter, the Model:Samples' laws measured and rebuilt in Cycles One-Shot, on any track whose sound chose it (RETRIG + PITCH), after Volume + Dist. RETRIG + SWEEP is Cutoff: a lowpass below the centre, a highpass above, nothing at the centre; RETRIG + CONTOUR is Reso. Both are real parameters of every machine: p-locks, LFO, velocity, CC 74 and 71. The sources are SAMPLE's (tools/machines/sampler/src/), unchanged. Since 0.2 two savings for six tracks: the coefficients are looked up only when Cutoff or Reso has moved (bit for bit the same), and a silent track is skipped once the filter has rung out below -102 dB.",
+ "license": "MIT",
+ "credit": {"kind": "own", "who": "durchgemacht and Claude", "repo": "durchgemacht/cycles-one-shot"},
+ "source": "https://github.com/durchgemacht/cycles-one-shot/tree/c32c49d6e215bad00adda48b88ce71aeaeda545f",
+ "device": "Model:Cycles",
+ "os": "1.13",
+ "order": 72,
+ "build": {
+  "sources": ["smpfilter.c", "../sampler/src/smp_filter.c", "../sampler/src/smp_filter_tab.c",
+              "../sampler/src/smp_filter_cf.S"],
+  "include": ["../sampler/src"],
+  "cflags": ["-std=c99", "-mcpu=54418", "-O2", "-ffreestanding", "-fno-builtin", "-fno-tree-loop-distribute-patterns",
+             "-nostdlib", "-fno-pic", "-fno-common", "-ffunction-sections", "-fdata-sections", "-Wall", "-Wextra",
+             "-Werror"],
+  "defines": {},
+  "objects": ["smpfilter.o"],
+  "patch_points": [],
+  "roots": ["smpf_process", "smpf_reset"]
+ },
+ "uses": [
+  {"point": "track.filter", "id": 1, "process": "smpf_process", "reset": "smpf_reset",
+   "name": "Samples", "short": "SMP",
+   "params": [{"long": "Filter Cutoff", "short": "FREQ", "format": "cutoff"},
+              {"long": "Filter Reso", "short": "RESO", "format": "int"}],
+   "why": "a filter of the filter slot: called after Volume + Dist as (block, k 28 to k 31, track, triggered) on the tracks whose sound chose id 1"}
+ ],
+ "claims": {},
+ "cost": {"emulation": {"lowpass": 922, "highpass": 976, "centre": 160, "glide": 1464, "silent": 176, "first": 1492,
+                       "pattern": "instructions per track and block, Samples' own code only (smpf_process, smp_filter_set, smp_filter_run, the frame loop), on the OS 1.13 in tools/emu/test_fltslot.py's filter_cost (mcengine.py's counter): all six tracks on it, the stock machines playing, a state held for 8 blocks after 8 of warm-up (lowpass Cutoff 32, highpass 96, centre 64, glide: Cutoff 48 / 88 and Reso every block; silent: no note played, the filter set and rung out), the maximum, and the block in which the tracks come to it from none (its reset and first block); the filter slot's own instructions apart"},
+          "device": {"status": "not measured"}},
+ "stock_behaviour": {"changes": [], "fixes": [], "unchanged": ["every track whose sound has not chosen Samples"]},
+ "compat": {"built_against": ["model27"], "requires": [], "conflicts_declared": []},
+ "tests": {"emulation": {"tool": "tools/emu/test_fltslot.py (Unicorn, the OS's own code; against the host build of the same sources)", "date": null,
+                         "build": "alone, with REFF, with SAMPLE"},
+           "hardware": null, "status": "experimental"}
+}

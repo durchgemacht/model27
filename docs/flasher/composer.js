@@ -43,6 +43,7 @@ const FX_LINE_MAX = 0x400000;                     // compose.FX_LINE_MAX: a slot
 const BLOCK_INSTR = 108225;                       // compose.BLOCK_INSTR: instructions in a block (notes/68 §17)
 const FX_WARN = Math.floor(BLOCK_INSTR / 10), FX_REFUSE = Math.floor(BLOCK_INSTR / 4);
 const FX_PEAK_WARN = Math.floor(BLOCK_INSTR / 2);
+const FILTER_POINT = "track.filter";              // compose.FILTER_POINT: the filter slot (the key map's step K4)
 
 function fromHex(s) {
   // two hexadecimal digits per byte, as everywhere in the page (builder.js); anything else is refused
@@ -565,6 +566,122 @@ function fxLayer(mainOs, part, effects, symsOf, at, codeEnd, descStock, descUsed
            info: { id: part.id, code_at: at, code: code.length, data_at: dataAt, data: data.length, slots: infoSlots } };
 }
 
+// compose.fl_layer(): the filter slot of this build (the key map's step K4): the audio block's call of Volume + Dist,
+// the boot's call of the parameter tables' builder, the knob lookup's vtable entry (in front of the shortcut layer's
+// sc_knob), the encoder handler's question for TRACK (in front of the effect slots' fx_keys, or none), LFO + a knob's
+// own list, the pattern's p-lock tables and the three sound record functions (in front of the layer's wrappers). The
+// data block after the part's code: the table of the build's filters by id (entry 0 none) with their type names and
+// their values' names and formatters, the rows of descriptors 1 to n and 5 that fl_boot writes, the neutral words and
+// the layer's wrappers, the state zero, then the strings. Returns { blob, symbols, writes, skip, info }.
+const flEntry = (p) => p.uses.find((u) => u.point === FILTER_POINT);
+function flLayer(mainOs, part, filters, symsOf, at, codeEnd, descStock, descUsed, dstride, layerSyms, keysNext, diag = false) {
+  const d = part.data, vals = part.values, ty = part.type;
+  if (filters.length > part.most) throw new Error(`${filters.map((p) => p.id).join(", ")}: ${filters.length} filters, a build holds ${part.most} at most`);
+  const seen = {};
+  for (const p of filters) {
+    const u = flEntry(p);
+    if (has(seen, u.id)) throw new Error(`${seen[u.id]} and ${p.id}: the same filter id ${u.id}`);
+    seen[u.id] = p.id;
+  }
+  const byId = filters.slice().sort((x, y) => flEntry(x).id - flEntry(y).id);
+  if (byId.length + 1 > d.entries) throw new Error(`${byId.length} filters: the part's table holds ${d.entries - 1}`);
+  const n = Math.max(...byId.map((p) => flEntry(p).params.length));
+  const dataAt = align4(at + part.bundle.code.length / 2);
+  const { code, symbols } = placePart(part, at, codeEnd, { fl_data: dataAt });
+  const block = new Uint8Array(d.size), strAt = new Map(), strs = [];
+  let strEnd = dataAt + d.size;
+  const string = (text) => {
+    if (!strAt.has(text)) { strAt.set(text, strEnd); strs.push(asciiz(text)); strEnd += text.length + 1; }
+    return strAt.get(text);
+  };
+  const fmt = (p, prm) => {
+    const f = prm.format;
+    if (has(part.formats, f)) {
+      const v = part.formats[f];
+      return v.startsWith("0x") ? parseInt(v, 16) : symbols[v];
+    }
+    return symsOf[p.id][f];
+  };
+  const names = (p, k) => {                       // a value's names: the filter's own, else the first filter's that has it
+    const src = p && k < flEntry(p).params.length ? p : byId.find((x) => k < flEntry(x).params.length);
+    const prm = flEntry(src).params[k];
+    return [string(prm.long), string(prm.short), fmt(src, prm)];
+  };
+  const rows = [[0, 0, 0, string(ty.none), null]].concat(byId.map((p) => {
+    const u = flEntry(p);
+    return [u.id, symsOf[p.id][u.process], u.reset ? symsOf[p.id][u.reset] : 0, string(u.short), p];
+  }));
+  [rows.length, n, layerSyms.sc_knob, keysNext].forEach((v, j) => put32(block, d.count + 4 * j, v));
+  vals.defaults.forEach((v, j) => { block[d.neutral + 2 * j] = v >>> 8; block[d.neutral + 2 * j + 1] = v & 255; });
+  part.record.forEach((r, j) => put32(block, d.rec_next + 4 * j, layerSyms[r.next]));
+  put32(block, d.desc, descStock);
+  put32(block, d.desc + 4, descUsed);
+  block[d.diag] = diag ? 1 : 0;
+  rows.forEach(([fid, proc, reset, tag, p], i) => {
+    const e = d.entry + d.entry_size * i;
+    [fid, proc, reset, tag].forEach((v, j) => put32(block, e + 4 * j, v));
+    for (let k = 0; k < n; k++) names(p, k).forEach((v, j) => put32(block, e + 16 + 12 * k + 4 * j, v));
+  });
+  for (let k = 0; k < n; k++) {                   // descriptors 1..n, as the track filter's (notes/47 §3)
+    const [long, short] = names(null, k);
+    [7, vals.sound_slots[k], 0, vals.max, vals.defaults[k], 0, parseInt(vals.cc[k], 16), parseInt(vals.nrpn[k], 16), 0,
+     parseInt(vals.flags, 16), vals.sort[k], long, parseInt(vals.group_name, 16), short]
+      .forEach((v, j) => put32(block, d.rows + 56 * k + 4 * j, v >>> 0));
+  }
+  const five = Array.from({ length: 14 }, (_, j) => u32(mainOs, descStock + dstride * ty.descriptor + 4 * j - BASE));
+  if (five[0] !== 0xffffffff) throw new Error(`descriptor ${ty.descriptor} is not the OS's unused one (machine -1)`);
+  five.splice(1, 8, 0, 0, vals.max, 0, 0, 0xffffffff, 0xffffffff, 0);
+  five[11] = string(ty.long);
+  five[13] = string(ty.short);
+  five.forEach((v, j) => put32(block, d.rows + 56 * vals.descriptors.length + 4 * j, v >>> 0));
+  const data = concat(block, ...strs);
+  if (dataAt + data.length > codeEnd) throw new Error(`the filter slot ends at ${hx(dataAt + data.length)}, past ${hx(codeEnd)}`);
+  const writes = [], skip = new Set();
+  const w = (va, old, nw) => {
+    const here = hex(mainOs.subarray(va - BASE, va - BASE + old.length));
+    if (here !== hex(old)) throw new Error(`${hx(va)}: ${hex(old)} expected, ${here} found`);
+    writes.push({ off: va - BASE, old: hex(old), new: hex(nw) });
+    skip.add(va);
+  };
+  for (const name of ["post", "boot", "keys", "lfo"]) {
+    const s = part[name];
+    w(parseInt(s.hook, 16), fromHex(s.stock), concat(bytesOf(0x4e, 0xb9), be32(symbols[s.symbol])));
+  }
+  w(parseInt(part.conv.jmp, 16), fromHex(part.conv.stock), concat(bytesOf(0x4e, 0xf9), be32(symbols[part.conv.symbol])));
+  for (const s of part.record)
+    w(parseInt(s.at, 16), fromHex(s.stock), concat(bytesOf(0x4e, 0xf9), be32(symbols[s.symbol]), bytesOf(0x4e, 0x71)));
+  w(parseInt(part.knob.vtable, 16), be32(parseInt(part.knob.stock_ptr, 16)), be32(symbols[part.knob.symbol]));
+  for (const a of part.ptab.operands)
+    w(parseInt(a, 16), be32(parseInt(part.ptab.stock, 16)), be32(symbols[part.ptab.symbol]));
+  return { blob: concat(code, new Uint8Array(dataAt - at - code.length), data), symbols: { ...symbols, fl_data: dataAt },
+           writes, skip, info: { id: part.id, code_at: at, code: code.length, data_at: dataAt, data: data.length,
+                                 values: n, filters: byId.map((p) => [flEntry(p).id, p.id]) } };
+}
+
+// compose.fl_cost(): six tracks on the dearest state of the dearest filter, from the filters' declared cost.emulation
+function flCost(filters) {
+  const costs = Object.fromEntries(filters.map((p) => [p.id, Object.fromEntries(Object.entries(
+    ((p.cost || {}).emulation) || {}).filter(([, v]) => Number.isInteger(v)))]));
+  const missing = Object.keys(costs).filter((i) => !Object.keys(costs[i]).length);
+  if (missing.length) return { missing };
+  const top = (i) => Math.max(...Object.values(costs[i]));
+  const dearest = Object.keys(costs).reduce((a, b) => (top(b) > top(a) ? b : a));
+  const steady = 6 * top(dearest);
+  return { dearest, steady, share: steady / BLOCK_INSTR };
+}
+
+// claims.narrowed(): claims without the slots and descriptors another holder's claims hold (the layer in a filter build)
+function narrowed(c, by) {
+  const out = { ...c };
+  for (const key of ["sound_slots", "record_slots", "descriptors"]) {
+    if (!c[key]) continue;
+    const taken = new Set((by[key] || []).map(([n]) => n));
+    out[key] = c[key].filter(([n]) => !taken.has(n));
+    if (!out[key].length) delete out[key];
+  }
+  return out;
+}
+
 // an effect's slot entry (fx.delay or fx.reverb) in its uses, or undefined
 const fxEntry = (p) => p.uses.find((u) => FX_POINTS.includes(u.point));
 
@@ -741,16 +858,19 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
   // dispatchers') start at the extension when there is one; without one, they are the packages in the order given.
   const kindOf = (p) => {
     const mc = p.uses.find((u) => u.point === "machine"), st = p.uses.find((u) => u.point === "machine.stock");
-    const fx = fxEntry(p);
+    const fx = fxEntry(p), fl = flEntry(p);
     if (mc && st) throw new Error(`${p.id}: an added machine or an extension of a stock machine, not both`);
     if (fx && (mc || st)) throw new Error(`${p.id}: an effect and a machine in uses: an effect is a package of its own`);
-    if (!mc && !st && !fx) throw new Error(`${p.id}: no 'machine', 'machine.stock', 'fx.delay' or 'fx.reverb' entry in uses`);
+    if (fl && (mc || st || fx)) throw new Error(`${p.id}: a filter and a machine or an effect in uses: a filter is a package of its own`);
+    if (!mc && !st && !fx && !fl)
+      throw new Error(`${p.id}: no 'machine', 'machine.stock', 'fx.delay', 'fx.reverb' or '${FILTER_POINT}' entry in uses`);
     if (st && !has(STOCK_EXTENDED, st.machine))
       throw new Error(`${p.id}: machine.stock ${st.machine}: only ${Object.keys(STOCK_EXTENDED).join(", ")} can be extended`);
-    return { mc, st, fx };
+    return { mc, st, fx, fl };
   };
   const added = packages.filter((p) => kindOf(p).mc), exts = packages.filter((p) => kindOf(p).st);
   const effects = packages.filter((p) => kindOf(p).fx);
+  const filters = packages.filter((p) => kindOf(p).fl);
   if (new Set(exts.map((p) => kindOf(p).st.machine)).size !== exts.length)
     throw new Error(`${exts.map((p) => p.id).join(", ")}: two packages extend the same stock machine`);
   const table = exts.concat(added);
@@ -776,7 +896,7 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
   }
   packages.forEach((p) => {
     const codeAt = align4(codeCursor), bssAt = align4(bssCursor);
-    const { mc, st, fx } = kindOf(p), i = added.indexOf(p);
+    const { mc, st, fx, fl } = kindOf(p), i = added.indexOf(p);
     const values = patchValues(p, mc ? { machine_index: first + i, descriptor_base: 76 + 5 * i }
       : fx && fx.line ? { fx_line: lines[fx.point][0] } : {});
     const { blob, symbols: syms, bssEnd } = place(p.bundle, codeAt, bssAt, values);
@@ -790,13 +910,16 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
     symsOf[p.id] = syms;
     info.push({ id: p.id, index: mc ? first + i : st ? STOCK_EXTENDED[st.machine] : null, desc: mc ? 76 + 5 * i : null,
                 extends: st ? st.machine : null, slot: fx ? fx.point.slice(3) : null, fx_id: fx ? fx.id : null,
+                filter_id: fl ? fl.id : null,
                 code_at: codeAt, code: blob.length, bss_at: bssAt, bss: bssEnd - bssAt });
     codeCursor = codeAt + blob.length;
     bssCursor = bssEnd;
   });
   let layer = null, dispatch = null;              // the shortcut layer, the dispatchers: in the builds that need them
-  if (packages.some((p) => p.uses.some((u) => u.point === "shortcut"))) {
+  if (packages.some((p) => p.uses.some((u) => u.point === "shortcut")) || filters.length) {   // and every filter build
     if (!parts.shortcuts) throw new Error("a machine declares a shortcut, and the page lacks the shortcut layer");
+    if (filters.length && shortcutUses(table, parts.shortcuts).length)    // the key map's rule R1
+      throw new Error(`${filters.map((p) => p.id).join(", ")} and a machine's value on MACHINES + a knob: a build has either filters or a machine's knob values, both live in k 28..31`);
     const at = align4(codeCursor);
     layer = shortcutLayer(mainOs, parts.shortcuts, table, symsOf, shortcutUses(table, parts.shortcuts), at,
                           lay.stubs, tabFirst, added.length ? lay.descn : frames.stock.desc);
@@ -825,6 +948,18 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
     blobs.push([at, fxs.blob]);
     codeCursor = at + fxs.blob.length;
   }
+  let fl = null;                                  // the filter slot, in the builds that have a filter (K4)
+  if (filters.length) {
+    if (!parts.fltslot) throw new Error("a filter is ticked, and the page lacks the filter slot");
+    const at = align4(codeCursor);
+    fl = flLayer(mainOs, parts.fltslot, filters, symsOf, at, lay.stubs, frames.stock.desc,
+                 added.length ? lay.descn : frames.stock.desc, lay.dstride, layer.symbols, fxs ? fxs.symbols.fx_keys : 0);
+    blobs.push([at, fl.blob]);
+    codeCursor = at + fl.blob.length;
+    // the knob lookup, the record functions and the question for TRACK go to the filter slot first
+    layer.writes = layer.writes.filter((x) => !fl.skip.has(x.off + BASE));
+    if (fxs) fxs.writes = fxs.writes.filter((x) => !fl.skip.has(x.off + BASE));
+  }
   for (const p of packages)                       // a package's RAM claim must lie outside the payload
     for (const [lo, hi] of ramClaims(p))
       if (lo < bssCursor && pay < hi)
@@ -832,9 +967,10 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
   checkRamClaims(packages);
   const { writes, append } = machines.length ? fill(frameOf(frames, machines.length), mainOs, machines, blobs, bssCursor)
     : fillAlone(frameOf(frames, 0), mainOs, blobs, bssCursor);
-  const skip = new Set([...(layer ? layer.skip : []), ...(dispatch ? dispatch.skip : []), ...(fxs ? fxs.skip : [])]);
+  const skip = new Set([...(layer ? layer.skip : []), ...(dispatch ? dispatch.skip : []), ...(fxs ? fxs.skip : []),
+                        ...(fl ? fl.skip : [])]);
   for (const p of packages) writes.push(...packageWrites(p, mainOs, symsOf[p.id], skip));
-  for (const x of [layer, dispatch, fxs]) if (x) writes.push(...x.writes);
+  for (const x of [layer, dispatch, fxs, fl]) if (x) writes.push(...x.writes);
   writes.sort((a, b) => a.off - b.off);
   checkOverlaps(writes);
   const ram = [[pay, bssCursor]].concat(...packages.map(ramClaims));
@@ -843,6 +979,15 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
     .concat(layer ? parts.shortcuts.conflicts_declared || [] : []);   // none since notes/65 C2: computed
   const holders = buildHolders(packages, layer ? parts.shortcuts : null);       // notes/65: the claims
   if (fxs) holders.push([parts.fxslot.id, parts.fxslot.claims || {}, parts.fxslot.claims || {}, true]);
+  if (fl) {                                       // the filter slot's claims; the layer's k 28..31 are the slot's (R1)
+    const flc = parts.fltslot.claims || {};
+    holders.forEach((h, i) => { if (h[0] === "shortcuts" && h[3]) holders[i] = [h[0], narrowed(h[1], flc), narrowed(h[2], flc), true]; });
+    holders.push([parts.fltslot.id, flc, flc, true]);
+  }
+  const flLoad = fl ? flCost(filters) : {};
+  if ((flLoad.steady || 0) > FX_REFUSE)            // the effects' rule (notes/68 §17), for six tracks on the dearest filter
+    throw new Error(`the filters: ${flLoad.dearest} on six tracks costs ${flLoad.steady} instructions a block `
+      + `(${Math.round(flLoad.share * 100)}% of a block), past ${FX_REFUSE}`);
   const clash = checkBuildClaims(holders);
   if (clash.length) throw new Error(`the build's own claims clash (notes/65): ${clash.join("; ")}`);
   const load = fxs ? fxCost(effects, parts.fxslot) : {};
@@ -858,7 +1003,7 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
   const symbols = {};
   for (const p of packages)
     for (const k of [p.symbols.update, p.symbols.render, ...(p.keep || [])]) symbols[k] = hx(symsOf[p.id][k]);
-  for (const x of [layer, dispatch, fxs])
+  for (const x of [layer, dispatch, fxs, fl])
     if (x) for (const [k, v] of Object.entries(x.symbols)) symbols[k] = hx(v);
   for (const [point, [a]] of Object.entries(lines)) symbols[`fx_line_${point.slice(3)}`] = hx(a);
   const tweak = {
@@ -867,6 +1012,7 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
     name: packages.length > 1 ? packages.map((p) => p.name).join(" + ") : packages[0].name,
     description: [`Composed in the browser by composer.js (notes/61): ${info.map((x) => (x.extends
       ? `${x.id} extending ${x.extends} (machine ${x.index})` : x.slot ? `${x.id} in the ${x.slot} slot (effect ${x.fx_id})`
+        : x.filter_id ? `${x.id} as filter ${x.filter_id}`
         : `${x.id} as machine ${x.index}`)).join(", ")}, `
       + (machines.length ? "registered together through the registrar runtime"
         : "nothing registered (no added machine, notes/66 §3)") + ", as tools/compose.py composes them."],
@@ -881,11 +1027,11 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
   };
   return { tweak, info: { pay, end: bssCursor, image: append.pack.reduce((s, [, k]) => s + k, 0), packages: info,
                           part: layer && layer.info, dispatch: dispatch && dispatch.info, fx: fxs && fxs.info,
-                          fx_lines: lines, fx_load: load, byClaims } };
+                          fx_lines: lines, fx_load: load, filters: fl && fl.info, fl_load: flLoad, byClaims } };
 }
 
 const API = { place, frameOf, fill, fillAlone, segments, bootStub, parameterBlock, packageWrites, shortcutUses,
-              shortcutPresses, shortcutLayer, dispatchLayer, fxLayer, fxCost, computedConflicts, resolveClaims,
+              shortcutPresses, shortcutLayer, dispatchLayer, fxLayer, fxCost, flLayer, flCost, narrowed, computedConflicts, resolveClaims,
               claimClashes, buildHolders, checkBuildClaims, claimConflicts, compose, fromHex, FX_WARN, FX_PEAK_WARN };
 if (typeof module !== "undefined" && module.exports) module.exports = API;
 if (typeof window !== "undefined") window.MCComposer = API;
