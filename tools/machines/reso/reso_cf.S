@@ -6,17 +6,16 @@
    void reso_frames(struct track *st): the track's state (reso.c): +0 the block, +4 the line's window (the frame
    dint + 1 back, then the next ones), +8 where the line is written, +12 the block's end; the constants in the order
    the loop loads them, +16 kq, +20 q, +24 nrm, +28 rdc, +32 gt, +36 ia, +40 amt; +44 eta; the states +48 x1,
-   +52 v1, +56 lp, +60 hp; +64 out, the frames' y + THR or-ed together.
+   +52 v1, +56 lp, +60 hp; +64 out, the block's energy, the sum of y^2 / 2^31 (acc1), saturated.
 
-   Two frames a turn: the input in d0 and d1 in turn (this frame's, the one before), the window in a4 and a5 in turn
-   (the frame dint + 1 back, the next one), v1 d2, lp d3, hp d4, y d5, eta d6, the or d7. Every other constant comes
-   into a6 on the MAC before its first use (MAC with load), and so do the input and the window's next frame: 20
-   instructions a frame. The window is read one frame ahead (the line has a frame more for it). Keeps d2-d7/a2-a6
-   and MACSR; leaves acc0 at zero.
+   Four frames a turn (since 0.2; two before): the input in d0 and d1 in turn (this frame's, the one before), the
+   window in a4 and a5 in turn (the frame dint + 1 back, the next one), v1 d2, lp d3, hp d4, y d5, eta d6. Every other
+   constant comes into a6 on the MAC before its first use (MAC with load), and so do the input and the window's next
+   frame; y^2 goes into acc1 (since 0.2: one instruction where y + THR or-ed took two): 19 instructions a frame. The
+   window is read one frame ahead (the line has a frame more for it). Keeps d2-d7/a2-a6 and MACSR; leaves acc0 and
+   acc1 at zero.
 
    License: MIT (LICENSE next to this file). */
-
-#define THR 65536		/* reso.c's */
 
 /* one frame: X the input, X1 the one before, U0 the window's frame dint + 1 back, U1 the next one */
 #define FRAME(X, X1, U0, U1) \
@@ -35,9 +34,8 @@
 	movclr.l %acc0, %d5		/* y */						; \
 	mac.l	X, %a6, 40(%a3), %a6, %acc0	/* the output: ia x; amt */	; \
 	mac.l	%d5, %a6, %acc0		/* + amt y */					; \
+	mac.l	%d5, %d5, %acc1		/* the block's energy */			; \
 	move.l	%d5, (%a2)+		/* the line */					; \
-	add.l	#THR, %d5							; \
-	or.l	%d5, %d7		/* under 2^17 while |y| < THR */		; \
 	movclr.l %acc0, %d5							; \
 	move.l	%d5, (%a0)+
 
@@ -51,15 +49,49 @@ reso_frames:
 	movem.l	(%a3), %a0-%a2			/* the block, the window, the line */
 	move.l	44(%a3), %d6			/* eta */
 	movem.l	48(%a3), %d1-%d4		/* x1, v1, lp, hp */
-	moveq	#0, %d7
+	move.l	#0, %acc1
 	movea.l	(%a1)+, %a4			/* the window's first two frames */
 	movea.l	(%a1)+, %a5
 1:	FRAME(%d0, %d1, %a4, %a5)
 	FRAME(%d1, %d0, %a5, %a4)
+	FRAME(%d0, %d1, %a4, %a5)
+	FRAME(%d1, %d0, %a5, %a4)
 	cmpa.l	12(%a3), %a0
 	bne	1b
 	movem.l	%d1-%d4, 48(%a3)		/* the last input (an odd frame's), v1, lp, hp */
+	movclr.l %acc1, %d7			/* the energy, sum y^2 / 2^31, saturated */
 	move.l	%d7, 64(%a3)
 	movem.l	(%sp), %d2-%d7/%a2-%a6
 	lea	44(%sp), %sp
+	rts
+
+/* void reso_zero(int32_t *p, int32_t n): n frames (1 .. 33) from p set to 0, eight a store (since 0.2: the line's
+   frames written before the comb started, reso.c; a C loop took 2.25 instructions a frame). Keeps d2-d7/a2-a6. */
+	.globl	reso_zero
+reso_zero:
+	movea.l	4(%sp), %a0
+	move.l	8(%sp), %d0
+	lea	-24(%sp), %sp
+	movem.l	%d2-%d7, (%sp)
+	moveq	#0, %d1
+	move.l	%d1, %d2
+	move.l	%d1, %d3
+	move.l	%d1, %d4
+	move.l	%d1, %d5
+	move.l	%d1, %d6
+	move.l	%d1, %d7
+	suba.l	%a1, %a1
+	subq.l	#8, %d0
+	blt	2f
+1:	movem.l	%d1-%d7/%a1, (%a0)
+	lea	32(%a0), %a0
+	subq.l	#8, %d0
+	bge	1b
+2:	addq.l	#8, %d0
+	beq	4f
+3:	clr.l	(%a0)+
+	subq.l	#1, %d0
+	bne	3b
+4:	movem.l	(%sp), %d2-%d7
+	lea	24(%sp), %sp
 	rts

@@ -24,11 +24,11 @@ manifest's `proof` section, notes/73 §16, no change to the proof). Branch `trac
   long at the pitch: measured within 0.2 cents from C1 to C7 on whole notes, 0.7 between them, +5 at 8 kHz (§7).
 - **Never runs away**: the loop's gain stays under 1 − 2⁻¹² at DC and everywhere else, every sum saturates at full
   scale (the EMAC's), a DC blocker at 15 Hz keeps kicks from piling up in the loop.
-- **Cost**, counted by the proof (§8, the maintainer's run): about 700 instructions a track and block held (709 at
-  C4, 772 at C1 while the line is still being cleared), 1 083 when every word moves every block, 1 233 in the first
-  block, 128 for a silent track, 23 off. Six tracks at most 7 398 instructions a block, 6.8 % (Samples' worst 8 952,
-  8.3 %). The frame loop is ColdFire assembly (`reso_cf.S`, 20 instructions a frame, MAC with load); `reso.c`'s C
-  loop is its host model, bit for bit. Not measured on the machine yet.
+- **Cost** of Reso 0.2, counted by the proof (§13, the maintainer's run): about 670 instructions a track and block
+  held (674 at C4, 706 at C1 while the line is still being cleared), 961 when every word moves every block, 1 106 in
+  the first block, 128 for a silent track, 24 off. Six tracks at most 6 636 instructions a block, 6.1 % (Samples'
+  worst 8 952, 8.3 %; Reso 0.1 7 398, 6.8 %, §8). The frame loop is ColdFire assembly (`reso_cf.S`, 19 instructions a
+  frame, MAC with load); `reso.c`'s C loop is its host model, bit for bit. Not measured on the machine yet.
 - **On the machine** (2026-11-01): Reso with Samples and Crush, flashed from the command line: « passt » (§12).
 
 ## 1. Decisions (2026-11-01)
@@ -107,8 +107,8 @@ the period between semitones: at most 0.7 cents off in the middle.
 - **Off** (Amount 0): the block untouched; the comb starts again from nothing. A reset (the track coming to Reso) the
   same. The line is not cleared then (six lines of 24 KB in one block would cost tens of thousands of instructions):
   each block clears the frames it is about to read that were written before the comb started, at most 33.
-- **Silence**: the comb counts the frames since its output last reached 2⁻¹⁵ of full scale (−90 dB); after a whole line
-  of them, a silent block (all 32 frames 0) is not run, the comb starts again from nothing (128 instructions). After a
+- **Silence**: the comb counts the frames since its output last reached 2⁻¹⁵ of full scale (−90 dB; since 0.2 a
+  block's RMS, from its energy in acc1, every frame in 0.1); after a whole line of them, a silent block (all 32 frames 0) is not run, the comb starts again from nothing (128 instructions). After a
   reset or Off the line counts as silent at once, so a track that gets nothing costs nothing from its first block.
 - The EMAC truncates, so the loop carries a small DC of its own (−0.5 LSB a sum, gained by the loop at DC): estimated
   at most about −66 dBFS with the longest, dullest settings (measured −75 dBFS with kicks at C2, Brightness 0, §7),
@@ -116,10 +116,10 @@ the period between semitones: at most 0.7 cents off in the middle.
 
 ## 5. The device code
 
-`reso_cf.S`, `reso_frames(st)`: two frames a turn, the input in d0/d1 and the window in a4/a5 in turn; v1, lp, hp, y, η,
-the quiet test in d2 to d7; every other constant comes into a6 on the MAC before its first use (MAC with load:
+`reso_cf.S`, `reso_frames(st)`: two frames a turn (four since 0.2), the input in d0/d1 and the window in a4/a5 in turn;
+v1, lp, hp, y, η, the quiet test in d2 to d7 (in acc1 since 0.2); every other constant comes into a6 on the MAC before its first use (MAC with load:
 `mac.l Ry,Rx,d16(a3),a6,acc0` uses a6 and loads the next one), and so do the input and the window's next frame:
-**20 instructions a frame** (GCC's C loop took 31.5: it reloaded the constants from the stack; a large inline asm made
+**20 instructions a frame** (19 since 0.2; GCC's C loop took 31.5: it reloaded the constants from the stack; a large inline asm made
 GCC 16.2 stop with an internal error in its scheduler). The state struct's offsets are checked at compile time in
 `reso.c`. `reso.c` keeps the same loop in C under `RESO_HOST`, the proof's model: the same products in the same
 accumulator in the same order, the EMAC as `tools/emu/emac.py` executes it (POTS's host model).
@@ -130,20 +130,20 @@ Measured outside the repository with the ColdFire interpreter of notes/69 §20.1
 (`_scratch/reso-bench/`: `cfemu.py`, `bench.py`), on the device object, the proof's cost states and a drum signal of
 its own (so the shares matter, not the counts), instructions a track and block:
 
-| State | Words (k 28, 29, 30, 31) | Interpreter | The proof (§8) |
-|---|---|---|---|
-| off | C4, 0, 64, 64 | 23 | 23 |
-| mid | C4, 127, 64, 64 | 811 | 709 |
-| low | C1, 127, 127, 32 (the line still being cleared) | 901 | 772 |
-| high | C7, 127, 127, 32 | 811 | 698 |
-| glide | every word jumping every block | 1 275 | 1 083 |
-| silent | no note | 128 | 128 |
-| first | its reset and first block | 1 375 | 1 233 |
+| State | Words (k 28, 29, 30, 31) | 0.1, interpreter | 0.1, the proof (§8) | 0.2, interpreter | 0.2, the proof (§13) |
+|---|---|---|---|---|---|
+| off | C4, 0, 64, 64 | 23 | 23 | 24 | 24 |
+| mid | C4, 127, 64, 64 | 811 | 709 | 771 | 674 |
+| low | C1, 127, 127, 32 (the line still being cleared) | 901 | 772 | 822 | 706 |
+| high | C7, 127, 127, 32 | 811 | 698 | 771 | 664 |
+| glide | every word jumping every block | 1 275 | 1 083 | 1 128 | 961 |
+| silent | no note | 128 | 128 | 128 | 128 |
+| first | its reset and first block | 1 375 | 1 233 | 1 225 | 1 106 |
 
 The most in 3 000 blocks of random words, notes, silences and resets: 1 434 (the coefficients, the clearing and the
 copy in one block). The proof's signal (the stock machines, a note at the start) counts 10 to 15 % lower; its counts
 are the declared `cost.emulation`: six tracks on Reso, by the first block, 7 398 instructions a block, 6.8 % (Samples
-8 952, 8.3 %). Code and tables 8 688 bytes (tables 5 948), the build alone adds 14 376 bytes to the image.
+8 952, 8.3 %); with 0.2 6 636, 6.1 %. Code and tables 8 688 bytes (tables 5 948), the build alone adds 14 376 bytes to the image.
 
 The interpreter needed fixes, noted in `_scratch/reso-bench/FINDINGS.md`: objdump prints an indexed mode's
 displacement in hex (`%a0@(38,%a1:l)` is 56), which `cfemu.py` read as decimal (every `state[track].field` went to
@@ -244,7 +244,7 @@ After the proof, from `build/reso-0.1/`:
   damping (a flatter passband, about +8 instructions a frame) would ease it, if the maintainer wants.
 - The allpass's coefficient is exact at low pitches only: +5 cents at 8 kHz.
 - The wet path carries a DC of the EMAC's truncation, estimated at most about −66 dBFS (§4).
-- `[HYP]` the load on the device (the measuring build tells; the proof counts 6.8 % of a block for six tracks).
+- `[HYP]` the load on the device (the measuring build tells; the proof counts 6.1 % of a block for six tracks, 0.2).
 
 ## 12. Tested on the machine (2026-11-01)
 
@@ -253,7 +253,40 @@ The maintainer flashed the build with Samples, Crush and Reso from `build/reso-0
 after the list of §10: « passt ». The load the measuring build shows was not reported. Experimental on the page until
 flashed from it, as Samples and Crush were (notes/72 §20, notes/73 §15).
 
-## 13. For the integration
+## 13. Lighter, the same sound: Reso 0.2 (2026-11-01)
+
+The maintainer: « prüfen ob ud wie performance optimiert werden kann », then « Ja, übernehmen ».
+
+- **Measured outside the proof**, with the interpreter of §6 on the device objects (`_scratch/reso-opt/`: the copy
+  and `compare.py`, which runs the copy's device object against its host build and that host build against the
+  package's). Where 0.1 spent its instructions, a track and block: the frame loop 686 (21 a frame), the rest of
+  `reso_process` 125, the clearing at low pitches 89, the coefficients 464 (the two divisions 72). The frame loop is
+  close to its least: every product in it is needed.
+- **Kept** (Reso 0.2), each measured against 0.1 (held / C1 / gliding / first):
+  1. the frame loop four frames a turn (two before): −16 everywhere;
+  2. the line's old frames cleared by `reso_zero` in `reso_cf.S`, eight a `movem` (GCC's loop took 2.25
+     instructions a frame): −47 at low pitches and in the first block;
+  3. the silence test on the block's energy, `mac.l y,y,acc1`, one instruction a frame where `y + THR` or-ed took
+     two: −33 wherever the comb plays. The test becomes the block's RMS under 2⁻¹⁵ of full scale (−90 dB) instead of
+     every frame under it, so a fading tail may be skipped a block sooner or later; the sound is otherwise the same;
+  4. `work_out` a function of its own (`noinline`: GCC then keeps `reso_process`'s registers), `divq` inlined into it:
+     −62 when a word moves and in the first block, +7 held.
+
+  Together, in the interpreter: 811 → 771 held (−5 %), 901 → 822 at C1 (−9 %), 1 275 → 1 128 gliding (−11.5 %),
+  1 375 → 1 225 first (−11 %). 3 000 blocks: the device object against its host build, and that host build against
+  0.1's, **none differ**; the sanitizers and the coefficient sweep of §8 clean; `emac.py` takes the new forms (acc1).
+  Code and tables 8 610 bytes (8 688).
+- **Left** (estimated, not built): the per-block bookkeeping in assembly (about −40 to −50 held), the coefficients in
+  assembly (about −100 to −150 when a word moves): a second assembly part with a C model of its own, for little.
+- MAIN OS: Reso alone `54ec2859…`, with Samples and Crush `4e31c87f…`, every card of the page with Reso `8dede451…`,
+  the same measuring `0b511881…`. Builds in `build/reso-0.2/`, each checked by elektron-firmware-tool.
+- **The proof, the maintainer's run (2026-11-01): ALL OK but Reso's cost line, by design** (0.1's counts still
+  declared). Reso 0.2 bit for bit its host build in every scene, alone and in the full table of eight, everything
+  else as in §8. Counted for 0.2, now declared, instructions per track and block (0.1 in brackets): off 24 (23), mid
+  674 (709), low 706 (772), high 664 (698), glide 961 (1 083), silent 128 (128), first 1 106 (1 233): −5 to −11 %,
+  as the interpreter said. Six tracks at most 6 636 instructions a block, 6.1 % (6.8 %).
+
+## 14. For the integration
 
 What the shared files get when Reso is merged (they stay untouched on this branch, notes/73 §16.2).
 
@@ -340,10 +373,11 @@ Samples, avec Reso au bit près contre le build hôte de `reso.c` (la boucle en 
     python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines reso
     python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush,reso   # avec Samples et Crush
 
-MAIN OS patché, `reso` seul : `0a4eba0e9076b59598d37aeb3af090d1e288aade6c330c52708278523f969373` ; avec Samples et
-Crush : `b274ee03706d3e5211e5bcb3f2d7288b8d56c6ba506b41cdbde25782e4751547` ; avec toutes les cartes de la page :
-`5a8d16a68a296a2240d6a5c0c412ed77199ec21926fdea68c3bff9fd3531c971` (sur `fltslot` 0.9, avant la fusion avec Ring et EQ).
-Reso avec Samples et Crush joué sur un Model:Cycles depuis la ligne de commande le 01/11/2026 (note 75 §12).
+MAIN OS patché, `reso` seul : `54ec2859409764f33e2b3a61b9a687b330d4313a443d1bc82a3c766500d08b89` ; avec Samples et
+Crush : `4e31c87fe423f1aff0a45205275984111a3490d9024cdc1a99335d005d41ad06` ; avec toutes les cartes de la page :
+`8dede451f981ab9dcc412a1c7069efe49e10eb45535e7bc9f494d2739584f710` (Reso 0.2, sur `fltslot` 0.9, avant la fusion avec
+Ring et EQ ; avec Reso 0.1, le même son : `0a4eba0e…`, `b274ee03…`, `5a8d16a6…`). Reso 0.1 avec Samples et Crush joué
+sur un Model:Cycles depuis la ligne de commande le 01/11/2026 (note 75 §12).
 ```
 
 **`tweaks/model-cycles_OS1.13/PROVENANCE.md`**:
@@ -355,7 +389,7 @@ Reso avec Samples et Crush joué sur un Model:Cycles depuis la ligne de commande
 **`notes/README.md`**:
 
 ```markdown
-| [75-reso.md](75-reso.md) | **Reso: a tuned resonator in the Track FX (2026-11-01, English)**: the maintainer's decisions (a comb rather than a bank of modes; Pitch on SWEEP as the MIDI note, Amount on CONTOUR, 0 dry and the start, Decay on COLOR, Brightness on SHAPE); id 4, "RES"; the comb: a DC blocker, the line through a first-order allpass, a one-pole damping whose phase at the pitch is exact (q = sin P / sin(w0 + P)), the loss given back up to a gain of 1 − 2⁻¹² (its DC mode), the input scaled for noise; in tune within 0.2 cents (C1 to C7), Decay as asked when bright; the line cleared lazily, a silent track skipped; the frame loop in ColdFire assembly (MAC with load, 20 instructions a frame), its C model the proof's; cost counted by the proof 709 held, 1 083 gliding, 1 233 first, six tracks 6.8 % of a block (Samples 8.3 %); sanitizers and 3 000 blocks bit for bit in the interpreter; **`test_fltslot.py` ALL OK in the maintainer's run (2026-11-01)**; **played on the machine 2026-11-01** (with Samples and Crush, from the command line, « passt »). |
+| [75-reso.md](75-reso.md) | **Reso: a tuned resonator in the Track FX (2026-11-01, English)**: the maintainer's decisions (a comb rather than a bank of modes; Pitch on SWEEP as the MIDI note, Amount on CONTOUR, 0 dry and the start, Decay on COLOR, Brightness on SHAPE); id 4, "RES"; the comb: a DC blocker, the line through a first-order allpass, a one-pole damping whose phase at the pitch is exact (q = sin P / sin(w0 + P)), the loss given back up to a gain of 1 − 2⁻¹² (its DC mode), the input scaled for noise; in tune within 0.2 cents (C1 to C7), Decay as asked when bright; the line cleared lazily, a silent track skipped; the frame loop in ColdFire assembly (MAC with load, 20 instructions a frame), its C model the proof's; cost counted by the proof 709 held, 1 083 gliding, 1 233 first, six tracks 6.8 % of a block (Samples 8.3 %); 0.2 the same sound in 5 to 11 % fewer instructions (the loop four frames a turn, the silence test on acc1, the clearing by movem, the coefficients apart, §13): 674 held, 961 gliding, 1 106 first, 6.1 %, ALL OK in the maintainer's run; sanitizers and 3 000 blocks bit for bit in the interpreter; **`test_fltslot.py` ALL OK in the maintainer's run (2026-11-01)**; **played on the machine 2026-11-01** (with Samples and Crush, from the command line, « passt »). |
 ```
 
 **`AGENTS.md`** (the repository map, after `tools/machines/crush/`; and in « Adding a feature », 77 the next free note):

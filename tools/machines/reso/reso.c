@@ -26,14 +26,16 @@
  * that do not cancel at low pitches.
  *
  * Every product goes through the EMAC in signed fractional mode, truncating (MACSR 0xa0, as the slot calls it): on
- * the device mac.l / msac.l / movclr.l, and the frame loop in reso_cf.S (MAC with load, 20 instructions a frame); on
+ * the device mac.l / msac.l / movclr.l, and the frame loop in reso_cf.S (MAC with load, 19 instructions a frame); on
  * the host (RESO_HOST) frames() below, the same arithmetic as tools/emu/emac.py executes it (each product truncated
  * to 2^-23 of an LSB, the accumulator read as acc >> 31, saturated), so that both give the same bits. The comb is
  * saturated at full scale wherever it is read, so the loop never runs away nor wraps.
  *
  * Off (Amount 0): the block is not touched and the comb starts again from silence (its line is cleared lazily: each
- * block clears what it reads that was written before, at most 33 frames). A silent block once the comb has stayed
- * under 2^-15 of full scale (-90 dB) for a whole line: the same. A note (triggered) changes nothing: the comb rings on.
+ * block clears what it reads that was written before, at most 33 frames, eight a store in reso_cf.S). A silent block
+ * once the comb's output has stayed under an RMS of 2^-15 of full scale (-90 dB) block after block for a whole line
+ * (since 0.2: its energy in acc1; every frame under 2^-15 before): the same. A note (triggered) changes nothing: the
+ * comb rings on.
  *
  * Contract (fltslot.c): reso_process(block, words, track, triggered), block 32 frames of 32 bits changed in place;
  * reso_reset(track). C ABI.
@@ -50,13 +52,13 @@
 #define ONE 0x7fffffff
 #define G_MAX (ONE - (1 << 19))                     /* 1 - 2^-12: the loop's gain, and so its DC mode's, under 1 */
 #define AMT 66052                                   /* Amount's word (0 .. 0x7f00) to Q31 */
-#define THR 65536                                   /* 2^-15 of full scale: the comb has rung out below it */
+#define QUIET_E 64                                  /* sum y^2 / 2^31 of a block at an RMS of 2^-15 of full scale */
 #define R_DC (ONE - (1 << 22))                      /* the DC blocker's pole, 1 - 2^-9 (about 15 Hz) */
 
 /* --- the EMAC ----------------------------------------------------------------------------------------------- */
 #ifdef RESO_HOST
 typedef __int128 wide;
-static wide acc;
+static wide acc, acc1;                              /* acc0, and acc1 the frames' energy */
 #define TRUNC(p) ((p) & ~(wide)0x7fffff)
 static inline void acc_set(int32_t v) { acc = (wide)v * ((wide)1 << 31); }
 static inline void mac(int32_t a, int32_t b) { acc += TRUNC((wide)a * b); }
@@ -108,11 +110,11 @@ struct track {
 						       pole, the loop's gain, the output's dry and wet parts */
 	int32_t eta;                                /* +44: the allpass */
 	int32_t x1, v1, lp, hp;                     /* +48: the last input, the allpass, the damping, the DC blocker */
-	uint32_t m;                                 /* +64: the frames' y + THR or-ed together */
+	uint32_t m;                                 /* +64: the block's energy, sum y^2 / 2^31 (acc1), saturated */
 	/* the block's */
 	uint32_t w;                                 /* the next frame written, 0 .. LEN - 32, a multiple of 32 */
 	uint32_t fill;                              /* frames written since the comb started, up to LEN */
-	uint32_t quiet;                             /* frames since the comb last reached THR, up to LEN */
+	uint32_t quiet;                             /* frames since a block's RMS last reached 2^-15, up to LEN */
 	uint32_t dint;                              /* the line read dint frames back, then the allpass */
 	int16_t key[3];                             /* Pitch, Decay and Brightness the coefficients are for */
 	uint8_t set;                                /* the coefficients are worked out */
@@ -153,7 +155,8 @@ static int32_t lerp(const int32_t *t, uint32_t w)   /* a table by value at the w
 	return t[n] + mul(t[n + 1] - t[n], (int32_t)((w & 0xff) << 23));
 }
 
-static int32_t divq(uint32_t n, uint32_t d)         /* n / d, Q31, to 2^-14 of itself, for 0 <= n, 0 < d */
+/* n / d, Q31, to 2^-14 of itself, for 0 <= n, 0 < d */
+static inline __attribute__((always_inline)) int32_t divq(uint32_t n, uint32_t d)
 {
 	int32_t sn, sd, s;
 	uint32_t q;
@@ -195,6 +198,9 @@ static int32_t sqrtq(int32_t u)                     /* sqrt(u), Q31 */
 	return t0 >> (z >> 1);
 }
 
+#ifndef RESO_HOST
+__attribute__((noinline))                           /* on its own GCC keeps reso_process's registers (since 0.2) */
+#endif
 static void work_out(struct track *c, uint32_t pitch, uint32_t decay, uint32_t bright)
 {
 	uint32_t n = pitch >> 8, f = pitch & 0xff, L, P, D, e;
@@ -250,7 +256,7 @@ static void frames(struct track *st)
 {
 	int32_t *b = st->blk, *rp = st->rp, *wp = st->wp, u0 = *rp++, x1 = st->x1, v1 = st->v1, lp = st->lp,
 		hp = st->hp;
-	uint32_t m = 0;
+	acc1 = 0;
 	while (b != st->end) {
 		int32_t x = *b, u1 = *rp++, y;
 		acc_set(u0);                                /* the allpass: u0 + eta (u1 - v1) */
@@ -269,7 +275,7 @@ static void frames(struct track *st)
 		*wp++ = y;
 		mac(x, st->ia);                             /* the output */
 		mac(y, st->amt);
-		m |= (uint32_t)y + THR;                     /* under 2^17 while |y| < THR */
+		acc1 += TRUNC((wide)y * y);                 /* the block's energy (acc1 on the device) */
 		*b++ = movclr();
 		x1 = x;
 		u0 = u1;
@@ -278,11 +284,20 @@ static void frames(struct track *st)
 	st->v1 = v1;
 	st->lp = lp;
 	st->hp = hp;
-	st->m = m;
+	acc1 >>= 31;
+	st->m = acc1 > INT32_MAX ? INT32_MAX : (uint32_t)acc1;
+}
+
+static void zero(int32_t *p, int32_t n)
+{
+	while (n-- > 0)
+		*p++ = 0;
 }
 #else
-void reso_frames(struct track *st);                 /* reso_cf.S: the same loop on the EMAC, 20 instructions a frame */
+void reso_frames(struct track *st);                 /* reso_cf.S: the same loop on the EMAC, 19 instructions a frame */
+void reso_zero(int32_t *p, int32_t n);              /* reso_cf.S: eight frames a store */
 #define frames reso_frames
+#define zero reso_zero
 #endif
 
 void reso_process(int32_t *block, const int16_t *words, uint32_t track, uint32_t triggered)
@@ -322,13 +337,9 @@ void reso_process(int32_t *block, const int16_t *words, uint32_t track, uint32_t
 	if (start >= LEN)
 		start -= LEN;
 	if (st->fill < LEN) {                               /* the frames of the window written before the comb started */
-		int32_t nz = (int32_t)st->dint + 1 - (int32_t)st->fill, *z = &ln[start];
-		if (nz > FRAMES + 1)
-			nz = FRAMES + 1;
-		for (; nz >= 4; nz -= 4, z += 4)
-			z[0] = z[1] = z[2] = z[3] = 0;
-		while (nz-- > 0)
-			*z++ = 0;
+		int32_t nz = (int32_t)st->dint + 1 - (int32_t)st->fill;
+		if (nz > 0)
+			zero(&ln[start], nz > FRAMES + 1 ? FRAMES + 1 : nz);
 	}
 	st->blk = block;
 	st->end = block + FRAMES;
@@ -348,7 +359,7 @@ void reso_process(int32_t *block, const int16_t *words, uint32_t track, uint32_t
 	st->w = w + FRAMES < LEN ? w + FRAMES : 0;
 	if (st->fill < LEN)
 		st->fill += FRAMES;
-	if (st->m >> 17)                                    /* a frame at THR or more */
+	if (st->m >= QUIET_E)                               /* the block's RMS at 2^-15 of full scale or more */
 		st->quiet = 0;
 	else if (st->quiet < LEN)
 		st->quiet += FRAMES;
