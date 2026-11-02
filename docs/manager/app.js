@@ -19,6 +19,16 @@
     var BACK_MS = 180000;           /* and comes back within this */
     var BOOT_MS = 2500;             /* time to start before it is asked who it is (as model27's flasher) */
     var TRANSFER_MS = 10000;        /* the warning about another program stays this long after its last message */
+    /* Why this browser cannot talk to the Cycles, as the flasher tells it (noMidi): the page has no other way, so it
+       says so at once and keeps only the library (add, export, import) */
+    var NO_MIDI = typeof window.isSecureContext !== "undefined" && !window.isSecureContext ? "insecure" :
+                  !navigator.requestMIDIAccess ? "none" : null;
+    var NO_MIDI_TEXT = {
+        none: "This browser has no Web MIDI, so the Manager can't talk to your Cycles: backing up, flashing and switching " +
+              "all go over USB from this page. Open it in Chrome, Edge or Opera on a computer.",
+        insecure: "Web MIDI needs a secure page, so this one can't talk to your Cycles. Open the online version, or serve " +
+                  "the docs folder with python3 -m http.server."
+    };
     var CHECK = "M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z";
 
     var lib = new L.Store(L.indexedDB());
@@ -186,8 +196,8 @@
     }
 
     async function connect() {
-        if (!navigator.requestMIDIAccess) {
-            show("This browser has no Web MIDI. Use Chrome, Edge or Opera on a computer.", "bad");
+        if (NO_MIDI) {
+            show(NO_MIDI_TEXT[NO_MIDI], "bad");
             return;
         }
         try {
@@ -943,8 +953,8 @@
         var ok = ready(), id = state.identity, c = $("chip");
 
         c.className = "chip" + (ok ? "" : " off");
-        c.disabled = state.busy;
-        $("chip-text").textContent = !state.access ? "Connect the Cycles" : ok ? "Cycles connected · OS " + id.version :
+        c.disabled = state.busy || !!NO_MIDI;
+        $("chip-text").textContent = NO_MIDI ? "No Web MIDI" : !state.access ? "Connect the Cycles" : ok ? "Cycles connected · OS " + id.version :
                                      id ? "Not a Model:Cycles" : !(state.input && state.output) ? "Pick the MIDI ports" :
                                      state.asked ? "No answer" : "Asking…";
         c.setAttribute("aria-expanded", String(!$("ports").hidden));
@@ -990,7 +1000,7 @@
         ]));
         acts.appendChild(button("Not this one?", function () { state.chooseHere = true; render(); }, { cls: "lnk", disabled: state.busy }));
         acts.appendChild(button("Back up now", backupButton, { kind: "inv", size: "big", disabled: state.busy || !ready(),
-                                                               title: ready() ? "" : "Connect the Cycles first" }));
+                                                               title: ready() ? "" : NO_MIDI ? "No Web MIDI in this browser" : "Connect the Cycles first" }));
     }
 
     function renderTiles() {
@@ -1032,7 +1042,7 @@
             el("div", { style: "display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; flex: 1" },
                [here ? el("span", { class: "tag", text: "On the Cycles" }) : null, title]),
             more]);
-        why = !ready() ? "Connect the Cycles first." : !state.device.build ? "Say first which firmware is on the Cycles." : "";
+        why = NO_MIDI ? "Needs Web MIDI: Chrome, Edge or Opera on a computer." : !ready() ? "Connect the Cycles first." : !state.device.build ? "Say first which firmware is on the Cycles." : "";
         go = el("div", { class: "go" }, here ?
             [button("On the Cycles now", null, { disabled: true, size: "big" })] :
             [button("Switch to this", function () { switchTo(b.key); }, { size: "big", disabled: state.busy || !!why }),
@@ -1152,7 +1162,8 @@
                     button("Make current", async function () { await lib.setCurrent(b.key, x.key); await refresh(); },
                            { kind: "ghost", size: "sm", disabled: state.busy }),
                 button("Send to the Cycles", function () { sendBackup(x); },
-                       { kind: "ghost", size: "sm", disabled: state.busy || !ready(), title: ready() ? "" : "Connect the Cycles first" }),
+                       { kind: "ghost", size: "sm", disabled: state.busy || !ready(),
+                         title: ready() ? "" : NO_MIDI ? "No Web MIDI in this browser" : "Connect the Cycles first" }),
                 el("div", { class: "links" }, renaming ? [el("label", { class: "field" }, ["Name", input])] : [
                     button("Name it", function () { state.renamingBackup = x.key; render(); }, { cls: "lnk" }),
                     button("Save .syx", async function () { save(await lib.backupData(x.key), fileName(b.name + " " + label(x)) + ".syx"); },
@@ -1194,9 +1205,11 @@
             card.appendChild(el("h2", { text: "Connect your Model:Cycles" }));
             card.appendChild(el("p", { text: "Plug it in over USB and quit Elektron Transfer: the two cannot talk to it at the same time. " +
                                              "The browser asks for MIDI access once." }));
+            if (NO_MIDI)
+                card.appendChild(el("p", { style: "font-weight: 700", text: NO_MIDI_TEXT[NO_MIDI] }));
             card.appendChild(el("div", { class: "actions", style: "margin-top: 0" }, [
                 button(ready() ? "Connected" : "Connect", function () { if (!state.access) connect(); else usePorts(); },
-                       { size: "big", disabled: state.busy || ready() }),
+                       { size: "big", disabled: state.busy || ready() || !!NO_MIDI }),
                 ready() ? el("span", { style: "display: inline-flex; align-items: center; gap: 10px; font-weight: 700" },
                              [el("span", { class: "dot", "aria-hidden": "true" }), "Model:Cycles · OS " + state.identity.version]) :
                 state.asked ? el("span", { text: "No answer. Quit Elektron Transfer and press Connect again." }) : null
@@ -1437,8 +1450,12 @@
             ev.returnValue = "";
         }
     });
+    if (NO_MIDI) {
+        $("nomidi").textContent = NO_MIDI_TEXT[NO_MIDI];
+        $("nomidi").hidden = false;
+    }
     refresh().then(function () {
-        if (!state.builds.length)
+        if (!state.builds.length && !NO_MIDI)
             openSetup();
     }).catch(function (e) { show("The library cannot be opened: " + e.message, "bad"); });
 })();

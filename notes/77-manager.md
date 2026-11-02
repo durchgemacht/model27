@@ -166,7 +166,17 @@ redraw replaces between press and release never gets its click: the dialog keeps
   to take it in, it rose from 3 % to 92 % until the answer after 12.4 s. Still to check: the page on GitHub Pages
   after the push.
 
-## 9. Later
+## 9. No Web MIDI (release 0.31, 2026-11-02)
+
+The maintainer: the page needs a notice when the browser has no Web MIDI, since the Manager has no other way (the
+flasher can still offer the `.syx` for Elektron Transfer). `app.js` tells why as the flasher does (`noMidi`): not a
+secure page (`isSecureContext` false), or no `navigator.requestMIDIAccess` (Safari, for example). It then shows the
+reason at the top of the page (`#nomidi`) and in the setup's first step, the chip reads "No Web MIDI" and is locked,
+Switch, Back up now and Send to the Cycles stay locked with the reason, and the setup does not open by itself on an
+empty library. Adding firmwares, Export and Import still work. Checked in a browser with `requestMIDIAccess` removed
+before the page's scripts, and without it removed (unchanged).
+
+## 10. Later
 
 - An empty project to start a new firmware with, instead of making one on the Cycles (a factory backup could not be
   shared).

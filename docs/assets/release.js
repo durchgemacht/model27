@@ -7,6 +7,9 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.31", date: "2026-11-02", changes: [
+    { en: "Manager: a browser without Web MIDI (Safari, for example) now says so at the top of the page, since the Manager only works over USB from the page. The buttons that need the Cycles wait, and the setup no longer starts there; adding firmwares, Export and Import still work" },
+  ] },
   { version: "0.30", date: "2026-11-02", changes: [
     { en: "New page: the Manager, next to the Flasher. Each firmware keeps its own project: Switch backs up the project your Model:Cycles plays, flashes the other firmware over USB, brings that firmware's project back and checks it, then says which slot to save it in. You stop the sequencer and press YES on the Cycles; the rest takes about a minute" },
     { en: "It works with any firmware for the Model:Cycles: the official OS, the builds you download from the Flasher, others. The firmware files and every backup stay in your browser, with a history per firmware; Export puts them all in one file, to keep or to move to another computer" },
