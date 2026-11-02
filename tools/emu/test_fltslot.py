@@ -20,7 +20,8 @@ for the test in a folder of packages of its own), on the official OS 1.13:
      filters by id, with their process, reset, the type's name and the values' names and formatters), the build's
      values, the lookup, the gesture and the record wrappers behind the part's (the layer's sc_knob, sc_save2, sc_save1,
      sc_load, the effect slots' fx_keys), the rows of descriptors 1 to n and 5, the neutral words, the state zero,
-     each entry's start words (fltslot 0.8: the filter's params[].start, else the neutral word);
+     each entry's start words (fltslot 0.8: the filter's params[].start, else the neutral word) and count of values
+     (fltslot 0.10, none 0);
   3. the audio: a stock engine and the build's engine side by side, block for block, on the OS's own code: the voice
      loop (0x400a7d4a) with six stock machines and trigs, then the audio function from 0x4005984a to 0x40059858 (move.l
      a2,(sp) ; pea 0x80001858 ; jsr Volume + Dist), with a2 the smoothed parameters and a3 a message whose +16 is the
@@ -52,26 +53,33 @@ for the test in a folder of packages of its own), on the official OS 1.13:
      and NRPN 1:20 and 1:21 on them, nothing else changed; a new sound (0x400618f2) with the defaults on k 28..,
      everything else as in the stock OS;
   5. the knob lookup (T2), through the vtable entry, the layer's and the stock lookup behind it (the stock one
-     stubbed): RETRIG + SWEEP / CONTOUR / COLOR / SHAPE -> descriptors 1 to 4 when the build has the value, also with
-     FUNC, TRACK, LFO or a trig held; RETRIG + PITCH alone -> 5, with FUNC, TRACK, LFO or a trig: the stock answer;
-     every other knob, and everything without RETRIG: the stock answer; the stock lookup called once each time with
-     the same arguments; the values' names and formatters those of the filter the track's sound chose (or of the
-     build's first filter), in both descriptor tables and the interface objects; descriptor 5's object with the type's
-     formatter and descriptor 1's steps;
+     stubbed), on the selected track's sound with none, an id the build lacks and each filter: RETRIG + SWEEP /
+     CONTOUR / COLOR / SHAPE -> descriptors 1 to 4 when that filter has the value, else 5, display only (fltslot 0.10:
+     the part's na set, descriptor 5 under the filter's tag, or Track FX for none, with the type's formatter), also
+     with FUNC, TRACK, LFO or a trig held; RETRIG + PITCH alone -> 5 (na clear, under Track FX again), with FUNC,
+     TRACK, LFO or a trig: the stock answer; every other knob, and everything without RETRIG: the stock answer; the
+     stock lookup called once each time with the same arguments; the values' names and formatters those of the
+     selected track's filter's entry, in both descriptor tables and the interface objects; Control All's lookups of
+     each track (0..5): the value's descriptor whatever that track's filter, the names left alone; descriptor 5's
+     object with the type's formatter and descriptor 1's steps;
   5b. LFO + a knob (0x4001eaa2, ParameterPageView's own path for the LFO's destination, which builds its knob list from
      the machine record, 0x4000bf42, and asks no lookup), run whole after the boot's tables (the destination's k is
-     read in the descriptor's row, which fl_boot writes) with the records filled as at boot: with RETRIG
-     held, COLOR..CONTOUR set the destination to the filter's values the build has (k 28 + its place), also with FUNC
-     or TRACK; every other knob, and everything without RETRIG, the destination of the build without the filters;
+     read in the descriptor's row, which fl_boot writes) with the records filled as at boot, on the selected track's
+     sound with none and each filter: with RETRIG held, COLOR..CONTOUR set the destination to the values that filter
+     has (k 28 + its place), also with FUNC or TRACK; a value it lacks, or none: no destination set, the knob list
+     freed as the routine frees it (fltslot 0.10); every other knob, and everything without RETRIG, the destination
+     of the build without the filters;
   6. the formatters: Filter Cutoff's (fl_fmt_cut) over the 128 steps, -64 .. 0 .. 63 as SAMPLE's, three characters at most; the
-     type's (fl_fmt_type) naming the selected track's filter, OFF for none or an id the build lacks;
+     type's (fl_fmt_type) naming the selected track's filter, OFF for none or an id the build lacks; on a knob without
+     a value (fltslot 0.10) "---" for a filter and OFF for none, also in a measuring build;
   7. the type (T2): fl_keys as the encoder handler calls it at 0x4001f886, with the handler's frame: on descriptor 5
      the handler's end with 0 and its registers, four detents for a step, the count again after a change of direction
      or 0.4 s, the steps through none and the build's filters in the selected track's sound, stopping at the ends, an
      id the build lacks counting as none, the switches in k 32's high byte kept; on another descriptor, the effect
      slots' gesture when the build has it (PATTERN + Delay Time taken there), else isKeyHeld(2) as asked; the start
      words (fltslot 0.8): a step from none gives the sound those that differ from the neutral ones, a step from a
-     filter all of them, a step to none none, in the sound and in the targets of the tracks whose note plays it;
+     filter all of them, a step to none none, in the sound and in the targets of the tracks whose note plays it; on a
+     knob without a value (fltslot 0.10) the handler's end and no step;
   8. the pattern's p-locks (T2, notes/47 §4.3): a pattern saved (0x4005b95c) and loaded (0x4005b766) brings back the
      p-locks of k 23 to 31 on their parameter, an update of one p-lock (0x4005ba90) too, a file without them the
      stock OS's byte for byte;
@@ -334,6 +342,10 @@ def site_tests(key, stock, tweak, info, img, runtime, mans):
     want += [[0] * 4] * (DATA["entries"] - len(want))
     check(starts == want, f"{key}: each entry's start words (fltslot 0.8), the filter's own, else the neutral ones: "
           + "; ".join(f"{fid}: {' '.join(f'{v:#06x}' for v in w)}" for (fid, _m), w in zip([(0, None)] + filters, starts)))
+    nvals = list(runtime[at + DATA["nvals"] - compose.gs.PAY_ALONE:at + DATA["nvals"] + DATA["entries"] - compose.gs.PAY_ALONE])
+    want = [0] + [len(mans[mid]["_filter"]["params"]) for _f, mid in filters]
+    want += [0] * (DATA["entries"] - len(want))
+    check(nvals == want, f"{key}: each entry's count of values (fltslot 0.10), none 0: {nvals[:len(filters) + 1]}")
     return syms
 
 
@@ -830,52 +842,104 @@ def lookup(u, knob_, held, trig=0, k32=0, track=0xffffffff):
     return d, looked == [(SH.VIEW, knob_, 0, track)] and u.sp_ok and not u.bad
 
 
+def nvals_of(mans):
+    """Each filter id's count of values (fltslot 0.10); an id the build lacks, and none, have none."""
+    return {m["_filter"]["id"]: len(m["_filter"]["params"]) for m in mans.values() if m["_filter"]}
+
+
+def type_row(u, used):
+    """Descriptor 5's long name in both tables (a set: one name when they agree)."""
+    return {u.cstr(u.u32(t + 0x38 * 5 + 0x2c)) for t in {g7.DESC, used}}
+
+
 def knob_tests(key, img, runtime, syms, mans):
     u = SH.UI(img, runtime)
     ids = sorted(m["_filter"]["id"] for m in mans.values() if m["_filter"])
-    n = max(len(m["_filter"]["params"]) for m in mans.values() if m["_filter"])
+    tags = {m["_filter"]["id"]: m["_filter"]["short"] for m in mans.values() if m["_filter"]}
+    nv = nvals_of(mans)
+    n = max(nv.values())
     added = any(m["_machine"] for m in mans.values())
     used = compose.gs.DESCN if added else g7.DESC
+    na_at = syms["fl_data"] + DATA["na"]
     R, F, T_, L, M = SH.RETRIG, SH.FUNC, SH.TRACK, SH.LFO, SH.MACHINES
     got, want, fwd = {}, {}, True
-    for held in ((), (R,), (R, F), (R, T_), (R, L), (R, M), (F,), (L,), (M,)):
-        for trig in (0, 1):
-            for k in range(16):
-                got[held, trig, k], ok = lookup(u, k, held, trig)
-                fwd &= ok
-                w = SH.STOCK_ANSWER
-                if R in held and 4 <= k <= 7 and [2, 3, 0, 1][k - 4] < n:
-                    w = [2, 3, 0, 1][k - 4] + 1
-                elif R in held and k == 2 and not trig and not set(held) & {F, T_, L}:
-                    w = 5
-                want[held, trig, k] = w
-    bad = [(h, t, k, g, want[h, t, k]) for (h, t, k), g in got.items() if g != want[h, t, k]]
-    check(not bad, f"{key}: RETRIG + SWEEP / CONTOUR" + (" / COLOR / SHAPE"[:9 * (n - 2)] if n > 2 else "")
-          + f" -> descriptors 1..{n}, also with FUNC, TRACK, LFO, MACHINES or a trig held; RETRIG + PITCH -> 5 alone "
-          "(or with MACHINES), the stock answer with FUNC, TRACK, LFO or a trig; every other knob and everything "
-          "without RETRIG the stock answer" + (f"; DIFFERENT {bad[:4]}" if bad else ""))
+    for k32 in [0, 7] + ids:                             # none, an id the build lacks, each filter
+        fid = k32 if k32 in ids else 0
+        for held in ((), (R,), (R, F), (R, T_), (R, L), (R, M), (F,), (L,), (M,)):
+            for trig in (0, 1):
+                for k in range(16):
+                    got[k32, held, trig, k], ok = lookup(u, k, held, trig, k32)
+                    fwd &= ok
+                    w = SH.STOCK_ANSWER
+                    if R in held and 4 <= k <= 7:
+                        w = [2, 3, 0, 1][k - 4] + 1 if [2, 3, 0, 1][k - 4] < nv.get(fid, 0) else 5
+                    elif R in held and k == 2 and not trig and not set(held) & {F, T_, L}:
+                        w = 5
+                    want[k32, held, trig, k] = w
+    bad = [(k32, h, t, k, g, want[k32, h, t, k]) for (k32, h, t, k), g in got.items() if g != want[k32, h, t, k]]
+    check(not bad, f"{key}: RETRIG + SWEEP / CONTOUR / COLOR / SHAPE -> descriptors 1..4 when the selected track's "
+          f"filter has the value ({', '.join(f'{tags[i]} {nv[i]}' for i in ids)}), else 5, display only (none, an id "
+          "the build lacks, a value the filter lacks; fltslot 0.10), also with FUNC, TRACK, LFO, MACHINES or a trig "
+          "held; RETRIG + PITCH -> 5 alone (or with MACHINES), the stock answer with FUNC, TRACK, LFO or a trig; every "
+          "other knob and everything without RETRIG the stock answer" + (f"; DIFFERENT {bad[:4]}" if bad else ""))
     check(fwd, f"{key}: the stock lookup called once, with the same arguments, each time; the stack back")
-    good, shown = True, []
+    wrong, shown = [], []
     for k32 in [0, 7] + ids + [0x0300 | ids[-1]]:
         fid = k32 & 0xff if k32 & 0xff in ids else 0
-        for p in range(n):
-            u.uc.mem_write(UI_OBJ + 100 * (p + 1) + 0x2c, struct.pack(">I", 0xdeadbeef))
+        for p in range(4):
+            for q in range(n):
+                u.uc.mem_write(UI_OBJ + 100 * (q + 1) + 0x2c, struct.pack(">I", 0xdeadbeef))
+            u.uc.mem_write(UI_OBJ + 500 + 0x2c, struct.pack(">I", 0xdeadbeef))
             d, _ok = lookup(u, [6, 7, 4, 5][p], (R,), 0, k32)
-            wl, ws, wf = want_names(mans, fid, p)
-            wfmt = FORMATS.get(wf, syms.get("fl_fmt_cut") if wf == "cutoff" else None)
-            for table in {g7.DESC, used}:
-                row = struct.unpack(">14I", u.uc.mem_read(table + 0x38 * (p + 1), 0x38))
-                good &= (u.cstr(row[11]), u.cstr(row[13])) == (wl, ws)
-            good &= d == p + 1 and u.u32(UI_OBJ + 100 * (p + 1) + 0x20) == wfmt and u.u32(UI_OBJ + 100 * (p + 1) + 0x2c) == 0
-        shown.append(f"k 32 {k32:#06x}: {want_names(mans, fid, 0)[0]!r}")
-    check(good, f"{key}: the values named after the track's sound's filter, or the build's first one, in both tables "
-                "and the interface objects (formatter, no Error picture): " + ", ".join(shown))
+            for q in range(n):                           # every value named after the selected track's filter's entry
+                wl, ws, wf = want_names(mans, fid, q)
+                wfmt = FORMATS.get(wf, syms.get("fl_fmt_cut") if wf == "cutoff" else None)
+                for table in {g7.DESC, used}:
+                    row = struct.unpack(">14I", u.uc.mem_read(table + 0x38 * (q + 1), 0x38))
+                    if (u.cstr(row[11]), u.cstr(row[13])) != (wl, ws):
+                        wrong.append((hex(k32), p, f"value {q} named {u.cstr(row[11])!r}/{u.cstr(row[13])!r}"))
+                if u.u32(UI_OBJ + 100 * (q + 1) + 0x20) != wfmt or u.u32(UI_OBJ + 100 * (q + 1) + 0x2c) != 0:
+                    wrong.append((hex(k32), p, f"value {q}'s object"))
+            # na is read only on descriptor 5 and set by each answer of 5: after a value's answer it may hold the last
+            # popup's, so it is checked on 5 alone
+            if p < nv.get(fid, 0):
+                if d != p + 1:
+                    wrong.append((hex(k32), p, f"descriptor {d}"))
+            else:                                        # the popup that changes nothing: Track FX / OFF, CRU / ---
+                name = tags[fid] if fid else PART["type"]["long"]
+                if d != 5 or u.uc.mem_read(na_at, 1)[0] != 1 or type_row(u, used) != {name}:
+                    wrong.append((hex(k32), p, f"descriptor {d}, na {u.uc.mem_read(na_at, 1)[0]}, {type_row(u, used)}"))
+                if u.u32(UI_OBJ + 500 + 0x20) != syms["fl_fmt_type"] or u.u32(UI_OBJ + 500 + 0x2c) != 0:
+                    wrong.append((hex(k32), p, "descriptor 5's object"))
+        shown.append(f"k 32 {k32:#06x}: " + " / ".join(
+            want_names(mans, fid, p)[0] if p < nv.get(fid, 0) else (tags[fid] if fid else PART["type"]["long"])
+            for p in range(4)))
+    check(not wrong, f"{key}: the values named after the selected track's filter in both tables and the interface "
+                     "objects (formatter, no Error picture); a knob without a value: descriptor 5 under the filter's "
+                     "tag, or Track FX for none, with the type's formatter: " + "; ".join(shown)
+                     + (f"; WRONG {wrong[:4]}" if wrong else ""))
+    ca, names_kept = True, True
+    for k32 in [0, ids[0]]:
+        fid = k32 if k32 in ids else 0
+        for p in range(4):
+            before = [bytes(u.uc.mem_read(t + 0x38, 0x38 * 5)) for t in {g7.DESC, used}]
+            for t in range(6):
+                d, ok = lookup(u, [6, 7, 4, 5][p], (R, T_), 0, k32, t)
+                ca &= ok and d == (p + 1 if p < n else SH.STOCK_ANSWER)
+            names_kept &= [bytes(u.uc.mem_read(t + 0x38, 0x38 * 5)) for t in {g7.DESC, used}] == before
+    check(ca and names_kept, f"{key}: Control All's lookups of each track (0..5): the value's descriptor whatever the "
+                             "track's filter, the stock answer past the build's values; the names left as they were")
     u.uc.mem_write(UI_OBJ + 100 + 0x10, struct.pack(">I", 0x93f00000))
     u.uc.mem_write(UI_OBJ + 500 + 0x2c, struct.pack(">I", 0xdeadbeef))
-    d, _ok = lookup(u, 2, (R,))
+    lookup(u, 4, (R,), 0, 0)                             # a knob without a value first: na set
+    for t in {g7.DESC, used}:                            # and another name on the row, which the type puts back
+        u.uc.mem_write(t + 0x38 * 5 + 0x2c, bytes(u.uc.mem_read(t + 0x38 + 0x2c, 4)))
+    d, _ok = lookup(u, 2, (R,), 0, ids[0])
     check(d == 5 and u.u32(UI_OBJ + 500 + 0x10) == 0x93f00000 and u.u32(UI_OBJ + 500 + 0x20) == syms["fl_fmt_type"]
-          and u.u32(UI_OBJ + 500 + 0x2c) == 0,
-          f"{key}: RETRIG + PITCH: descriptor 5's object with the type's formatter, descriptor 1's steps, no Error picture")
+          and u.u32(UI_OBJ + 500 + 0x2c) == 0 and u.uc.mem_read(na_at, 1)[0] == 0
+          and type_row(u, used) == {PART["type"]["long"]},
+          f"{key}: RETRIG + PITCH: descriptor 5's object with the type's formatter, descriptor 1's steps, no Error "
+          f"picture, under {PART['type']['long']!r} again and not a knob without a value")
 
 
 # --- 5b. LFO + a knob (since fltslot 0.4) ----------------------------------------------------------------------------
@@ -884,16 +948,19 @@ LFO_SET, SOUND_OBJ, SOUND_VT = 0x4001eaa2, 0x93c90000, 0x93c80000
 
 def lfo_dest(u, knob_, held):
     """ParameterPageView's LFO + knob (0x4001eaa2) on the selected track's sound (a stub object whose set and get are
-    hooked): the value it sets the LFO's destination (descriptor 32) to, or None."""
+    hooked): the value it sets the LFO's destination (descriptor 32) to, or None; whether the stack came back and
+    memory stayed in bounds; the lists it freed."""
     u.keys(held)
     u.calls.clear()
     u.call(LFO_SET, SH.VIEW, knob_, 0)
     sets = [a for n, a in u.calls if n == "set"]
-    return (sets[0][2] if sets and sets[0][1] == 0x20 else None), u.sp_ok and not u.bad
+    freed = [a[0] for n, a in u.calls if n == "delete"]
+    return (sets[0][2] if sets and sets[0][1] == 0x20 else None), u.sp_ok and not u.bad, freed
 
 
 def lfo_tests(key, base, img, runtime, syms, mans):
-    n = max(len(m["_filter"]["params"]) for m in mans.values() if m["_filter"])
+    ids = sorted(m["_filter"]["id"] for m in mans.values() if m["_filter"])
+    nv = nvals_of(mans)
     R, F, T_ = SH.RETRIG, SH.FUNC, SH.TRACK
     got = {}
     ok = True
@@ -903,27 +970,35 @@ def lfo_tests(key, base, img, runtime, syms, mans):
         t7.fill_records(u)
         u.uc.mem_write(SOUND_OBJ, struct.pack(">I", SOUND_VT))
         u.uc.mem_write(SOUND_VT + 24, struct.pack(">II", 0x93c81000, 0x93c81100))
-        u.hooks = {0x400802e0: ("new", 0), 0x400802ec: ("delete", 0), 0x400cf866: ("project", 0x93a00000),
-                   0x4000eb90: ("tracks", 0x93a00000), 0x40012412: ("active", 0), 0x4000eb9c: ("tracks2", 0x93a00000),
-                   0x400097f0: ("sound", SOUND_OBJ), 0x400cf9a8: ("ui", 0x93a20000), 0x4006b978: ("trig", 0),
-                   0x93c81000: ("set", 0), 0x93c81100: ("get", 0)}
-        for held in ((), (R,), (R, F), (R, T_), (F,)):
-            for k in range(12):
-                got[name, held, k], good = lfo_dest(u, k, held)
-                ok &= good
-    want, bad = {}, []
-    for (name, held, k), v in got.items():
+        for k32 in [0] + ids:                            # the selected track's filter, as the part finds it
+            pj = SH.project(u, 0, 0, k32)
+            u.hooks = {0x400802e0: ("new", 0), 0x400802ec: ("delete", 0), 0x400cf866: ("project", SH.PROJ),
+                       0x4000eb90: ("tracks", SH.PROJ), 0x40012412: ("active", 0), 0x4000eb9c: ("tracks2", SH.PROJ),
+                       0x400097f0: ("sound", SOUND_OBJ), 0x400cf9a8: ("ui", 0x93a20000), 0x4006b978: ("trig", 0),
+                       0x93c81000: ("set", 0), 0x93c81100: ("get", 0), SH.SOUND_FN: ("track_sound", pj[SH.SOUND_FN][1])}
+            for held in ((), (R,), (R, F), (R, T_), (F,)):
+                for k in range(12):
+                    got[name, k32, held, k] = lfo_dest(u, k, held)
+                    ok &= got[name, k32, held, k][1]
+    bad, kept = [], 0
+    for (name, k32, held, k), (v, _g, freed) in got.items():
         if name != "with":
             continue
-        w = got["without", held, k]
-        if R in held and 2 <= k <= 5 and [2, 3, 0, 1][k - 2] < n:
-            w = (28 + [2, 3, 0, 1][k - 2]) << 8
-        if v != w:
-            bad.append((held, k, v, w))
-    stock = [got["without", (), k] for k in range(12)]
-    check(ok and not bad and all(v is not None for v in got.values()),
-          f"{key}: LFO + a knob through the OS's own path: with RETRIG, SWEEP -> k 28" + (", CONTOUR -> k 29" if n > 1 else "")
-          + ", also with FUNC or TRACK; every other knob and everything without RETRIG as without the filters "
+        w, wfreed = got["without", k32, held, k][0], got["without", k32, held, k][2]
+        if R in held and 2 <= k <= 5:
+            p = [2, 3, 0, 1][k - 2]
+            if p < nv.get(k32, 0):
+                w = (28 + p) << 8
+            else:                                        # a value the track's filter lacks: the destination stays
+                w, wfreed, kept = None, wfreed[:1], kept + 1
+        if v != w or freed != wfreed:
+            bad.append((k32, held, k, v, w, freed, wfreed))
+    stock = [got["without", 0, (), k][0] for k in range(12)]
+    check(ok and not bad and all(r[0] is not None for (nm, *_x), r in got.items() if nm == "without"),
+          f"{key}: LFO + a knob through the OS's own path: with RETRIG, SWEEP / CONTOUR / COLOR / SHAPE -> k 28 .. 31 "
+          "when the selected track's filter has the value, also with FUNC or TRACK; a value it lacks, or none: no "
+          f"destination set, the knob list freed as the routine frees it, the routine's end ({kept} cases, fltslot "
+          "0.10); every other knob and everything without RETRIG as without the filters "
           f"(the stock destinations k {[v >> 8 for v in stock]})" + (f"; DIFFERENT {bad[:4]}" if bad else ""))
 
 
@@ -953,6 +1028,20 @@ def formatter_tests(key, img, runtime, syms, mans):
         want.append(tags.get(k32 & 0xff, PART["type"]["none"]))
     check(got == want and not u.bad, f"{key}: the type's formatter: {', '.join(got)} (none, an id the build lacks, the "
                                      "filters, a filter with a switch set)")
+    u.uc.mem_write(syms["fl_data"] + DATA["na"], b"\x01")
+    got, want = [], []
+    for diag in (0, 1):                                  # a knob without a value: the same in a measuring build
+        u.uc.mem_write(syms["fl_data"] + DATA["diag"], bytes([diag]))
+        for k32 in [0, 7] + ids + [0x0200 | ids[0]]:
+            u.hooks = SH.project(u, 0, 0, k32)
+            u.uc.mem_write(BUF, b"\xee" * 16)
+            u.call(syms["fl_fmt_type"], 0, 0x1234, BUF)
+            got.append(u.cstr(BUF))
+            want.append("---" if k32 & 0xff in tags else PART["type"]["none"])
+    u.uc.mem_write(syms["fl_data"] + DATA["diag"], b"\x00\x00")
+    check(got == want and not u.bad, f"{key}: the type's formatter on a knob without a value (fltslot 0.10): "
+                                     f"{', '.join(got[:len(got) // 2])} (none, an id the build lacks, the filters, a "
+                                     "filter with a switch set), the same in a measuring build")
 
 
 # --- 7. the type (T2) -------------------------------------------------------------------------------------------------
@@ -1049,6 +1138,17 @@ def type_tests(key, img, runtime, syms, mans):
         t2(5, 1, 2 * pause + k)
     check(a == 0x0007 and t2.k32() == ids[0], f"{key}: a pause of 0.4 s starts the count again; an id the build lacks "
                                               f"(7) counts as none, the next step the first filter ({t2.k32():#06x})")
+    good, seen = True, []
+    for k32 in (0, ids[0]):                              # a knob without a value (fltslot 0.10): the popup only
+        tn = Turn(img, runtime, syms, k32)
+        tn.u.uc.mem_write(syms["fl_data"] + DATA["na"], b"\x01")
+        for k in range(12):
+            taken, _d0, g = tn(5, 1 if k < 8 else -1, 100 + k)
+            good &= taken and g
+        good &= tn.k32() == k32
+        seen.append(f"{tn.k32():#06x}")
+    check(good, f"{key}: descriptor 5 on a knob without a value: the handler's end with 0 and its registers each turn, "
+                f"no step after twelve detents both ways, the sound untouched ({', '.join(seen)})")
     t3 = Turn(img, runtime, syms, 0)
     res = [t3(37, 1, 5, keys=()), t3(37, 1, 6, keys=(SH.TRACK,)), t3(1, -1, 7, keys=(SH.RETRIG,))]
     good = all(not tk and g for tk, _d, g in res) and [d & 1 for _tk, d, _g in res] == [0, 1, 0] and t3.k32() == 0

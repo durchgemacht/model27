@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.32", date: "2026-11-02", changes: [
+    { en: "Track FX: a knob the sound's Track FX doesn't use now says so. Hold RETRIG and turn it: the popup shows that Track FX's short name over ---, CRU --- on Crush for example, and Track FX OFF on a sound with no Track FX. Such a knob changes nothing, also with a trig, TRACK or LFO held. Before, it showed the name of another ticked Track FX, Ring Shape on a Crush track for example, and changed a value you couldn't hear" },
+    { en: "The sound of every Track FX is the same as before, checked in an emulator on the OS's own code. Tried on a Model:Cycles from the command line (2026-11-02)" },
+  ] },
   { version: "0.31", date: "2026-11-02", changes: [
     { en: "Manager: a browser without Web MIDI (Safari, for example) now says so at the top of the page, since the Manager only works over USB from the page. The buttons that need the Cycles wait, and the setup no longer starts there; adding firmwares, Export and Import still work" },
   ] },

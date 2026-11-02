@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-11-02-02">
-<link rel="stylesheet" href="../assets/guide.css?v=2026-11-02-02">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-02-03">
+<link rel="stylesheet" href="../assets/guide.css?v=2026-11-02-03">
 <script>try{var t=localStorage.getItem("mc-theme")}catch(e){}if(t)document.documentElement.setAttribute("data-theme",t)</script>
 </head>
 <body data-page="guide">
@@ -167,7 +167,7 @@
         <dl class="facts">
           <div><dt>Sound</dt><dd>the filter inside SAMPLE, measured on the Model:Samples: 2 poles and a resonant peak. It comes after Volume + Dist, so a hot, distorted track with a lot of resonance can clip its peaks. Moving the knob, a lock or the LFO across the middle doesn't click; in the middle the sound passes untouched.</dd></div>
           <div><dt>Processor</dt><dd>six tracks filtered at once use about a tenth of the processor's time. A silent track whose filter has rung out costs almost nothing.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE (its own filter stays on SWEEP and CONTOUR, the track filter comes on top), the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a firmware without it, the official one too, a sound plays without the filter and keeps everything else.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE (its own filter stays on SWEEP and CONTOUR, the track filter comes on top), the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a Samples track <b>RETRIG</b> + <b>COLOR</b> or <b>SHAPE</b> shows <b>SMP ---</b>, and on a sound with no Track FX any of the four shows <b>Track FX OFF</b>: such a knob changes nothing, also with a trig, <b>TRACK</b> or <b>LFO</b> held. On a firmware without it, the official one too, a sound plays without the filter and keeps everything else.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code, bit for bit against SAMPLE's filter. On a Model:Cycles (2026-11-01) from the command line: the filter's choice, Cutoff and Reso, locks, the LFO, Control All on six tracks, saving and loading, next to SAMPLE and the effects; then flashed from this page (release 0.24, the same day).</dd></div>
         </dl>
       </section>
@@ -185,7 +185,7 @@
         </ol>
         <dl class="facts">
           <div><dt>Sound</dt><dd>both knobs move without steps. Every note restarts the sample-rate clock. At Rate 0 and Bits 127 the sound passes untouched. Values glide in, as any parameter does on the Model:Cycles, so right after a switch you may hear them settle for a moment.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a firmware without Crush, the official one too, a sound plays without it and keeps everything else.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a Crush track <b>RETRIG</b> + <b>COLOR</b> or <b>SHAPE</b> shows <b>CRU ---</b>, and on a sound with no Track FX any of the four shows <b>Track FX OFF</b>: such a knob changes nothing, also with a trig, <b>TRACK</b> or <b>LFO</b> held. On a firmware without Crush, the official one too, a sound plays without it and keeps everything else.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code, bit for bit against its own code built for a computer. Played on a Model:Cycles (2026-11-01) from the command line, then flashed from this page (release 0.26, the same day).</dd></div>
         </dl>
       </section>
@@ -204,7 +204,7 @@
         </ol>
         <dl class="facts">
           <div><dt>Sound</dt><dd>every note starts the carrier again from its peak, so every hit sounds the same and its attack comes through. At Mix 0 the sound passes untouched. With Shape up, high notes alias. Values glide in, as any parameter does on the Model:Cycles, so right after a switch you may hear them settle for a moment.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a track whose Track FX has no value on a knob, <b>RETRIG</b> + that knob shows the name of the first ticked Track FX that has one and changes nothing you hear. On a firmware without Ring, the official one too, a sound plays without it and keeps everything else.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a Ring track <b>RETRIG</b> + <b>SHAPE</b> shows <b>RNG ---</b>, and on a sound with no Track FX any of the four shows <b>Track FX OFF</b>: such a knob changes nothing, also with a trig, <b>TRACK</b> or <b>LFO</b> held. On a firmware without Ring, the official one too, a sound plays without it and keeps everything else.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code, bit for bit against its own code built for a computer. Played on a Model:Cycles (2026-11-01) from the command line, then flashed from this page (release 0.28, the same day).</dd></div>
         </dl>
       </section>
@@ -224,7 +224,7 @@
         </ol>
         <dl class="facts">
           <div><dt>Sound</dt><dd>the pitch is the knob's: it does not follow the notes you play. Noise comes out about as loud as it goes in; a single hit rings quieter the longer it rings. A dull or high pitch rings shorter than Decay asks. At Amount 0 the sound passes untouched. Values glide in, as any parameter does on the Model:Cycles.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a track whose Track FX has no value on a knob, <b>RETRIG</b> + that knob shows the name of the first ticked Track FX that has one and changes nothing you hear. On a firmware without Reso, the official one too, a sound plays without it and keeps everything else.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a sound with no Track FX, <b>RETRIG</b> + any of the four knobs shows <b>Track FX OFF</b> and changes nothing, also with a trig, <b>TRACK</b> or <b>LFO</b> held. On a firmware without Reso, the official one too, a sound plays without it and keeps everything else.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code, bit for bit against its own code built for a computer. Played on a Model:Cycles (2026-11-01) from the command line, then flashed from this page (release 0.28, the same day).</dd></div>
         </dl>
       </section>
@@ -243,7 +243,7 @@
         </ol>
         <dl class="facts">
           <div><dt>Sound</dt><dd>the bands are the classic studio-EQ curves; a cut is the mirror of the same boost. With the three gains at 0 the sound passes untouched. A boost that goes past full scale clips. Values glide in, as any parameter does on the Model:Cycles.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a track whose Track FX has no value on a knob, <b>RETRIG</b> + that knob shows the name of the first ticked Track FX that has one and changes nothing you hear. On a firmware without EQ, the official one too, a sound plays without it and keeps everything else.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a sound with no Track FX, <b>RETRIG</b> + any of the four knobs shows <b>Track FX OFF</b> and changes nothing, also with a trig, <b>TRACK</b> or <b>LFO</b> held. On a firmware without EQ, the official one too, a sound plays without it and keeps everything else.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code, bit for bit against its own code built for a computer. Played on a Model:Cycles (2026-11-01) from the command line, then flashed from this page (release 0.28, the same day).</dd></div>
         </dl>
       </section>
@@ -447,8 +447,8 @@
   </div>
 </footer>
 
-<script src="../assets/release.js?v=2026-11-02-02"></script>
-<script src="../assets/cycles.js?v=2026-11-02-02"></script>
-<script src="../assets/site.js?v=2026-11-02-02"></script>
+<script src="../assets/release.js?v=2026-11-02-03"></script>
+<script src="../assets/cycles.js?v=2026-11-02-03"></script>
+<script src="../assets/site.js?v=2026-11-02-03"></script>
 </body>
 </html>

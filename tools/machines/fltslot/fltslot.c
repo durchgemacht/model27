@@ -24,16 +24,25 @@
  * CC 71 and NRPN 1:21. fl_boot writes their rows, the composer's, into the stock table and the one the OS uses before
  * the OS builds its parameter tables from them at boot (rows by machine, CC, NRPN, LFO destinations, a new sound's
  * defaults). fl_knob, ParameterPageView's knob lookup (behind the shortcut layer's or the stock one): RETRIG held +
- * SWEEP, CONTOUR, COLOR or SHAPE gives descriptor 1, 2, 3 or 4 when the build has it, also with FUNC (fine), TRACK
- * (Control All), LFO (the destination) or a trig held (a p-lock): their names and formatters are those of the filter
- * the track's sound chose, or of the build's first filter. RETRIG held + PITCH alone gives descriptor 5, the filter's
- * type, display only (group -1, k 0: the OS builds nothing on it, and an edit that slipped through would write the
- * unused k 0): its popup names the type through fl_fmt_type, and the encoder handler's turn reaches fl_step
- * (entries.S's fl_keys at 0x4001f886) before any edit, which steps the selected track's sound's id through none and
- * the build's filters, four detents a step, as the effect slots step theirs; a step to a filter gives the sound that
- * filter's start values (since 0.8, below). LFO + RETRIG + a knob makes the value
- * the LFO's destination through fl_lfo_desc (since 0.4: that gesture has a knob list of its own, 0x4001eaa2). The
- * pattern's p-locks of k 23 and above
+ * SWEEP, CONTOUR, COLOR or SHAPE gives descriptor 1, 2, 3 or 4 when the selected track's filter has that value, also
+ * with FUNC (fine), TRACK (Control All), LFO (the destination) or a trig held (a p-lock): their names and formatters
+ * are those of that filter. RETRIG held + PITCH alone gives descriptor 5, the filter's type, display only (group -1,
+ * k 0: the OS builds nothing on it, and an edit that slipped through would write the unused k 0): its popup names the
+ * type through fl_fmt_type, and the encoder handler's turn reaches fl_step (entries.S's fl_keys at 0x4001f886) before
+ * any edit, which steps the selected track's sound's id through none and the build's filters, four detents a step, as
+ * the effect slots step theirs; a step to a filter gives the sound that filter's start values (since 0.8, below).
+ * LFO + RETRIG + a knob makes the value the LFO's destination through fl_lfo_desc (since 0.4: that gesture has a knob
+ * list of its own, 0x4001eaa2).
+ *
+ * A knob without a value (since 0.10, notes/73 §19): on a track whose sound chose none, or a filter that declares
+ * fewer values than the knob's place (nvals, written by the composer), RETRIG + that knob gives descriptor 5 too, as a
+ * popup that changes nothing: "Track FX" over "OFF" for none, the filter's tag over "---" for a value it lacks (na in
+ * the data block; fl_step does not step then). Every edit of the handler (a turn, FUNC, a p-lock, Control All) comes
+ * after fl_keys, so nothing is written. LFO + RETRIG + that knob leaves the destination as it was (lfo_keep: entries.S's
+ * fl_lfo goes to the routine's end). Before 0.10 such a knob edited its value unheard, under the name of the build's
+ * first filter that had one. The values' names in the descriptor tables are those of the selected track's filter
+ * after each RETRIG + knob, LFO + RETRIG + knob and step of the type; Control All's lookups of the other tracks no
+ * longer rename them. The pattern's p-locks of k 23 and above
  * (the OS saves them onto other parameters or loses them, notes/47 §4.3): fl_ptab and entries.S's fl_conv.
  *
  * The record (since 0.3): entries.S's wrappers of the three sound record functions run in front of the shortcut
@@ -121,11 +130,16 @@ struct data {
 	int32_t old[FRAMES];                        /* +892 in a change, the stopping filter's block */
 	uint16_t neutral[PARAMS];                   /* +1020 each value's neutral word, the record's XOR (since 0.3) */
 	uint32_t rec_next[3];                       /* +1028 the shortcut layer's save2, save1 and load wrappers */
-	uint8_t diag, spare2[3];                    /* +1040 1 in a measuring build (since 0.5) */
+	uint8_t diag;                               /* +1040 1 in a measuring build (since 0.5) */
+	uint8_t na;                                 /* +1041 descriptor 5 shows a knob without a value (since 0.10) */
+	uint8_t lfo_keep;                           /* +1042 LFO + RETRIG + that knob: the destination stays (0.10) */
+	uint8_t spare2;
 	uint32_t sum, peak;                         /* +1044 the window's ticks and its dearest block */
 	uint16_t n, avg_t, peak_t, spare3;          /* +1052 its blocks; the last window's average and peak, 0.1 % */
 	uint16_t start[ENTRIES][PARAMS];            /* +1060 each entry's start words (since 0.8; entry 0 the neutral ones) */
-};                                                  /* 1 132 bytes (740 before 0.7, 804 in 0.7, 844 in 0.8) */
+	uint8_t nvals[ENTRIES];                     /* +1132 the values each entry declares (since 0.10; entry 0 none) */
+	uint8_t spare4[3];
+};                                                  /* 1 144 bytes (740 before 0.7, 804 in 0.7, 844 in 0.8, 1 132 in 0.9) */
 
 extern char fl_data[];
 #define D ((struct data *)fl_data)
@@ -256,12 +270,12 @@ static uint8_t *sound_of(int32_t t)
 	return vt && vt[10] ? ((uint8_t *(*)(uint8_t *))vt[10])(track) : 0;
 }
 
-/* The entry whose names the values show on track t: its sound's filter, or the build's first one. */
-static uint32_t named(int32_t t)
+/* The entry of the filter the selected track's sound chose (since 0.10 the names and the knobs follow it; the build's
+ * first filter's names for none before), 0 for none or an id the build does not hold. */
+static uint32_t named(void)
 {
-	uint8_t *snd = sound_of(t < 0 ? selected() : t);
-	uint32_t i = snd ? index_of(snd[SOUND_K32 + 1]) : 0;
-	return i;
+	uint8_t *snd = sound_of(selected());
+	return snd ? index_of(snd[SOUND_K32 + 1]) : 0;
 }
 
 static void name_value(uint32_t p, uint32_t i)
@@ -276,43 +290,73 @@ static void name_value(uint32_t p, uint32_t i)
 	*(volatile uint32_t *)(UI_OBJ(p + 1) + 0x2c) = 0;       /* no "Error" picture */
 }
 
+/* Every value's names and formatter, those of entry i (a value it lacks keeps the build's first filter's that has one,
+ * as the composer writes them). Since 0.10. */
+static void name_values(uint32_t i)
+{
+	for (uint32_t p = 0; p < D->params; p++)
+		name_value(p, i);
+}
+
 void fl_fmt_type(void *fn, int32_t v, char *buf);
+
+/* Descriptor 5's popup: the type (na 0) or a knob without a value (na 1, since 0.10), under the long name longn. */
+static uint32_t show_type(uint8_t na, uint32_t longn)
+{
+	uint8_t *o = UI_OBJ(TYPE_DESC);
+	D->na = na;
+	for (uint32_t k = 0; k < 2; k++)
+		((volatile uint32_t *)(D->desc[k] + DSTRIDE * TYPE_DESC))[0x2c / 4] = longn;
+	*(volatile uint32_t *)(o + 0x10) = *(volatile uint32_t *)(UI_OBJ(1) + 0x10);  /* the knob's steps */
+	*(volatile uint32_t *)(o + 0x20) = (uint32_t)fl_fmt_type;
+	*(volatile uint32_t *)(o + 0x2c) = 0;
+	return TYPE_DESC;
+}
 
 static const uint8_t knob_value[4] = {2, 3, 0, 1};          /* COLOR, SHAPE, SWEEP, CONTOUR -> k 30, 31, 28, 29 */
 
 /* ParameterPageView's knob lookup (its vtable's +0x7c, 0x401005a8): (view, knob, FUNC, track or -1) -> the
- * descriptor under the knob (notes/47 §3.2; PITCH is knob 2, COLOR to CONTOUR 4 to 7). */
+ * descriptor under the knob (notes/47 §3.2; PITCH is knob 2, COLOR to CONTOUR 4 to 7). The encoder handler and the
+ * popup at a track change ask for the selected track (-1), Control All (0x4001d716) for each track in turn, after the
+ * selected track's answer took it there. */
 uint32_t fl_knob(void *view, uint32_t knob, uint32_t func, int32_t track)
 {
-	uint32_t d = ((lookup_fn)D->knob_next)(view, knob, func, track);
+	uint32_t d = ((lookup_fn)D->knob_next)(view, knob, func, track), p, i;
 	if ((knob != 2 && (knob < 4 || knob > 7)) || !KEY_HELD(K_RETRIG))
 		return d;
 	if (knob == 2) {                            /* the type: RETRIG + PITCH alone */
 		if (D->count < 2 || KEY_HELD(K_FUNC) || KEY_HELD(K_TRACK) || KEY_HELD(K_LFO) || TRIG_HELD(UI_STATE()))
 			return d;
-		uint8_t *o = UI_OBJ(TYPE_DESC);
-		*(volatile uint32_t *)(o + 0x10) = *(volatile uint32_t *)(UI_OBJ(1) + 0x10);  /* the knob's steps */
-		*(volatile uint32_t *)(o + 0x20) = (uint32_t)fl_fmt_type;
-		*(volatile uint32_t *)(o + 0x2c) = 0;
-		return TYPE_DESC;
+		return show_type(0, D->rows[PARAMS][0x2c / 4]);
 	}
-	uint32_t p = knob_value[knob - 4];
-	if (p >= D->params)
-		return d;
-	name_value(p, named(track));
+	p = knob_value[knob - 4];
+	if (track >= 0)                             /* Control All: the value on every track, the names left alone */
+		return p < D->params ? p + 1 : d;
+	i = named();
+	name_values(i);
+	if (p >= D->nvals[i])                       /* none, or a filter without this value: a popup that changes nothing */
+		return show_type(1, i ? D->e[i].tag : D->rows[PARAMS][0x2c / 4]);
 	return p + 1;
 }
 
 /* entries.S's fl_lfo, in LFO + a knob (0x4001eaa2), which sets the LFO's destination from the machine record's knob list
  * and not from the knob lookup: knob 0 PITCH, 1 DECAY, 2..5 COLOR..CONTOUR, stock the list's descriptor. With RETRIG
- * held, COLOR to CONTOUR give the filter's values the build has, as fl_knob does; anything else the list's. Since 0.4. */
+ * held, COLOR to CONTOUR give the selected track's filter's values, as fl_knob does; a value it lacks (or none) sets
+ * lfo_keep, and fl_lfo leaves the destination as it was (since 0.10); anything else the list's. Since 0.4. */
 uint32_t fl_lfo_desc(uint32_t knob, uint32_t stock)
 {
-	uint32_t p;
+	uint32_t p, i;
+	D->lfo_keep = 0;
 	if (knob < 2 || knob > 5 || !KEY_HELD(K_RETRIG))
 		return stock;
 	p = knob_value[knob - 2];
-	return p < D->params ? p + 1 : stock;
+	i = named();
+	name_values(i);
+	if (p >= D->nvals[i]) {
+		D->lfo_keep = 1;
+		return stock;
+	}
+	return p + 1;
 }
 
 /* A share in tenths of a percent, three characters: "6.4" below 10 %, "12" from there, "99" at most. */
@@ -327,17 +371,25 @@ static void share(uint32_t t, char *buf)
 }
 
 /* The type's formatter (fn, v, buffer): the name of the filter the selected track's sound chose, "OFF" for none; in a
- * measuring build the last window's peak load. */
+ * measuring build the last window's peak load. For a knob without a value (na, since 0.10): "OFF" for none, "---"
+ * for a filter that lacks it, in every build. */
 void fl_fmt_type(void *fn, int32_t v, char *buf)
 {
 	const char *s;
+	uint32_t i;
 	(void)fn;
 	(void)v;
-	if (D->diag) {
+	if (D->diag && !D->na) {
 		share(D->peak_t, buf);
 		return;
 	}
-	s = (const char *)D->e[named(-1)].tag;
+	i = named();
+	if (D->na && i) {
+		buf[0] = buf[1] = buf[2] = '-';
+		buf[3] = 0;
+		return;
+	}
+	s = (const char *)D->e[i].tag;
 	while ((*buf++ = *s++))
 		;
 }
@@ -384,11 +436,14 @@ static void start_values(uint8_t *snd, uint32_t from, uint32_t to)
  * step (16 bits, signed). Four detents in one direction make one step; the count starts again after a change of
  * direction or 0.4 s without a detent. A step moves the selected track's sound's id to the next or previous entry
  * of the table (none first, then the filters by id) and stops at the ends; an id the build does not hold counts as
- * none. A step to a filter gives the sound its start values (start_values). The audio reads them in the next block. */
+ * none. A step to a filter gives the sound its start values (start_values). The audio reads them in the next block.
+ * On a knob without a value (na) nothing (since 0.10); after a step, the values take the new filter's names. */
 void fl_step(int32_t step)
 {
 	uint32_t now = TIMER;
 	uint8_t dir = step > 0 ? 1 : 2, *snd;
+	if (D->na)
+		return;
 	if (dir != D->last_dir || now - D->last_time > PAUSE)
 		D->acc = 0;
 	D->last_dir = dir;
@@ -405,6 +460,7 @@ void fl_step(int32_t step)
 	snd[SOUND_K32 + 1] = (uint8_t)D->e[j].id;
 	if (j)
 		start_values(snd, i, j);
+	name_values(j);
 }
 
 static uint32_t rd16(const uint8_t *a)

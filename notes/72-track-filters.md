@@ -80,7 +80,9 @@ never offered), the card's tweak `72-smpfilter.json` (`tools/gen_smpfilter.py`),
   `sc_knob`: RETRIG + SWEEP / CONTOUR / COLOR / SHAPE give descriptors 1 / 2 / 3 / 4 when the build has that value, on
   every machine, also with FUNC, TRACK (Control All), LFO, MACHINES or a held trig (a p-lock): they are real parameters,
   unlike a machine's values. Names and formatter follow the track's sound's filter (the first filter's for none), in both
-  descriptor tables and the interface object.
+  descriptor tables and the interface object. Since `fltslot` 0.10 (notes/73 §19) a knob the selected track's filter
+  has no value on, and every knob on none, gives descriptor 5 as a popup that changes nothing (Track FX over OFF, the
+  filter's tag over `---`).
 - **The descriptors** `[FAIT, notes/47 §3]`: 1–4 are the OS's unused "Error" entries. `fl_boot` (at `0x4004486c`, in
   place of `jsr 0x4005a274`, then the builder) writes them as the track filter did: group 7 (every machine), k 28..,
   0..32512, defaults 0x4000 / 0 / 0x4000 / 0x4000, CC 74 / 71, NRPN 1:20 / 1:21, the first filter's names; only as many

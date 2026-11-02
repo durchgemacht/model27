@@ -1116,7 +1116,8 @@ def fl_layer(img, part, filters, syms_of, at, code_end, desc_used, layer_syms, k
     after the part's code: the table of the build's filters by id (entry 0 none, then each filter's id, process, reset,
     the type's name on screen and its values' names and formatters, a value it does not declare named after the first
     filter that does), the rows of descriptors 1 to n (n the most values a filter declares) and 5 that fl_boot writes
-    into the stock table and desc_used, then the state, all zero, then the strings. At most the part's "most" filters,
+    into the stock table and desc_used, then the state, all zero, each entry's start words and count of values (fltslot
+    0.8 and 0.10), then the strings. At most the part's "most" filters,
     each id once. diag: a measuring build (fltslot 0.5), whose popups show the filters' load instead of the values.
     Returns (blob, symbols, writes, the sites taken, info)."""
     d, vals, ty = part["data"], part["values"], part["type"]
@@ -1172,6 +1173,7 @@ def fl_layer(img, part, filters, syms_of, at, code_end, desc_used, layer_syms, k
         struct.pack_into(">4H", block, d["start"] + 8 * i,
                          *(prm[p].get("start", vals["defaults"][p]) if p < len(prm) else vals["defaults"][p]
                            for p in range(4)))
+        block[d["nvals"] + i] = len(prm)     # the values it declares (fltslot 0.10): a knob past them shows "---"
     struct.pack_into(">3I", block, d["rec_next"], *(layer_syms[r["next"]] for r in part["record"]))
     struct.pack_into(">II", block, d["desc"], g7.DESC, desc_used)
     block[d["diag"]] = 1 if diag else 0

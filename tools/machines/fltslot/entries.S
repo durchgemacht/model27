@@ -18,8 +18,10 @@
  *   fl_keys    jsr from 0x4001f886 in place of pea 2 ; jsr (a4), where ParameterPageView's encoder handler (0x4001f4f0)
  *              asks whether TRACK is held (a4 = isKeyHeld 0x4007faf4) on every knob turn that reaches it, before any
  *              edit: d3 is the descriptor under the knob, -38(fp) the step (16 bits, signed), fp the handler's frame.
- *              On descriptor 5, the type (RETRIG + PITCH, fl_knob), fl_step(step), then the handler's end at
- *              0x4001f96a with d4 = 0: no edit (as the effect slots' fx_keys ends there). Anything else: the effect
+ *              On descriptor 5, the type (RETRIG + PITCH, fl_knob) or a knob without a value (since 0.10; fl_step
+ *              does not step then), fl_step(step), then the handler's end at 0x4001f96a with d4 = 0: no edit (as the
+ *              effect slots' fx_keys ends there). The handler's edits (a turn or FUNC at 0x4001f950, a held trig's
+ *              p-lock at 0x4001f962, Control All at 0x4001f912) all come after this site. Anything else: the effect
  *              slots' fx_keys when the build has them (keys_next, entered as from the site), else isKeyHeld(2) as the
  *              handler asked, with the stack it expects. Since 0.2.
  *   fl_conv    jmp from 0x4005aa34 over moveq #23,d2 ; cmp.l d0,d2 ; bcc.s 0x4005aa46, in 0x4005aa1a (track, the index
@@ -32,7 +34,9 @@
  *              DECAY, 2..5 COLOR..CONTOUR). It does not ask the knob lookup, so RETRIG never reached it: d2 =
  *              fl_lfo_desc(knob, the list's descriptor), the filter's value with RETRIG held, then tst.l a0 as the
  *              instructions replaced, for the beq that follows (the list freed when there is one). a0 kept; d0, d1, a1
- *              are free there. Since 0.4.
+ *              are free there. Since 0.4. When fl_lfo_desc set lfo_keep (a knob the selected track's filter has no
+ *              value on, or none; since 0.10): the list freed as the routine frees it, then the routine's end at
+ *              0x4001eccc (movem from its stack, lea 60(sp), rts) with no destination set, as for a knob past 11.
  *   fl_save2, fl_save1, fl_load
  *              jmp from the sound record functions' first 8 bytes (lea -12(sp),sp ; movem.l a2-a4,(sp)): save version 2
  *              (0x4005afa0), version 1 (0x4005b054), load (0x4005aecc), in front of the shortcut layer's wrappers
@@ -108,8 +112,17 @@ fl_lfo:
 	addq.l	#8, %sp
 	move.l	%d0, %d2
 	movea.l	(%sp)+, %a0
+	tst.b	fl_data+1042			/* lfo_keep: a knob without a value (since 0.10) */
+	bne.s	1f
 	tst.l	%a0				/* the instruction replaced */
 	rts
+1:	addq.l	#4, %sp				/* the return address: the routine's end instead, no destination set */
+	tst.l	%a0
+	beq.s	2f
+	move.l	%a0, -(%sp)
+	jsr	0x400802ec			/* the list freed, as the routine frees it at 0x4001eae2 */
+	addq.l	#4, %sp
+2:	jmp	0x4001eccc			/* its end: restores its registers from the stack and returns */
 
 	.section .text.fl_conv, "ax"
 	.p2align 2

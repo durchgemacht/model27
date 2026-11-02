@@ -329,9 +329,10 @@ python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,smpfilter   # avec SAMPLE
 ```
-MAIN OS patché, `smpfilter` seul : `adb6d1bf800160d442be58a0f98cac6bcd901bee72b028ece42a1bc34b51fbaa` ; avec SAMPLE
-(`sampler`, `smpfilter`) : `62f07d89d70c43ae5fb3bb655be45c7c37177247959df02b6c2859f9277619c5`, ceux que la page compose
-(`fltslot` 0.9 : huit par build, pas de recherche pour « aucun », note 73 §16 ; avec 0.8 : `854342c2…`, `9499b519…`). Avec `fltslot` 0.6 et Samples 0.3
+MAIN OS patché, `smpfilter` seul : `62db545246482af01b1bd7af18d3d036a2a22867f83f473752e5e65dad626a3c` ; avec SAMPLE
+(`sampler`, `smpfilter`) : `7350c436a1733efe923485a898871d5b64c3115f5fa57cb714d76f5769ca0692`, ceux que la page compose
+(`fltslot` 0.10 : un potard sans valeur montre le popup du type et ne change rien, note 73 §19 ; avec 0.9, huit par
+build, pas de recherche pour « aucun », note 73 §16 : `adb6d1bf…`, `62f07d89…` ; avec 0.8 : `854342c2…`, `9499b519…`). Avec `fltslot` 0.6 et Samples 0.3
 (Cutoff de -64 à 63 comme SAMPLE, CUTO comme destination du LFO, note 72 §22), flashés depuis la page et joués sur un
 Model:Cycles le 01/11/2026 (note 72 §23) : seul `92f6955e…`, avec SAMPLE `83801ea7…`, avec toutes les cartes
 `e6a60aa3…`. Avec `fltslot` 0.5 et Samples 0.2 (L64 … OFF … H63, FREQ), joués sur un Model:Cycles depuis la ligne de
@@ -354,10 +355,10 @@ python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines crush
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush   # avec Samples
 ```
-MAIN OS patché, `crush` seul : `8f78c2034f530bfa27d50999d19176977ed47d6df022876ac0bd2164dda4293c` ; avec Samples
-(`smpfilter`, `crush`) : `2b6d98a79dc9ba5df990354219bfc60c29b9887c311b8d585e4f5208106b4db2` ; avec toutes les cartes de
-la page (onze, release 0.28) : `a1736027d09b20e8076da4cd3a8e5e485d800d8e150280ca4be117954cc6a9ae`, ceux que la page compose (Crush 0.4, Bits de
-8 bits à 1 bit, `fltslot` 0.9 ; avec les huit cartes de la release 0.27 : `74ac0913…` ; avec `fltslot` 0.8, joués et testés depuis la page : `a151818c…`, `cbf53b93…`, `388d2043…` ; avec Crush 0.3, Bits de 16 à 1 : `da5584a0…`, `167d2883…`, `2b2fae73…` ; avec Crush
+MAIN OS patché, `crush` seul : `3e95ccadb8f05a9a4d49b23bab6b7ce9f9a9e19964fc1543656456420456f5bf` ; avec Samples
+(`smpfilter`, `crush`) : `32df88957565fa05eb7d0afc9495df4d5c42e1151447e081a103628abe677a71` ; avec toutes les cartes de
+la page (onze, release 0.32) : `096619416bf585a15d64b48f78ff844f08fa95c2717b8bcc256ed0d8426139b3`, ceux que la page compose (Crush 0.4, Bits de
+8 bits à 1 bit, `fltslot` 0.10 ; avec `fltslot` 0.9 : `8f78c203…`, `2b6d98a7…`, `a1736027…` ; avec les huit cartes de la release 0.27 : `74ac0913…` ; avec `fltslot` 0.8, joués et testés depuis la page : `a151818c…`, `cbf53b93…`, `388d2043…` ; avec Crush 0.3, Bits de 16 à 1 : `da5584a0…`, `167d2883…`, `2b2fae73…` ; avec Crush
 0.2, le même son que 0.3 : `365f496b…`, `01cf9060…`, `c089f700…`). Crush 0.4 joué sur un Model:Cycles depuis la ligne
 de commande le 01/11/2026 (note 73 §14). Avec Crush 0.1 (Bits à l'envers) et `fltslot` 0.7, joués sur un Model:Cycles depuis la ligne de
 commande le 01/11/2026 (note 73 §10) : seul `25aac3ea…`, avec Samples `c8cdc37c…`, avec toutes les cartes `67f0d95e…`.
@@ -377,10 +378,10 @@ python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines ring
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush,ring   # avec Samples et Crush
 ```
-MAIN OS patché, `ring` seul : `3cdd61c01181408642e1ed3b58458bf98ffcb2d0d30986a48e692c7b4ed2ec4d` ; avec Samples et
-Crush : `b5a8c7e99016f066e6f469e9f7c1cbc217e6344a02e90dca65066eca7a4d52a9` ; avec toutes les cartes de la page (onze,
-release 0.28) : `a1736027d09b20e8076da4cd3a8e5e485d800d8e150280ca4be117954cc6a9ae` (Ring 0.2, le produit sur l'EMAC, `fltslot` 0.9 ;
-avec les cartes de la release 0.27 : `6960abd2…`). Ring 0.2 joué sur un Model:Cycles depuis la ligne de commande le
+MAIN OS patché, `ring` seul : `704f5f6552944f6035b473c7389a357ee50652c2a6677f751cb897979d4b6e86` ; avec Samples et
+Crush : `85467706f765ba5b2995c4a7afa9742345558cba59904b994047bb37a20a7349` ; avec toutes les cartes de la page (onze,
+release 0.32) : `096619416bf585a15d64b48f78ff844f08fa95c2717b8bcc256ed0d8426139b3` (Ring 0.2, le produit sur l'EMAC, `fltslot` 0.10 ;
+avec `fltslot` 0.9 : `3cdd61c0…`, `b5a8c7e9…`, `a1736027…` ; avec les cartes de la release 0.27 : `6960abd2…`). Ring 0.2 joué sur un Model:Cycles depuis la ligne de commande le
 01/11/2026 (note 74 §10). Avec Ring 0.1, le même son, joués sur un Model:Cycles depuis la ligne de commande le
 01/11/2026 : `a32b09d0…`, `ce50adf3…`, `9647a93b…`.
 
@@ -398,10 +399,10 @@ python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines reso
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush,reso   # avec Samples et Crush
 ```
-MAIN OS patché, `reso` seul : `c92e3d1462638eb255b46b43441eeac9524722848fe362d7a5a9fb5447119cef` ; avec Samples et
-Crush : `8dc2d4c26dfc1a205fc78c74dd0176fa83d2874be271275c1fecec59590ec7cb` ; avec toutes les cartes de la page (onze,
-release 0.28) : `a1736027d09b20e8076da4cd3a8e5e485d800d8e150280ca4be117954cc6a9ae` (Reso 0.3, Tone sur COLOR et Decay sur SHAPE, `fltslot` 0.9 ; avec les cartes de la
-release 0.27 : `f14b2b21…` ; avec Reso 0.2, Decay sur COLOR et Brightness sur SHAPE : `54ec2859…`, `4e31c87f…`,
+MAIN OS patché, `reso` seul : `0b0fdba1406e239cb1292de1b048201bce0dbf68eb261c31ac702a506a418634` ; avec Samples et
+Crush : `45a81abb803e6413d078be79992476f8265f3780688ceca7bb58ae145da7eb82` ; avec toutes les cartes de la page (onze,
+release 0.32) : `096619416bf585a15d64b48f78ff844f08fa95c2717b8bcc256ed0d8426139b3` (Reso 0.3, Tone sur COLOR et Decay sur SHAPE, `fltslot` 0.10 ; avec
+`fltslot` 0.9 : `c92e3d14…`, `8dc2d4c2…`, `a1736027…` ; avec les cartes de la release 0.27 : `f14b2b21…` ; avec Reso 0.2, Decay sur COLOR et Brightness sur SHAPE : `54ec2859…`, `4e31c87f…`,
 `8dede451…` ; avec Reso 0.1, le même son : `0a4eba0e…`, `b274ee03…`, `5a8d16a6…`). Reso 0.1 avec Samples et Crush joué
 sur un Model:Cycles depuis la ligne de commande le 01/11/2026 (note 75 §12), Reso 0.3 aussi (note 75 §14).
 
@@ -421,9 +422,10 @@ python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines eq
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush,eq   # avec Samples et Crush
 ```
-MAIN OS patché (EQ 0.5), `eq` seul : `31e4456f980ffa5ffa29b4386b2e9af68195136e96669f0e6d15298b201fbc4f` ; avec Samples et
-Crush : `be915b719076cb2853f09e591bb6288ddaccc0b03b2bf1045a71cdd3b884fa94` ; avec toutes les cartes de la page (onze,
-release 0.28) : `a1736027d09b20e8076da4cd3a8e5e485d800d8e150280ca4be117954cc6a9ae` (`fltslot` 0.9 ; avec les cartes de la release 0.27 : `7351d116…`).
+MAIN OS patché (EQ 0.5), `eq` seul : `cf01be4792cd87fc494884804c77d8299065b7040dee0e64d261c118ac1073cd` ; avec Samples et
+Crush : `d53b1fe6bb12067609cd42a0123e426c0330abf629e9e0c228b77bf1231def3a` ; avec toutes les cartes de la page (onze,
+release 0.32) : `096619416bf585a15d64b48f78ff844f08fa95c2717b8bcc256ed0d8426139b3` (`fltslot` 0.10 ; avec `fltslot` 0.9 : `31e4456f…`, `be915b71…`,
+`a1736027…` ; avec les cartes de la release 0.27 : `7351d116…`).
 EQ 0.4 (les noms EQ Mid Freq … EQ High Gain, que l'écran coupait à « EQ Mid ») : `47d7d40b…`, `076475d6…`, `49241853…`.
 EQ 0.3 (Low sur SWEEP, High sur CONTOUR, le Mid sur COLOR et SHAPE ; le même son) : `14aeae02…`, `1e2385b8…`,
 `6d9eeda5…`.

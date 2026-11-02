@@ -387,3 +387,104 @@ The maintainer flashed a build of the live page (`d119203`, release 0.28, stamp 
 compared byte for byte with the commit) on their Model:Cycles: « getestet, passt ». Ring, Reso and EQ are tested
 (release 0.29): their status in `FEATURES` and `tweaks.js`, the guide's *Tested* lines, `README.md` (all eleven cards
 tested), `tools/webflash_smoke.js` (no tag on their cards), stamp `2026-11-01-08`.
+
+## 19. A knob without a value: `fltslot` 0.10 (2026-11-02, release 0.32)
+
+**Report (2026-11-02).** Feedback the maintainer received: names such as Ring Shape stay on a knob when the track's
+Track FX is not Ring, and when the Track FX is off.
+
+**Diagnosis `[FAIT]`.** That was the naming rule of §17.2 (notes/72 §3): on a track whose Track FX has no value on a
+knob, and on every knob of a track on none, RETRIG + that knob showed the name of the build's first Track FX that has
+one (`compose.names()`: a value an entry lacks is named after the first filter that declares it) and edited k 28..31
+unheard. Two more places followed from it: Control All's lookups of each track (`0x4001d716`, track 0..5) renamed the
+values after each track in turn, so the names left on the descriptor rows were track 6's; LFO + RETRIG + such a knob
+made the value the LFO's destination although the track's Track FX does not use it.
+
+**The maintainer's decisions (2026-11-02).** On none: the popup reads *Track FX* over *OFF*. On a Track FX without the
+value: its tag over `---` (« CRU --- »), not *Track FX* over *CRU*, which looks like the type's choice. *N.A.* does not
+fit: the screen shows three characters of a value (notes/47 §3.3); `-` is in the font (Cutoff's -64), `/` is not known
+to be. Nothing changes on such a knob.
+
+### 19.1 The encoder handler, read again `[FAIT]`
+
+ParameterPageView's encoder handler (`0x4001f4f0`), in order:
+
+| Where | What |
+|---|---|
+| `0x4001f598` | LFO held: `0x4001eaa2`, the destination (no lookup; `fl_lfo` at `0x4001ead8`); the caller ignores its d0 |
+| `0x4001f6ee` | the lookup, track -1 (`fl_knob`); descriptor 0 ends the handler at `0x4001f704` |
+| `0x4001f708`..`0x4001f768` | the popup: a new (descriptor, track) is set up by `0x4001ddb2`, which keeps the six tracks' values (`+508`), not the names; the names are read from the rows when drawn |
+| `0x4001f7ea` | the step (`0x4006f96a`); 0 ends the handler |
+| `0x4001f7fe`, `0x4001f81a` | key 12 (to the end, no edit), FUNC (the fine step, no edit) |
+| `0x4001f886` | TRACK held? `fl_keys` sits here: on descriptor 5, `fl_step` and the end |
+| `0x4001f912` | TRACK: Control All, vtable +0x5c (`0x4001d6e4`, which asks the lookup for each track, `0x4001d716`, and uses its answer without testing it) |
+| `0x4001f962` | a held step (`0x4006bdfe`): the p-lock, vtable +0x74 |
+| `0x4001f950` | otherwise the edit, vtable +0x54 |
+
+Every edit comes after `0x4001f886`, so descriptor 5 changes nothing with FUNC, TRACK or a held trig either. The
+lookup's other caller is the popup at a track change (`0x4001f090`, track -1). `0x4001eaa2`'s own end is `0x4001eccc`
+(`movem` from its stack, `lea 60(sp)`, `rts`), where a knob past 11 goes.
+
+### 19.2 `fltslot` 0.10
+
+- **`nvals`**: each entry's count of values, written by both composers at `+1132` (none 0); the data block grows from
+  1 132 to 1 144 bytes. `na` (`+1041`) and `lfo_keep` (`+1042`) take two of the spare bytes after `diag`.
+- **`fl_knob`**, track -1, RETRIG + SWEEP / CONTOUR / COLOR / SHAPE: the values take the names of the selected track's
+  entry (`name_values`), then the value's descriptor when the entry declares it, else descriptor 5 through
+  `show_type(1, …)`: `na` set, descriptor 5's long name in both tables the entry's tag (Track FX for none), its
+  object with the type's formatter and descriptor 1's steps, as for the type. RETRIG + PITCH: `show_type(0, Track FX)`.
+  Track 0..5 (Control All): the value's descriptor when the build has it, as before, and no names written.
+- **`fl_fmt_type`**: with `na`, `---` for a filter, OFF for none, also in a measuring build (the type's peak stays on
+  RETRIG + PITCH).
+- **`fl_step`**: nothing with `na`; after a step the values take the new entry's names.
+- **`fl_lfo_desc` / `fl_lfo`**: with RETRIG, a value the selected track's entry lacks (or none) sets `lfo_keep`;
+  `fl_lfo` then frees the knob list as the routine does at `0x4001eae2`, drops its return address and goes to
+  `0x4001eccc`: no destination set, no popup. A value it has: the names follow it, then the destination as before.
+- A knob that no Track FX of the build has (COLOR with only Samples and Crush) now shows the popup too; before 0.10 the
+  lookup gave the stock answer there, the machine's value under RETRIG (RETRIG + a knob has no meaning in the stock OS,
+  notes/72 §3).
+- Code 3 376 → 3 736 bytes, 104 relocations; each Track FX build 372 bytes longer (`REGISTRY.md`).
+- `[HYP]` The LFO page shows its destination's short name from the descriptor's row. Those rows now hold the selected
+  track's Track FX's names after each RETRIG + knob, LFO + RETRIG + knob and step of the type; a value the Track FX
+  lacks keeps the first Track FX's name there. Not looked at on the machine.
+
+### 19.3 Proof and checks
+
+`tools/emu/test_fltslot.py`: the data block's `nvals`; the lookup on the selected track's sound with none, an id the
+build lacks and each Track FX (the value's descriptor or 5 with `na`, descriptor 5's name and object), every value
+named after the selected track's entry, Control All's lookups of tracks 0..5 (the descriptor, the names untouched),
+RETRIG + PITCH clearing `na` and putting Track FX back; LFO + a knob through the OS's own path on each Track FX (no
+destination and the list freed as the routine frees it where the Track FX lacks the value); the type's formatter with
+`na` (`---`, OFF, also measuring); `fl_keys` with `na`: the handler's end, no step after twelve detents both ways.
+Here `--dry` ALL OK (Unicorn stops with SIGILL in this sandbox). **The maintainer's runs (2026-11-02):** the first, 12
+ECHEC, all the one check of the values' names in every build, Reso and EQ too: the test expected `na` at 0 after a
+value's answer, but the part sets `na` only with descriptor 5, where alone it is read, and the loop starts on none;
+the test now checks `na` on descriptor 5 alone and names each condition that fails. The part unchanged. The second
+run: **ALL OK** (the cost lines as declared).
+
+Green: `gen_parts.py --check`, the five generators' `--check`, `gen_flasher_tweaks.py --check`, `check_overlaps.py`,
+`registry.py --check`, `claims.py --check --self-test`, `webbuild_check.sh`, `webcompose_check.sh` with the official
+file (composer.js identical to compose.py), `webflash_check.sh`, `webmanager_check.sh`, `webflash_smoke.sh` with both
+official files (ALL PARTS OK, the 67 combinations of `REF_MAINOS` regenerated), `py_compile`.
+
+MAIN OS: Samples alone `62db5452…`, with SAMPLE `7350c436…`; Crush alone `3e95ccad…`, with Samples `32df8895…`; Ring
+alone `704f5f65…`, Reso alone `0b0fdba1…`, EQ alone `cf01be47…`; Samples, Crush and Ring `85467706…`, with Reso
+`45a81abb…`, with EQ `d53b1fe6…`; every card of the page `09661941…`. Builds in `build/trackfx-0.32/` (git-ignored):
+`every-card/` and `smpfilter+crush+ring/`.
+
+**What was asked on the machine (§19.4):** on a sound with Track FX OFF, RETRIG + SWEEP / CONTOUR / COLOR / SHAPE: Track
+FX over OFF, nothing changes; on Crush, RETRIG + COLOR or SHAPE: CRU over `---`; on Ring, RETRIG + SHAPE: RNG over `---`;
+the same with a trig held (no lock), with TRACK (no track changes) and with FUNC; LFO + RETRIG + COLOR on Crush: the
+LFO's destination stays; RETRIG + PITCH still steps and reads Track FX; Control All on a value (TRACK + RETRIG + SWEEP)
+still sets six tracks and the popup keeps the selected track's name.
+
+### 19.4 On the machine (2026-11-02)
+
+The maintainer flashed `build/trackfx-0.32/every-card/` (every card of the page, from the command line, MAIN OS
+`09661941…`, as `REF_MAINOS`) and went through the list one step at a time: on none, RETRIG + SWEEP and COLOR read
+« track fx | off »; on Crush, COLOR and SHAPE CRU over `---`, SWEEP Crush Rate, « passt alles, wie erwartet »; on
+Crush with a trig held (no lock), with TRACK (no track changed) and LFO + RETRIG + COLOR (the destination stayed):
+« passt »; RETRIG + PITCH steps as before and on Ring SHAPE reads RNG over `---`, COLOR Ring Shape: « passt ». Control
+All on a value (TRACK + RETRIG + SWEEP on Ring, Crush on another track) moves the value on every track, and the popup
+names the track it is turned on; the maintainer: « so lassen » (Control All stays per knob, as in the stock OS, where one
+knob moves a different parameter on each machine; before 0.10 the popup named track 6's).

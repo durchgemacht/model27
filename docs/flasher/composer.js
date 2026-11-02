@@ -572,7 +572,8 @@ function fxLayer(mainOs, part, effects, symsOf, at, codeEnd, descStock, descUsed
 // own list, the pattern's p-lock tables and the three sound record functions (in front of the layer's wrappers). The
 // data block after the part's code: the table of the build's filters by id (entry 0 none) with their type names and
 // their values' names and formatters, the rows of descriptors 1 to n and 5 that fl_boot writes, the neutral words and
-// the layer's wrappers, the state zero, then the strings. Returns { blob, symbols, writes, skip, info }.
+// the layer's wrappers, the state zero, each entry's start words and count of values (fltslot 0.8 and 0.10), then the
+// strings. Returns { blob, symbols, writes, skip, info }.
 const flEntry = (p) => p.uses.find((u) => u.point === FILTER_POINT);
 function flLayer(mainOs, part, filters, symsOf, at, codeEnd, descStock, descUsed, dstride, layerSyms, keysNext, diag = false) {
   const d = part.data, vals = part.values, ty = part.type;
@@ -620,6 +621,7 @@ function flLayer(mainOs, part, filters, symsOf, at, codeEnd, descStock, descUsed
       block[d.start + 8 * i + 2 * k] = v >>> 8;
       block[d.start + 8 * i + 2 * k + 1] = v & 255;
     }
+    block[d.nvals + i] = prm.length;              // the values it declares (fltslot 0.10): a knob past them shows "---"
   });
   part.record.forEach((r, j) => put32(block, d.rec_next + 4 * j, layerSyms[r.next]));
   put32(block, d.desc, descStock);
