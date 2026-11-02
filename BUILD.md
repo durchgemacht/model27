@@ -302,8 +302,9 @@ python3 tools/build.py -i model-cycles_OS1.13.syx -t pots
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,digidelay,pots   # avec Digital et SAMPLE
 ```
 MAIN OS patché, `pots` seul : `19ef3b58909ae07f070a948623dd58c426917280b9287c5cc154563e52ca2385` ; `digidelay` et `pots`
-composés : `b37a17848ea281fc15467f9388238eb55d257de4b757c4a24803b50ff6f236b2` ; avec SAMPLE 0.12 (`sampler`,
-`digidelay`, `pots`) : `8042e1f61982a86133d4f361796cbafed9e2238dad05ba685c17f2632f46376b`, ceux que la page compose avec
+composés : `b37a17848ea281fc15467f9388238eb55d257de4b757c4a24803b50ff6f236b2` ; avec SAMPLE 0.13 (`sampler`,
+`digidelay`, `pots`) : `03a2b64e9eb445c89d02656f4f7c28f2e697cf55f15489d0e9e86b7119149ee7` (SAMPLE 0.12 : `8042e1f6…`,
+note 60 §21), ceux que la page compose avec
 `fxslot` 0.6 (PATTERN + Delay Time, note 68 §23) et la couche de raccourcis 0.4 (MACHINES, note 63 §24) ; avec `fxslot`
 0.4 et la couche 0.2 : `4a1521cb…`, `7e867f70…`, `1d7bc3b1…`). La ligne tourne à 12 kHz avec un codec 8 bits (note 69
 §23), testée sur un Model:Cycles (§23.6, `28cf64c0…`) ; depuis, la partie `fxslot` 0.4 lance la préparation des effets
@@ -330,7 +331,8 @@ python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,smpfilter   # avec SAMPLE
 ```
 MAIN OS patché, `smpfilter` seul : `62db545246482af01b1bd7af18d3d036a2a22867f83f473752e5e65dad626a3c` ; avec SAMPLE
-(`sampler`, `smpfilter`) : `7350c436a1733efe923485a898871d5b64c3115f5fa57cb714d76f5769ca0692`, ceux que la page compose
+(`sampler` 0.13, `smpfilter`) : `d343e6c970df9f8bc132a654f3ab0d924c8f6f8cb4f0e7446e1059915171f7e9` (SAMPLE 0.12 :
+`7350c436…`, note 60 §21), ceux que la page compose
 (`fltslot` 0.10 : un potard sans valeur montre le popup du type et ne change rien, note 73 §19 ; avec 0.9, huit par
 build, pas de recherche pour « aucun », note 73 §16 : `adb6d1bf…`, `62f07d89…` ; avec 0.8 : `854342c2…`, `9499b519…`). Avec `fltslot` 0.6 et Samples 0.3
 (Cutoff de -64 à 63 comme SAMPLE, CUTO comme destination du LFO, note 72 §22), flashés depuis la page et joués sur un

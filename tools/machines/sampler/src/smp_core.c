@@ -32,6 +32,8 @@ void smp_trigger(smp_voice *v, const int16_t *pcm, int32_t length, int32_t start
     v->loop = (flags & SMP_LOOP) != 0;
     v->stop = v->loop ? SMP_LOOPING : end - start;
     v->looped = 0;
+    v->next = -1;
+    v->length = length;
 }
 
 void smp_set_loop(smp_voice *v, int on)
@@ -90,15 +92,67 @@ static int32_t frames_to_end(const smp_voice *v)
     return (int32_t)((dq + sq - 1) / sq);
 }
 
+/* The frames the fade-out takes at this step, rounded up, and two more for the playhead's fraction
+   and frames_to_end's rounding. */
+static int32_t fade_frames(const smp_voice *v)
+{
+    return (int32_t)(SMP_FADE * v->step_int + ((SMP_FADE * (v->step_frac >> 16)) >> 16)) + 2;
+}
+
 /* Where a loop switched off ends: at the end of the first pass whose end lies at least SMP_FADE
-   frames ahead at this step, counted as pos. The frames the fade takes, rounded up, and two more for
-   the playhead's fraction and frames_to_end's rounding. */
+   frames ahead at this step, counted as pos. */
 static int32_t last_stop(const smp_voice *v)
 {
     int32_t len = v->end - v->start;
-    int32_t need = (int32_t)(SMP_FADE * v->step_int + ((SMP_FADE * (v->step_frac >> 16)) >> 16)) + 2;
 
-    return ((v->pos + need) / len + 1) * len;
+    return ((v->pos + fade_frames(v)) / len + 1) * len;
+}
+
+void smp_set_length(smp_voice *v, int32_t frames)
+{
+    int32_t lim;
+
+    if (!v->active || v->looped || v->stop != v->end - v->start || frames == v->stop
+        || frames_to_end(v) < SMP_FADE)         /* looping, gone round, or its fade-out has begun */
+        return;
+    lim = v->pos + fade_frames(v);              /* its whole fade-out still ahead */
+    if (frames < lim)
+        frames = lim;
+    lim = v->reverse ? v->end : v->length - v->start;
+    if (frames > lim)                           /* no further than the sample's own edge */
+        frames = lim;
+    if (v->reverse)
+        v->start = v->end - frames;
+    else
+        v->end = v->start + frames;
+    v->stop = frames;
+}
+
+void smp_set_window(smp_voice *v, int32_t start, int32_t end)
+{
+    int32_t len, first;
+
+    if (end > v->length)
+        end = v->length;
+    if (start < 0)
+        start = 0;
+    if (!v->active || v->stop != SMP_LOOPING || start >= end)
+        return;
+    len = v->reverse ? v->end - start : end - v->start;     /* this pass with its far side moved */
+    first = v->reverse ? end : start;
+    if (v->pos < len) {
+        if (v->reverse)
+            v->start = start;
+        else
+            v->end = end;
+        v->next = first == (v->reverse ? v->end : v->start) ? -1 : first;
+    } else {                                    /* the far side is behind the playhead: round now */
+        v->pos = (v->pos - len) % (end - start);
+        v->start = start;
+        v->end = end;
+        v->next = -1;
+        v->looped = 1;
+    }
 }
 
 /* Copies the frames the next block reads into scratch, in the order they play, so the inner loop
@@ -111,7 +165,8 @@ static int32_t fetch(const smp_voice *v, int16_t *scratch)
        the top 16 bits of fraction and step, rounded up, bound the carries from above. */
     uint32_t carries = ((v->frac >> 16) + 1u + 63u * ((v->step_frac >> 16) + 1u)) >> 16;
     int32_t n = (int32_t)(63u * v->step_int + carries) + SMP_TAPS;
-    int32_t len = v->end - v->start, m = v->pos - BACK, k = 0, r, run, i;
+    int32_t start = v->start, end = v->end, next = v->next;
+    int32_t len = end - start, m = v->pos - BACK, k = 0, r, run, i;
     int32_t lim = v->stop == SMP_LOOPING ? m + n : v->stop;    /* one past the last frame that plays */
 
     if (m < 0 && !v->looped) {          /* before the first frame played */
@@ -128,18 +183,26 @@ static int32_t fetch(const smp_voice *v, int16_t *scratch)
         if (run > lim - m)
             run = lim - m;
         if (v->reverse) {
-            const int16_t *x = v->pcm + v->end - 1 - r;
+            const int16_t *x = v->pcm + end - 1 - r;
 
             for (i = 0; i < run; i++)
                 scratch[k + i] = x[-i];
         } else {
-            const int16_t *x = v->pcm + v->start + r;
+            const int16_t *x = v->pcm + start + r;
 
             for (i = 0; i < run; i++)
                 scratch[k + i] = x[i];
         }
         k += run;
         m += run;
+        if (next >= 0 && r + run == len && m > 0) {     /* round ahead: the next pass begins elsewhere */
+            if (v->reverse)
+                end = next;
+            else
+                start = next;
+            len = end - start;
+            next = -1;
+        }
         r = 0;
     }
     for (; k < n; k++)
@@ -162,6 +225,7 @@ int smp_render_with(smp_voice *v, int32_t *out, int16_t *scratch,
         if (v->stop != SMP_LOOPING && frames_to_end(v) >= SMP_FADE)
             v->stop = SMP_LOOPING;
     } else if (v->stop == SMP_LOOPING) {
+        v->next = -1;                   /* the passes left keep this window */
         v->stop = last_stop(v);
     }
     n = fetch(v, scratch);
@@ -201,6 +265,15 @@ int smp_render_with(smp_voice *v, int32_t *out, int16_t *scratch,
         int32_t len = v->end - v->start;
 
         if (v->pos >= len) {            /* round the window, the overshoot carried over */
+            v->pos -= len;
+            if (v->next >= 0) {         /* into the next pass's window */
+                if (v->reverse)
+                    v->end = v->next;
+                else
+                    v->start = v->next;
+                v->next = -1;
+                len = v->end - v->start;
+            }
             v->pos %= len;
             v->looped = 1;
         }

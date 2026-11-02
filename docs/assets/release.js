@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.33", date: "2026-11-02", changes: [
+    { en: "SAMPLE now comes from Cycles One-Shot 0.13: Start and Length act on the note that plays. Turn SHAPE, or let an LFO move it, and the note ends where Length now puts it, its short fade-out whole; COLOR waits for the next trig, so an LFO on Start still gives each trig a start of its own. On a loop SHAPE moves the end at once and COLOR moves where the next time round starts, as on the Model:Samples, with the same hard seam" },
+    { en: "Tested in the digiemu emulator and on a Model:Cycles (2026-11-02) with the very file this page builds for SAMPLE alone, flashed over USB. The SAMPLE card now names MACHINES + PUNCH and GATE for Loop and Reverse, as the guide does" },
+  ] },
   { version: "0.32", date: "2026-11-02", changes: [
     { en: "Track FX: a knob the sound's Track FX doesn't use now says so. Hold RETRIG and turn it: the popup shows that Track FX's short name over ---, CRU --- on Crush for example, and Track FX OFF on a sound with no Track FX. Such a knob changes nothing, also with a trig, TRACK or LFO held. Before, it showed the name of another ticked Track FX, Ring Shape on a Crush track for example, and changed a value you couldn't hear" },
     { en: "The sound of every Track FX is the same as before, checked in an emulator on the OS's own code. Tried on a Model:Cycles from the command line (2026-11-02)" },

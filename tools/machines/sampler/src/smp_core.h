@@ -26,7 +26,16 @@
    single cycle of a waveform loops without a step. Whether it loops is asked block by block
    (smp_set_loop): switched on, a voice loops from its next end on, unless its fade-out has begun;
    switched off, it ends at the end of the first pass at least SMP_FADE frames ahead, so its
-   fade-out is whole even when one pass is shorter. */
+   fade-out is whole even when one pass is shorter.
+
+   The window may move while a voice plays, and the playhead stays on its frame. A voice that plays
+   once keeps the frame it began with and plays the length it is given (smp_set_length): its end
+   moves (forward the window's end, reverse its start), but never closer than its whole fade-out
+   ahead of the playhead, and no longer once the fade-out has begun. A loop takes a whole new window
+   (smp_set_window), as the Model:Samples does: its far side (forward the end, reverse the start) at
+   once while that stays ahead of the playhead, and the side where a pass begins from the next seam
+   on. A far side moved behind the playhead goes round at once, into the new window, at a hard seam
+   like any other. */
 #ifndef SMP_CORE_H
 #define SMP_CORE_H
 
@@ -67,6 +76,9 @@ typedef struct {
                                loop, or SMP_LOOPING */
     int32_t looped;         /* gone round at least once: the frames before the first played are the
                                window's last */
+    int32_t next;           /* where the next pass begins (forward its start, reverse its end), -1 to
+                               keep this one's */
+    int32_t length;         /* the sample's frames */
 } smp_voice;
 
 /* Taps of each phase, rows sum to 32768 (src/smp_coeffs.c, made by tools/gen_coeffs). */
@@ -81,6 +93,14 @@ void smp_trigger(smp_voice *v, const int16_t *pcm, int32_t length, int32_t start
 
 /* Asks a playing voice to loop (on != 0) or not, from the next block on (see the top). */
 void smp_set_loop(smp_voice *v, int on);
+
+/* A voice playing once (never gone round): plays frames frames from the one it began with, from the
+   next block on (see the top). Ignored by a voice that loops or has looped. */
+void smp_set_length(smp_voice *v, int32_t frames);
+
+/* A voice that loops: the window [start, end) from the next block on, clamped to 0..length (see the
+   top). Ignored by a voice that does not loop, and for an empty window. */
+void smp_set_window(smp_voice *v, int32_t start, int32_t end);
 
 /* Pitch as a ratio to the original, Q16.16 (65536 = as recorded at 48 kHz). Clamped to
    SMP_MIN_RATIO_Q16..SMP_MAX_RATIO_Q16. Takes effect with the next block. */

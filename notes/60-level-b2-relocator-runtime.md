@@ -522,3 +522,47 @@ half-finished step never blocks a build.
   notes/63 §22): `test_views.py` (now with `view.note`'s dispatcher: both methods in its table, each track's draw),
   `test_compose.py`, `test_shortcuts.py`, `test_refchord.py`, `test_chordtables.py`, **ALL OK** `[FAIT en émulation]`.
   The page's build on the device next. The card stays `tested`, as in §18.
+
+## 21. One-Shot 0.13 pinned: Start and Length on the note that plays (2026-11-02)
+
+- **What changed upstream**: One-Shot 0.13 (`213b4e4`, tag `v0.13`) lets Start and Length act on the note that plays
+  instead of the next trig only (One-Shot's TECHNICAL.md §10, §11). Playing once, a voice keeps the Start of its trig
+  and plays the length Length now gives (`smp_set_length`): its end moves at once, never to less than its whole 4 ms
+  fade-out ahead of the playhead, not once the fade-out has begun; Start alone waits for the next trig, so an LFO on
+  Start still picks each trig's start. A loop takes the window both give (`smp_set_window`), as the Model:Samples'
+  render does (its window in every block, `0x400a6c38` of its MAIN OS; the playhead set only at a trig): the far side
+  at once, the side where a pass begins from the next seam (`next`), a far side behind the playhead round at once. The
+  bridge hands COLOR and SHAPE over between trigs when they or the loop changed (`follow` in `machine/sampler.c`).
+  `src/smp_core.c`, `src/smp_core.h` and `machine/sampler.c` differ from 0.12.
+- **Here**: the three files copied as they are; every file of `tools/machines/sampler/` is byte for byte One-Shot's at
+  `213b4e4`. The manifest's version, name, description and source; no new point, claim or view.
+- **`gen_sampler.py`**: pinned on v0.13. 128 writes and 278 conflicts, as before; 35 862 bytes of code and tables,
+  62 248 of variables, 42 616 bytes added to the image (41 360 before). `compose.py --compare`: writes, payload and
+  symbols identical to `27-sampler.json`.
+- **Hashes**: SAMPLE alone `d3376a65…` (`.syx` `bcf8540a…` from `compose.py --machines sampler` and from
+  `build.py -t sampler` alike), with Control All Config `e845a342…`, with Digital Delay `84879b9b…`, with POTS
+  `49b77311…`; SAMPLE with both effects `03a2b64e…`, with Samples `d343e6c9…` (BUILD.md); the smoke test's pins: 128
+  writes and 42 616 bytes in the log line, the Model:Samples packings `94b8e395…` (`_smp-os`) and `2bbf3d90…`
+  (`_cyc-os`), computed apart from the page with `build.py -t sampler` and `mods_for_samples.py`.
+- The card's text (and its gesture, MACHINES + PUNCH / GATE as in the guide, where it still read RETRIG), the guide's
+  SAMPLE section (a step, the knob table, the Tested line), release 0.33, stamp `2026-11-02-04`; PROVENANCE.md names
+  the tag and commit the files come from.
+- **Cost**: counted in a ColdFire interpreter (not the proof's emulator) against 0.12's 2 773 instructions for the
+  core and the update's share: about +50 a track and block while the knobs rest, +100 to +160 while Start or Length
+  move (three or six of them divisions).
+- **Clicks on a loop**: the seams stay hard, as on the Model:Samples, which glides its knobs the same way (its audio
+  block calls `0x400573b8`, the Cycles' `0x40058474` with the same constants, before its voices), computes the window
+  in every block, fetches across the seam in two DMA parts and lowers its level only near the end of a voice that does
+  not loop (`0x400a7266`). Moving the window adds a few seams (an end moved behind the playhead goes round at once:
+  4 in the second after Start glides from 40 to 0 on a loop of 8 000 frames, against 6 seams a second it has anyway);
+  a shorter loop has more seams a second. Its one floor the core does not have: a loop of at least 141 frames.
+  The maintainer chose to keep it so (2026-11-02).
+- **Tested**: One-Shot's host tests (`make test` with `test_length`, `test_window`, `test_moves_no_click`; `make
+  machine-test` with and without the switches, `test_follow`, `test_follow_switches`), under ASan too. The composed
+  0.13 with the shortcut layer, built from `54b7095` with these three files (the same `.syx`, `bcf8540a…`, as this pin
+  builds), by the maintainer in digiemu and on a Model:Cycles flashed over USB (2026-11-02): Length on a note that
+  plays, once and reversed, Start waiting for the next trig, a loop's Start and Length, an LFO on Start and on Length,
+  "passt" `[FAIT sur la machine]`. Unicorn, run by the maintainer on this pin (2026-11-02): `test_compose.py`,
+  `test_shortcuts.py`, `test_views.py`, `test_refchord.py`, `test_chordtables.py`, `test_fxslot.py`,
+  `test_fltslot.py`, **ALL OK** `[FAIT en émulation]` (they load no sample: SAMPLE's place, layout and memory accesses
+  in the OS, next to the other packages). The card stays `tested`.

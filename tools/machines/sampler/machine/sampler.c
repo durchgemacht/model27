@@ -21,7 +21,9 @@
    Knobs: PITCH, FINE and the trig's note set the pitch as on every machine; note 60 at PITCH 64
    and FINE 64 plays the sample as recorded (a sample at another rate keeps its pitch). COLOR =
    start, SHAPE = length, both 0 to 120 as on the Model:Samples (SMP_SPAN in pool.h): moving the
-   start keeps the length. SWEEP = cutoff (64 = open, below a lowpass, above a highpass) and
+   start keeps the length. Both act on the note that plays, too (follow): playing once it keeps
+   the Start of its trig and plays the length Length now gives, so its end moves; looping it takes
+   the window both give now, its end at once and its start from the next seam. SWEEP = cutoff (64 = open, below a lowpass, above a highpass) and
    CONTOUR = resonance, as the Model:Samples' CUTOFF and RESONANCE. DECAY, GATE and PUNCH are the
    stock amp chain. The filter keeps running on silence while its resonance rings out.
 
@@ -62,6 +64,11 @@ static smp_voice voices[6];
 static smp_filter filters[6];
 static uint32_t rates[6];                       /* each voice's sample rate / 48 kHz, Q16.16 */
 static uint8_t cut[6];                          /* a trig cut the voice while it sounded */
+static struct {
+    int16_t start, length;                      /* COLOR and SHAPE (p +0x16, +0x18) as the voice last took them */
+    int16_t loop;                               /* and whether it looped then */
+    int32_t from, at;                           /* the Start of its trig, 0..SMP_SPAN, and its frame */
+} knobs[6];
 static int16_t scratch[SMP_SCRATCH];
 /* The decimator reads 8 frames of history and then the block at 96 kHz; it fills the history in
    itself from the voice's state (v+0x318) and stores it back. */
@@ -141,10 +148,39 @@ static void start(int t, char *v, const char *p, int flags)
     to = from + span(p, 0x18);
     if (to > SMP_SPAN)
         to = SMP_SPAN;
-    smp_trigger(&voices[t], sl->pcm, sl->frames, share(sl->frames, from), share(sl->frames, to), flags);
+    knobs[t].start = P16(0x16);
+    knobs[t].length = P16(0x18);
+    knobs[t].loop = (flags & SMP_LOOP) != 0;
+    knobs[t].from = from;
+    knobs[t].at = share(sl->frames, from);
+    smp_trigger(&voices[t], sl->pcm, sl->frames, knobs[t].at, share(sl->frames, to), flags);
     rates[t] = sl->rate_q16;
     for (i = 0; i < 12; i++)                   /* no tail of the previous sound */
         state[i] = 0;
+}
+
+/* Between trigs, Start and Length act on the voice that plays (src/smp_core.h). Playing once, it keeps
+   the Start of its trig and plays the length Length now gives from there, so its end moves and an LFO
+   on Start still sets each trig's start alone. Looping, it takes the window both give now, as the
+   Model:Samples does: its end at once, its start from the next seam. Only when a knob or the loop
+   changed since the last block. */
+static void follow(int t, smp_voice *sv, const char *p)
+{
+    int32_t n = sv->length, loop = sv->stop == SMP_LOOPING, from, to;
+
+    if (P16(0x16) == knobs[t].start && P16(0x18) == knobs[t].length && loop == knobs[t].loop)
+        return;
+    knobs[t].start = P16(0x16);
+    knobs[t].length = P16(0x18);
+    knobs[t].loop = (int16_t)loop;
+    from = loop ? span(p, 0x16) : knobs[t].from;
+    to = from + span(p, 0x18);
+    if (to > SMP_SPAN)
+        to = SMP_SPAN;
+    if (loop)
+        smp_set_window(sv, share(n, from), share(n, to));
+    else
+        smp_set_length(sv, share(n, to) - knobs[t].at);
 }
 
 int smp_voices_use(const void *lo, const void *hi)
@@ -198,6 +234,8 @@ void sampler_update(int32_t pmod, char *v, const char *p)
     n = ((int32_t)P16(0x14) << 8) + (((int32_t)P16(0x22) - 0x4000) << 3) - (64 << 16) + pmod;
     n = n < 0 ? 0 : n > 127 << 16 ? 127 << 16 : n;
     smp_set_ratio(sv, mul_q16(ratio_of(n - ROOT), rates[t] ? rates[t] : 1u << 16));
+    if (sv->active && !V32(0x34) && !V32(0x38))  /* not around a trig, which starts it anew */
+        follow(t, sv, p);
     /* the filter follows SWEEP and CONTOUR, smoothed by the OS like every knob */
     smp_filter_set(&filters[t], P16(0x1a), P16(0x1c));
 }
