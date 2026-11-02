@@ -23,7 +23,7 @@ Model:Cycles over USB. Modded-Cycles has since moved to a single OS with 2.0; mo
 together, so that a new machine fits next to the others. The rules a mod follows for that are the
 **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.5), written alongside.
 
-**Status: beta, release 0.29.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers eleven
+**Status: beta, release 0.30.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers eleven
 cards, all tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
 [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples on the +Drive,
 [Control All Config](https://github.com/durchgemacht/cycles-control-all-config), **Digital Delay**, the first
@@ -140,6 +140,15 @@ own, and a build has either machine values or filters ([notes/72](notes/72-track
 
 Everything runs in your browser: your files are never uploaded anywhere. **Before you flash**, back up your projects
 and samples with Elektron Transfer.
+
+## A project per firmware: the Manager
+
+A project made on one firmware plays other machines on the next, so changing firmware usually means a new project
+each time. The **[Manager](https://durchgemacht.github.io/model27/manager/)** keeps one project per firmware: add the
+`.syx` files you flash (the official OS, the builds you download from the flasher, any build for the Model:Cycles),
+then **Switch** backs up the project the Cycles plays, flashes the other firmware over USB, brings that firmware's
+project back and checks it, and says which slot to save it in. You stop the sequencer and press YES on the Cycles.
+The files and backups stay in your browser; **Export** puts them in one file. How it works: [notes/77](notes/77-manager.md).
 
 ## Building from the command line
 

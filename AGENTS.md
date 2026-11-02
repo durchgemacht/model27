@@ -183,7 +183,10 @@ tools/claims.py               no firmware needed, Level C (notes/65): the declar
 tools/ref_mainos.py           reference hashes in docs/flasher/app.js: each mod (REF_MODS) and a sample of combinations
                               (REF_MAINOS: each card alone, every pair, the largest ones)
 tools/web*_check.*, webflash_smoke.*   checks of the web flasher against the Python build (node, jsdom)
-docs/                         GitHub Pages site: index.html, flasher/, guide/, assets/release.js
+tools/manager/                host tests of the manager's scripts (tools/webmanager_check.sh) and fake-cycles.js, a
+                              stand-in Model:Cycles for trying the page in a browser (notes/77)
+docs/                         GitHub Pages site: index.html, flasher/, manager/ (one project per firmware, notes/77),
+                              guide/, assets/release.js
 notes/                        numbered technical notes (French), index in notes/README.md
 BUILD.md, FLASH.md            command-line build and flashing (French)
 README.md                     English overview for Model:Cycles owners (mod table)
@@ -196,9 +199,9 @@ CONTRIBUTING.md               terms for outside contributions, and how a machine
 
 Follow the shape of the last ones (tempo-max: commits `5997b4a`, `14fb9fa`, `6e592bc`; trig-hold, arp). In order:
 
-1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 76 is the last, notes/73
-   §16.1) with the user's request and its source, the OS code involved (addresses, `[FAIT]`/`[HYP]`), the design, free
-   space used and conflicts with other tweaks. Add a row to `notes/README.md`. See `notes/AGENTS.md`.
+1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 77 is the last) with the
+   user's request and its source, the OS code involved (addresses, `[FAIT]`/`[HYP]`), the design, free space used and
+   conflicts with other tweaks. Add a row to `notes/README.md`. See `notes/AGENTS.md`.
 2. **Write the generator** `tools/gen_<mod>.py` (and sources under `tools/machines/<mod>/` if it has code). It reads
    the official `.syx`, checks the stock bytes, and writes `tweaks/model-cycles_OS1.13/NN-<id>.json`; `--check`
    compares with the committed file. See `tools/AGENTS.md` and `tweaks/AGENTS.md`.
@@ -242,6 +245,7 @@ tools/webbuild_check.sh                          # builder.js == build.py, byte 
 tools/webcompose_check.sh                        # composer.js places packages as relocate.py, byte for byte (node)
 tools/webflash_check.sh                          # flasher.js validates .syx like mtlib (node)
 tools/webflash_smoke.sh                          # the flasher page in jsdom (node, npm, network)
+tools/webmanager_check.sh                        # the manager's scripts on the host (node)
 python3 -m py_compile tools/*.py tools/emu/*.py
 ```
 

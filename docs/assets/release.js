@@ -7,6 +7,11 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.30", date: "2026-11-02", changes: [
+    { en: "New page: the Manager, next to the Flasher. Each firmware keeps its own project: Switch backs up the project your Model:Cycles plays, flashes the other firmware over USB, brings that firmware's project back and checks it, then says which slot to save it in. You stop the sequencer and press YES on the Cycles; the rest takes about a minute" },
+    { en: "It works with any firmware for the Model:Cycles: the official OS, the builds you download from the Flasher, others. The firmware files and every backup stay in your browser, with a history per firmware; Export puts them all in one file, to keep or to move to another computer" },
+    { en: "Tried on a Model:Cycles (2026-11-02): switches between a model27 build and the official OS 1.13 both ways, each with its own project, also after turning it off and on. Chrome, Edge or Opera on a computer, with Elektron Transfer closed. The Cycles cannot tell which firmware it runs: the page keeps track of what it flashed and asks once at the start" },
+  ] },
   { version: "0.29", date: "2026-11-01", changes: [
     { en: "Ring, Reso and EQ are tested as this page builds them: flashed from this page and played on a Model:Cycles (2026-11-01). Their cards now show Tested" },
   ] },
