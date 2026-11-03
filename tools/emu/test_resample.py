@@ -47,8 +47,16 @@ official OS 1.13:
      PITCH steps SOURCE, DATA nothing, LFO SPEED the base's handler; the periodic method redraws while armed and when
      the state changed;
   8. the render into the OS's own Bitmap, pixel for pixel the mockup's screens (tools/emu/resample_screens.py, its
-     three pixel fonts and coordinates) in nine states: idle (a track, MAIN stereo with TO Tn, USB), armed, recording
-     (and clipped), taken (--show prints them; a screen that differs is printed with the mockup's).
+     three pixel fonts and coordinates) in ten states: idle (a track, MAIN stereo with TO Tn, USB), armed, recording
+     (and clipped), taken, saving (--show prints them; a screen that differs is printed with the mockup's);
+  9. the save (step R3, save.c), its OS calls stood in for (test_cpu.py's way) and the UI task's messages run in the
+     order posted: RECORD on a take posts one, which opens the stock name editor with the first free REC-nnn, shown on
+     the page's screen by the OS's own 0x4007722a (not stood in for: its 0x4007700e is), its title Resample; confirmed,
+     the save, the pieces of at most 32 KiB and the close: the stock FileWriter's file /recordings/<name> of the size
+     given, its bytes the header, the frames as heard and 16 zero bytes, committed, the take let go, the page closed and
+     the OS's popup "Saved"; a name that exists brings the editor back, its title NAME EXISTS, and opens no file; an
+     error aborts, says "Save failed" and keeps the take; NORM in stereo, in five pieces; a step that finds no free
+     message gives the file up the same way.
 
 Needs Unicorn and numpy (pip install unicorn numpy); Unicorn's JIT does not run inside a sandbox that forbids it (it
 stops with SIGILL at the first memory map): run it in a normal terminal. A few minutes (every instruction is counted
@@ -149,13 +157,17 @@ def build_tests(key, w, wo):
     buf, cap, ring = struct.unpack_from(">III", block, 0)
     sh = PART["shift"]
     sample = next((p["index"] for p in info["packages"] if p["id"] == "sampler"), 0xff)
+    conv = struct.unpack_from(">I", block, DATA["conv"])[0]
     rest = bytearray(block[15:])
     rest[DATA["sample"] - 15] = 0
-    ok = (buf, cap, ring) == (lo + PART["ring_bytes"], (hi - lo - PART["ring_bytes"]) // 4, lo) \
+    rest[DATA["conv"] - 15:DATA["conv"] - 11] = bytes(4)
+    ok = (buf, cap, ring, conv) == (lo + PART["ring_bytes"], (hi - PART["conv_bytes"] - lo - PART["ring_bytes"]) // 4,
+                                    lo, hi - PART["conv_bytes"]) \
         and block[12:15] == bytes([sh["track"], sh["main"], sh["usb"]]) and block[DATA["sample"]] == sample \
         and not any(rest) and syms["rs_data"] == ri["data_at"] and len(block) == DATA["size"]
     check(ok, f"{key}: the data block at {ri['data_at']:#x}: the take at {buf:#x}, {cap} words, the ring at {ring:#x}, "
-              f"the shifts {sh['track']}/{sh['main']}/{sh['usb']}, SAMPLE's machine {sample:#x}, the rest zero")
+              f"the save's 32 KiB at {conv:#x}, the shifts {sh['track']}/{sh['main']}/{sh['usb']}, SAMPLE's machine "
+              f"{sample:#x}, the rest zero")
     import test_compose as TC
     check(not (lo < info["end"] and info["pay"] < hi) and lo >= DELAY_LINE[1] and hi <= TC.POOL[0],
           f"{key}: the RAM claim {lo:#x}..{hi:#x} outside the payload ({info['pay']:#x}..{info['end']:#x}), after the "
@@ -444,6 +456,7 @@ def preview_tests(key, stock, w, t=2, other=4):
 # --- 5. to 8.: SETTINGS + RECORD and the page (step R2, notes/79 §2, proofs 3 and 4) --------------------------------
 TRANSPORT_KEY = 0x4002439a                      # TransportView::consumeKeyEvent (its vtable 0x40100fec, +8)
 GRID_PREP, GRID_TOGGLE = 0x4006ba90, 0x4006ba20
+POST, MQ_MAIN = 0x40001fba, 0x404a9154          # a message posted, the master UI task's queue (save.c)
 UIS_PTR = 0x40fe4218
 UIS_OBJ, TV_OBJ, FAKE, KIT_FAKE = 0x93c50000, 0x93c60000, 0x93c70000, 0x93c80000
 SELECTED = 2                                    # the selected track the stubbed project gives (T3)
@@ -480,7 +493,7 @@ def ui_of(img, runtime):
                     CP.VIEWS: ("views", CP.VIEWS_OBJ), CP.PRESENT: ("present", 0), CP.DROP: ("drop", 0),
                     CP.DTOR0: ("dtor0", 0), CP.DTOR1: ("dtor1", 0), CP.CLOSE: ("close", 0),
                     CP.KEY_STOCK: ("keys", 0x77), CP.ENC_BASE: ("base", 0x66), CP.NEEDS_REDRAW: ("redraw", 0),
-                    GRID_PREP: ("prep", 0), GRID_TOGGLE: ("toggle", 0), **u.base_hooks}
+                    GRID_PREP: ("prep", 0), GRID_TOGGLE: ("toggle", 0), POST: ("post", 0), **u.base_hooks}
     u.hooks = dict(u.page_hooks)
     from unicorn import m68k_const as mk
     u.uc.reg_write(mk.UC_M68K_REG_SR, 0x2000)          # the interface's thread
@@ -722,13 +735,18 @@ def page_tests(key, w):
           f"{key}: the encoder handler: PITCH steps SOURCE, DATA does nothing, LFO SPEED goes to the base's handler "
           f"with this + 4; its thunk from the +4 base the same ({enc})")
     t_ = copy[0x34 // 4]
-    redraws = []
-    for state in (ARMED, ARMED, IDLE, IDLE, TAKEN):
+    redraws, posts = [], []
+    u.uc.mem_write(at + DATA["asked"], bytes(1))
+    for state in (ARMED, ARMED, IDLE, IDLE, TAKEN, TAKEN):
         u.uc.mem_write(at + DATA["state"], bytes([state]))
         u.calls.clear()
         u.call(t_, page)
         redraws.append(len(named(u, "redraw")))
+        posts.append([a[0] for a in named(u, "post")])
     u.uc.mem_write(at + DATA["state"], bytes([IDLE]))
+    check(posts == [[], [], [], [], [MQ_MAIN], []], f"{key}: the periodic method: a take ended, a message to the UI "
+                                                    f"task's queue once (the name editor) ({posts})")
+    redraws = redraws[:5]
     check(redraws == [1, 1, 1, 0, 1], f"{key}: the periodic method: a redraw each call while armed, once when the "
                                       f"state changed ({redraws})")
     return u, copy, page
@@ -736,7 +754,7 @@ def page_tests(key, w):
 
 def render_tests(key, w, u, copy, page, show):
     """8. The render into the OS's own Bitmap (0x40070172), pixel for pixel the mockup's screens
-    (tools/emu/resample_screens.py: its three pixel fonts and its coordinates), for nine states."""
+    (tools/emu/resample_screens.py: its three pixel fonts and its coordinates), for ten states."""
     import resample_screens as RS
     import test_cpu as CP
     tweak, info, img, runtime = w
@@ -747,7 +765,8 @@ def render_tests(key, w, u, copy, page, show):
     r_ = copy[0x18 // 4]
     sample = u.uc.mem_read(at + DATA["sample"], 1)[0]
     kit_byte = KIT_FAKE + 0x1c + 100 * SELECTED + 38          # the selected track's machine (to_track_ok)
-    wide = ("frames", "limit", "level", "thr", "peak")
+    wide = ("frames", "limit", "level", "thr", "peak", "pos", "total")
+    u.uc.mem_write(at + DATA["name"], b"REC-004\0")
 
     def draw(kit, **fields):
         u.uc.mem_write(kit_byte, bytes([kit]))
@@ -784,7 +803,9 @@ def render_tests(key, w, u, copy, page, show):
                                              level=0x7fffffff, peak=0x80000000),
          lambda: RS.recording(600000, 960000, SILENT, True, down(0x7fffffff))),
         ("taken, mono", 0, dict(state=TAKEN, frames=115200, stereo=0), lambda: RS.taken(115200, 0)),
-        ("taken, stereo", 0, dict(state=TAKEN, frames=96000, stereo=1), lambda: RS.taken(96000, 1)),
+        ("taken, stereo", 0, dict(state=TAKEN, frames=96000, stereo=1, saving=0), lambda: RS.taken(96000, 1)),
+        ("saving, 62 %", 0, dict(state=TAKEN, saving=1, pos=62000, total=100000), lambda: RS.saving("REC-004", 62000,
+                                                                                               100000)),
     ]
     for name, kit, fields, model in cases:
         got, ok = draw(kit, **fields)
@@ -797,6 +818,198 @@ def render_tests(key, w, u, copy, page, show):
         check(ok and not off, f"{key}: the render, {name}: pixel for pixel the mockup's screen"
                               + (f" ({len(off)} pixels differ, the first {off[:6]})" if off else ""))
     u.uc.mem_write(at + DATA["state"], bytes([IDLE]))
+    u.uc.mem_write(at + DATA["saving"], bytes(1))
+
+
+# --- 9. the save (step R3, notes/79 §11) -----------------------------------------------------------------------------
+FW_CTOR, FW_DTOR, DELETE, FREE_CLOSURE = 0x4007c7ca, 0x4007c76a, 0x400802ec, 0x400cf044
+STRING, STRING_DROP, EDITOR, PRESENT_VIEW = 0x400f980c, 0x400f7d5c, 0x40041152, 0x4007722a   # the last runs: real
+F_OPEN, F_CLOSE, POPUP = 0x4007bc5e, 0x4007bc1c, 0x400747c0
+FAKE_VT, FAKE_FW = 0x93f00000, 0x93f00100            # the FileWriter's methods stood in for: flush, write, commit, ...
+
+
+def save_tests(key, w, u, page):
+    """9. The save in the UI task (save.c), message by message, its OS calls stood in for."""
+    import seqrig as S
+    import test_cpu as CP
+    from unicorn import UC_HOOK_CODE
+    from unicorn import m68k_const as mk
+    tweak, info, img, runtime = w
+    ri = info["resample"]
+    at = ri["data_at"]
+    syms = {**{k: int(v, 16) for k, v in tweak["symbols"].items()}, **part_syms(info)}    # rs_named is no root
+    lo, hi = (int(v, 16) for v in PART["ram"])
+    S.ensure_map(u.uc, lo, hi - lo)
+    rd32 = lambda a: struct.unpack(">I", u.uc.mem_read(a, 4))[0]
+
+    def cstr(a):
+        return bytes(u.uc.mem_read(a, 64)).split(b"\0")[0].decode("latin-1")
+    st = {"existing": set(), "file": bytearray(), "fail": 0, "editor": [], "popup": [], "present": []}
+    methods = {0x0c: "fw flush", 0x10: "fw write", 0x14: "fw commit", 0x18: "fw abort", 0x1c: "fw error"}
+    for off, name in methods.items():
+        u.uc.mem_write(FAKE_VT + off, struct.pack(">I", FAKE_FW + off))
+    u.hooks = dict(u.page_hooks)                  # the page's stand-ins again (the render's test left only the base)
+    u.uc.mem_write(at + DATA["msg"], bytes(2 * 0x1c))   # part 7's message was never run here: both free again
+    u.hooks.update({STRING: ("string", 0), STRING_DROP: ("string drop", 0), FREE_CLOSURE: ("free closure", 0),
+                    EDITOR: ("editor", 0), F_OPEN: ("open", 0),
+                    F_CLOSE: ("close file", 0), FW_CTOR: ("fw ctor", 0), FW_DTOR: ("fw dtor", 0),
+                    DELETE: ("delete", 0), POPUP: ("popup", 0),
+                    **{FAKE_FW + off: (name, 0) for off, name in methods.items()}})
+
+    def side(uc, addr, size, ud):                 # after the stand-in noted the call: what it does to memory
+        args = u.calls[-1][1]
+        if addr == STRING:
+            uc.mem_write(args[0], struct.pack(">I", args[1]))      # the String's characters at *(char **)
+        elif addr == EDITOR:
+            st["editor"].append((cstr(rd32(args[2])), cstr(rd32(args[3])), args[5], args[0], cstr(rd32(args[1]))))
+        elif addr == CP.PRESENT:
+            st["present"].append((args[0], rd32(args[1]), args[2]))                  # target, the pair's view, 0
+        elif addr == F_OPEN:
+            uc.reg_write(mk.UC_M68K_REG_D0, 0 if cstr(args[0]) in st["existing"] else 0xffffffff)
+        elif addr == FW_CTOR:
+            uc.mem_write(args[0], struct.pack(">I", FAKE_VT))
+            st["file"] = bytearray()
+        elif addr == FAKE_FW + 0x10:
+            st["file"] += bytes(uc.mem_read(args[1], args[2]))
+        elif addr == FAKE_FW + 0x1c:
+            uc.reg_write(mk.UC_M68K_REG_D0, st["fail"])
+        elif addr == POPUP:
+            st["popup"].append(cstr(rd32(args[1])))
+    for a in (STRING, EDITOR, F_OPEN, FW_CTOR, FAKE_FW + 0x10, FAKE_FW + 0x1c, POPUP, CP.PRESENT):
+        u.uc.hook_add(UC_HOOK_CODE, side, begin=a, end=a)
+    done = [0]
+
+    def ui():
+        """The UI task: each message posted since, in its order: its callback, then its +0x18 cleared."""
+        acts = []
+        while done[0] < len(named(u, "post")):
+            m = named(u, "post")[done[0]][1]
+            done[0] += 1
+            acts.append(u.uc.mem_read(at + DATA["act"], 1)[0])
+            u.call(rd32(m + 0x10), rd32(m + 4), rd32(m + 0x14))
+            u.uc.mem_write(m + 0x18, bytes(4))
+        return acts
+
+    def take(words, frames, stereo, src, norm=0):
+        buf = struct.unpack(">I", u.uc.mem_read(at + DATA["buf"], 4))[0]
+        u.uc.mem_write(buf, b"".join(struct.pack(">i", x) for x in words))
+        for name, v, n in (("state", TAKEN, 1), ("src", src, 1), ("stereo", stereo, 1), ("frames", frames, 4),
+                           ("peak", max(abs(x) for x in words), 4), ("page", page, 4), ("norm_set", norm, 1),
+                           ("saving", 0, 1), ("asked", 1, 1), ("exists", 0, 1)):
+            u.uc.mem_write(at + DATA[name], v.to_bytes(n, "big"))
+
+    def header(frames, stereo):
+        h = bytearray(64)
+        h[1] = 1 if stereo else 0
+        struct.pack_into(">III", h, 4, frames * (4 if stereo else 2), 48000, 0)
+        struct.pack_into(">I", h, 16, frames - 1)
+        h[20] = 0x7f
+        return bytes(h)
+
+    def pcm(words, sh, g):
+        out = bytearray()
+        for x in words:
+            v = x >> sh
+            if g:
+                v = (v * g) >> 15
+            out += struct.pack(">h", max(-32768, min(32767, v)))
+        return bytes(out)
+
+    def confirm(name):
+        u.uc.mem_write(NAME_AT, name.encode() + b"\0")
+        u.uc.mem_write(NAME_AT + 64, struct.pack(">I", NAME_AT))
+        u.call(syms["rs_named"], 0, NAME_AT + 64)
+    k_ = struct.unpack(">I", u.uc.mem_read(rd32(page) + 0x10 - 8, 4))[0]    # the page's key handler
+    u.calls.clear()
+    words = [(((i * 2654435761) & 0xffffffff) - (1 << 31)) >> 3 for i in range(4800)]
+    take(words, 4800, 0, SELECTED)
+    u.call(k_, page, event(u, RECORD_K, PRESS))
+    acts = ui()
+    ed = st["editor"][-1] if st["editor"] else None
+    shown = st["present"][-1:]
+    check(acts == [ACT_EDITOR] and ed is not None and ed[:3] == ("REC-001", "Save recording as", 12)
+          and ed[4] == "Resample"
+          and shown == [(CP.VIEWS_OBJ + 64, ed[3], 0)] and u.sp_ok and not u.bad,
+          f"{key}: the save: RECORD on a take posts one message, which opens the stock name editor with REC-001 and "
+          f"shows it on the page's screen through the OS's own 0x4007722a (0x4007700e(views + 64, {{editor, holder}}, "
+          f"0)) ({acts}, {ed[:3] if ed else ed}, {shown})")
+    confirm("MYTAKE  ")
+    acts = ui()
+    want = header(4800, 0) + pcm(words, 16, 0) + bytes(16)
+    ctor = named(u, "fw ctor")[-1]
+    ok = (acts == [ACT_SAVE, ACT_WRITE, ACT_CLOSE] and cstr(ctor[1]) == "/recordings/MYTAKE" and ctor[2] == len(want)
+          and bytes(st["file"]) == want and len(named(u, "fw commit")) == 1 and not named(u, "fw abort")
+          and len(named(u, "fw dtor")) == 1 and named(u, "delete") and st["popup"][-1:] == ["Saved\nMYTAKE"]
+          and named(u, "close") and u.uc.mem_read(at + DATA["state"], 1)[0] == IDLE
+          and all(a[2] <= 0x8000 for a in named(u, "fw write")) and not u.bad)
+    check(ok, f"{key}: confirmed MYTAKE: the FileWriter's /recordings/MYTAKE of {len(want)} bytes, the header, the "
+              f"frames as heard (>> 16), 16 zero bytes, committed; the take let go, the page closed, the popup "
+              f"\"Saved\" ({acts}, {len(st['file'])} bytes, {st['popup'][-1:]})")
+    st["existing"] = {"/recordings/REC-001", "/recordings/KICK"}
+    take(words[:2400], 2400, 0, SELECTED)
+    u.call(k_, page, event(u, RECORD_K, PRESS))
+    ui()
+    first = st["editor"][-1][0]
+    n_ctor = len(named(u, "fw ctor"))
+    confirm("KICK")
+    acts = ui()
+    again = st["editor"][-1]
+    confirm("KICK2")
+    ui()
+    check(first == "REC-002" and acts == [ACT_SAVE, ACT_EDITOR] and again[:2] == ("KICK", "Save recording as")
+          and again[4] == "Name exists"
+          and cstr(named(u, "fw ctor")[-1][1]) == "/recordings/KICK2" and len(named(u, "fw ctor")) == n_ctor + 1,
+          f"{key}: a name that exists: the first free REC-002; KICK taken brings the editor back with KICK, its title "
+          f"NAME EXISTS, and opens no file; KICK2 is saved ({first}, {acts}, {again[:2]}, {again[4]})")
+    st["existing"], st["fail"] = set(), 1
+    take(words[:960], 960, 0, SELECTED)
+    closes = len(named(u, "close"))
+    u.call(k_, page, event(u, RECORD_K, PRESS))
+    ui()
+    confirm("")
+    ui()
+    check(cstr(named(u, "fw ctor")[-1][1]) == "/recordings/REC-001" and named(u, "fw abort")
+          and st["popup"][-1] == "Save failed" and u.uc.mem_read(at + DATA["state"], 1)[0] == TAKEN
+          and len(named(u, "close")) == closes and not u.uc.mem_read(at + DATA["saving"], 1)[0],
+          f"{key}: an empty name keeps REC-001; an error: aborted, \"Save failed\", the take kept, the page open")
+    st["fail"] = 0
+    n = 40000
+    sw = [((i * 40503) % 65536 - 32768) * 9000 for i in range(2 * n)]
+    take(sw, n, 1, 6, norm=1)
+    writes = len(named(u, "fw write"))
+    u.call(k_, page, event(u, RECORD_K, PRESS))
+    ui()
+    confirm("ST")
+    acts = ui()
+    peak = max(abs(x) for x in sw)
+    k = next(k for k in range(32) if peak >> k < 65536)
+    g = (31655 << 15) // (peak >> k)
+    want = header(n, 1) + pcm(sw, k, g) + bytes(16)
+    check(acts == [ACT_SAVE] + [ACT_WRITE] * 5 + [ACT_CLOSE] and bytes(st["file"]) == want
+          and len(named(u, "fw write")) - writes == 7 and not u.bad,
+          f"{key}: NORM, main in stereo: 80 000 words in five pieces of 32 KiB at most, the header stereo, the peak at "
+          f"-0.3 dB ({acts})")
+    take(words[:960], 960, 0, SELECTED)
+    u.call(k_, page, event(u, RECORD_K, PRESS))
+    ui()
+    which = u.uc.mem_read(at + DATA["which"], 1)[0]
+    stuck = at + DATA["msg"] + 0x1c * which + 0x18
+    u.uc.mem_write(stuck, struct.pack(">I", 1))                   # never run
+    aborts, dtors = len(named(u, "fw abort")), len(named(u, "fw dtor"))
+    confirm("LOST")
+    acts = ui()
+    check(acts == [ACT_SAVE] and len(named(u, "fw abort")) == aborts + 1 and len(named(u, "fw dtor")) == dtors + 1
+          and st["popup"][-1] == "Save failed" and not u.uc.mem_read(at + DATA["saving"], 1)[0]
+          and u.uc.mem_read(at + DATA["state"], 1)[0] == TAKEN,
+          f"{key}: no message free for the save's next step: the file aborted, the FileWriter gone (no mute left), "
+          f"\"Save failed\", the take kept ({acts})")
+    u.uc.mem_write(stuck, bytes(4))
+    u.uc.mem_write(at + DATA["state"], bytes([IDLE]))
+
+
+NAME_AT = 0x93f01000
+ACT_EDITOR, ACT_SAVE, ACT_WRITE, ACT_CLOSE = 1, 2, 3, 4
+
 
 
 def main():
@@ -806,7 +1019,8 @@ def main():
     ap.add_argument("--blocks", type=int, default=24)
     ap.add_argument("--dry", action="store_true", help="the builds only, without Unicorn")
     ap.add_argument("--show", action="store_true", help="print the page's screens as the render draws them")
-    ap.add_argument("--keys", action="store_true", help="the build and the key parts only (5 to 7), without the audio")
+    ap.add_argument("--keys", action="store_true", help="the build, the keys, the page and the save (5 to 9), without "
+                                                       "the audio")
     args = ap.parse_args()
     stock = T.main_os_from_syx(args.cycles)
     sels = [[i for i in args.machines.split(",") if i]] if args.machines is not None else SELECTIONS
@@ -824,6 +1038,7 @@ def main():
         key_tests(key, stock, w)
         u, copy, page = page_tests(key, w)
         render_tests(key, w, u, copy, page, args.show)
+        save_tests(key, w, u, page)
     if not args.dry:
         scanner_tests("the stock OS", stock)
     import test_sdvintage_7th as t7

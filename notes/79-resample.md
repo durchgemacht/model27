@@ -388,3 +388,80 @@ mockup ».
   TRIG + PAGE starts the take, SILENT ends it on its own, NOT SAVED with its length: « passt »; RECORD on the taken
   screen does nothing, RETURN drops the take and closes the page, it opens again with the settings kept: « passt ».
   **R2 done on the machine (2026-11-03).** Next: R3 (the name editor, the save, TO Tn, NORM).
+
+## 11. Step R3a: the name editor and the save (2026-11-03)
+
+The maintainer: « Ja, R3 starten ». R3 is cut in two: **R3a** (this section) names and saves a take, with NORM;
+**R3b** puts it on the track (TO T*n*, through SAMPLE's code) and measures the levels "as heard" (§3.3). The part's 0.3.
+
+- **The flow, as the mockup** (§2.2, its simulation): a take that ends (RECORD, RETURN, SETTINGS + RECORD while
+  recording, SILENT, LENGTH) brings up the name editor once, prefilled with the first free `REC-nnn` (001 to 999, each
+  tried with open "r"); confirmed, the take is written, the page shows SAVING with its progress, then it closes and
+  the OS's popup says « Saved » and the name; a name that exists brings the editor back with the name typed and NAME
+  EXISTS as its title, nothing is overwritten; backed out of, the page shows the take as NOT SAVED, where RECORD asks
+  for the editor again and RETURN drops it. While the file is written RECORD and RETURN do nothing. An error (the
+  FileWriter's +0x1c) aborts and deletes the file, the popup says « Save failed » and the take stays; so does a step
+  that finds no free message (the UI task frees each after running it, so it is not expected), so that a SAVING page
+  never keeps the FileWriter, and the mute, for ever.
+- **In the UI task** `[FAIT dans Model-TG, sur la machine]`: every step runs there, as Model-TG's save does
+  (TinyGregAudio, MIT; its `sv_post` / `sv_run`, `rs_name_open`, `rs_save_do`): a message of type 6 on the master UI
+  task's queue `0x404a9154` (`0x400081fa`: its callback at +0x10 called with its closure +4 and its word +0x14, its
+  +0x18 cleared after), each step posting the next on the other of two messages in the data block. Model-TG found that
+  a save from the LED clock froze the audio, however it was cut; the page's periodic method only posts.
+  - The editor `[FAIT]`: ModelsNameView as the pattern rename opens it (`0x4002c92a`, its title « Ptn Name », its
+    prompt « Rename pattern to », the question on confirming): ours « Resample » (« Name exists » when the name given
+    was taken) and « Save recording as », 12 characters,
+    presented with `0x40076220(page + 0x38, editor, 0)`; its two std::functions `{data, 0, 0x4002f136, invoker}`
+    (data from `0x40080064`), released with `0x400cf044` after the ctor copied them. The save invoker gets the name as a
+    String (its characters at `*(char **)`), the spaces after it dropped, an empty one keeping the default.
+  - The file: `/recordings/<name>` by the stock FileWriter (`0x4007c7ca(fw, path, size)` on 0x8110 bytes, which makes
+    the folder; +0x10 write, +0x0c flush, +0x14 commit, +0x18 abort, +0x1c error; dtor `0x4007c76a`, delete
+    `0x400802ec`): the header (64 bytes, `rs_header`), the frames in pieces of 16 384 words turned into 32 KiB of 16-bit
+    (`rs_pcm16`: as heard `>> 16`, or NORM's shift and gain, `rs_norm`) in 32 KiB the composer keeps at the RAM claim's
+    end (`0x42ff8000`, so the take holds 2 088 384 words), each written and flushed (a write only fills the
+    FileWriter's 32 KiB buffer), then 16 zero bytes. Stereo is interleaved, as One-Shot reads it (`pool.c`). The
+    FileWriter mutes the audio while it lives, as every stock save; Model-TG's way around it is not taken.
+  - The popup `[FAIT]`: the OS's own (`0x400747c0` on 0x9c bytes, its holder `0x400fbf40`, presented as `0x4000d750`
+    shows « Lock mem full! »).
+- **The data block** grows to 512 bytes: +256 saving, asked, exists, act, which; +264 the name; +280 the path; +312 the
+  FileWriter; +316 words written, +320 their total; +324 the shift, +328 the gain; +332 the 32 KiB (composer); +336
+  the two messages (0x1c each).
+- **The screens**: SAVING as the mockup draws it (the name, /RECORDINGS, the bar and the percent, WRITING TO +DRIVE),
+  NOT SAVED with RECORD: SAVE on the left; `tools/emu/resample_screens.py` draws both.
+- **Not in R3a**: TO T*n* (its knob is there, the save does not use it yet); the level "as heard" is full scale to
+  16-bit full scale (`>> 16`, the shifts still 0) until R3b measures it; NORM is exact.
+- **Proven here**: in cfemu (local, `_scratch/resample/cfcheck/save_check.py`: the part's object with stand-ins for the
+  OS's calls at their addresses, the messages run in their order) the four cases of part 9 below: ALL OK; the page
+  in cfemu (`page_check.py`, the new keys, the periodic method's one message, SAVING and NOT SAVED pixel for pixel):
+  ALL OK; `test_resample.py --dry`, the host build, the repository's checks. In Unicorn, the maintainer's run:
+  `test_resample.py` part 9 (the same cases on the composed build in the OS's image: RECORD on a take, the editor with
+  REC-001 over the page; MYTAKE saved, the file byte for byte, committed, the page closed, « Saved »; KICK taken, the
+  editor again with NAME EXISTS and no file, KICK2 saved; an error aborted, « Save failed », the take kept; NORM in
+  stereo in five pieces; no free message, the file given up), part 7's one message, part 8's SAVING screen. Code
+  15 862 bytes; build `sampler` + `trig-preview` + RESAMPLE: MAIN OS `ba791261…`, elektron-firmware-tool ok.
+- **The maintainer's Unicorn runs of part 9** (2026-11-03): its first two stopped in the bench, not in the part (the
+  render's test had left only the base's stand-ins, so the OS's own allocator ran; `rs_named` is no root, so its
+  address comes from the part's symbols); the third ran the editor and the header, then nothing: part 7's periodic
+  method had posted a message the bench never runs, so its busy flag stayed and the save's next step found no free
+  message. cfemu shows the same with that flag set (64 bytes, then nothing) and the whole save with it clear. Part 9
+  now frees both messages first, and the part gives the file up when a step finds none (above). **The fourth run
+  (`--keys`): ALL OK**, the three selections, parts 5 to 9.
+- **The machine, first try** (2026-11-03, `ba791261…`): the editor did not come up, neither when the take ended nor
+  on RECORD: SAVE. `0x40076220(parent, view, x)` reads the parent's +0x2c and does nothing when it is 0
+  (`0x4007622a`), and for our page (presented by `0x4007700e` on the views' screen) `page + 0x38 + 0x2c` is that; both
+  proofs had stood in for `0x40076220`. The editor is now shown as the page is: `0x4007722a(TARGET(VIEWS()), editor,
+  0)` (the generic holder `0x400fbf24`, then `0x4007700e`), and part 9 runs that routine for real (its `0x4007700e`
+  stood in for: on the views' screen, the pair's view the editor). Build `2adb7f0b…`; the maintainer's `--keys`:
+  ALL OK. **On the machine (2026-11-03)**: a take by Trig Preview, the editor up on its own with REC-001, confirmed,
+  SAVING, the page closed, the popup « Saved REC-001 »: « passt »; the file in SAMPLE's browser, loaded and played:
+  « passt »; REC-002 offered, REC-001 typed: the editor asks « Save recording as REC-001? » (YES / ABORT / EDIT: the
+  prompt is that question, not a line over the name), YES brings the editor back, nothing overwritten; backed out of,
+  NOT SAVED; RECORD the editor again; RETURN drops the take and closes: « passt ». So NAME EXISTS is now the editor's
+  title (shown while the name is edited), the prompt stays « Save recording as » (build `080869eb…`; the
+  maintainer's `--keys`: ALL OK); on the machine: NAME EXISTS as the title, NORM on a quiet take, the file loud and
+  clean on SAMPLE: « passt ». **R3a done on the machine (2026-11-03).** The full proof (`test_resample.py` without
+  `--keys`, parts 1 to 9) on that build: ALL OK in the maintainer's terminal, the three selections (idle the same
+  with 7 instructions more a block, the takes of a track, main and USB, Trig Preview's start).
+- **The maintainer, the same day**: GRID RECORDING has to be on before the page opens, since Trig Preview plays only
+  with it on and RECORD on the page arms instead of toggling it (§2.2). A point for the page (to decide), not the
+  editor's cause.

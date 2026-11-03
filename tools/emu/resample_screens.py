@@ -224,7 +224,22 @@ def taken(frames, stereo):
     header(fb, "UNSAVED")
     centre(fb, 5, 16, "NOT SAVED")
     centre(fb, 3, 28, secs(frames) + ("  STEREO" if stereo else "  MONO") + "  IN MEMORY")
-    footer(fb, None, "RETURN: DISCARD")
+    footer(fb, "RECORD: SAVE", "RETURN: DISCARD")
+    return fb
+
+
+def saving(name, pos, total):
+    fb = blank()
+    header(fb, "SAVING")
+    centre(fb, 5, 15, name)
+    centre(fb, 3, 26, "/RECORDINGS")
+    rect(fb, 3, 33, 124, 39)
+    most = total or 1
+    p = min(pos, most)
+    fill(fb, 4, 34, 4 + (p * 238 + most) // (2 * most), 38)
+    centre(fb, 3, 42, f"{(p * 200 + most) // (2 * most)}%")
+    footer(fb, None, None)
+    centre(fb, 3, 54, "WRITING TO +DRIVE")
     return fb
 
 

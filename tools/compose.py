@@ -1275,10 +1275,10 @@ def resample_layer(img, part, at, code_end, sample=0xff):
     call of the mixer (0x40059872) goes to the part's rs_mix, and since 0.2 TransportView's toggle of GRID RECORDING
     (0x40024482) to its rs_key, which opens the page with SETTINGS held, and the key event's code accessor (0x4007240c)
     to its rs_code, which keeps SETTINGS's last event. The data block after the part's code starts
-    with what the composer gives it: the take's buffer and its size in words (the RAM claim after the ring), the ring
-    (LEVEL's eight blocks before the start, at the claim's start), each kind of source's level shift (track, main,
-    USB) and SAMPLE's machine number in the build (sample, 0xff without); the rest, the recorder's and the page's
-    state, is zero. Returns (blob, symbols, writes, the sites taken, info)."""
+    with what the composer gives it: the take's buffer and its size in words (the RAM claim after the ring, up to the
+    save's 32 KiB at its end, conv), the ring (LEVEL's eight blocks before the start, at the claim's start), each kind
+    of source's level shift (track, main, USB) and SAMPLE's machine number in the build (sample, 0xff without); the
+    rest, the recorder's, the page's and the save's state, is zero. Returns (blob, symbols, writes, the sites taken, info)."""
     d = part["data"]
     path = object_path(part)
     if not path.is_file():
@@ -1292,10 +1292,11 @@ def resample_layer(img, part, at, code_end, sample=0xff):
     pps = part["build"]["patch_points"]
     code, syms, _ = relocate.apply(lay, at, at, code_end, {pp["symbol"]: values[pp["kind"]] for pp in pps})
     lo, hi = (int(x, 16) for x in part["ram"])
-    ring, buf = lo, lo + part["ring_bytes"]
-    cap = (hi - buf) // 4
+    ring, buf, conv = lo, lo + part["ring_bytes"], hi - part["conv_bytes"]
+    cap = (conv - buf) // 4
     block = bytearray(d["size"])
     struct.pack_into(">III", block, d["buf"], buf, cap, ring)
+    struct.pack_into(">I", block, d["conv"], conv)
     sh = part["shift"]
     block[d["shift"]:d["shift"] + 3] = bytes([sh["track"], sh["main"], sh["usb"]])
     block[d["sample"]] = sample
@@ -1314,7 +1315,7 @@ def resample_layer(img, part, at, code_end, sample=0xff):
     out = {r: syms[r] for r in roots}
     out.update({pp["symbol"]: values[pp["kind"]] for pp in pps})
     info = dict(id=part["id"], code_at=at, code=len(code), data_at=data_at, data=d["size"], ram=(lo, hi), buf=buf,
-                cap=cap, ring=ring, sample=sample)
+                cap=cap, ring=ring, conv=conv, sample=sample)
     return blob, out, writes, taken, info
 
 
@@ -1707,7 +1708,8 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
         tweak["description"].insert(6, f"With the RESAMPLE recorder (tools/machines/resample/) at {ri['code_at']:#x}, its "
                                        f"data at {ri['data_at']:#x}: the mixer's call at 0x40059872, SETTINGS + RECORD "
                                        f"at 0x40024482 and 0x4007240c, the take in "
-                                       f"{ri['buf']:#x}..{ri['ram'][1]:#x} ({ri['cap']} words), the ring at {ri['ring']:#x}.")
+                                       f"{ri['buf']:#x}..{ri['conv']:#x} ({ri['cap']} words), the save's 32 KiB at "
+                                       f"{ri['conv']:#x}, the ring at {ri['ring']:#x}.")
         tweak["symbols"].update({k: f"{v:#x}" for k, v in rss[1].items()})
     info = dict(pay=pay, end=bss_cursor, image=sum(n for _, n in append["pack"]), packages=info_pkgs,
                 part=layer[4] if layer else None, dispatch=dispatch[4] if dispatch else None,
@@ -1857,7 +1859,8 @@ def main():
     if info["resample"]:
         p = info["resample"]
         print(f"  {p['id']:12s} code {p['code']} bytes at {p['code_at']:#x}, data {p['data']} bytes at {p['data_at']:#x}, "
-              f"the take in {p['buf']:#x}..{p['ram'][1]:#x} ({p['cap']} words), the ring at {p['ring']:#x}")
+              f"the take in {p['buf']:#x}..{p['conv']:#x} ({p['cap']} words), the save's 32 KiB after it, the ring at "
+              f"{p['ring']:#x}")
     print(f"  tweak {tweak['id']}: {len(tweak['writes'])} writes, payload {info['pay']:#x}..{info['end']:#x}, "
           f"{info['image']} bytes added to the image, {len(tweak['conflicts'])} conflicts computed")
     ci = info["claims"]

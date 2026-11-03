@@ -1,4 +1,5 @@
-/* The RESAMPLE part's data block, shared by resample.c (the recorder) and page.c (the page): notes/79. The composer
+/* The RESAMPLE part's data block, shared by resample.c (the recorder), page.c (the page) and save.c (the save):
+ * notes/79. The composer
  * writes it after the part's code (part.json's "data"); zero at boot but for what the composer gives it.
  *
  * License: MIT (LICENSE next to this file). */
@@ -53,11 +54,35 @@ struct data {
 	uint8_t sample;                             /* +78 SAMPLE's machine number in this build, 0xff without (composer) */
 	uint8_t set_held;                           /* +79 SETTINGS held, as its events say (entries.S's rs_code) */
 	uint32_t vt[44];                           /* +80 the page's vtable group, a copy of 0x40117918..0x401179c8 */
-};                                                  /* 256 bytes */
+	/* the save (save.c) */
+	uint8_t saving;                             /* +256 the take is being written */
+	uint8_t asked;                              /* +257 the name editor came up for this take */
+	uint8_t exists;                             /* +258 the name given is taken: the editor again, NAME EXISTS */
+	uint8_t act;                                /* +259 what the next UI-task message does: ACT_* */
+	uint8_t which;                              /* +260 the message posted last, 0 or 1 */
+	uint8_t pad3[3];
+	char name[16];                              /* +264 the take's name, at most 12 characters */
+	char path[32];                              /* +280 "/recordings/" and the name */
+	uint32_t fw;                                /* +312 the FileWriter while the file is open */
+	uint32_t pos;                               /* +316 the take's words written */
+	uint32_t total;                             /* +320 its words */
+	uint32_t sh;                                /* +324 the save's shift */
+	uint32_t gain;                              /* +328 and gain (NORM, Q15; 0 as heard) */
+	uint32_t conv;                              /* +332 32 KiB for the 16-bit pieces: the RAM claim's end (composer) */
+	struct msg {                                /* a message to the UI task (type 6: a callback, 0x400081fa) */
+		uint8_t type;
+		uint8_t pad[3];
+		uint32_t data, zero, manager, callback, arg;
+		volatile uint32_t busy;             /* +0x18 queued or running; the UI task clears it after */
+	} msg[2];                                   /* +336 */
+	uint8_t pad4[120];
+};                                                  /* 512 bytes */
+
+enum { ACT_NONE, ACT_EDITOR, ACT_SAVE, ACT_WRITE, ACT_CLOSE };
 
 #ifdef RS_HOST
 extern uint8_t *rs_host_mem;                        /* the RAM claim on the host: buf and ring count from it */
-extern uint32_t rs_data[64];
+extern uint32_t rs_data[128];
 #define WORDS(a) ((int32_t *)(rs_host_mem + (a)))
 #else
 extern char rs_data[];
@@ -70,5 +95,9 @@ void rs_stop(void);
 void rs_cancel(void);
 void rs_release(void);
 uint32_t rs_db(uint32_t mag, uint32_t sh);
+void rs_header(uint8_t *h, uint32_t frames, uint32_t stereo);
+void rs_norm(uint32_t peak, uint32_t *s, uint32_t *g);
+uint32_t rs_pcm16(uint8_t *out, const int32_t *x, uint32_t words, uint32_t s, uint32_t g);
+void rs_ask_name(void);                             /* save.c: the name editor, in the UI task */
 
 #endif

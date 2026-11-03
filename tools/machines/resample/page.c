@@ -10,11 +10,11 @@
  * The page is the stock machine-select page with its first two vtable pointers at a private copy of its vtable group,
  * as the CPU page builds its own (tools/machines/cpu/, notes/78 §2 and §9; Model-TG's System page, TinyGregAudio, MIT):
  * ours are the destructors (entries.S: forget the page, then the stock ones), the key handler, the render, the periodic
- * method and the encoder handler. Keys: RECORD arms, cancels or ends the take (with SETTINGS held, it closes the page);
- * RETURN (a tap) closes it; every other key goes to the stock view's dispatch (0x40075f3c), as the machine page passes
- * PUNCH and GATE on, so that a held trig + PAGE reaches PatternGridView and Trig Preview plays under the page. Closing
- * drops an armed take and ends a recording one (kept, the page shows it when it opens again); RETURN or SETTINGS +
- * RECORD on a finished take drops it. Knobs, while idle: PITCH SOURCE, DECAY START, COLOR THRESH, SHAPE STEREO, SWEEP
+ * method and the encoder handler. Keys: RECORD arms, cancels or ends the take, and on a finished one asks for the name
+ * editor; RETURN (a tap) and SETTINGS + RECORD close the page (an armed take dropped, a finished one too), but while
+ * recording they end the take; every other key goes to the stock view's dispatch (0x40075f3c), as the machine page
+ * passes PUNCH and GATE on, so that a held trig + PAGE reaches PatternGridView and Trig Preview plays under the page.
+ * Knobs, while idle: PITCH SOURCE, DECAY START, COLOR THRESH, SHAPE STEREO, SWEEP
  * STOP, CONTOUR LENGTH, DELAY SEND NORM, REVERB SEND TO Tn (notes/79 §2.3); DATA does nothing; the other knobs go to the
  * base (0x4006fb90), as on the stock page. A value that does not apply shows "---" and its knob changes nothing.
  *
@@ -23,7 +23,9 @@
  * small font (5 pixels a character, 9 rows) and its medium one (7, for the big line): notes/79 §2.4, the mockup laid on
  * the OS's fonts.
  *
- * R2 has no save: a finished take shows NOT SAVED; the name editor and the drive come with R3.
+ * When a take ends, the periodic method asks for the name editor once (save.c, in the UI task); confirmed, the take is
+ * written (SAVING, its progress) and the page closes; backed out of, the page shows it as NOT SAVED, where RECORD asks
+ * for the editor again and RETURN drops it (notes/79 §2.2, §11). While it is written, RECORD and RETURN do nothing.
  *
  * License: MIT (LICENSE next to this file; the page's mechanics follow Model-TG's, MIT, LICENSE-Model-TG). */
 #include "resample.h"
@@ -185,29 +187,42 @@ uint32_t rs_page_key(void *page, void *event)
 {
 	struct data *d = D;
 	int32_t code = KEY_CODE(event);
+	int back;
 
-	if (code == K_RETURN) {
-		if (KEY_CLICK(event))
-			close_page(page);
-		return 1;
-	}
-	if (code != K_RECORD)
+	if (code != K_RETURN && code != K_RECORD)
 		return KEY_STOCK(page, event);
-	if (!KEY_PRESS(event))                      /* its release and repeats: kept from the views below */
+	if (d->saving)                              /* nothing until the file is written */
 		return 1;
-	if (settings_held()) {
-		close_page(page);
-		return 1;
+	if (code == K_RETURN) {
+		if (!KEY_CLICK(event))
+			return 1;
+		back = 1;
+	} else {
+		if (!KEY_PRESS(event))              /* its release and repeats: kept from the views below */
+			return 1;
+		back = settings_held();
 	}
-	switch (d->state) {
-	case IDLE:
-		rs_arm(d->src_set, d->stereo_set, start_of(), d->stop_set, d->thr_set, d->length_set);
-		break;
-	case ARMED:
-	case REC:
-		rs_stop();
-		break;
-	}
+	if (back) {                                 /* RETURN's tap, SETTINGS + RECORD */
+		if (d->state == REC)
+			rs_stop();                  /* the take ends; the name editor follows */
+		else {
+			close_page(page);
+			return 1;
+		}
+	} else
+		switch (d->state) {
+		case IDLE:
+			d->asked = d->exists = 0;
+			rs_arm(d->src_set, d->stereo_set, start_of(), d->stop_set, d->thr_set, d->length_set);
+			break;
+		case ARMED:
+		case REC:
+			rs_stop();
+			break;
+		case TAKEN:
+			rs_ask_name();
+			break;
+		}
 	NEEDS_REDRAW(page);
 	return 1;
 }
@@ -277,10 +292,15 @@ uint32_t rs_page_enc(void *page, void *event)
 
 void rs_page_tick(void *page)
 {
-	uint8_t s = D->state;
+	struct data *d = D;
+	uint8_t s = d->state;
 
-	if (s == ARMED || s == REC || s != D->drawn) {
-		D->drawn = s;
+	if (s == TAKEN && !d->asked && !d->saving) {    /* a take has ended: the name editor, once */
+		d->asked = 1;
+		rs_ask_name();
+	}
+	if (s == ARMED || s == REC || d->saving || s != d->drawn) {
+		d->drawn = s;
 		NEEDS_REDRAW(page);
 	}
 }
@@ -655,7 +675,29 @@ static void taken(struct bitmap *b)
 	put(&t, d->stereo ? "  STEREO" : "  MONO");
 	put(&t, "  IN MEMORY");
 	centre(b, &T3, 28, t.s, 1);
-	foot(b, 0, "RETURN: DISCARD");                 /* RECORD: SAVE comes with the save (R3) */
+	foot(b, "RECORD: SAVE", "RETURN: DISCARD");
+}
+
+/* The save, piece by piece (save.c): the name, the folder, how far, as a bar and in percent. */
+static void saving(struct bitmap *b)
+{
+	struct data *d = D;
+	struct str t = {{0}, 0};
+	uint32_t most = d->total ? d->total : 1u, p = d->pos < most ? d->pos : most;  /* 2 096 576 x 238: 32 bits */
+
+	head(b, "SAVING", 0);
+	centre(b, &T5, 15, d->name, 1);
+	centre(b, &T3, 26, "/RECORDINGS", 1);
+	fill(b, 3, 33, 124, 33, 1);
+	fill(b, 3, 39, 124, 39, 1);
+	fill(b, 3, 33, 3, 39, 1);
+	fill(b, 124, 33, 124, 39, 1);
+	fill(b, 4, 34, 4 + (int32_t)((p * 238u + most) / (2u * most)), 38, 1);
+	num(&t, (p * 200u + most) / (2u * most));
+	put(&t, "%");
+	centre(b, &T3, 42, t.s, 1);
+	foot(b, 0, 0);
+	centre(b, &T3, ROW_FOOT, "WRITING TO +DRIVE", 1);
 }
 
 /* The page's render (the stock machine page's is 0x400a24ca): the whole screen. */
@@ -675,7 +717,10 @@ void rs_page_render(void *page, void *bitmap)
 		recording(b);
 		break;
 	case TAKEN:
-		taken(b);
+		if (D->saving)
+			saving(b);
+		else
+			taken(b);
 		break;
 	default:
 		idle(b);

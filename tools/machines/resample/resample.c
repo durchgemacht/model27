@@ -45,7 +45,7 @@
 
 #ifdef RS_HOST
 uint8_t *rs_host_mem;
-uint32_t rs_data[64];
+uint32_t rs_data[128];
 #endif
 
 /* 2^31 * 10^(-3k / 20): the magnitude of -3k dB of full scale, k = 0..32. */
