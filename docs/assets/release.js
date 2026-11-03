@@ -7,6 +7,9 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.34", date: "2026-11-03", changes: [
+    { en: "Crush takes less of the Model:Cycles' time: about a quarter less in its heaviest settings, and more than half less with Rate to the right and Bits turned down. The sound is the same, bit for bit, checked in an emulator on the OS's own code. Tried on a Model:Cycles from the command line (2026-11-03)" },
+  ] },
   { version: "0.33", date: "2026-11-02", changes: [
     { en: "SAMPLE now comes from Cycles One-Shot 0.13: Start and Length act on the note that plays. Turn SHAPE, or let an LFO move it, and the note ends where Length now puts it, its short fade-out whole; COLOR waits for the next trig, so an LFO on Start still gives each trig a start of its own. On a loop SHAPE moves the end at once and COLOR moves where the next time round starts, as on the Model:Samples, with the same hard seam" },
     { en: "Tested in the digiemu emulator and on a Model:Cycles (2026-11-02) with the very file this page builds for SAMPLE alone, flashed over USB. The SAMPLE card now names MACHINES + PUNCH and GATE for Loop and Reverse, as the guide does" },

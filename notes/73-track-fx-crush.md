@@ -488,3 +488,88 @@ Crush with a trig held (no lock), with TRACK (no track changed) and LFO + RETRIG
 All on a value (TRACK + RETRIG + SWEEP on Ring, Crush on another track) moves the value on every track, and the popup
 names the track it is turned on; the maintainer: « so lassen » (Control All stays per knob, as in the stock OS, where one
 knob moves a different parameter on each machine; before 0.10 the popup named track 6's).
+
+## 20. Lighter again, the same bits: Crush 0.5 (2026-11-03, release 0.34)
+
+The maintainer: « track Fx: prüfen: wesentliche performance optimierungen möglich wenn der fokus nicht darauf liegt das
+am ende alle bytegleich rauskommt, sondern wirklich darauf die cpu last zu reduzieren » (a change of sound allowed);
+after a listening page, « 0.4 klingt besser. stufenlos fügt oben viel rauschen hinzu. », then « Ja, einbauen ».
+
+### 20.1 Measured outside the repository
+
+The ColdFire interpreter of notes/69 §20.1 (`_scratch/cfemu/cfemu.py`, outside the repository) ran a prototype with
+one switch per idea (`_scratch/crush-opt2/`, its `REPORT.md`) against 0.4. It compared each device object against its
+own host build, counted the manifest's cost states, and scanned Rate over its whole range with Bits at 127, 95, 47 and 0.
+It also compared the host builds against 0.4 on a mix (kick, hat, bass, chord) in ten states. Instructions a track and
+block on the interpreter (its own signal, so compare shares, not counts):
+
+| | hard | soft | bits | glide | first | dearest state | dearest over Rate |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 0.4 | 930 | 1 387 | 704 | 1 535 | 1 525 | 1 535 | 1 807 |
+| the soft line as a ramp, its slope at each take (dropped) | 936 | 1 307 | 712 | 1 671 | 1 460 | 1 671 | |
+| the soft line on the EMAC (kept) | 942 | 1 237 | 712 | 1 287 | 1 352 | 1 352 | 1 374 |
+| the hard hold's Bits at the take (kept) | 351 | 1 398 | 707 | 1 546 | 1 535 | 1 546 | |
+| Bits without steps (dropped by ear) | 703 | 1 210 | 490 | 1 358 | 1 347 | 1 358 | 1 630 |
+| the silence scan's ends first (kept) | 936 | 1 398 | 710 | 1 546 | 1 438 | 1 546 | |
+| Rate and Bits in one pass (kept) | 837 | 1 273 | 704 | 1 421 | 1 411 | 1 421 | |
+| **0.5**, the four kept | 359 | 1 109 | 709 | 1 159 | 1 124 | 1 159 (−24 %) | 1 245 (−31 %) |
+
+- **The ramp, dropped.** With a take every two or three frames (glide's soft side), the slope and the line's start at
+  each take cost more than the frames save, and GCC spills. The line on the EMAC does the same work in one product a
+  frame, bit for bit.
+- **Bits without steps, dropped by ear.** The idea: a step of 2^s · 2^(f/256) itself, the frame times 1/(2m) on the
+  EMAC, 0.4's grid, then times 2m, saturated. It equals 0.4 on a whole bit count. Alone it saves 12 %, with the rest
+  40 %. Between two counts it has 1 to 4 dB more noise than 0.4's blend at the same knob, because the blend's two
+  roundings partly cancel. The maintainer heard both on a listening page (a private page whose browser computes 0.4
+  and this one, bit for bit as their host builds) and kept 0.4's.
+- **A state the manifest lacked.** 0.4's dearest block was not glide. It was the soft side next to the centre with
+  Bits on (Rate −1, Bits 95), a take nearly every frame and the line's terms worked out at each: 1 807 instructions
+  against glide's 1 535 on the interpreter. In the proof's terms that is about 1 545, 8.6 % of a block for six tracks
+  against the 7.3 % declared (an estimate: the interpreter's ratio to the proof for 0.4, about 1.17, carried over).
+  The manifest's cost states now have it: `dense`, `[[16128, 24320]]`.
+
+### 20.2 `crush.c` 0.5
+
+- **The soft line on the EMAC.** 0.4 computes p + dh t + (dl t >> 16), the line's value at half scale. That is
+  floor(d t / 2^16) = floor(d (t << 15) / 2^31): one `mac.l` and `movclr.l` from a clear acc0 (truncating, so the
+  floor). The host model does the same product in 64 bits, as `tools/emu/emac.py` executes it.
+- **The clock** runs as P = ph << 16 with I = inc << 16. A take is the carry of P + I. The line's end, where 0.4 holds
+  t at ONE, is the carry of the next P + I. Under it, t << 15 is (P + I) >> 1.
+- **The hard hold with Bits** rounds the taken frame once, when it is taken (blend or grid, as 0.4), instead of every
+  frame. The same frames come out.
+- **Rate and Bits in one pass.** The macros `HARD` and `SOFT` take the frame's output, and `BITS` picks blend or grid
+  for the block's count.
+- **The silent hold's scan** runs only when the block's first and last frames are 0.
+- 644 bytes more in the image (8 472, `crush_process` 2 144 bytes against 1 500). The slot already calls a filter
+  with MACSR 0xa0 and the accumulators clear and leaves the EMAC to it (`fltslot.c`). Crush leaves acc0 clear.
+
+### 20.3 Proven, checked
+
+- **Bit for bit against 0.4.** The host builds over 30 000 blocks: random words with every corner, notes, resets,
+  silences, full scale, blocks just above −FS, and a lone sample at the block's start, middle and end. Also the mix in
+  ten states. None differ. The device object in the interpreter against its host build, over 1 500 blocks: none differ.
+- **Interpreter counts, 0.4 → 0.5:** off 31 → 36, hard 930 → 359, soft 1 387 → 1 109, bits 704 → 709, glide
+  1 535 → 1 159, silent 162 → 166, first 1 525 → 1 124, dense 1 732 → 1 224. Over Rate's whole range, 1 807 → 1 245.
+- **Green:** `gen_crush.py --check` and the other four Track FX generators, `gen_parts.py --check`,
+  `gen_flasher_tweaks.py --check`, `check_overlaps.py`, `registry.py --check`, `claims.py --check --self-test`,
+  `webbuild_check.sh`, `webcompose_check.sh` with the official file (identical), `webflash_check.sh`,
+  `webmanager_check.sh`, `webflash_smoke.sh` with both official files (ALL PARTS OK, the 67 combinations of
+  `REF_MAINOS` regenerated), `ref_mainos.py --check`, `py_compile`, and `test_fltslot.py --dry` ALL OK.
+  `relocate_6ch.py --check` differs as before (§7).
+- **The proof, the maintainer's run (2026-11-03): ALL OK but the cost line**, which still declared 0.4's numbers and
+  no `dense`. Counted for 0.5, now declared, with 0.4's in brackets: off 36 (31), hard 327 (802, −59 %), soft 952
+  (1 183, −20 %), bits 615 (611), glide 994 (1 307, −24 %), silent 166 (162), first 978 (1 312, −25 %), and `dense`
+  1 066, now the dearest. Six tracks come to at most 6 396 instructions a block, 5.9 % (7.3 % declared for 0.4, about
+  8.6 % in its `dense` by §20.1's estimate). Then the checks again green, the smoke test ALL PARTS OK.
+
+MAIN OS: Crush alone `36494141…`, with Samples `44e16270…`; Samples, Crush and Ring `7f9371fa…`, with Reso
+`c1be9428…`, with EQ `567c2b42…`; every card of the page `0d64b14e…`. All match `REF_MAINOS`. Builds in
+`build/crush-0.5/` (git-ignored): Crush alone, with Samples, `every-card/`, and two measuring builds of Samples and
+Crush that differ only in Crush, `measure/` (0.5, MAIN OS `59b23039…`) and `measure-0.4/` (0.4 from `3b4e972`,
+`4e65f8bf…`).
+
+### 20.4 On the machine (2026-11-03)
+
+The maintainer flashed `build/crush-0.5/every-card/` (every card of the page, from the command line, MAIN OS
+`0d64b14e…`, as `REF_MAINOS`). Crush chosen with RETRIG + PITCH, Rate turned both ways, Bits turned down, then Crush
+on all six tracks at Rate −1 and Bits 95, the dearest state: « Passt » (the sound as before, no crackle, no dropout).

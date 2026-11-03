@@ -20,14 +20,20 @@
  * Both off (Rate at the centre, Bits at the top): the block is not touched, bit for bit, and the hold
  * keeps the block's last frame with its clock at 0, so that Rate turned on later holds the latest frame. A silent
  * block (all 32 frames 0) with a silent hold gives 0 whatever the values: only the clock moves on; the block is looked
- * at only when the hold is silent (since 0.3). The soft line's terms change only when a frame is taken, so they are
- * worked out then rather than every frame (since 0.3: the same output, bit for bit, in about half the instructions).
+ * at only when the hold is silent (since 0.3), and only when its first and last frames are 0 (since 0.5).
  *
- * Every product and sum stays within 32 bits (the soft line on half the frames, its product split at 16 bits), so the
- * same file compiled for the host is the proof's model, bit for bit (tools/emu/test_fltslot.py). No EMAC.
+ * Since 0.5 the same output as 0.4, bit for bit, in fewer instructions (notes/73 §20): the soft line's value
+ * p + floor(d t / 2^16) is one product on the EMAC, floor(d (t << 15) / 2^31); the clock runs at 16.16 << 16, so
+ * that a take is its carry and so is the line's end (t held at 65536: the taken frame itself); with the hard hold
+ * Bits round the taken frame once, when it is taken, rather than every frame; Rate and Bits run in one pass over the
+ * block. (0.3: the soft line's terms worked out at each take, the line split at 16 bits a frame.)
+ *
+ * The product on the EMAC (signed, fractional, truncating, from a clear acc0, MACSR 0xa0 as the slot calls) is
+ * computed for the host in 64 bits, as tools/emu/emac.py executes it; every other product and sum stays within
+ * 32 bits, so the same file compiled for the host is the proof's model, bit for bit (tools/emu/test_fltslot.py).
  *
  * Contract (fltslot.c): crush_process(block, words, track, triggered), block 32 frames of 32 bits changed in place;
- * crush_reset(track). C ABI.
+ * crush_reset(track). C ABI; the EMAC is free (fl_post restores what the OS had).
  *
  * License: MIT (LICENSE next to this file). */
 #include <stdint.h>
@@ -67,11 +73,71 @@ static int32_t grid(int32_t x, uint32_t s)
 	return r > 0x3fffffff ? 0x7fffffff : r * 2;
 }
 
+/* x between two whole bit counts: the roundings on 2^s and 2^(s+1) blended by f / 256. */
+static inline int32_t blend(int32_t x, uint32_t s, int32_t f)
+{
+	int32_t lo = grid(x, s);
+	return lo + ((grid(x, s + 1) - lo) >> 8) * f;
+}
+
+/* floor(a * b / 2^31): mac.l and movclr.l on the device, the same in 64 bits on the host. */
+static inline int32_t frac(int32_t a, int32_t b)
+{
+#ifdef __mcoldfire__
+	int32_t r;
+	__asm__ volatile("mac.l %1,%2,%%acc0\n\tmovclr.l %%acc0,%0" : "=d"(r) : "r"(a), "r"(b));
+	return r;
+#else
+	return (int32_t)(((int64_t)a * b) >> 31);
+#endif
+}
+
+/* A frame's output: as it is, on a whole bit count, or between two; BITS picks the loop for the block's count. */
+#define PLAIN(v) (v)
+#define GRID(v) grid((v), s)
+#define BLEND(v) blend((v), s, f)
+#define BITS(LOOP) if (f) LOOP(BLEND) else LOOP(GRID)
+
+/* The hard hold: the taken frame, with Bits, held until the next take. */
+#define HARD(OUT) {                                                                                                  \
+	int32_t held = OUT(cur);                                                                                     \
+	for (n = 0; n < FRAMES; n++) {                                                                               \
+		ph += inc;                                                                                           \
+		if (ph >= ONE) {                                                                                     \
+			ph -= ONE;                                                                                   \
+			prev = cur;                                                                                  \
+			cur = block[n];                                                                              \
+			held = OUT(cur);                                                                             \
+		}                                                                                                    \
+		block[n] = held;                                                                                     \
+	} }
+
+/* The soft hold: p + floor(d t / 2^16) with t = min(ph + inc, ONE), p and d at half scale; the clock as P = ph << 16
+ * and I = inc << 16, so that P + I carries where ph + inc passes ONE (a take) and where t is held at ONE (the line's
+ * end, the taken frame itself), and t << 15 is (P + I) >> 1. */
+#define SOFT(OUT) {                                                                                                  \
+	int32_t p = prev >> 1, ch = cur >> 1, d = ch - p;                                                            \
+	uint32_t P = ph << 16, I = inc << 16;                                                                        \
+	for (n = 0; n < FRAMES; n++) {                                                                               \
+		uint32_t t;                                                                                          \
+		P += I;                                                                                              \
+		if (P < I) {                                                                                         \
+			prev = cur;                                                                                  \
+			cur = block[n];                                                                              \
+			p = prev >> 1;                                                                               \
+			ch = cur >> 1;                                                                               \
+			d = ch - p;                                                                                  \
+		}                                                                                                    \
+		t = P + I;                                                                                           \
+		block[n] = OUT(2 * (t < I ? ch : p + frac(d, (int32_t)(t >> 1))));                                    \
+	}                                                                                                            \
+	ph = P >> 16; }
+
 void crush_process(int32_t *block, const int16_t *words, uint32_t track, uint32_t triggered)
 {
 	struct track *st;
-	int32_t r = clamp(words[0]) - CENTRE, b = TOP - clamp(words[1]), last, cur, prev;   /* b: bits taken */
-	uint32_t inc = ONE, ph;
+	int32_t r = clamp(words[0]) - CENTRE, b = TOP - clamp(words[1]), last, cur, prev, f = 0;   /* b: bits taken */
+	uint32_t inc = ONE, ph, s = 0;
 	int n;
 	if (track >= TRACKS)
 		return;
@@ -88,63 +154,44 @@ void crush_process(int32_t *block, const int16_t *words, uint32_t track, uint32_
 		if (triggered || st->ph >= ONE)     /* a note, or a reset: the first frame taken, and the next as */
 			st->ph = ONE - 1;           /* early as the rate lets */
 	}
-	if (!st->cur && !st->prev) {                /* a silent hold: is the block silent too? */
+	if (!st->cur && !st->prev && !(block[0] | last)) {     /* a silent hold: is the block silent too? */
 		int32_t any = 0;
-		for (n = 0; n < FRAMES; n++)
+		for (n = 1; n < FRAMES - 1; n++)
 			any |= block[n];
 		if (!any) {
 			st->ph = r ? (st->ph + FRAMES * inc) & (ONE - 1) : 0;
 			return;
 		}
 	}
+	if (b) {
+		uint32_t e = 6144 + (uint32_t)b * 7 / 127;              /* 24.0 .. 31.0 in 8.8 (0.4) */
+		s = e >> 8;
+		f = (int32_t)(e & 0xff);
+	}
 	ph = st->ph;
 	cur = st->cur;
 	prev = st->prev;
 	if (r > 0) {                                /* the hard hold */
-		for (n = 0; n < FRAMES; n++) {
-			ph += inc;
-			if (ph >= ONE) {
-				ph -= ONE;
-				prev = cur;
-				cur = block[n];
-			}
-			block[n] = cur;
-		}
-	} else if (r < 0) {                         /* the soft hold: a line from prev to cur, its terms at each take */
-		int32_t p = prev >> 1, d = (cur >> 1) - p, dh = d >> 16;
-		uint32_t dl = (uint32_t)d & 0xffff;
-		for (n = 0; n < FRAMES; n++) {
-			uint32_t t;
-			ph += inc;
-			if (ph >= ONE) {
-				ph -= ONE;
-				prev = cur;
-				cur = block[n];
-				p = prev >> 1;
-				d = (cur >> 1) - p;
-				dh = d >> 16;
-				dl = (uint32_t)d & 0xffff;
-			}
-			t = ph + inc > ONE ? ONE : ph + inc;
-			block[n] = 2 * (p + dh * (int32_t)t + (int32_t)((dl * t) >> 16));
-		}
-	} else {                                    /* Rate off: the hold follows the input */
+		if (!b)
+			HARD(PLAIN)
+		else
+			BITS(HARD)
+	} else if (r < 0) {                         /* the soft hold */
+		if (!b)
+			SOFT(PLAIN)
+		else
+			BITS(SOFT)
+	} else {                                    /* Rate off: the hold follows the input, Bits alone */
 		ph = 0;
 		cur = prev = last;
+		if (f)
+			for (n = 0; n < FRAMES; n++)
+				block[n] = BLEND(block[n]);
+		else
+			for (n = 0; n < FRAMES; n++)
+				block[n] = GRID(block[n]);
 	}
 	st->ph = ph;
 	st->cur = cur;
 	st->prev = prev;
-	if (b) {
-		uint32_t e = 6144 + (uint32_t)b * 7 / 127, s = e >> 8;        /* 24.0 .. 31.0 in 8.8 (0.4) */
-		int32_t f = (int32_t)(e & 0xff);
-		if (f)
-			for (n = 0; n < FRAMES; n++) {
-				int32_t lo = grid(block[n], s);
-				block[n] = lo + ((grid(block[n], s + 1) - lo) >> 8) * f;
-			}
-		else
-			for (n = 0; n < FRAMES; n++)
-				block[n] = grid(block[n], s);
-	}
 }
