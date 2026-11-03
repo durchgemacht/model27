@@ -1,0 +1,24 @@
+{
+ "schema": "model27-part/0.1",
+ "id": "cpu",
+ "version": "0.3",
+ "order": 78,
+ "name": "CPU page: how much of each audio block the audio takes, with the Track FX' and the effect slots' shares",
+ "description": "A part of model27's builder, not a machine (notes/78): built once into cpu.o by tools/gen_parts.py, added by tools/compose.py to a build when the CPU card is ticked (compose.py --cpu), with or without packages. The audio interrupt's call of the audio function (0x40059382, jsr 0x4005979e) goes to the part's probe, which times it with the DMA timer 0 (90 112 ticks a block) and keeps, over windows of 750 blocks (0.5 s), the average share of a block and the dearest block, the dearest block since the page last cleared it, and the shares the build's other parts measure: the Track FX' (fltslot's last average, whose address the composer writes into the data block, 0 without Track FX) and the effect slots' (fxslot's running ticks since its 0.7, 0 without effects). Since 0.2 (step 2 of notes/78 §6) the device configuration list (0x40032aee) ends with the row CPU, which opens a page of its own, the stock machine-select page with a private copy of its vtables (Model-TG's System page, TinyGregAudio, MIT): CPU with a bar, PEAK, TRACK FX and EFFECTS; Return closes it. Since 0.3 (step 3) the page redraws itself twice a second from its own periodic method (the view stack's +0x2c), and PEAK counts from its opening.",
+ "license": "MIT",
+ "build": {
+  "sources": ["cpu.c", "entries.S"],
+  "include": [],
+  "cflags": ["-std=c99", "-mcpu=54418", "-O2", "-ffreestanding", "-fno-builtin", "-fno-tree-loop-distribute-patterns",
+             "-nostdlib", "-fno-pic", "-fno-common", "-ffunction-sections", "-fdata-sections", "-Wall", "-Wextra", "-Werror"],
+  "defines": {},
+  "objects": ["cpu.o"],
+  "roots": ["cpu_probe", "cpu_block", "cpu_cfg"],
+  "patch_points": [{"symbol": "cpu_data", "kind": "cpu_data"}]
+ },
+ "probe": {"hook": "0x40059382", "stock": "4eb94005979e", "symbol": "cpu_probe"},
+ "row": {"jmp": "0x40032aee", "stock": "4cef7c7c0018", "symbol": "cpu_cfg"},
+ "data": {"size": 228, "fl_avg": 0, "fx_busy": 4, "ret": 8, "t0": 12, "sum": 16, "peak": 20, "top": 24, "fx_last": 28,
+          "n": 32, "avg": 34, "win_peak": 36, "top_t": 38, "trackfx": 40, "effects": 42, "windows": 44, "drawn": 46, "page": 48,
+          "vt": 52}
+}

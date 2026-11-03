@@ -442,6 +442,25 @@ EQ 0.1 (les noms EQ Low, EQ High, EQ Mid), joué sur un Model:Cycles depuis la l
 §10) : seul `c2a00bed…`, avec Samples et Crush `31369bf8…`, avec toutes les cartes `9f57b1a0…`. EQ 0.5 joué sur un
 Model:Cycles le 01/11/2026 (note 76 §14).
 
+### Page CPU
+
+`tweaks/model-cycles_OS1.13/78-cpu.json` est produit par `tools/gen_cpu.py`, qui compose seule avec `tools/compose.py
+--cpu` la partie `cpu` du constructeur (`tools/machines/cpu/`, objet construit par `tools/gen_parts.py`) : une sonde
+autour de l'appel de la fonction audio (`0x40059382`) mesure la part de chaque bloc, une ligne CPU au bout de la liste
+de la configuration de l'appareil (`0x40032aee`) ouvre une page à elle, construite comme la page System de Model-TG
+([note 78](notes/78-cpu-page.md)). La page lit aussi ce que mesurent `fltslot` (Track FX) et `fxslot` 0.7 (effets).
+La preuve tourne sur le code de l'OS (Unicorn) :
+```sh
+python3 tools/gen_cpu.py --cycles model-cycles_OS1.13.syx [--check]
+python3 tools/emu/test_cpu.py --cycles model-cycles_OS1.13.syx [--show]
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --cpu                       # la page seule
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines pots,crush --cpu  # avec POTS et Crush
+```
+MAIN OS patché, `cpu` seul : `425ad022c55c0037e7846c3c5b84fd87235dba4c1847cf1733795236a50b25b5` ; avec POTS et Crush
+(dans l'ordre des cartes, comme la page) : `49a0e74a0ad3ffe2ca67e0f068a239ba28cbde319aa86295e8588df91886a1c8` ; avec
+toutes les cartes de la page (douze, release 0.37) : `5af3a7473353c494edefc8ebec1a36642d22b287a06867145aa7c7fff9afa17d`. Avec POTS et Crush, essayé sur un Model:Cycles depuis la ligne de commande le 03/11/2026, les valeurs
+rafraîchies deux fois par seconde (note 78 §10). La page sans son rafraîchissement (`cpu` 0.2), essayée de même le
+même jour (note 78 §9) : avec Crush et POTS `7773846a…`.
 ### Trig Cond dans un autre ordre
 
 `tweaks/model-cycles_OS1.13/80-trig-cond-order.json` est produit par `tools/gen_trig_cond_order.py`, qui assemble

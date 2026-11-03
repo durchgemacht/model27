@@ -668,6 +668,32 @@ function flLayer(mainOs, part, filters, symsOf, at, codeEnd, descStock, descUsed
                                  values: n, filters: byId.map((p) => [flEntry(p).id, p.id]) } };
 }
 
+// compose.cpu_layer(): the CPU page (notes/78), the audio interrupt's call of the audio function (0x40059382) to its
+// probe and the end of the device configuration list's constructor (0x40032aee) to its row; its data block starts with
+// the addresses of the filter slot's last average and of the effect slots' running ticks, 0 without that part.
+function cpuLayer(mainOs, part, at, codeEnd, fl, fxs, fltPart, fxPart) {
+  const d = part.data;
+  const dataAt = align4(at + part.bundle.code.length / 2);
+  if (dataAt + d.size > codeEnd) throw new Error(`the CPU page ends at ${hx(dataAt + d.size)}, past ${hx(codeEnd)}`);
+  const { code, symbols } = placePart(part, at, codeEnd, { cpu_data: dataAt });
+  const flAvg = fl ? fl.symbols.fl_data + fltPart.data.avg_t : 0;
+  const fxBusy = fxs ? fxs.symbols.fx_data + fxPart.data.busy : 0;
+  const block = new Uint8Array(d.size);
+  put32(block, d.fl_avg, flAvg);
+  put32(block, d.fx_busy, fxBusy);
+  const writes = [], skip = new Set();
+  for (const [s, va, op] of [[part.probe, parseInt(part.probe.hook, 16), bytesOf(0x4e, 0xb9)],      // jsr cpu_probe
+                             [part.row, parseInt(part.row.jmp, 16), bytesOf(0x4e, 0xf9)]]) {       // jmp cpu_cfg
+    const old = fromHex(s.stock), here = hex(mainOs.subarray(va - BASE, va - BASE + old.length));
+    if (here !== hex(old)) throw new Error(`${hx(va)}: ${hex(old)} expected, ${here} found`);
+    writes.push({ off: va - BASE, old: hex(old), new: hex(concat(op, be32(symbols[s.symbol]))) });
+    skip.add(va);
+  }
+  return { blob: concat(code, new Uint8Array(dataAt - at - code.length), block), symbols, writes, skip,
+           info: { id: part.id, code_at: at, code: code.length, data_at: dataAt, data: d.size, fl_avg: flAvg,
+                   fx_busy: fxBusy } };
+}
+
 // compose.fl_cost(): six tracks on the dearest state of the dearest filter, from the filters' declared cost.emulation
 function flCost(filters) {
   const costs = Object.fromEntries(filters.map((p) => [p.id, Object.fromEntries(Object.entries(
@@ -857,9 +883,10 @@ function computedConflicts(writes, ram, declared, tweaks) {
 // packages = compose.web_package() of each machine, in order (machines 6, 7, ...), tweaks = what the conflicts are
 // computed against, parts = compose.web_part() of the builder's parts by id (the shortcut layer, the dispatchers),
 // needed only by the builds that use them, claims = the declared claims of those tweaks by id (tools/claims.py's
-// tweak_claims). Returns { tweak, info }.
-function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {}) {
-  if (!packages.length) throw new Error("name at least one machine");
+// tweak_claims), opts.cpu: with the CPU page (notes/78), also without any machine. Returns { tweak, info }.
+function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {}, opts = {}) {
+  const cpu = !!opts.cpu;
+  if (!packages.length && !cpu) throw new Error("name at least one machine");
   const ids = packages.map((p) => p.id);
   if (new Set(ids).size !== ids.length) throw new Error("a machine is named twice");
   const lay = frames.layout, pay = lay.pay, first = lay.first;
@@ -970,6 +997,14 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
     layer.writes = layer.writes.filter((x) => !fl.skip.has(x.off + BASE));
     if (fxs) fxs.writes = fxs.writes.filter((x) => !fl.skip.has(x.off + BASE));
   }
+  let cpus = null;                                // the CPU page (notes/78), after the parts whose measures it reads
+  if (cpu) {
+    if (!parts.cpu) throw new Error("the CPU page is ticked, and the page lacks its part");
+    const at = align4(codeCursor);
+    cpus = cpuLayer(mainOs, parts.cpu, at, lay.stubs, fl, fxs, parts.fltslot, parts.fxslot);
+    blobs.push([at, cpus.blob]);
+    codeCursor = at + cpus.blob.length;
+  }
   for (const p of packages)                       // a package's RAM claim must lie outside the payload
     for (const [lo, hi] of ramClaims(p))
       if (lo < bssCursor && pay < hi)
@@ -978,13 +1013,13 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
   const { writes, append } = machines.length ? fill(frameOf(frames, machines.length), mainOs, machines, blobs, bssCursor)
     : fillAlone(frameOf(frames, 0), mainOs, blobs, bssCursor);
   const skip = new Set([...(layer ? layer.skip : []), ...(dispatch ? dispatch.skip : []), ...(fxs ? fxs.skip : []),
-                        ...(fl ? fl.skip : [])]);
+                        ...(fl ? fl.skip : []), ...(cpus ? cpus.skip : [])]);
   for (const p of packages) writes.push(...packageWrites(p, mainOs, symsOf[p.id], skip));
-  for (const x of [layer, dispatch, fxs, fl]) if (x) writes.push(...x.writes);
+  for (const x of [layer, dispatch, fxs, fl, cpus]) if (x) writes.push(...x.writes);
   writes.sort((a, b) => a.off - b.off);
   checkOverlaps(writes);
   const ram = [[pay, bssCursor]].concat(...packages.map(ramClaims));
-  const tid = ids.join("+");
+  const tid = ids.concat(cpu ? ["cpu"] : []).join("+");
   const declared = packages.flatMap((p) => p.conflicts_declared || [])
     .concat(layer ? parts.shortcuts.conflicts_declared || [] : []);   // none since notes/65 C2: computed
   const holders = buildHolders(packages, layer ? parts.shortcuts : null);       // notes/65: the claims
@@ -1013,23 +1048,24 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
   const symbols = {};
   for (const p of packages)
     for (const k of [p.symbols.update, p.symbols.render, ...(p.keep || [])]) symbols[k] = hx(symsOf[p.id][k]);
-  for (const x of [layer, dispatch, fxs, fl])
+  for (const x of [layer, dispatch, fxs, fl, cpus])
     if (x) for (const [k, v] of Object.entries(x.symbols)) symbols[k] = hx(v);
   for (const [point, [a]] of Object.entries(lines)) symbols[`fx_line_${point.slice(3)}`] = hx(a);
   const tweak = {
     id: tid,
-    order: Math.min(...packages.map((p) => p.order)),
-    name: packages.length > 1 ? packages.map((p) => p.name).join(" + ") : packages[0].name,
+    order: packages.length ? Math.min(...packages.map((p) => p.order)) : parts.cpu.order,
+    name: packages.map((p) => p.name).concat(cpu ? ["CPU page"] : []).join(" + "),
     description: [`Composed in the browser by composer.js (notes/61): ${info.map((x) => (x.extends
       ? `${x.id} extending ${x.extends} (machine ${x.index})` : x.slot ? `${x.id} in the ${x.slot} slot (effect ${x.fx_id})`
         : x.filter_id ? `${x.id} as filter ${x.filter_id}`
         : `${x.id} as machine ${x.index}`)).join(", ")}, `
       + (machines.length ? "registered together through the registrar runtime"
-        : "nothing registered (no added machine, notes/66 §3)") + ", as tools/compose.py composes them."],
+        : "nothing registered (no added machine, notes/66 §3)") + (cpu ? ", with the CPU page (notes/78)" : "")
+      + ", as tools/compose.py composes them."],
     device: "Model:Cycles",
     os: "1.13",
     section: 3,
-    version: packages.map((p) => p.version).join("+"),
+    version: packages.map((p) => p.version).concat(cpu ? [parts.cpu.version] : []).join("+"),
     conflicts,
     writes,
     append,
@@ -1037,11 +1073,12 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {})
   };
   return { tweak, info: { pay, end: bssCursor, image: append.pack.reduce((s, [, k]) => s + k, 0), packages: info,
                           part: layer && layer.info, dispatch: dispatch && dispatch.info, fx: fxs && fxs.info,
-                          fx_lines: lines, fx_load: load, filters: fl && fl.info, fl_load: flLoad, byClaims } };
+                          fx_lines: lines, fx_load: load, filters: fl && fl.info, fl_load: flLoad, cpu: cpus && cpus.info,
+                          byClaims } };
 }
 
 const API = { place, frameOf, fill, fillAlone, segments, bootStub, parameterBlock, packageWrites, shortcutUses,
-              shortcutPresses, shortcutLayer, dispatchLayer, fxLayer, fxCost, flLayer, flCost, narrowed, computedConflicts, resolveClaims,
+              shortcutPresses, shortcutLayer, dispatchLayer, fxLayer, fxCost, flLayer, flCost, cpuLayer, narrowed, computedConflicts, resolveClaims,
               claimClashes, buildHolders, checkBuildClaims, claimConflicts, compose, fromHex, FX_WARN, FX_PEAK_WARN };
 if (typeof module !== "undefined" && module.exports) module.exports = API;
 if (typeof window !== "undefined") window.MCComposer = API;

@@ -26,6 +26,10 @@
  * descriptors' long and short names and group, in the stock table and in the one the OS uses when the build moved it;
  * their interface objects' formatters).
  *
+ * The time (since 0.7, for the CPU page, notes/78): fx_run reads the DMA timer 0 before and after each slot's run and
+ * adds the ticks to busy, a counter that runs from boot and wraps; the CPU page (tools/machines/cpu/) takes its
+ * difference over its window as the slots' share of the blocks.
+ *
  * The state is in the part's data block (a part has no variables of its own): written by the composer, zero at boot.
  *
  * License: MIT (LICENSE next to this file). */
@@ -56,7 +60,8 @@ struct data {
 	int32_t scratch[64];                        /* +912 the stock effect's return in that block */
 	uint8_t cur[SLOTS], played[SLOTS], acc, last_slot, last_dir;   /* +1168: cur, the ids the names are of */
 	uint32_t last_time;                         /* +1176 */
-};                                                  /* 1180 bytes */
+	uint32_t busy;                              /* +1180 the slots' ticks since boot, for the CPU page (since 0.7) */
+};                                                  /* 1184 bytes */
 
 extern char fx_data[];
 #define D ((struct data *)fx_data)
@@ -152,6 +157,7 @@ void fx_hdr_init(volatile uint8_t *h)
 
 void fx_run(int slot, int32_t *out, const int32_t *in, const void *params)
 {
+	uint32_t t0 = TIMER;
 	const struct slot *s = &D->slot[slot];
 	uint8_t id = choice(playing_header(), slot);
 	if (id != D->cur[slot]) {
@@ -167,6 +173,7 @@ void fx_run(int slot, int32_t *out, const int32_t *in, const void *params)
 		D->played[slot] = (uint8_t)e->id;
 	}
 	((fx_fn)e->process)(out, in, params);
+	D->busy += TIMER - t0;
 }
 
 int fx_step(uint32_t desc, int32_t step)

@@ -413,7 +413,7 @@ def web_part(pid):
            "data": p["data"], "bundle": relocate.bundle(lay, roots)}
     for key in ("sites", "shortcut", "slots", "track", "release", "load", "init", "early", "late", "formatter_sites",
                 "int_format", "cost", "post", "boot", "keys", "lfo", "conv", "knob", "ptab", "record", "values", "type",
-                "formats", "most"):
+                "formats", "most", "probe", "row", "order"):
         if key in p:                         # the effect slots' (notes/68) and the filter slot's besides the shortcut
             out[key] = p[key]                # layer's and dispatchers' 
     if "claims" in p:                        # notes/65: what the part claims, in tools/claims.py's to_json form
@@ -1230,6 +1230,46 @@ def fl_layer(img, part, filters, syms_of, at, code_end, desc_used, layer_syms, k
     return blob, out, writes, taken, info
 
 
+def cpu_layer(img, part, at, code_end, fls, fxs):
+    """The CPU page of this build (notes/78): the audio interrupt's call of the audio function (0x40059382) goes to
+    the part's probe, which times it, and since 0.2 the end of the device configuration list's constructor
+    (0x40032aee) to the part's row, which opens the page. The data block after the part's code starts with the
+    addresses of what the build's other parts measure: the filter slot's last average (fls, its data block's avg_t)
+    and the effect slots' running ticks (fxs, their data block's busy, fxslot 0.7), each 0 when the build does not
+    have that part; the rest, the part's state and the page's vtables, is zero. Returns (blob, symbols, writes, the
+    sites taken, info)."""
+    d = part["data"]
+    path = object_path(part)
+    if not path.is_file():
+        sys.exit(f"!! {path} is missing: run tools/gen_parts.py")
+    roots = part["build"]["roots"]
+    lay = relocate.layout(path.read_bytes(), roots[0], roots[1], roots[2:], part["id"])
+    data_at = align4(at + len(lay["code"]))
+    if data_at + d["size"] > code_end:
+        sys.exit(f"!! the CPU page ends at {data_at + d['size']:#x}, past {code_end:#x}")
+    values = {"cpu_data": data_at}
+    pps = part["build"]["patch_points"]
+    code, syms, _ = relocate.apply(lay, at, at, code_end, {pp["symbol"]: values[pp["kind"]] for pp in pps})
+    fl_avg = fls[1]["fl_data"] + load_part("fltslot")["data"]["avg_t"] if fls else 0
+    fx_busy = fxs[1]["fx_data"] + load_part("fxslot")["data"]["busy"] if fxs else 0
+    block = bytearray(d["size"])
+    struct.pack_into(">II", block, d["fl_avg"], fl_avg, fx_busy)
+    blob = code + bytes(data_at - at - len(code)) + bytes(block)
+    writes, taken = [], set()
+    for s, va, op in ((part["probe"], int(part["probe"]["hook"], 16), "4eb9"),     # jsr cpu_probe
+                      (part["row"], int(part["row"]["jmp"], 16), "4ef9")):        # jmp cpu_cfg
+        old = bytes.fromhex(s["stock"])
+        if img[va - BASE:va - BASE + len(old)] != old:
+            sys.exit(f"!! {va:#x}: {old.hex()} expected, {img[va - BASE:va - BASE + len(old)].hex()} found")
+        writes.append({"off": va - BASE, "old": old.hex(), "new": (bytes.fromhex(op) + g7.be32(syms[s["symbol"]])).hex()})
+        taken.add(va)
+    out = {r: syms[r] for r in roots}
+    out.update({pp["symbol"]: values[pp["kind"]] for pp in pps})
+    info = dict(id=part["id"], code_at=at, code=len(code), data_at=data_at, data=d["size"], fl_avg=fl_avg,
+                fx_busy=fx_busy)
+    return blob, out, writes, taken, info
+
+
 def fl_cost(filters):
     """The filter slot's load, from the filters' declared cost.emulation (instructions per track and block): six
     tracks on the dearest state of the dearest filter, {dearest, steady, share}, or {missing: [ids]} when a filter
@@ -1349,7 +1389,7 @@ def computed_conflicts(writes, ram, declared, tweaks=None):
 
 
 def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime", compare_b1=False, against=None,
-            against_claims=None, diag_filters=False):
+            against_claims=None, diag_filters=False, cpu=False):
     """Builds the tweak for the machines named in ids, in that order. relocator: "python" places each
     package's committed object with tools/relocate.py (no toolchain), "ld" compiles and links it as B1 did;
     compare_ld does both and compares them byte for byte (the proof of the relocator). registrar: "runtime" writes
@@ -1357,8 +1397,9 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     gen_macro.added_machine (assembles the detours per build); compare_b1 does both and compares (notes/60 §5.4).
     against: the tweaks the conflicts are computed against (default: the folder's); against_claims: their claims,
     {id: claims} (default: the folder's, tools/claims.py.tweak_claims). diag_filters: a measuring build of the filter
-    slot (its popups show the filters' load, fltslot 0.5), never offered. Returns (tweak, info)."""
-    if not ids:
+    slot (its popups show the filters' load, fltslot 0.5), never offered. cpu: with the CPU page (tools/machines/cpu/,
+    notes/78), also without any package; the tweak's id then ends with "+cpu" (or is "cpu"). Returns (tweak, info)."""
+    if not ids and not cpu:
         sys.exit("!! name at least one package")
     if len(ids) != len(set(ids)):
         sys.exit("!! a package is named twice")
@@ -1463,6 +1504,12 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             layer = (layer[0], layer[1], [x for x in layer[2] if x["off"] + BASE not in fls[3]], layer[3], layer[4])
             if fxs:
                 fxs = (fxs[0], fxs[1], [x for x in fxs[2] if x["off"] + BASE not in fls[3]], fxs[3], fxs[4])
+        cpus = None                          # the CPU page (notes/78), after the parts whose measures it reads
+        if cpu:
+            at = align4(code_cursor)
+            cpus = cpu_layer(img, load_part("cpu"), at, gs.STUBS, fls, fxs)
+            blobs.append((at, cpus[0]))
+            code_cursor = at + len(cpus[0])
         for m in mans:                       # a package's RAM claim must lie outside the payload
             for lo, hi in ram_claims(m):
                 if lo < bss_cursor and pay < hi:
@@ -1484,10 +1531,10 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             else:
                 writes, append = writes1, append1
     skip = ((layer[3] if layer else set()) | (dispatch[3] if dispatch else set()) | (fxs[3] if fxs else set())
-            | (fls[3] if fls else set()))
+            | (fls[3] if fls else set()) | (cpus[3] if cpus else set()))
     for m in mans:
         writes += package_writes(m, img, syms_of[m["id"]], skip)
-    for extra in (layer, dispatch, fxs, fls):
+    for extra in (layer, dispatch, fxs, fls, cpus):
         if extra:
             writes += extra[2]
     writes.sort(key=lambda x: x["off"])
@@ -1498,7 +1545,7 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     declared = {c["with"] for m in mans for c in m.get("compat", {}).get("conflicts_declared", [])}
     if layer:                                # what the shortcut layer declares (none since notes/65 C2: computed)
         declared |= {c["with"] for c in part.get("conflicts_declared", [])}
-    tid = "+".join(ids)
+    tid = "+".join(ids + (["cpu"] if cpu else []))
     holders = cl.build_holders(mans, part if layer else None)    # notes/65: the claims, rules 2 and 3
     if fxs:                                  # the effect slots' claims (the pattern header's bytes, notes/68 §14)
         fxc = cl.part_claims(load_part("fxslot"))
@@ -1528,10 +1575,10 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     conflicts = (by_bytes | declared | set(by_claims)) - {tid}
     tweak = {
         "id": tid,
-        "order": min(m["order"] for m in mans),
-        "name": " + ".join(m["name"] for m in mans) if len(mans) > 1 else mans[0]["name"],
+        "order": min([m["order"] for m in mans] or [load_part("cpu")["order"]]),
+        "name": " + ".join([m["name"] for m in mans] + (["CPU page"] if cpu else [])),
         "description": [
-            f"Composed by tools/compose.py (notes/59): {', '.join(placed(p) for p in info_pkgs)},",
+            f"Composed by tools/compose.py (notes/59): {', '.join(placed(p) for p in info_pkgs) or 'no package'},",
         ] + ([
             "registered together through the registrar runtime (registrar.S, a parameter block per build) or, with",
             "--registrar b1, gen_macro.added_machine; each machine's code from tools/machines/<id>/",
@@ -1542,11 +1589,11 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             "(manifest.json), compiled and linked at build time at its place in the payload (%#x..%#x)." % (pay, bss_cursor),
             "Conflicts computed from the other tweaks: other bytes at the same address, a payload in this build's",
             "payload or in a claimed RAM range, or declared claims that clash (tools/claims.py, notes/65).",
-        ] + [f"{m['id']}: {m['name']}" for m in mans],
+        ] + [f"{m['id']}: {m['name']}" for m in mans] + ([f"cpu: {load_part('cpu')['name']}"] if cpu else []),
         "device": "Model:Cycles",
         "os": "1.13",
         "section": 3,
-        "version": "+".join(m["version"] for m in mans),
+        "version": "+".join([m["version"] for m in mans] + ([load_part("cpu")["version"]] if cpu else [])),
         "conflicts": sorted(conflicts),
         "writes": writes,
         "append": append,
@@ -1577,10 +1624,17 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
         tweak["description"].insert(6, f"With the filter slot (tools/machines/fltslot/) at {li['code_at']:#x}, its data "
                                        f"at {li['data_at']:#x}: " + ", ".join(f"{mid} ({i})" for i, mid in li["filters"]) + ".")
         tweak["symbols"].update({k: f"{v:#x}" for k, v in fls[1].items()})
+    if cpus:
+        ci = cpus[4]
+        tweak["description"].insert(6, f"With the CPU page (tools/machines/cpu/, notes/78) at {ci['code_at']:#x}, its data "
+                                       f"at {ci['data_at']:#x}: the audio function timed at 0x40059382, the row CPU at 0x40032aee"
+                                       + (f", the Track FX' load read at {ci['fl_avg']:#x}" if ci["fl_avg"] else "")
+                                       + (f", the effect slots' at {ci['fx_busy']:#x}" if ci["fx_busy"] else "") + ".")
+        tweak["symbols"].update({k: f"{v:#x}" for k, v in cpus[1].items()})
     info = dict(pay=pay, end=bss_cursor, image=sum(n for _, n in append["pack"]), packages=info_pkgs,
                 part=layer[4] if layer else None, dispatch=dispatch[4] if dispatch else None,
                 fx=fxs[4] if fxs else None, fx_lines=lines, fx_load=load, filters=fls[4] if fls else None,
-                fl_load=fl_load,
+                fl_load=fl_load, cpu=cpus[4] if cpus else None,
                 claims=dict(by_claims={i: w for i, w in sorted(by_claims.items()) if i != tid},
                             declared_only=sorted(declared - by_bytes - set(by_claims) - {tid}),
                             views=cl.claim_views(holders, others)))
@@ -1656,7 +1710,7 @@ def compare(tweak, path):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cycles", required=True, help="official model-cycles_OS1.13.syx")
-    ap.add_argument("--machines", required=True, help="package ids under tools/machines/, in order, comma-separated")
+    ap.add_argument("--machines", default="", help="package ids under tools/machines/, in order, comma-separated")
     ap.add_argument("--with", dest="with_", default="", help="other tweaks of tweaks/ to install with it, comma-separated")
     ap.add_argument("--out", default=str(BUILD), help="folder for the .syx and the report (default: build/)")
     ap.add_argument("--emit", help="also write the composed tweak JSON here")
@@ -1670,6 +1724,7 @@ def main():
     ap.add_argument("--compare-b1", action="store_true", help="do both and compare them (notes/60 §5.4)")
     ap.add_argument("--diag-filters", action="store_true",
                     help="a measuring build: Filter Cutoff's popup shows the filters' average load, the type's the peak")
+    ap.add_argument("--cpu", action="store_true", help="with the CPU page (notes/78), also without --machines")
     args = ap.parse_args()
     raw = pathlib.Path(args.cycles).read_bytes()
     img = g7.cycles_main(args.cycles)
@@ -1677,7 +1732,7 @@ def main():
         sys.exit("!! not the official MAIN OS 1.13")
     ids = [i.strip() for i in args.machines.split(",") if i.strip()]
     tweak, info = compose(img, ids, args.relocator, args.compare_ld, args.registrar, args.compare_b1,
-                          diag_filters=args.diag_filters)
+                          diag_filters=args.diag_filters, cpu=args.cpu)
     for p in info["packages"]:
         what = (f"effect {p['fx_id']} of the {p['slot']} slot" if p.get("slot")
                 else f"filter {p['filter_id']}" if p.get("filter_id")
@@ -1716,6 +1771,10 @@ def main():
         else:
             print(f"  {'warning, ' if c['steady'] > FX_WARN else ''}the filters' load: {c['dearest']} on six tracks at "
                   f"most {c['steady']} instructions a block ({c['share']:.1%} of a block)")
+    if info["cpu"]:
+        p = info["cpu"]
+        print(f"  {p['id']:12s} code {p['code']} bytes at {p['code_at']:#x}, data {p['data']} bytes at {p['data_at']:#x}, "
+              f"Track FX' load {p['fl_avg']:#x}, effect slots' {p['fx_busy']:#x} (0: not in the build)")
     print(f"  tweak {tweak['id']}: {len(tweak['writes'])} writes, payload {info['pay']:#x}..{info['end']:#x}, "
           f"{info['image']} bytes added to the image, {len(tweak['conflicts'])} conflicts computed")
     ci = info["claims"]

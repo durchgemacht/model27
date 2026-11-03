@@ -61,6 +61,9 @@ OUT = ROOT / "docs" / "flasher" / "tweaks.js"
 # package (model27, notes/61): an added machine composed in the page, by its package id under tools/machines/, in
 # place of variants. Its excludes are not written here: they are computed from its committed tweak alone (the
 # package's own generator writes it, its "conflicts") against the other cards offered, so they cannot drift.
+# part (model27, notes/78): a part of the builder (tools/machines/<id>/part.json) that a card adds to the composed
+# build, with or without the machine cards ticked: the CPU page. As a machine card, no variants, its excludes
+# computed from its tweak alone (tools/gen_<id>.py), and it is composed with the machine cards, never excluded by them.
 CATS = ("pack", "sound", "seq", "live", "screen", "io")
 ALL_FEATURES = [
     {
@@ -459,6 +462,24 @@ ALL_FEATURES = [
         "package": "eq",
     },
     {
+        "id": "cpu",
+        "cat": "screen",
+        "label": "CPU page",
+        "desc": "A page that shows how much of the Model:Cycles' time the sound takes. SETTINGS, then the list with "
+                "USB mode, LCD, LED and Contrast: its last row, CPU, opens it; Return closes it. CPU is the share of "
+                "the last half second, with a bar and a mark at 85 %, where the screen and the knobs start to lag; "
+                "PEAK the dearest moment since the page opened; TRACK FX and EFFECTS their own shares.",
+        # model27's own (notes/78), its row and page as Model-TG builds its System page (TinyGregAudio, MIT): the
+        # measure, the row and the page proven in emulation; on the Model:Cycles from the command line on 2026-11-03,
+        # the page without its redraw (notes/78 §9), then with it, POTS and Crush as the page builds them (§10)
+        "status": "experimental",
+        "credit": {"kind": "based", "who": "TinyGregAudio", "repo": "TinyGregAudio/Model-TG"},
+        "license": "LICENSE-Model-TG",
+        # a part composed in the page with the machines, effects and Track FX ticked (notes/78): alone it gives
+        # 78-cpu.json byte for byte, whose conflicts give its excludes
+        "part": "cpu",
+    },
+    {
         "id": "trig-cond-order",
         "cat": "seq",
         "label": "Trig conditions, A:B before the percentages",
@@ -530,7 +551,7 @@ ALL_FEATURES = [
 # model27 offers a short list of cards. The other definitions above stay as they are, for the command-line build
 # (every tweak of tweaks/ is still built by tools/build.py) and so that merges from upstream apply cleanly; a card
 # comes back into the flasher by adding its id here, once it has been reviewed against the Cycles Mod Standard.
-OFFERED = ("sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "control-all-config",
+OFFERED = ("sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "control-all-config",
            "trig-cond-order", "trig-preview")
 FEATURES = [f for f in ALL_FEATURES if f["id"] in OFFERED]
 _missing = set(OFFERED) - {f["id"] for f in FEATURES}
@@ -690,17 +711,23 @@ def card_tweaks(feat):
     return ids
 
 
+def composed(feat):
+    """The package or part a card adds to the composed build (notes/61, notes/78), or None."""
+    return feat.get("package") or feat.get("part")
+
+
 def machine_excludes(features, by_id):
-    """A machine card's excludes (notes/61 §5): the other cards offered that build a tweak its committed tweak alone
-    conflicts with. Machine cards never exclude each other: the page composes them together."""
+    """A machine card's excludes (notes/61 §5), and a part card's (notes/78): the other cards offered that build a
+    tweak its committed tweak alone conflicts with. Those cards never exclude each other: the page composes them
+    together."""
     for feat in features:
-        if not feat.get("package"):
+        if not composed(feat):
             continue
-        alone = by_id.get(feat["package"])
+        alone = by_id.get(composed(feat))
         if not alone:
-            sys.exit(f"!! {feat['id']}: no tweak {feat['package']!r} in tweaks/ (the package's generator writes it alone)")
+            sys.exit(f"!! {feat['id']}: no tweak {composed(feat)!r} in tweaks/ (its generator writes it alone)")
         clash = set(alone.get("conflicts", []))
-        ex = [g["id"] for g in features if not g.get("package") and clash & set(card_tweaks(g))]
+        ex = [g["id"] for g in features if not composed(g) and clash & set(card_tweaks(g))]
         if ex:
             feat["excludes"] = ex
 
@@ -708,7 +735,7 @@ def machine_excludes(features, by_id):
 def render():
     from crossflash import OFFICIAL            # empreintes des OS officiels, source unique (tools/crossflash.py)
     device = json.loads((DEV_DIR / "device.json").read_text(encoding="utf-8"))
-    tweaks, seen, features, packages = [], {}, [], {}
+    tweaks, seen, features, packages, part_cards = [], {}, [], {}, []
     by_id = {}
     for p in sorted(DEV_DIR.glob("*.json")):
         if p.name != "device.json":
@@ -731,14 +758,18 @@ def render():
             print(f"attention : {f['id']} n'a pas de cat, il ira dans « Autres mods »", file=sys.stderr)
         if f.get("requires"):                   # carte qui doit etre cochee aussi (verifiee par check_requires)
             feat["requires"] = f["requires"]
-        if f.get("package"):                    # an added machine, composed in the page (notes/61)
+        if composed(f):                         # an added machine or a part, composed in the page (notes/61, 78)
             import compose
             bad = [k for k in ("variants", "excludes", "includes", "requires", "with", "joins", "versions", "engines")
-                   if f.get(k)]
+                   if f.get(k)] + (["package and part"] if f.get("package") and f.get("part") else [])
             if bad:
-                sys.exit(f"!! {f['id']}: a machine card takes no {', '.join(bad)} (its excludes are computed)")
-            feat["package"] = f["package"]
-            packages[f["package"]] = compose.web_package(f["package"])
+                sys.exit(f"!! {f['id']}: a machine or part card takes no {', '.join(bad)} (its excludes are computed)")
+            if f.get("package"):
+                feat["package"] = f["package"]
+                packages[f["package"]] = compose.web_package(f["package"])
+            else:
+                feat["part"] = f["part"]
+                part_cards.append(f["part"])
         elif f.get("engines"):
             feat["engines"], feat["combos"], keys = engine_feature(f, load)
             if keys:
@@ -784,9 +815,9 @@ def render():
     cl = __import__("claims")
     claimed = cl.tweak_claims()
 
-    def card_claims(feat):                  # every tweak the card can build, its package's for a machine card
+    def card_claims(feat):                  # every tweak the card can build, its package's or part's for those cards
         out = {}
-        for tid in ([feat["package"]] if feat.get("package") else []) + card_tweaks(feat):
+        for tid in ([composed(feat)] if composed(feat) else []) + card_tweaks(feat):
             if tid in claimed:
                 out = cl.merge(out, claimed[tid])
         return out
@@ -801,13 +832,15 @@ def render():
         # model27, Level B (notes/61): the packages of the machine cards and the registrar's frame they are composed in
         "packages": packages,
         "registrar": json.loads((HERE / "machines" / "registrar" / "frame.json").read_text(encoding="utf-8"))
-        if packages else None,
-        # model27, Level B (notes/63, B4e): the builder's parts, which the machines' shortcuts and shared points need
-        "parts": {pid: __import__("compose").web_part(pid) for pid in ("shortcuts", "dispatch", "fxslot", "fltslot")}
-        if packages else None,
+        if packages or part_cards else None,
+        # model27, Level B (notes/63, B4e): the builder's parts, which the machines' shortcuts and shared points need,
+        # and those a card adds (notes/78: the CPU page)
+        "parts": {pid: __import__("compose").web_part(pid)
+                  for pid in ("shortcuts", "dispatch", "fxslot", "fltslot", *part_cards)}
+        if packages or part_cards else None,
         # model27, Level C (notes/65, C2): the declared claims of the offered tweaks, which the machine cards are
         # composed against (tools/claims.py's to_json form)
-        "claims": {t["id"]: claimed[t["id"]] for t in tweaks if t["id"] in claimed} if packages else None,
+        "claims": {t["id"]: claimed[t["id"]] for t in tweaks if t["id"] in claimed} if packages or part_cards else None,
         # model27, Level C (notes/65, C4): for two cards that exclude each other, the kinds of clash their claims
         # show ("<card>|<card>": [[kind, combination]]); the page says the first where no hand-written reason exists
         "clash_reasons": reasons,

@@ -165,6 +165,10 @@ tools/machines/eq/            EQ (notes/76): a three-band equalizer, the Track F
                               the Mid's frequency and gain on RETRIG + SWEEP / CONTOUR, Low and High on COLOR / SHAPE;
                               tools/gen_eq.py writes its coefficient tables and builds it into 76-eq.json, --response
                               compares them with the Cookbook
+tools/machines/cpu/           the CPU page, a part (notes/78): the audio interrupt's call of the audio function timed
+                              (0x40059382), the share of a block over 0.5 s, the peak, and the Track FX' and the effect
+                              slots' shares read from fltslot and fxslot; compose.py --cpu adds it, with or without
+                              packages; tools/emu/test_cpu.py proves it
 tools/emu/                    Unicorn emulation of the OS: test_<mod>.py proofs, mcengine.py, emac.py, syntakt.py
 tools/gen_flasher_tweaks.py   FEATURES list -> docs/flasher/tweaks.js (generated); a machine card embeds its package and
                               the registrar's frame, composed in the page (notes/61)
@@ -199,7 +203,7 @@ CONTRIBUTING.md               terms for outside contributions, and how a machine
 
 Follow the shape of the last ones (tempo-max: commits `5997b4a`, `14fb9fa`, `6e592bc`; trig-hold, arp). In order:
 
-1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 77 is the last) with the
+1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 78 is the last) with the
    user's request and its source, the OS code involved (addresses, `[FAIT]`/`[HYP]`), the design, free space used and
    conflicts with other tweaks. Add a row to `notes/README.md`. See `notes/AGENTS.md`.
 2. **Write the generator** `tools/gen_<mod>.py` (and sources under `tools/machines/<mod>/` if it has code). It reads

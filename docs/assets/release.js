@@ -7,6 +7,11 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.37", date: "2026-11-03", changes: [
+    { en: "A new card, the CPU page (experimental): press SETTINGS, go to the list with USB mode, LCD, LED and Contrast and press its last row, CPU. The page shows how much of the Model:Cycles' time the sound takes over the last half second, with a mark at 85 %, where the screen and the knobs start to lag, the peak since you opened it, and the shares of the Track FX and of the effects. It updates twice a second; Return closes it. It goes with every other card" },
+    { en: "Checked in an emulator on the OS's own code: with the page the sound is bit for bit the same, and the measure, the row and the page do what they should. Tried on a Model:Cycles from the command line (2026-11-03), with POTS and Crush as this page builds them" },
+    { en: "Digital Delay and POTS now time themselves for the CPU page: a few instructions more a block, the sound the same" },
+  ] },
   { version: "0.35", date: "2026-11-03", changes: [
     { en: "The Samples Track FX takes a little less of the Model:Cycles' time: about a twelfth less while it filters, and almost nothing with Cutoff at 0. The sound is the same, bit for bit, checked in an emulator on the OS's own code. Tried on a Model:Cycles from the command line (2026-11-03)" },
   ] },

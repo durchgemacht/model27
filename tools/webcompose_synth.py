@@ -68,8 +68,12 @@ SELECTIONS = ((["sampler"], []), (["refmachine"], []), (["sampler", "refmachine"
               # Track FX in one build)
               (["ring"], []), (["reso"], []), (["eq"], []), (["smpfilter", "crush", "ring"], []),
               (["smpfilter", "crush", "reso"], []), (["smpfilter", "crush", "eq"], []),
-              (["sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq"], []))
-PARTS = ("shortcuts", "dispatch", "fxslot", "fltslot")
+              (["sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq"], []),
+              # notes/78: the CPU page ("cpu", a part, not a package) alone, with SAMPLE (the registrar), with a Track
+              # FX, with an effect, and with the full offered set (both shares read)
+              (["cpu"], []), (["sampler", "cpu"], []), (["crush", "cpu"], []), (["pots", "cpu"], []),
+              (["sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu"], []))
+PARTS = ("shortcuts", "dispatch", "fxslot", "fltslot", "cpu")
 COMPARED = ("id", "order", "name", "version", "conflicts", "writes", "append", "symbols")
 
 
@@ -154,15 +158,16 @@ def part2(out, cycles):
     ids_ = {t["id"] for t in tweaks}
     claimed = {i: c for i, c in cl.tweak_claims().items() if i in ids_} | probe
     pkgs, cases = {}, []
-    for ids, with_ in SELECTIONS:
-        tweak, info = compose.compose(img, ids, against=tweaks, against_claims=claimed)   # with the parts it needs
+    for sel, with_ in SELECTIONS:
+        ids, cpu = [i for i in sel if i != "cpu"], "cpu" in sel                          # the CPU page: a part
+        tweak, info = compose.compose(img, ids, against=tweaks, against_claims=claimed, cpu=cpu)   # with its parts
         with contextlib.redirect_stdout(io.StringIO()):          # build.py's report of the caves, for each build
             _syx, patched = compose.build_syx(raw, [tweak] + [full[w] for w in with_])
         for i in ids:
             pkgs.setdefault(i, compose.web_package(i))
-        cases.append({"ids": ids, "with": with_, "tweak": {k: tweak[k] for k in COMPARED},
+        cases.append({"ids": ids, "cpu": cpu, "with": with_, "tweak": {k: tweak[k] for k in COMPARED},
                       "main_os": compose.sha(patched)})
-        print(f"{'+'.join(ids)}{''.join(' + ' + w for w in with_)}: {len(tweak['writes'])} writes, "
+        print(f"{tweak['id']}{''.join(' + ' + w for w in with_)}: {len(tweak['writes'])} writes, "
               f"{info['image']} bytes added, {len(tweak['conflicts'])} conflicts, MAIN OS {compose.sha(patched)[:12]}")
     # fill() for 1 to 6 machines (the two packages give 1 and 2): synthetic machines, their names and knob names
     # shared or not, ranges or not, code with gaps around segments()' 64 bytes, a table above the stubs
