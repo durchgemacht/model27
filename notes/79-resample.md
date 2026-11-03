@@ -461,7 +461,20 @@ The maintainer: « Ja, R3 starten ». R3 is cut in two: **R3a** (this section) n
   maintainer's `--keys`: ALL OK); on the machine: NAME EXISTS as the title, NORM on a quiet take, the file loud and
   clean on SAMPLE: « passt ». **R3a done on the machine (2026-11-03).** The full proof (`test_resample.py` without
   `--keys`, parts 1 to 9) on that build: ALL OK in the maintainer's terminal, the three selections (idle the same
-  with 7 instructions more a block, the takes of a track, main and USB, Trig Preview's start).
+  with 7 instructions more a block, the takes of a track, main and USB, Trig Preview's start). Committed `8238fad`.
+
+### 11.1 GRID RECORDING for Trig Preview (2026-11-03)
+
+The maintainer chose « B: automatisch » over FUNC + RECORD on the page: armed for TRIG (START TRIG, a track or MAIN),
+the page turns GRID RECORDING on if it is off, as TransportView's RECORD does (`0x4006ba90(uis, 0)` and the toggle
+`0x4006ba20`, the UIStates from `0x400cf9a8`; on is `+357 && +358`, as its LED says), and notes it (`grid_set`, +261);
+it turns it off again when RECORD drops the armed take, when the page closes, and with the first UI-task message after
+the take ended (the editor's), so that it is as before the page armed. Already on, or START LEVEL or NOW: left alone.
+Proven in cfemu (`page_check.py`: off then on then off with RECORD and with RETURN; on already; LEVEL; `save_check.py`:
+off with the editor's message, not again in the save): ALL OK; in Unicorn part 7 (the same four cases, the stock
+toggle stood in for as it works, `+358 = +357 && !on`) and part 9 (the editor's message): the maintainer's `--keys`,
+ALL OK. Code 16 150 bytes; build `182839fa…`. On the machine (2026-11-04): GRID RECORDING off, armed for TRIG: the
+REC LED on; RECORD again: off; armed, a take by Trig Preview, the editor up and the LED off again: « passt ».
 - **The maintainer, the same day**: GRID RECORDING has to be on before the page opens, since Trig Preview plays only
-  with it on and RECORD on the page arms instead of toggling it (§2.2). A point for the page (to decide), not the
-  editor's cause.
+  with it on and RECORD on the page arms instead of toggling it (§2.2). A point for the page, not the editor's cause;
+  decided in §11.1.

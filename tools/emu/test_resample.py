@@ -38,14 +38,14 @@ official OS 1.13:
      SETTINGS alone, a short press, released as a tap (flag bit 4, the settings menu); SETTINGS + RECORD, released
      without the tap and without a long hold (flag bit 5, the question to save the project); SETTINGS held alone, the
      long hold;
-  7. the page (test_cpu.py's way, the OS's calls around it stubbed): one page by the stock constructor, its vtables
-     the private copy with our nine entries, presented once, the settings at their first values; none twice, none at
-     interrupt level 7 or without the view machinery; the destructors forget it; RECORD arms and is redrawn, its
-     release kept, again idle; PAGE, the TRIG keys, SETTINGS, PLAY, STOP, PUNCH, PATTERN go to the stock view's
-     dispatch with its answer (as the machine page passes them on to the views below, so that Trig Preview plays
-     under the page); RETURN's tap and SETTINGS + RECORD (SETTINGS held in the bitmap or by its events) close it;
-     PITCH steps SOURCE, DATA nothing, LFO SPEED the base's handler; the periodic method redraws while armed and when
-     the state changed;
+  7. the page (test_cpu.py's way, the OS's calls around it stubbed): one page by the stock constructor, its vtables the
+     private copy with our nine entries, presented once, the settings at their first values; none twice, none at
+     interrupt level 7 or without the view machinery; the destructors forget it; RECORD arms and is redrawn, its release
+     kept, again idle; armed for TRIG, GRID RECORDING turned on (when off) and back off on RECORD or RETURN; PAGE, the
+     TRIG keys, SETTINGS, PLAY, STOP, PUNCH, PATTERN go to the stock view's dispatch with its answer (as the machine
+     page passes them on to the views below, so that Trig Preview plays under the page); RETURN's tap and SETTINGS +
+     RECORD (SETTINGS held in the bitmap or by its events) close it; PITCH steps SOURCE, DATA nothing, LFO SPEED the
+     base's handler; the periodic method redraws while armed and when the state changed;
   8. the render into the OS's own Bitmap, pixel for pixel the mockup's screens (tools/emu/resample_screens.py, its
      three pixel fonts and coordinates) in ten states: idle (a track, MAIN stereo with TO Tn, USB), armed, recording
      (and clipped), taken, saving (--show prints them; a screen that differs is printed with the mockup's);
@@ -698,6 +698,36 @@ def page_tests(key, w):
     rows.append((u.call(k_, page, event(u, RECORD_K, PRESS)), st()))
     check(rows == [(1, ARMED, 1), (1, ARMED), (1, IDLE)],
           f"{key}: RECORD on the page: armed with the settings and redrawn, its release kept, again idle ({rows})")
+    # GRID RECORDING for Trig Preview: the stock toggle stood in for as the OS's does it (+358 = +357 && !on)
+    from unicorn import UC_HOOK_CODE
+
+    def toggle(uc, addr, size, ud):
+        v = bytes(uc.mem_read(UIS_OBJ + 357, 2))
+        uc.mem_write(UIS_OBJ + 358, bytes([1 if v[0] and not (v[0] and v[1]) else 0]))
+    u.uc.hook_add(UC_HOOK_CODE, toggle, begin=GRID_TOGGLE, end=GRID_TOGGLE)
+    u.uc.mem_write(UIS_OBJ + 357, b"\1")
+    grid = []
+    for on, start, back in ((0, TRIG, RECORD_K), (1, TRIG, RECORD_K), (0, LEVEL, RECORD_K), (0, TRIG, RETURN_K)):
+        u.uc.mem_write(UIS_OBJ + 358, bytes([on]))
+        u.uc.mem_write(at + DATA["start_set"], bytes([start]))
+        u.uc.mem_write(at + DATA["grid_set"], bytes(1))
+        u.calls.clear()
+        u.call(k_, page, event(u, RECORD_K, PRESS))
+        armed = (len(named(u, "toggle")), u.uc.mem_read(UIS_OBJ + 358, 1)[0],
+                 u.uc.mem_read(at + DATA["grid_set"], 1)[0],
+                 [a[0] for a in named(u, "toggle")] == [UIS_OBJ] * len(named(u, "toggle")))
+        u.call(k_, page, event(u, back, PRESS if back == RECORD_K else TAP))
+        grid.append((armed, len(named(u, "toggle")), len(named(u, "prep")), u.uc.mem_read(UIS_OBJ + 358, 1)[0],
+                     st()))
+        if back == RETURN_K:                         # closed: as the page's own close leaves it
+            u.uc.mem_write(at + DATA["state"], bytes([IDLE]))
+    u.uc.mem_write(UIS_OBJ + 358, b"\0")
+    u.uc.mem_write(at + DATA["start_set"], bytes([TRIG]))
+    check(grid == [((1, 1, 1, True), 2, 2, 0, IDLE), ((0, 1, 0, True), 0, 0, 1, IDLE), ((0, 0, 0, True), 0, 0, 0, IDLE),
+                   ((1, 1, 1, True), 2, 2, 0, IDLE)],
+          f"{key}: armed for TRIG with GRID RECORDING off, the page turns it on (the stock 0x4006ba90(uis, 0) and "
+          f"toggle, as TransportView's RECORD) and off again when RECORD drops the take or RETURN closes the page; "
+          f"already on, or START LEVEL: left alone ({grid})")
     passed = []
     for code in (15, 16, 31, SETTINGS, 10, 11, 6, 3):
         u.calls.clear()
@@ -923,8 +953,13 @@ def save_tests(key, w, u, page):
     u.calls.clear()
     words = [(((i * 2654435761) & 0xffffffff) - (1 << 31)) >> 3 for i in range(4800)]
     take(words, 4800, 0, SELECTED)
+    u.uc.mem_write(UIS_OBJ + 357, b"\1\1")                 # GRID RECORDING on, turned on by the page for TRIG
+    u.uc.mem_write(at + DATA["grid_set"], b"\1")
     u.call(k_, page, event(u, RECORD_K, PRESS))
     acts = ui()
+    grid = (len(named(u, "toggle")), u.uc.mem_read(UIS_OBJ + 358, 1)[0], u.uc.mem_read(at + DATA["grid_set"], 1)[0])
+    check(grid == (1, 0, 0), f"{key}: the first message after a take turns GRID RECORDING off again, as it was before "
+                             f"the page armed for TRIG ({grid})")
     ed = st["editor"][-1] if st["editor"] else None
     shown = st["present"][-1:]
     check(acts == [ACT_EDITOR] and ed is not None and ed[:3] == ("REC-001", "Save recording as", 12)

@@ -352,6 +352,7 @@ static void finish(void)
 void rs_run(void *closure, uint32_t arg)
 {
 	(void)closure, (void)arg;
+	rs_grid_back();                             /* the take has ended: GRID RECORDING as it was before */
 	switch (D->act) {
 	case ACT_EDITOR:
 		editor();

@@ -23,6 +23,7 @@
  * small font (5 pixels a character, 9 rows) and its medium one (7, for the big line): notes/79 §2.4, the mockup laid on
  * the OS's fonts.
  *
+ * Armed for TRIG, the page turns GRID RECORDING on for Trig Preview and back off after (grid_for_trig, rs_grid_back).
  * When a take ends, the periodic method asks for the name editor once (save.c, in the UI task); confirmed, the take is
  * written (SAVING, its progress) and the page closes; backed out of, the page shows it as NOT SAVED, where RECORD asks
  * for the editor again and RETURN drops it (notes/79 §2.2, §11). While it is written, RECORD and RETURN do nothing.
@@ -60,6 +61,8 @@
 #define NEEDS_REDRAW(v) ((void (*)(void *))0x40076082)(v)          /* View::setNeedsRedraw */
 #define GRID_PREP(u, x) ((void (*)(void *, uint32_t))0x4006ba90)(u, x)   /* UIStates +359 = x, then its observers */
 #define GRID_TOGGLE(u) ((void (*)(void *))0x4006ba20)(u)                 /* GRID RECORDING on or off */
+#define UIS() ((uint8_t *(*)(void))0x400cf9a8)()                    /* the UIStates, as TransportView gets them */
+#define GRID_ON(u) ((u)[357] && (u)[358])                           /* GRID RECORDING on, as its LED (0x4006b988) */
 #define PROJECT() ((void *(*)(void))0x400cf866)()
 #define PATTERN_OF(p) ((void *(*)(void *))0x4000eb90)(p)
 #define TRACK_OF(p) ((uint32_t (*)(void *))0x40012412)(p)          /* the selected track, as Trig Preview finds it */
@@ -180,7 +183,37 @@ static void close_page(void *page)
 		rs_release();
 		break;
 	}
+	rs_grid_back();
 	(*(void (**)(void *))(*(char **)page + CLOSE_AT))(page);
+}
+
+/* Armed for TRIG, the take starts on Trig Preview, which plays only with GRID RECORDING on (the maintainer, 2026-11-03:
+   RECORD on the page cannot turn it on): the page turns it on, as TransportView's RECORD does (0x4006ba90(uis, 0),
+   the toggle), and turns it off again when the take is dropped, has ended (save.c's first message after it) or the
+   page closes. */
+static void grid_for_trig(void)
+{
+	uint8_t *u = UIS();
+
+	if (start_of() != START_TRIG || GRID_ON(u))
+		return;
+	GRID_PREP(u, 0);
+	GRID_TOGGLE(u);
+	D->grid_set = (uint8_t)(GRID_ON(u) != 0);
+}
+
+void rs_grid_back(void)
+{
+	uint8_t *u;
+
+	if (!D->grid_set)
+		return;
+	D->grid_set = 0;
+	u = UIS();
+	if (GRID_ON(u)) {
+		GRID_PREP(u, 0);
+		GRID_TOGGLE(u);
+	}
 }
 
 uint32_t rs_page_key(void *page, void *event)
@@ -213,9 +246,13 @@ uint32_t rs_page_key(void *page, void *event)
 		switch (d->state) {
 		case IDLE:
 			d->asked = d->exists = 0;
+			grid_for_trig();
 			rs_arm(d->src_set, d->stereo_set, start_of(), d->stop_set, d->thr_set, d->length_set);
 			break;
 		case ARMED:
+			rs_stop();
+			rs_grid_back();
+			break;
 		case REC:
 			rs_stop();
 			break;

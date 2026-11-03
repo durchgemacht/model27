@@ -60,7 +60,8 @@ struct data {
 	uint8_t exists;                             /* +258 the name given is taken: the editor again, NAME EXISTS */
 	uint8_t act;                                /* +259 what the next UI-task message does: ACT_* */
 	uint8_t which;                              /* +260 the message posted last, 0 or 1 */
-	uint8_t pad3[3];
+	uint8_t grid_set;                           /* +261 the page turned GRID RECORDING on (page.c) */
+	uint8_t pad3[2];
 	char name[16];                              /* +264 the take's name, at most 12 characters */
 	char path[32];                              /* +280 "/recordings/" and the name */
 	uint32_t fw;                                /* +312 the FileWriter while the file is open */
@@ -99,5 +100,6 @@ void rs_header(uint8_t *h, uint32_t frames, uint32_t stereo);
 void rs_norm(uint32_t peak, uint32_t *s, uint32_t *g);
 uint32_t rs_pcm16(uint8_t *out, const int32_t *x, uint32_t words, uint32_t s, uint32_t g);
 void rs_ask_name(void);                             /* save.c: the name editor, in the UI task */
+void rs_grid_back(void);                            /* page.c: GRID RECORDING as it was before the page armed */
 
 #endif
