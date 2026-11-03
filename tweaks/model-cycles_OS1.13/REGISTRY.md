@@ -929,6 +929,8 @@ The stock combinations, as far as they are read:
 | TRACK + RECORD/PLAY/STOP | any | copy, clear, paste | notes/58 §2 |
 | RETRIG + NOTES | any | the retrig | notes/63 §1.2, notes/32 |
 | TRIG 1-16 + PAGE | grid | PAGE turns the page | notes/34 |
+| SETTINGS | any | a tap opens the settings menu; held, the question to save the project (after 1 s) | 0x4001c54c, 0x40039570; the maintainer's test, 2026-11-03 |
+| SETTINGS + RECORD | any | toggles GRID RECORDING (SETTINGS is not read); the release of SETTINGS after it is not a tap and opens nothing | 0x4002439a, 0x40024482, the key scanner 0x4007fbde; notes/79 §1 |
 | LFO | page:LFO | closes the LFO page (a hypothesis) | notes/65 §3.2 |
 
 ## 9. Descriptors, formatters, p-lock rows and MIDI (declared claims, notes/65)

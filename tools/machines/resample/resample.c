@@ -32,7 +32,7 @@
  * the host for tools/emu/resample_host.py.
  *
  * License: MIT (LICENSE next to this file). */
-#include <stdint.h>
+#include "resample.h"
 
 #define BLOCK 32u                                   /* frames a block */
 #define RING 9u                                     /* LEVEL's ring, in blocks: this one and the eight before it */
@@ -43,48 +43,10 @@
 #define CUT_DB 90                                   /* the tail is cut after the last block over -90 dB */
 #define NORM_PEAK 31655u                            /* -0.3 dB of 16-bit full scale */
 
-enum { IDLE, ARMED, REC, TAKEN };                   /* state */
-enum { SRC_MAIN = 6, SRC_USB = 7 };                 /* src: 0..5 a track */
-enum { START_TRIG, START_LEVEL, START_NOW };
-enum { STOP_SILENT, STOP_LENGTH, STOP_RECORD };
-enum { END_NONE, END_SILENT, END_LENGTH, END_RECORD, END_FULL };
-
-struct data {
-	uint32_t buf;                               /* +0 the take's words (composer: the RAM claim after the ring) */
-	uint32_t cap;                               /* +4 how many */
-	uint32_t ring;                              /* +8 LEVEL's ring: 9 blocks of 64 words (composer) */
-	uint8_t shift[3];                           /* +12 full scale 2^31 >> shift: a track, main, USB (composer) */
-	uint8_t pad0;
-	volatile uint8_t state;                     /* +16 IDLE, ARMED (by the UI), REC, TAKEN (by the audio) */
-	uint8_t src;                                /* +17 0..5 a track, 6 main, 7 USB */
-	uint8_t stereo;                             /* +18 two words a frame (main and USB only) */
-	uint8_t start;                              /* +19 START_* */
-	uint8_t stop;                               /* +20 STOP_* */
-	volatile uint8_t req;                       /* +21 the page's RECORD while recording: end the take */
-	uint8_t end;                                /* +22 END_*: why the take ended */
-	uint8_t ring_n;                             /* +23 blocks in the ring */
-	uint8_t ring_at;                            /* +24 the ring's next block */
-	uint8_t pad1[3];
-	uint32_t thr;                               /* +28 LEVEL's threshold, a magnitude */
-	uint32_t sil;                               /* +32 the silence level */
-	uint32_t cut;                               /* +36 the tail's */
-	uint32_t limit;                             /* +40 the take's most frames */
-	uint32_t frames;                            /* +44 frames in the take */
-	uint32_t peak;                              /* +48 its largest magnitude */
-	uint32_t quiet;                             /* +52 frames below the silence level since the last block over it */
-	uint32_t loud;                              /* +56 frames up to the end of the last block over the tail's level */
-	uint32_t level;                             /* +60 the last block's largest magnitude, for the page's meter */
-};                                                  /* 64 bytes */
-
 #ifdef RS_HOST
-uint8_t *rs_host_mem;                               /* the RAM claim on the host: buf and ring count from it */
-uint32_t rs_data[16];
-#define WORDS(a) ((int32_t *)(rs_host_mem + (a)))
-#else
-extern char rs_data[];
-#define WORDS(a) ((int32_t *)(a))
+uint8_t *rs_host_mem;
+uint32_t rs_data[64];
 #endif
-#define D ((struct data *)rs_data)
 
 /* 2^31 * 10^(-3k / 20): the magnitude of -3k dB of full scale, k = 0..32. */
 static const uint32_t db_mag[33] = {
@@ -99,6 +61,16 @@ static uint32_t level_of(uint32_t db, uint32_t sh)
 {
 	uint32_t k = db / 3u;
 	return db_mag[k > 32u ? 32u : k] >> sh;
+}
+
+/* A magnitude mag in a source of full scale 2^31 >> sh as dB below full scale, in steps of 3 (0..96): for the page's
+ * meter. */
+uint32_t rs_db(uint32_t mag, uint32_t sh)
+{
+	uint32_t k = 0;
+	while (k < 32u && mag < db_mag[k] >> sh)
+		k++;
+	return 3u * k;
 }
 
 static uint32_t mag(int32_t x)

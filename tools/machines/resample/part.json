@@ -1,28 +1,139 @@
 {
  "schema": "model27-part/0.1",
  "id": "resample",
- "version": "0.1",
+ "version": "0.2",
  "order": 79,
- "name": "RESAMPLE: a track, the main mix or USB recorded into RAM",
- "description": "A part of model27's builder, not a machine (notes/79, step R1): built once into resample.o by tools/gen_parts.py, added by tools/compose.py to a build when its card is ticked (compose.py --resample), with or without packages. The audio function's call of the mixer (0x40059872, jsr 0x400567ba) goes to the part's rs_mix: idle it jumps to the mixer; armed or recording it hands the chosen source to the recorder, a track's buffer before the mixer (after Volume + Dist and the Track FX, before level, pan and the sends), the main bus or the USB input after it. A take starts on the source's trigger (TRIG), its level (LEVEL, with the eight blocks before it) or at once (NOW), is kept in 32 bits in the RAM claim, and ends on RECORD, at its longest or after 250 ms of silence, the tail cut. 0.1 has no page yet: the UI side's functions (rs_arm, rs_stop, rs_cancel, rs_release, and for the save rs_header, rs_norm, rs_pcm16) are there for the page and the proofs.",
+ "name": "RESAMPLE: a track, the main mix or USB recorded into RAM, on a page of its own (SETTINGS + RECORD)",
+ "description": "A part of model27's builder, not a machine (notes/79): built once into resample.o by tools/gen_parts.py, added by tools/compose.py to a build when its card is ticked (compose.py --resample), with or without packages. The audio function's call of the mixer (0x40059872, jsr 0x400567ba) goes to the part's rs_mix: idle it jumps to the mixer; armed or recording it hands the chosen source to the recorder, a track's buffer before the mixer (after Volume + Dist and the Track FX, before level, pan and the sends), the main bus or the USB input after it. A take starts on the source's trigger (TRIG), its level (LEVEL, with the eight blocks before it) or at once (NOW), is kept in 32 bits in the RAM claim, and ends on RECORD, at its length or after 250 ms of silence, the tail cut. Since 0.2 (step R2) SETTINGS + RECORD opens the RESAMPLE page (TransportView's toggle of GRID RECORDING, 0x40024482): eight knobs set the take, RECORD arms, cancels or ends it, RETURN or SETTINGS + RECORD closes the page, every other key goes on to the views below (Trig Preview plays under it). SETTINGS is held when isKeyHeld(13) says so or its events do: the key event's code accessor (0x4007240c) goes to the part's rs_code, as Model-TG's key_hook takes it. No save yet: a finished take shows NOT SAVED (step R3).",
  "license": "MIT",
  "build": {
-  "sources": ["resample.c", "entries.S"],
+  "sources": [
+   "resample.c",
+   "page.c",
+   "entries.S"
+  ],
   "include": [],
-  "cflags": ["-std=c99", "-mcpu=54418", "-O2", "-ffreestanding", "-fno-builtin", "-fno-tree-loop-distribute-patterns",
-             "-nostdlib", "-fno-pic", "-fno-common", "-ffunction-sections", "-fdata-sections", "-Wall", "-Wextra", "-Werror"],
+  "cflags": [
+   "-std=c99",
+   "-mcpu=54418",
+   "-O2",
+   "-ffreestanding",
+   "-fno-builtin",
+   "-fno-tree-loop-distribute-patterns",
+   "-fno-jump-tables",
+   "-nostdlib",
+   "-fno-pic",
+   "-fno-common",
+   "-ffunction-sections",
+   "-fdata-sections",
+   "-Wall",
+   "-Wextra",
+   "-Werror"
+  ],
   "defines": {},
-  "objects": ["resample.o"],
-  "roots": ["rs_mix", "rs_pre", "rs_post", "rs_arm", "rs_stop", "rs_cancel", "rs_release", "rs_header", "rs_norm",
-            "rs_pcm16"],
-  "patch_points": [{"symbol": "rs_data", "kind": "rs_data"}]
+  "objects": [
+   "resample.o"
+  ],
+  "roots": [
+   "rs_mix",
+   "rs_pre",
+   "rs_post",
+   "rs_key",
+   "rs_code",
+   "rs_arm",
+   "rs_stop",
+   "rs_cancel",
+   "rs_release",
+   "rs_db",
+   "rs_header",
+   "rs_norm",
+   "rs_pcm16"
+  ],
+  "patch_points": [
+   {
+    "symbol": "rs_data",
+    "kind": "rs_data"
+   }
+  ]
  },
- "mix": {"hook": "0x40059872", "stock": "4eb9400567ba", "symbol": "rs_mix"},
- "ram": ["0x42800000", "0x43000000"],
+ "mix": {
+  "hook": "0x40059872",
+  "stock": "4eb9400567ba",
+  "symbol": "rs_mix"
+ },
+ "key": {
+  "hook": "0x40024482",
+  "stock": "42a72f034eb94006ba902f034eb94006ba204fef000c",
+  "symbol": "rs_key"
+ },
+ "code": {
+  "hook": "0x4007240c",
+  "stock": "206f00042028",
+  "symbol": "rs_code"
+ },
+ "ram": [
+  "0x42800000",
+  "0x43000000"
+ ],
  "ring_bytes": 2304,
- "shift": {"track": 0, "main": 0, "usb": 0},
- "data": {"size": 64, "buf": 0, "cap": 4, "ring": 8, "shift": 12, "state": 16, "src": 17, "stereo": 18, "start": 19,
-          "stop": 20, "req": 21, "end": 22, "ring_n": 23, "ring_at": 24, "thr": 28, "sil": 32, "cut": 36, "limit": 40,
-          "frames": 44, "peak": 48, "quiet": 52, "loud": 56, "level": 60},
- "claims": {"ram": [["0x42800000", "0x43000000"]]}
+ "shift": {
+  "track": 0,
+  "main": 0,
+  "usb": 0
+ },
+ "data": {
+  "size": 256,
+  "buf": 0,
+  "cap": 4,
+  "ring": 8,
+  "shift": 12,
+  "state": 16,
+  "src": 17,
+  "stereo": 18,
+  "start": 19,
+  "stop": 20,
+  "req": 21,
+  "end": 22,
+  "ring_n": 23,
+  "ring_at": 24,
+  "thr": 28,
+  "sil": 32,
+  "cut": 36,
+  "limit": 40,
+  "frames": 44,
+  "peak": 48,
+  "quiet": 52,
+  "loud": 56,
+  "level": 60,
+  "page": 64,
+  "src_set": 68,
+  "start_set": 69,
+  "thr_set": 70,
+  "stereo_set": 71,
+  "stop_set": 72,
+  "length_set": 73,
+  "norm_set": 74,
+  "to_track": 75,
+  "settled": 76,
+  "drawn": 77,
+  "sample": 78,
+  "set_held": 79,
+  "vt": 80
+ },
+ "claims": {
+  "ram": [
+   [
+    "0x42800000",
+    "0x43000000"
+   ]
+  ],
+  "gestures": [
+   {
+    "combo": "SETTINGS + RECORD",
+    "situation": "any",
+    "meaning": "opens the RESAMPLE page (RECORD on it arms, RETURN or SETTINGS + RECORD closes it)",
+    "replaces": "the toggle of GRID RECORDING while SETTINGS is held (notes/79 §1)"
+   }
+  ]
+ }
 }

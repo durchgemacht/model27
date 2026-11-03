@@ -79,8 +79,8 @@ class Rec:
         self.cap = cap
         self.mem = (ctypes.c_uint8 * (RING_BYTES + 4 * cap + 64))()
         ctypes.c_void_p.in_dll(lib, "rs_host_mem").value = ctypes.addressof(self.mem)
-        self.raw = (ctypes.c_uint32 * 16).in_dll(lib, "rs_data")
-        ctypes.memset(ctypes.addressof(self.raw), 0, 64)
+        self.raw = (ctypes.c_uint32 * 64).in_dll(lib, "rs_data")
+        ctypes.memset(ctypes.addressof(self.raw), 0, 256)
         self.d = Data.from_address(ctypes.addressof(self.raw))
         self.d.buf, self.d.cap, self.d.ring = RING_BYTES, cap, 0
         for i, s in enumerate(shift):
@@ -138,9 +138,9 @@ def main():
 
     print("1. the data block")
     offs = {name: getattr(Data, name).offset for name, _ in Data._fields_ if not name.startswith("pad")}
-    want = {k: v for k, v in part["data"].items() if k != "size"}
-    check(offs == want and ctypes.sizeof(Data) == part["data"]["size"],
-          f"the fields at part.json's offsets, {ctypes.sizeof(Data)} bytes")
+    want = {k: v for k, v in part["data"].items() if k in offs}
+    check(offs == want and ctypes.sizeof(Data) == part["data"]["page"] and part["data"]["size"] == 256,
+          f"the recorder's fields at part.json's offsets, {ctypes.sizeof(Data)} bytes before the page's")
     check(part["ring_bytes"] == 9 * 2 * BLOCK * 4, f"the ring: 9 blocks of 64 words, {part['ring_bytes']} bytes")
 
     print("2. arming")

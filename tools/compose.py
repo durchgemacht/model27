@@ -1270,13 +1270,15 @@ def cpu_layer(img, part, at, code_end, fls, fxs):
     return blob, out, writes, taken, info
 
 
-def resample_layer(img, part, at, code_end):
+def resample_layer(img, part, at, code_end, sample=0xff):
     """The RESAMPLE recorder of this build (tools/machines/resample/, notes/79): the audio function's
-    call of the mixer (0x40059872) goes to the part's rs_mix. The data block after the part's code
-    starts with what the composer gives it: the take's buffer and its size in words (the RAM claim after the ring),
-    the ring (LEVEL's eight blocks before the start, at the claim's start) and each kind of source's level shift
-    (track, main, USB); the rest, the recorder's state, is zero. Returns (blob, symbols, writes, the sites taken,
-    info)."""
+    call of the mixer (0x40059872) goes to the part's rs_mix, and since 0.2 TransportView's toggle of GRID RECORDING
+    (0x40024482) to its rs_key, which opens the page with SETTINGS held, and the key event's code accessor (0x4007240c)
+    to its rs_code, which keeps SETTINGS's last event. The data block after the part's code starts
+    with what the composer gives it: the take's buffer and its size in words (the RAM claim after the ring), the ring
+    (LEVEL's eight blocks before the start, at the claim's start), each kind of source's level shift (track, main,
+    USB) and SAMPLE's machine number in the build (sample, 0xff without); the rest, the recorder's and the page's
+    state, is zero. Returns (blob, symbols, writes, the sites taken, info)."""
     d = part["data"]
     path = object_path(part)
     if not path.is_file():
@@ -1296,17 +1298,24 @@ def resample_layer(img, part, at, code_end):
     struct.pack_into(">III", block, d["buf"], buf, cap, ring)
     sh = part["shift"]
     block[d["shift"]:d["shift"] + 3] = bytes([sh["track"], sh["main"], sh["usb"]])
+    block[d["sample"]] = sample
     blob = code + bytes(data_at - at - len(code)) + bytes(block)
-    s = part["mix"]
-    va, old = int(s["hook"], 16), bytes.fromhex(s["stock"])
-    if img[va - BASE:va - BASE + len(old)] != old:
-        sys.exit(f"!! {va:#x}: {old.hex()} expected, {img[va - BASE:va - BASE + len(old)].hex()} found")
-    writes = [{"off": va - BASE, "old": old.hex(), "new": "4eb9" + g7.be32(syms[s["symbol"]]).hex()}]   # jsr rs_mix
+    writes, taken = [], set()
+    mix, key, acc = part["mix"], part["key"], part["code"]
+    for s, new in ((mix, lambda a: "4eb9" + g7.be32(a).hex()),                                   # jsr rs_mix
+                   (key, lambda a: "2f03" + "4eb9" + g7.be32(a).hex() + "588f" + "4e71" * 6),     # the toggle: rs_key(uis)
+                   (acc, lambda a: "4ef9" + g7.be32(a).hex())):                                  # the code accessor: jmp rs_code
+        va, old = int(s["hook"], 16), bytes.fromhex(s["stock"])
+        if img[va - BASE:va - BASE + len(old)] != old:
+            sys.exit(f"!! {va:#x}: {old.hex()} expected, {img[va - BASE:va - BASE + len(old)].hex()} found")
+        writes.append({"off": va - BASE, "old": old.hex(), "new": new(syms[s["symbol"]])})
+        assert len(writes[-1]["new"]) == len(writes[-1]["old"])
+        taken.add(va)
     out = {r: syms[r] for r in roots}
     out.update({pp["symbol"]: values[pp["kind"]] for pp in pps})
     info = dict(id=part["id"], code_at=at, code=len(code), data_at=data_at, data=d["size"], ram=(lo, hi), buf=buf,
-                cap=cap, ring=ring)
-    return blob, out, writes, {va}, info
+                cap=cap, ring=ring, sample=sample)
+    return blob, out, writes, taken, info
 
 
 def fl_cost(filters):
@@ -1554,7 +1563,8 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
         rss = None                           # the RESAMPLE recorder, its buffer in a RAM claim of its own
         if resample:
             at = align4(code_cursor)
-            rss = resample_layer(img, load_part("resample"), at, gs.STUBS)
+            sample = next((first + i for i, m in enumerate(added) if m["id"] == "sampler"), 0xff)
+            rss = resample_layer(img, load_part("resample"), at, gs.STUBS, sample)
             blobs.append((at, rss[0]))
             code_cursor = at + len(rss[0])
         for m in mans:                       # a package's RAM claim must lie outside the payload
@@ -1695,7 +1705,8 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     if rss:
         ri = rss[4]
         tweak["description"].insert(6, f"With the RESAMPLE recorder (tools/machines/resample/) at {ri['code_at']:#x}, its "
-                                       f"data at {ri['data_at']:#x}: the mixer's call at 0x40059872, the take in "
+                                       f"data at {ri['data_at']:#x}: the mixer's call at 0x40059872, SETTINGS + RECORD "
+                                       f"at 0x40024482 and 0x4007240c, the take in "
                                        f"{ri['buf']:#x}..{ri['ram'][1]:#x} ({ri['cap']} words), the ring at {ri['ring']:#x}.")
         tweak["symbols"].update({k: f"{v:#x}" for k, v in rss[1].items()})
     info = dict(pay=pay, end=bss_cursor, image=sum(n for _, n in append["pack"]), packages=info_pkgs,

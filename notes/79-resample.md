@@ -277,3 +277,114 @@ The maintainer (2026-11-03): « Ja, R1 starten ». Built on the branch `resample
   --dry`, `webcompose_check.sh`, `py_compile`.
 
 Next: R2, SETTINGS + RECORD and the page (§2, proofs 3 and 4).
+
+## 10. Step R2: SETTINGS + RECORD and the page (2026-11-03)
+
+The maintainer (2026-11-03): « Ja, R2 starten ». The part's 0.2 on the branch `resample`:
+
+- **The combination** `[FAIT]`: `0x40024482` (TransportView's `clr.l -(sp) ; move.l d3,-(sp) ; jsr 0x4006ba90 ;
+  move.l d3,-(sp) ; jsr 0x4006ba20 ; lea 12(sp),sp`, 22 bytes) becomes `move.l d3,-(sp) ; jsr rs_key ; addq.l #4,sp`
+  and six nops, the stock `bra 0x40024650` after them; nothing in the OS branches into the nops. `rs_key` makes the two
+  stock calls itself unless SETTINGS is held, then the page opens and GRID RECORDING stays as it was. TransportView is
+  named by the OS's own RTTI (`13TransportView`, vtable `0x40100fec`, its keys `0x4002439a`).
+- **The page** (`page.c`): built and presented as the CPU page's (§2.1); its key handler, encoder handler, periodic
+  method and render as §2.2 to §2.4 say. The settings live in the data block (now 256 bytes: the recorder's 64, then
+  the page's pointer, the eight settings, SAMPLE's machine number, the vtable copy), set once at the first opening
+  (the selected track, TRIG, -40 dB, mono, SILENT, 10 s) and kept until the machine is switched off. In R2 a finished
+  take shows NOT SAVED and only RETURN (which drops it) does something with it: the save is R3's.
+- **On the OS's fonts** (corrected in §10.2: the routine adds a pixel to each character, so 6 and 8): the small font
+  is 5 pixels a character (`0x40140ab0`, its width table at `0x40140ac4`: every character 5), the medium one 7
+  (`0x4014120c`). The four columns of 32 pixels take six characters
+  (SOURCE, THRESH, STEREO, SILENT, RECORD, LENGTH: 30 pixels). The mockup's armed line « T3 MONO    STOPS WHEN SILENT »
+  is 140 pixels in the OS's font: the page writes it on two lines (« T3 MONO », « STOPS WHEN SILENT »), and the armed
+  footer keeps « RECORD: CANCEL » alone (with « RETURN: CLOSE » it would be 135 pixels). The text is drawn without the
+  OS's box cleared behind it (flag 0x10): that box took the last row of the line above (the first proof's screens
+  showed it), and the page clears the whole screen first anyway.
+- **claims.py**: SETTINGS is key 13; two stock entries (SETTINGS: a tap opens the settings menu, held the question to
+  save the project after 1 s; SETTINGS + RECORD: toggles GRID RECORDING, SETTINGS not read); the part claims
+  SETTINGS + RECORD with what it replaces. `REGISTRY.md` regenerated.
+- **Built with `-fno-jump-tables`**: the part's switches as compare chains, which the local interpreter runs.
+- **Checked here**: the host build ALL OK; in cfemu (local, `_scratch/resample/cfcheck/page_check.py`, the OS's calls
+  stood in for at their addresses) `rs_key` with and without SETTINGS, the key handler, the encoder handler, the
+  periodic method and the render's text calls and pixels: ALL OK, and the recorder against the host build again
+  ALL OK; `test_resample.py --dry` ALL OK; the repository's checks.
+- **The proof** (`test_resample.py` parts 5 to 8, Unicorn): the combination on TransportView's own handler, the key
+  scanner's events for SETTINGS, the page function by function, the render into the OS's Bitmap with its fonts
+  (`--show` prints the four screens). **ALL OK in the maintainer's terminal (2026-11-03)**, the three selections,
+  after a second run: the first one's part 6 stopped in the bench (it hands every key event to PatternGridView, whose
+  RECORD reads memory the bench does not set up; the bench's PatternGridView is now stubbed there), and its screens
+  showed the clipped rows (the text's flags since). The scanner: SETTINGS' release after RECORD is a plain release
+  (flags `0x0`), the long hold on this bench's key clock at 537 ms (the machine: 1 s) `[FAIT en émulation]`.
+- **Next**: the machine (R2 done when tried there), then R3.
+
+### 10.1 The first try on the machine: SETTINGS by its events (2026-11-03)
+
+The maintainer: « Geht nicht auf »; SETTINGS + RECORD toggled GRID RECORDING, the RECORD LED lit as without SETTINGS.
+
+- **What the device ran** `[FAIT]`: the device file has the hook at `0x40024482` (`move.l d3,-(sp) ; jsr rs_key`) and
+  `rs_key` at its place (`pea 13 ; jsr 0x4007faf4 ; tst.l d0 ; bne` the page, else the two stock calls); GRID
+  RECORDING is toggled only there (`0x4006ba20` has no other caller; `0x4006b9f6` also from `0x40024510`, PLAY with
+  RECORD held; UIStates +358 is written only at `0x4006ba08`, `0x4006bb0a` and in the constructor `0x4006c488`). So
+  isKeyHeld(13) answered 0 when RECORD's press was read.
+- **The key path** `[FAIT]`: stock in the build (nothing written in the key interrupt `0x40059e64`, the scanner
+  `0x4007fbde` or isKeyHeld `0x4007faf4`); code 13 is bit 6 of row 0 both ways (`0x4010ae5c`, `0x4010aef8`); the
+  bitmap `0x40f95744` is written only by the scanner, with the row as the key interrupt read it (four rows of the
+  panel's eight bytes at `0x40a791cc`; the other four are the encoders). Why isKeyHeld(13) was 0 there is not found
+  `[HYP]`. Model-TG, whose SETTINGS + RECORD works on the machine, does not ask isKeyHeld for SETTINGS: it keeps it
+  from SETTINGS' own events, read through the key code accessor (its `key_hook`, `set_held`). PPPCCC asks
+  isKeyHeld(13), but was tried on a Model:Samples.
+- **The fix, Model-TG's way**: the key event's code accessor `0x4007240c` (`movea.l 4(sp),a0 ; move.l 12(a0),d0 ;
+  rts`, which every key handler calls; TransportView at its start for every key) becomes `jmp rs_code`; `rs_code`
+  returns the same code and, on SETTINGS' events, keeps their flags' bit 0 (down: a press, its repeats, its long hold;
+  up: the release, the tap) in the data block's `set_held` (+79). The events are read in the order the keys were
+  pressed, so SETTINGS' press is read before RECORD's. `rs_key` and the page's SETTINGS + RECORD take
+  `isKeyHeld(13) || set_held`. Only a0 and d0 are touched, as by the stock accessor, and the condition codes are the
+  same (its `move.l 12(a0),d0` last); 4 instructions more per read of a code, 7 for SETTINGS'. Model-TG takes the
+  same 6 bytes: the composer counts `model-tg` and `model-tg-st` among the conflicts (both are not offered).
+- **Proven here**: `test_resample.py --dry` ALL OK (the new write, the takers of `0x4007240c` among the conflicts);
+  in cfemu on the part's object with the stub of `0x4007240c` as the build's `jmp rs_code`: the accessor's code and
+  `set_held` for ten events, `rs_key` after SETTINGS' press (the bitmap up: the page) and after its release (the
+  toggle), SETTINGS by its event + RECORD on the page: ALL OK; the repository's checks. In Unicorn (parts 5 and 7,
+  the maintainer's run): the device's case on TransportView's own handler (the bitmap up, SETTINGS' press or long hold
+  read before RECORD's: the page; its release or tap: the toggle), the accessor against the stock one for 63 events
+  (d0, d1-d7/a1-a6, the condition codes, the stack, `set_held`), and SETTINGS by its event + RECORD on the page.
+- **The maintainer's Unicorn runs (2026-11-03)**: all of it ok but the accessor's comparison, in the three selections;
+  `--keys` (new: the build and the key parts only) showed why: d0, the registers, the stack, `set_held` the same, only
+  the condition codes differed, read through Unicorn's SR after the run, which does not show what the last
+  instruction set (the stock accessor's `move.l`, which clears V and C, read back with the V and C written before it)
+  `[FAIT]`. The proof now reads them on the CPU: the accessor returns into `move.w sr,d7` (a second call of the same
+  event). In cfemu (local, `_scratch/resample/cfcheck/acc_check.py`, which sets the flags instruction by instruction)
+  the stock accessor and `rs_code` leave the same condition codes for the 63 events. **`--keys` then ALL OK**, the
+  three selections (the audio parts were ok in the full run before, on the same build).
+- **The machine (2026-11-03)**, the build `sampler` + `trig-preview` + RESAMPLE (MAIN OS `76d596ea…`): SETTINGS +
+  RECORD opens the page (the maintainer: « geht auf »). The other tests of R2 follow one by one.
+
+### 10.2 The screen in the mockup's fonts (2026-11-03)
+
+The maintainer's photo of the page: the labels ran into each other (SOURCE into START, LENGTH into NORM, SILENT into
+10S), STEREO was cut at the right, the footer's halves overlapped, and « they are all the same size, unlike in your
+mockup ».
+
+- **Why** `[FAIT]`: the OS's text routine counts a character as its width plus one (`0x40072102`: `(w + 1) × n − 1`
+  without a width table, the widths plus `n − 1` with one), so its small font is 6 pixels a character, not 5: a
+  column of 32 takes five, and SOURCE, THRESH, STEREO, LENGTH, SILENT and RECORD are six. The emulated render was right
+  (the OS's own routine); its checks looked at rows and boxes, not at where one word ends and the next begins.
+- **The mockup's fonts were its own** (3 × 5 at 4 pixels a character for the labels, the state, the footer and the
+  small lines; 4 × 7 at 5 for the knobs' values; 5 × 7 at 6 for the title and the big lines), not the OS's. The page
+  now draws them itself (`page.c`: 44 characters, A-Z, 0-9 and `-.:/%+> `, 412 bytes of glyphs) at the mockup's
+  coordinates, and no longer calls the OS's text routine. With them the mockup's layout comes back whole: the armed
+  line on one line (« MAIN STEREO    STOPS WHEN SILENT », 127 pixels), both halves of every footer, « OF 10S » under
+  the seconds while recording, and « CLIP » after it when the take reached full scale (its peak's `rs_db` 0). The
+  taken screen keeps its footer's left half empty until the save (R3). Code 12 413 bytes (+1 749).
+- **The proof** is now pixel for pixel: `tools/emu/resample_screens.py` draws the mockup's screens in Python (its
+  fonts from the mockup's own strings, its coordinates), and `test_resample.py` part 8 compares the part's render into
+  the OS's Bitmap with them in nine states (idle with a track, with MAIN stereo and TO Tn, with USB; armed with LEVEL
+  and with TRIG; recording, and clipped; taken mono and stereo). In cfemu (local `page_check.py`, the same nine): ALL
+  OK. Build `sampler` + `trig-preview` + RESAMPLE: MAIN OS `e1592479…`, elektron-firmware-tool ok. In the
+  maintainer's terminal (`--keys`, 2026-11-03): part 8's nine screens ok in the three selections, as far as the lines
+  sent show. On the machine (2026-11-03, the build `e1592479…`): the page as the mockup and its eight knobs, the `---`
+  where a value does not apply: « passt »; RECORD arms (ARMED, WAIT FOR TRIG, the meter) and cancels: « passt »;
+  TRIG + PAGE under the page plays the step (Trig Preview), the page stays: « passt »; armed for TRIG on the track,
+  TRIG + PAGE starts the take, SILENT ends it on its own, NOT SAVED with its length: « passt »; RECORD on the taken
+  screen does nothing, RETURN drops the take and closes the page, it opens again with the settings kept: « passt ».
+  **R2 done on the machine (2026-11-03).** Next: R3 (the name editor, the save, TO Tn, NORM).
