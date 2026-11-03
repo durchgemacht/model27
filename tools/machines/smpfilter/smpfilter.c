@@ -21,6 +21,11 @@
  * states are cleared and the block stays silent, where the filter would have given values under that level. A filter
  * that has just started (prime) starts from the first block that is not silent.
  *
+ * Two more (since 0.4, the same output bit for bit): the block is looked at for silence only once the filter has rung
+ * out, since a ringing filter runs the block whatever it holds, and then its first and last frames first; and off
+ * (the centre, its fade done) returns before that, since smp_filter_run would return at once and the states are
+ * already 0.
+ *
  * Contract (fltslot.c): smpf_process(block, words, track, triggered), block 32 frames of 32 bits filtered in place,
  * words the track's smoothed k 28..31; smpf_reset(track). C ABI.
  *
@@ -42,6 +47,13 @@ static int settled(const smp_filter *f)
 {
 	return !f->df2 && !f->dq2 && !f->dwet && !f->dmix && f->f2 == f->f2t && f->q2 == f->q2t && f->wet == f->wett
 	       && f->mix == f->mixt;
+}
+
+/* smp_filter_ringing, here, so that it costs no call: on, and its states at or above 2^-17 of full scale. */
+static int ringing(const smp_filter *f)
+{
+	int32_t l = f->l < 0 ? -f->l : f->l, b = f->b < 0 ? -f->b : f->b;
+	return f->mode != SMP_FILTER_OFF && (l >= (1 << 14) || b >= (1 << 14));
 }
 
 void smpf_reset(uint32_t track)
@@ -66,11 +78,18 @@ void smpf_process(int32_t *block, const int16_t *words, uint32_t track, uint32_t
 		s->reso = words[1];
 		s->set = 1;
 	}
-	for (int n = 0; n < SMP_FILTER_BLOCK; n++)
-		any |= block[n];
-	if (!any && !smp_filter_ringing(&s->f)) {   /* silent, and the filter has rung out */
-		s->f.l = s->f.b = 0;
+	if (s->f.mode == SMP_FILTER_OFF)            /* off: smp_filter_run would return at once, and l, b are 0 */
 		return;
+	if (!ringing(&s->f)) {                      /* a ringing filter runs the block whatever it holds */
+		if (block[0] || block[SMP_FILTER_BLOCK - 1])
+			any = 1;
+		else
+			for (int n = 1; n < SMP_FILTER_BLOCK - 1; n++)
+				any |= block[n];
+		if (!any) {                         /* silent, and the filter has rung out */
+			s->f.l = s->f.b = 0;
+			return;
+		}
 	}
 	smp_filter_run(&s->f, block);
 }

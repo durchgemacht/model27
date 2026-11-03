@@ -1,9 +1,9 @@
 {
  "schema": "cycles-mod/0.1",
  "id": "smpfilter",
- "version": "0.3",
+ "version": "0.4",
  "name": "Samples: the Model:Samples' filter on every track, lowpass below the centre of Cutoff, highpass above",
- "description": "The first real filter of model27's filter slot (the track filters, notes/72): SAMPLE's filter, the Model:Samples' laws measured and rebuilt in Cycles One-Shot, on any track whose sound chose it (RETRIG + PITCH), after Volume + Dist. RETRIG + SWEEP is Cutoff: a lowpass below the centre, a highpass above, nothing at the centre; RETRIG + CONTOUR is Reso. Both are real parameters of every machine: p-locks, LFO, velocity, CC 74 and 71. The sources are SAMPLE's (tools/machines/sampler/src/), unchanged. Since 0.2 two savings for six tracks: the coefficients are looked up only when Cutoff or Reso has moved (bit for bit the same), and a silent track is skipped once the filter has rung out below -102 dB. Since 0.3 Cutoff's short name, which the LFO's destination shows, is CUTO (FREQ before).",
+ "description": "The first real filter of model27's filter slot (the track filters, notes/72): SAMPLE's filter, the Model:Samples' laws measured and rebuilt in Cycles One-Shot, on any track whose sound chose it (RETRIG + PITCH), after Volume + Dist. RETRIG + SWEEP is Cutoff: a lowpass below the centre, a highpass above, nothing at the centre; RETRIG + CONTOUR is Reso. Both are real parameters of every machine: p-locks, LFO, velocity, CC 74 and 71. The sources are SAMPLE's (tools/machines/sampler/src/), unchanged. Since 0.2 two savings for six tracks: the coefficients are looked up only when Cutoff or Reso has moved (bit for bit the same), and a silent track is skipped once the filter has rung out below -102 dB. Since 0.3 Cutoff's short name, which the LFO's destination shows, is CUTO (FREQ before). Since 0.4 two more, bit for bit the same: a block is looked at for silence only once the filter has rung out (its first and last frames first), and the centre returns before that.",
  "license": "MIT",
  "credit": {"kind": "own", "who": "durchgemacht and Claude", "repo": "durchgemacht/cycles-one-shot"},
  "source": "https://github.com/durchgemacht/cycles-one-shot/tree/c32c49d6e215bad00adda48b88ce71aeaeda545f",
@@ -30,7 +30,7 @@
    "why": "a filter of the filter slot: called after Volume + Dist as (block, k 28 to k 31, track, triggered) on the tracks whose sound chose id 1"}
  ],
  "claims": {},
- "cost": {"emulation": {"lowpass": 922, "highpass": 976, "centre": 160, "glide": 1464, "silent": 176, "first": 1492,
+ "cost": {"emulation": {"lowpass": 844, "highpass": 898, "centre": 52, "glide": 1388, "silent": 165, "first": 1422,
                        "pattern": "instructions per track and block, Samples' own code only (smpf_process, smp_filter_set, smp_filter_run, the frame loop), on the OS 1.13 in tools/emu/test_fltslot.py's filter_cost (mcengine.py's counter): all six tracks on it, the stock machines playing, a state held for 8 blocks after 8 of warm-up (lowpass Cutoff 32, highpass 96, centre 64, glide: Cutoff 48 / 88 and Reso every block; silent: no note played, the filter set and rung out), the maximum, and the block in which the tracks come to it from none (its reset and first block); the filter slot's own instructions apart"},
           "device": {"status": "not measured"}},
  "stock_behaviour": {"changes": [], "fixes": [], "unchanged": ["every track whose sound has not chosen Samples"]},

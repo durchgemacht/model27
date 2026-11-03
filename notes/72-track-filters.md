@@ -382,3 +382,74 @@ byte for byte with the commit) and tried Samples on their Model:Cycles: « passt
 
 The slot holds effects as well as filters since `fltslot` 0.7, four in a build, the type's row "Track FX"; the first
 effect is Crush: [73](73-track-fx-crush.md).
+
+## 25. Lighter, the same bits: Samples 0.4 (2026-11-03, release 0.35)
+
+The maintainer asked whether the Track FX could take less CPU, a change of sound allowed (notes/73 §20); for Samples,
+whose dearest state sets the filter slot's count whenever it is in a build (`compose.fl_cost`: six times the dearest
+state of the dearest filter), « Ja, LSB ok », then after a listening page « klanglich gut », and after digiemu
+« mehr knackser als früher » and « d wieder raus »; for what is left, « Ja, einbauen ».
+
+### 25.1 Measured outside the repository
+
+The ColdFire interpreter (`_scratch/cfemu/cfemu.py`, outside the repository; it learned `move.l %macsr,%d0`, which
+`smp_filter_cf.S` uses to save MACSR, its self-test unchanged) ran a prototype with one switch per idea
+(`_scratch/smpfilter-opt/`, its `REPORT.md`) against Samples 0.3. Where the instructions go, from the loops themselves:
+27 a frame in the settled lowpass, 29 in the highpass, 42 in the blending loop (the blocks in which wet or mix moves or
+stands between: a change of side, a knob within a step of the centre, the first block from off, the block into the
+centre), and 3 a frame for the silence scan, which ran in every block. glide and first, the dearest states, are the
+blending loop's (15 instructions a frame more) far more than `smp_filter_set`'s (about 60 to 100). Instructions a track
+and block on the interpreter (its own signal, so compare shares, not counts):
+
+| | lowpass | highpass | centre | glide | first | dearest state |
+|---|---:|---:|---:|---:|---:|---:|
+| 0.3 | 1 071 | 1 135 | 159 | 1 692 | 1 684 | 1 692 |
+| a: the scan only once the filter has rung out | 978 | 1 042 | 162 | 1 600 | 1 698 | 1 698 |
+| a2: the same, its first and last frames first | 977 | 1 041 | 61 | 1 601 | 1 599 | 1 601 |
+| b: off returns before the scan | 1 076 | 1 140 | 52 | 1 699 | 1 691 | 1 699 |
+| d: the blend as y = g1 x + g2 lp (taken back) | 1 076 | 1 140 | 164 | 1 382 | 1 368 | 1 382 |
+| **0.4** = a2 + b | 980 | 1 044 | 52 | 1 603 | 1 601 | 1 603 (−5 %) |
+| a2 + b + d (taken back) | 985 | 1 049 | 52 | 1 293 | 1 285 | 1 293 (−24 %) |
+
+- **d, taken back.** The blending loop computes the same y in two products, g1 = 1 − wet + wet·mix and g2 = wet (1 −
+  2 mix) gliding linearly across the block: 31 instructions a frame and 5 reads of the accumulator instead of 42 and
+  9. It is One-Shot's file, so it went into Cycles One-Shot as 0.14 (never committed). It differs from 0.3 where wet
+  and mix move in the same block (the knob crossing the centre within a step of it: a straight path instead of a
+  curve, up to −31 dBFS for a block) and at a change of side with a loud, resonant signal (0.3 saturates hp − lp
+  before it blends). The maintainer heard both on a listening page (a private page with the host builds' output) and
+  found them fine. In digiemu, One-Shot 0.14's own image seemed to click more than before. Offline, the same knob
+  moves on two real samples at Reso 80 (a hand turn through the OS's smoothing, triangle and square LFOs across the
+  centre, a jitter around it) gave the same largest steps from frame to frame in 0.13 and 0.14. The maintainer took
+  d back without a test on the machine; One-Shot is back at 0.13 (its image rebuilt byte for byte).
+- **What is kept** gives 0.3's output bit for bit: a ringing filter runs the block whatever it holds, so the block is
+  looked at for silence only once the filter has rung out (`smp_filter_ringing`, a copy in the glue so that it costs
+  no call), its first and last frames first; and off (the centre, its fade done) returns before that, since
+  `smp_filter_run` returns at once and the states are already 0 there. SAMPLE's sources are unchanged.
+
+### 25.2 Proven, checked
+
+- **Bit for bit against 0.3.** The host builds over 30 000 blocks: random words with the corners around the centre,
+  notes, resets, silences, full scale, a lone sample at the block's start, middle and end; and a mix (kick, hat, bass,
+  chord) in ten states (lowpass, highpass, a Reso sweep, the proof's glide, near the centre, LFOs at 4 Hz and 30 Hz
+  across the centre, a square across it, to the centre and back, steps in from off). None differ. The device object
+  in the interpreter against its host build, over 3 000 blocks: none differ.
+- **Green:** `gen_smpfilter.py --check` and the other Track FX generators, `gen_sampler.py --check`, `gen_parts.py
+  --check`, `gen_flasher_tweaks.py --check`, `check_overlaps.py`, `registry.py --check`, `claims.py --check
+  --self-test`, the web checks, `ref_mainos.py --check`, `py_compile`, and `test_fltslot.py --dry` ALL OK.
+  `relocate_6ch.py --check` differs as before (notes/73 §7).
+- **The proof, the maintainer's run (2026-11-03): ALL OK but the cost line**, which still declared 0.3's numbers.
+  Counted for 0.4, now declared, with 0.3's in brackets: lowpass 844 (922, −8 %), highpass 898 (976, −8 %), centre 52
+  (160), glide 1 388 (1 464, −5 %), silent 165 (176), first 1 422 (1 492, −5 %). Six tracks come to at most 8 532
+  instructions a block, 7.9 % (8.3 % for 0.3). Then the checks again green, the smoke test ALL PARTS OK.
+
+MAIN OS: Samples alone `a545bb6b…`, with SAMPLE `f1ae1200…`; Samples and Crush `9c33360e…`; with Ring `68b3f5f1…`,
+with Reso `d8f9807c…`, with EQ `937099de…`; every card of the page `2fbe6c3f…`. All match `REF_MAINOS` where it has
+them. Builds in `build/smpfilter-0.4/` (git-ignored): each of those, `every-card/`, and two measuring builds of Samples
+alone that differ only in Samples, `measure/` (0.4, MAIN OS `683548a6…`) and `measure-0.3/` (0.3 from `cb263ec`,
+`cd27b860…`).
+
+### 25.3 On the machine (2026-11-03)
+
+The maintainer flashed `build/smpfilter-0.4/every-card/` (every card of the page, from the command line, MAIN OS
+`2fbe6c3f…`, as `REF_MAINOS`). Samples chosen with RETRIG + PITCH on several tracks, Cutoff turned across 0 both ways,
+Reso up, an LFO on Cutoff, Cutoff at 0 (off): « gerätetest passt ».
