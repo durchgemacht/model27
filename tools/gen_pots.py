@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Generates POTS, model27's telephone-line delay for the delay slot (notes/69, tools/machines/pots/): writes every
-table and constant of its fixed point into tools/machines/pots/pots_tables.h, for a loop at 12 kHz (POTS_RATE 4, the
-manifest's since notes/69 §23), at 24 kHz (2) and at 48 kHz (1); compiles pots.c with the manifest's recipe into tools/machines/pots/pots.o (ld -r of
-the objects, notes/60 §2); then composes it alone through tools/compose.py, which places that object with
+table and constant of its fixed point into tools/machines/pots/pots_tables.h, for its loop at 6 kHz (POTS_RATE 8,
+POTS 0.2, notes/69 §24); compiles pots.c and pots_cf.S with the manifest's recipe into tools/machines/pots/pots.o
+(ld -r of the objects, notes/60 §2); then composes it alone through tools/compose.py, which places that object with
 tools/relocate.py as any build does, into tweaks/model-cycles_OS1.13/70-pots.json: the card's build alone, which the
 web flasher composes in the page (its excludes come from that tweak's conflicts, notes/69 §19). Needs the m68k
 toolchain (for the object); the tables need the standard library alone.
@@ -39,30 +39,17 @@ K_BUS = (120879524 + 126707260) / 2 / 0.5
 OUT_X = 4.0
 # The sender's drive (notes/69 §22): 3, lowered from v6's 5 by ear, so that low material keeps its tone.
 DRIVE = 3
-# The codec's steps a side: 127, 8 bits, since the loop runs at 12 kHz (notes/69 §23; 63, 7 bits, before).
-CODEC_STEPS = 127
-# The feedback's top a rate: at 12 kHz a little higher, so that the decays stay v6's (notes/69 §23).
-FB_TOP = {1: 1.18, 2: 1.18, 4: 1.195}
-# The 15-tap half-band between 24 and 12 kHz (POTS_RATE 4): a Kaiser-windowed sinc, beta 4.25, its sum 1.
-HB_BETA = 4.25
-
-
-def bessel_i0(x):
-    t = s = 1.0
-    for k in range(1, 40):
-        t *= (x / (2 * k)) ** 2
-        s += t
-    return s
-
-
-def half_band():
-    """The odd taps 1, 3, 5, 7 of the 15-tap half-band (the centre 1/2, the even taps 0)."""
-    h = {}
-    for n in range(-7, 8):
-        sinc = 1.0 if n == 0 else math.sin(math.pi * n / 2) / (math.pi * n / 2)
-        h[n] = 0.5 * sinc * bessel_i0(HB_BETA * math.sqrt(1 - (n / 7) ** 2)) / bessel_i0(HB_BETA)
-    total = sum(h.values())
-    return [h[k] / total for k in (1, 3, 5, 7)]
+# The loop's rate (notes/69 §24): 6 kHz, POTS_RATE 8, 4 loop frames a block (POTS 0.2; 0.1 ran at 12, 24 and 48 kHz,
+# its tables in this file's history).
+FS, RATE = 6000, 8
+# The control's turn: the leveler's gains, the fading, the scatter and the shift's speed, the phasor each move once in
+# CTRL blocks, so the coefficients of the wanders and the drift's steps are a turn's.
+CTRL = 4
+# The feedback's top: at 6 kHz with the 2-pole receiver, the decays nearest v6's (notes/69 §24.4).
+FB_TOP = 1.20
+# The receiver: a 2-pole Butterworth high pass at 350 Hz before the codec, +6 dB at 1.5 kHz (Q 0.7) after it.
+RX_HP = (350.0, 0.70710678)
+PEAK = (1500.0, 0.7, 6.0)
 
 
 def q(v, one):
@@ -70,37 +57,30 @@ def q(v, one):
     return max(-(1 << 31), min((1 << 31) - 1, x))
 
 
-def rbj(fs, kind, hz, qv=0.70710678, db=0.0):
-    """An RBJ biquad: ([b0 b1 b2], [a1 a2]), normalized by a0."""
-    w0 = 2 * math.pi * hz / fs
-    cw, alpha = math.cos(w0), math.sin(w0) / (2 * qv)
-    if kind == "peak":
-        A = 10 ** (db / 40)
-        b = [1 + alpha * A, -2 * cw, 1 - alpha * A]
-        a = [1 + alpha / A, -2 * cw, 1 - alpha / A]
-    else:
-        k = (1 + cw) / 2 if kind == "hp" else (1 - cw) / 2
-        b = [k, -2 * k if kind == "hp" else 2 * k, k]
-        a = [1 + alpha, -2 * cw, 1 - alpha]
-    return [x / a[0] for x in b], [a[1] / a[0], a[2] / a[0]]
+def hp_biquad():
+    """RBJ high pass: b0 (b1 = -2 b0, b2 = b0), a1, a2 (y = ... - a1 y' - a2 y'')."""
+    fh, qv = RX_HP
+    w = 2 * math.pi * fh / FS
+    c, al = math.cos(w), math.sin(w) / (2 * qv)
+    return (1 + c) / 2 / (1 + al), -2 * c / (1 + al), (1 - al) / (1 + al)
 
 
-def receiver(fs):
-    """350 Hz high pass and 3 kHz low pass (each 4-pole Butterworth), +6 dB at 1.5 kHz (Q 1), scaled so that the
-    loudest frequency of a grid from 20 Hz to 20 kHz passes at unity (the scale folded into the peak's b)."""
-    secs = [rbj(fs, "hp", 350, qv) for qv in (0.54119610, 1.30656296)]
-    secs += [rbj(fs, "lp", 3000, qv) for qv in (0.54119610, 1.30656296)]
-    secs.append(rbj(fs, "peak", 1500, 1.0, 6.0))
+def peak_biquad():
+    """RBJ peak at fs / 4 (there b1 = a1 = 0: three products), its b scaled so that the receiver's loudest frequency
+    from 20 Hz to the loop's Nyquist passes at unity: (b0, b2, a2, the scale)."""
+    f0, qv, db = PEAK
+    w0 = 2 * math.pi * f0 / FS
+    cw, alpha, A = math.cos(w0), math.sin(w0) / (2 * qv), 10 ** (db / 40)
+    assert abs(cw) < 1e-9, "the peak sits at fs / 4"
+    a0 = 1 + alpha / A
+    b0, b2, a2 = (1 + alpha * A) / a0, (1 - alpha * A) / a0, (1 - alpha / A) / a0
+    hb0, ha1, ha2 = hp_biquad()
     top = 0.0
     for i in range(2001):
-        z = cmath.exp(-1j * 2 * math.pi * (20 * 1000 ** (i / 2000)) / fs)
-        g = 1.0
-        for b, a in secs:
-            g *= abs((b[0] + b[1] * z + b[2] * z * z) / (1 + a[0] * z + a[1] * z * z))
-        top = max(top, g)
-    b, a = secs[-1]
-    secs[-1] = ([x / top for x in b], a)
-    return secs, top
+        z = cmath.exp(-2j * math.pi * (20 * (FS / 2 / 20) ** (i / 2000)) / FS)
+        hp = hb0 * (1 - z) ** 2 / (1 + ha1 * z + ha2 * z * z)
+        top = max(top, abs(hp * (b0 + b2 * z * z) / (1 + a2 * z * z)))
+    return b0 / top, b2 / top, a2, top
 
 
 def arr(name, n, values):
@@ -108,70 +88,54 @@ def arr(name, n, values):
 
 
 def tables():
-    hil = json.loads(HILBERT.read_text(encoding="utf-8"))
-    out = ["/* POTS's tables and constants (notes/69 §4, §12, §20, §23): generated by tools/gen_pots.py, do not edit. Samples",
-           " * Q2.29 (1.0 = 2^29), fractions Q31, coefficients past 1 Q30 (a biquad's), log2 in Q24. */",
-           "#include <stdint.h>", ""]
-    # the codec: mu 255, CODEC_STEPS a side, full scale 1.0; code n once the level reaches T[n - 1], out L[n]
-    steps = CODEC_STEPS
-    ct = [q((256 ** ((n - 0.5) / steps) - 1) / 255, Q29) for n in range(1, steps + 1)]
-    out += [f"#define CODEC_STEPS {steps}", arr("CODEC_T", steps, ct),
-            arr("CODEC_L", steps + 1, [q((256 ** (n / steps) - 1) / 255, Q29) for n in range(steps + 1)])]
-    # its buckets (notes/69 §20): for a level a > 0 with its top bit e and the three bits below it m, the code at the
-    # bucket's smallest level; the thresholds from there on are counted one by one (a few at most in any bucket)
-    idx = []
-    for e in range(31):
-        for m in range(8):
-            lo = (8 + m) << (e - 3) if e >= 3 else min(
-                (a for a in range(1 << e, 1 << (e + 1)) if ((a << (31 - e)) >> 28) & 7 == m), default=0)
-            idx.append(sum(t <= lo for t in ct))
-    out += ["static const uint8_t CODEC_IDX[248] = {" + ", ".join(map(str, idx)) + "};", ""]
-    # log2, exp2 and sine, interpolated
-    out += [arr("LOG2_T", 33, [q(math.log2(1 + i / 32), Q24) for i in range(33)]),
-            arr("EXP2_T", 33, [q(2 ** (i / 32), Q30) for i in range(33)]),
-            arr("SIN_T", 257, [q(math.sin(2 * math.pi * i / 256), Q31) for i in range(257)]), ""]
-    for rate in (1, 2, 4):
-        fs = 48000 // rate
-        frames = 32 // rate                                  # loop frames a block
-        h = hil[str(fs)]
-        secs, top = receiver(fs)
-        out += [f"#if POTS_RATE == {rate}", f"/* the loop at {fs} Hz; the receiver's scale was {top:.6f} */",
-                f"#define LOOP_FRAMES {frames}", f"#define LOOP_SHIFT {int(math.log2(frames))}",
-                f"#define LINE_FRAMES {0x40000 // rate}u",
-                f"#define HIL_N {len(h['a'])}         /* the Hilbert pair: 90 degrees +-{h['error_deg']:.3f} */",
-                arr("HIL_A", "HIL_N", [q(c, Q31) for c in h["a"]]),
-                arr("HIL_B", "HIL_N", [q(c, Q31) for c in h["b"]]),
-                "/* the receiver: 5 biquads, b0 b1 b2 -a1 -a2 */",
-                "static const int32_t RX_C[5][5] = {" + ", ".join(
-                    "{" + ", ".join(str(q(v, Q30)) for v in (b[0], b[1], b[2], -a[0], -a[1])) + "}"
-                    for b, a in secs) + "};",
-                f"#define TX_LP_K {q(1 - math.exp(-2 * math.pi * 4000 / fs), Q31)}",
-                f"#define TX_HP_K {q(1 - math.exp(-2 * math.pi * 200 / fs), Q31)}",
-                f"#define THETA0 {q(2 * math.pi * 2.0 / fs, Q31)}     /* the shift, 2 Hz, a loop frame */",
-                f"#define SC_MIN_Q16 {24 * 65536 // rate}", f"#define SC_SPAN_Q16 {120 * 65536 // rate}",
-                f"#define FB_MAX {int(round(FB_TOP[rate] * 32768))}"]
-        if rate == 4:
-            out += [f"#define HB_C{k} {q(v, Q31)}" for k, v in zip((1, 3, 5, 7), half_band())]
-        out += ["#endif", ""]
+    hil = json.loads(HILBERT.read_text(encoding="utf-8"))[str(FS)]
+    hb0, ha1, ha2 = hp_biquad()
+    b0, b2, a2, top = peak_biquad()
+    out = ["/* POTS's tables and constants (notes/69 §4, §12, §24): generated by tools/gen_pots.py, do not edit. Samples",
+           " * Q2.29 (1.0 = 2^29), fractions Q31, log2 in Q24. */",
+           "#include <stdint.h>", "",
+           arr("LOG2_T", 33, [q(math.log2(1 + i / 32), Q24) for i in range(33)]),
+           arr("EXP2_T", 33, [q(2 ** (i / 32), Q30) for i in range(33)]), "",
+           f"/* the loop at {FS} Hz; the receiver's scale was {top:.6f} */",
+           f"#define LOOP_FRAMES {32 // RATE}", f"#define LOOP_SHIFT {int(math.log2(32 // RATE))}",
+           f"#define LINE_FRAMES {0x40000 // RATE}u",
+           f"#define HIL_N {len(hil['a'])}         /* the Hilbert pair: 90 degrees +-{hil['error_deg']:.3f}, "
+           f"{hil['band_hz'][0]:g} to {hil['band_hz'][1]:g} Hz */",
+           arr("HIL_A", "HIL_N", [q(c, Q31) for c in hil["a"]]),
+           arr("HIL_B", "HIL_N", [q(c, Q31) for c in hil["b"]]),
+           "/* the receiver: the high pass b0 (x - 2 x' + x'') - a1 y' - a2 y'' as b0, -a1 / 2, a2; the peak b0 x + b2 x''"
+           " - a2 y'' */",
+           f"#define HP_B0 {q(hb0, Q31)}", f"#define HP_A1H {q(-ha1 / 2, Q31)}", f"#define HP_A2 {q(ha2, Q31)}",
+           f"#define PK_B0 {q(b0, Q31)}", f"#define PK_B2 {q(b2, Q31)}", f"#define PK_A2 {q(a2, Q31)}",
+           f"#define TX_HP_A {q(math.exp(-2 * math.pi * 200 / FS), Q31)}     /* the sender's high pass: a (y' + x - x') */",
+           f"#define THETA0 {q(2 * math.pi * 2.0 / FS, Q31)}     /* the shift, 2 Hz, a loop frame */",
+           f"#define SC_MIN_Q16 {24 * 65536 // RATE}", f"#define SC_SPAN_Q16 {120 * 65536 // RATE}",
+           f"#define FB_MAX {int(round(FB_TOP * 32768))}", ""]
     c = 0.12 - 4 / 27 * 0.12 ** 3
+    gate_lo, gate_hi = q(0.0025, Q29), q(0.01, Q29)
     consts = {
-        "FADE_COEF": q(1 - math.exp(-1 / 37.5), Q31), "SCAT_COEF": q(1 - math.exp(-1 / 750), Q31),
+        "FADE_COEF": q(1 - math.exp(-CTRL / 37.5), Q31), "SCAT_COEF": q(1 - math.exp(-CTRL / 750), Q31),
         "FADE_L2": q(12 / 40 * math.log2(10), Q31),          # the fading, +-6 dB: 2^(v x this)
-        "DRIFT_INC1": int(round(2 ** 32 * (32 / 48000) / 7.3)), "DRIFT_INC2": int(round(2 ** 32 * (32 / 48000) / 2.9)),
+        "DRIFT_INC1": int(round(2 ** 32 * (CTRL * 32 / 48000) / 7.3)),
+        "DRIFT_INC2": int(round(2 ** 32 * (CTRL * 32 / 48000) / 2.9)),
         "DRIFT_D": q(0.4, Q31), "DRIFT_W1": q(0.7, Q31), "DRIFT_W2": q(0.3, Q31),
         "SC_GAIN_N": q(0.35 * 0.9438798, Q31), "SC_NORM": q(0.9438798, Q31),
         "ENV_REL": q(0.0017, Q31), "COMP_THR_L2": q(-2.0, Q24), "COMP_EXP": q(0.6667, Q31),
         "LEV_TARGET_L2": q(math.log2(0.15), Q24), "LEV_MIN": q(0.6, Q29), "LEV_MAX": q(2.5, Q29),
         "WET_GAIN": q(1.5, Q30),
-        "CLIP_IN": int(1.75 / DRIVE * Q29), "CLIP_U": int(1.5 * Q29), "DRIVE": DRIVE,
-        "DRIVE_INV_Q31": q(1 / DRIVE, Q31), "GRIT_BIAS": q(0.12, Q29), "SAT_K": q(4 / 27, Q31), "SAT_BIAS_OUT": q(c, Q29),
-        "GATE_LO": q(0.0025, Q29), "GATE_HI": q(0.01, Q29), "SAFE": q(2.0, Q29), "PHASOR_M": q(0.9999, Q31),
+        # the clip's input in one clamp, so that 3 u + 0.12 stays within +-1.5
+        "CLIP_LO": int((-1.5 - 0.12) / DRIVE * Q29), "CLIP_HI": int((1.5 - 0.12) / DRIVE * Q29), "DRIVE": DRIVE,
+        "DRIVE_INV_Q31": q(1 / DRIVE, Q31), "GRIT_BIAS": q(0.12, Q29),
+        "SAT_K4": q(4 / 27 * 16 / 4, Q31),                  # 4/27 u^3 = (SAT_K4 x (u / 4)^3) << 2, Q29
+        "SAT_BIAS_OUT": q(c, Q29),
+        "GATE_LO": gate_lo, "GATE_HI": gate_hi,
+        "GATE_K": ((1 << 31) - 1) // (gate_hi - gate_lo),   # the codec's weight (env - GATE_LO) x this, in Q31
+        "SAFE": q(2.0, Q29), "PHASOR_M": q(0.9999, Q31),
         "OUT_MAX": int(0.75 * 2 ** 31),                      # the echo's limit (notes/69 §14.1)
         "K_BUS": int(round(K_BUS)),
         "IN_GAIN_Q29": q(Q29 / K_BUS, Q29),                  # about 2.17, past Q30's range
         "LIM_BUS": int(round(0.5 * K_BUS)),                  # the limiter: v6's level, 0.5, in bus words (notes/69 §22)
         "LIM_REL": q(1 - 1 / 300, Q31),                      # its release a block: 0.2 s
-        "LIM_L2": q(math.log2(round(0.5 * K_BUS) / Q29), Q24),   # log2 of LIM_BUS on lg2()'s scale
         "OUT_GAIN_Q30": q(K_BUS / Q29 * OUT_X, Q30),
     }
     out += [f"#define {k} {v}" for k, v in consts.items()]

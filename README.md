@@ -23,13 +23,14 @@ Model:Cycles over USB. Modded-Cycles has since moved to a single OS with 2.0; mo
 together, so that a new machine fits next to the others. The rules a mod follows for that are the
 **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.5), written alongside.
 
-**Status: beta, release 0.37.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers twelve
-cards, eleven of them tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
+**Status: beta, release 0.38.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers twelve
+cards, ten of them tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
 [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples on the +Drive,
 [Control All Config](https://github.com/durchgemacht/cycles-control-all-config), **Digital Delay**, the first
 effect: a second delay for the delay slot, chosen per pattern with PATTERN + Delay Time, based on the digital delay of
-[gialloinfuso's PPPCCC mods](https://github.com/gialloinfuso/PPPCCC-M-S-Mods), and **POTS**, model27's
-own second effect: a delay whose repeats go down an old telephone line. The fifth, **Trig conditions, A:B before
+[gialloinfuso's PPPCCC mods](https://github.com/gialloinfuso/PPPCCC-M-S-Mods), and **POTS** (experimental again
+since 0.38, its line at 6 kHz for about a third of the load), model27's own second effect: a delay whose repeats go
+down an old telephone line. The fifth, **Trig conditions, A:B before
 the percentages**, model27's own, puts the A:B conditions before the percentages on the knob, the five dots under the
 value following. The sixth, **Trig preview** by
 [drumkilla](https://github.com/drumkilla/elektron-model-tweaks), plays a held trig's step when you press PAGE with the

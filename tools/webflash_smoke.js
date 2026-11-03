@@ -333,9 +333,9 @@ async function main() {
     check(potsAlone === "pots" && potsDd === "digidelay+pots" && potsSmp === "sampler+digidelay+pots"
       && potsAll === "control-all-config,sampler+digidelay+pots" && fourOn && !chosen().length
       && doc.querySelector('#features a[href$="#pots"]') && doc.querySelectorAll('input[name="var-pots"]').length === 0
-      && !doc.querySelector("#mod-pots .tag"),
+      && (doc.querySelector("#mod-pots .tag") || {}).textContent === "Experimental",
       `POTS alone ${potsAlone}; with Digital ${potsDd}, one composed tweak; with SAMPLE ${potsSmp}; with Control All ` +
-      `Config too ${potsAll}, all ticked, no clash; no sub-choice; its guide link; tested, so no tag`);
+      `Config too ${potsAll}, all ticked, no clash; no sub-choice; its guide link; 0.2 experimental, so tagged`);
     // Samples: a filter card, composed with the machine and effect cards into one tweak (notes/72)
     box("feat-smpfilter").click(); await wait(5);
     const sfAlone = chosen();

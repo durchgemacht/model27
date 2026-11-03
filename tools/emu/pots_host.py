@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """POTS on the host (notes/69 §8, §14): tools/machines/pots/pots.c compiled with the host's C compiler (POTS_HOST, at
 the manifest's rate), which is the model tools/emu/test_fxslot.py compares the device's object with, block for block;
-and the measurements that settled v6 in the float prototype (notes/69 §2, §12.3) taken again on that build, against
-v6's numbers.
+and the measurements that settled v6 in the float prototype (notes/69 §2, §12.3) taken again on that build. Since 0.2
+(notes/69 §24: the loop at 6 kHz, chosen by ear against 0.1 on a listening page) they hold 0.2's own numbers, v6's
+shown beside them.
 
 The host build is pots.c's own arithmetic, the EMAC as tools/emu/emac.py executes it: once test_fxslot.py finds the
 device's object giving the same bits as this build, what is measured here holds for the device. The sources are
@@ -11,7 +12,7 @@ notes/69 §22 (a limiter before the sender, the drive 3, the receiver's high pas
 longer v6's, the peak of a loud phrase at Fdbk 127, and one check holds what §22 was for: a low chord and a beat sent
 hot keep their tone.
 
-    python3 tools/emu/pots_host.py       # the measurements against v6: numpy and a C compiler, no Unicorn, no firmware
+    python3 tools/emu/pots_host.py       # the measurements: numpy and a C compiler, no Unicorn, no firmware
 """
 import atexit
 import ctypes
@@ -90,7 +91,7 @@ class Pots:
         return list(self.out)
 
 
-# --- the measurements against v6 ------------------------------------------------------------------------------------
+# --- the measurements ---------------------------------------------------------------------------------------------
 TABLES = (PKG / "pots_tables.h").read_text(encoding="utf-8")
 K_BUS = int(re.search(r"#define K_BUS (\d+)", TABLES).group(1))           # the send bus's 1.0 (notes/69 §12.5)
 OUT_SCALE = int(re.search(r"#define OUT_GAIN_Q30 (\d+)", TABLES).group(1)) / (1 << 30) * (1 << 29)
@@ -106,16 +107,24 @@ V6 = {
     "codec_db": {1: (-38.4, -60.6), 3: (-33.2, -62.7), 6: (-26.3, -58.8), 15: (-19.7, -59.0)},
     "peak_127_db": -5.6,
 }
-# notes/69 §22: the sender's drive 3 instead of 5 compresses a loud phrase less, its echo peaks 1.8 dB above v6's
-PEAK_127_DB = -3.8
+# POTS 0.2 (notes/69 §24), the numbers the checks hold: its host build measured on 2026-11-03. Against v6: the decay
+# at Fdbk 40 shorter and at 100 longer (the 2-pole receiver keeps more of the low mids), the tail brighter and the
+# echo 2.6 / 0.7 dB softer (the line out of 6 kHz dulls the top), the codec's grain coarser (its error lies in an
+# eighth of the band), images over 3 kHz (the 4 kHz octave 12 dB up), a hot beat dirtier (the clip's harmonics fold
+# back into the band at 6 kHz).
+REF = {
+    "decay_s": {40: 2.15, 64: 4.8, 90: 20.95, 100: None, 110: None, 127: None},
+    "tail_25s": (1743, 2.6),
+    "colour_hz": [792, 1073, 1188, 1442, 1579, 1618, 1631],
+    "octaves_db": {250: -35.4, 500: -5.9, 1000: -4.4, 2000: -4.4, 4000: -20.4},
+    "level_db": {"pluck": -30.4, "stab": -33.2},
+    "codec_db": {1: (-35.4, -53.8), 3: (-28.7, -46.2), 6: (-25.2, -42.1), 15: (-22.8, -39.8)},
+    "peak_127_db": -4.4,
+}
 # §21, §22: the share of the band that is not the line's linear echo, at v6's send level and 12 dB above (the clip and
-# the codec against the same chain without them, best scaled), at most (POTS 0.1 had -10.8 / +1.5 and -4.1 / +9.0)
-HOT = {"chord": -15.0, "beat": -9.0}
-# The codec's error has the same power at either rate; at 24 kHz it lies in half the band, so up to 3 dB more of it
-# passes the receiver (measured, notes/69 §14.2: +3 dB at 1 to 6 s, nothing at 15 s; the 48 kHz loop within 1 dB of
-# v6), at 12 kHz in a quarter. The grain is allowed that much more above v6's in the band; the 8-bit codec of the 12 kHz
-# loop (§23) stays within 1 dB of v6's.
-CODEC_RATE_DB = 10 * math.log10(SR / LOOP_RATE)
+# the codec against the same chain without them, best scaled), at most (POTS 0.1 had -10.8 / +1.5 and -4.1 / +9.0
+# before §22; 0.1 at 12 kHz -18.4 / -17.3 and -15.4 / -11.5; 0.2 -17.3 / -16.1 and -12.6 / -6.6)
+HOT = {"chord": -15.0, "beat": -6.0}
 TOL = {"decay": 0.10, "tail_hz": 0.03, "tail_pct": 1.0, "colour": 0.03, "octave_db": 1.0, "level_db": 1.0,
        "codec_db": 2.0, "peak_db": 0.5, "image_db": 45.0}
 
@@ -303,41 +312,45 @@ def measure():
     return m
 
 
-def against_v6():
-    """[(ok, text)]: the measurements of notes/69 §12.3 on the host build, against v6."""
+def against_ref():
+    """[(ok, text)]: the measurements of notes/69 §12.3 on the host build, against 0.2's own numbers (REF), v6's beside
+    them."""
     m, out = measure(), []
     sh = m["shift"]
     out.append((sh["strongest_hz"] == 1010 and sh["image_db"] >= TOL["image_db"],
                 f"the shift goes up: a 1 kHz sine, the other stages off, shifted 10 Hz: strongest at "
                 f"{sh['strongest_hz']} Hz, the other side {sh['image_db']} dB under (>= {TOL['image_db']:g})"))
+    dead = lambda v: "> 25" if v is None else v
     ok = all((m["decay_s"][k] is None) == (v is None) and (v is None or abs(m["decay_s"][k] - v) <= TOL["decay"] * v)
-             for k, v in V6["decay_s"].items())
+             for k, v in REF["decay_s"].items())
     out.append((ok, "the decay to -60 dB after the pluck phrase, Fdbk " + ", ".join(
-        f"{k}: {'> 25' if m['decay_s'][k] is None else m['decay_s'][k]} s "
-        f"(v6 {'> 25' if v is None else v})" for k, v in V6["decay_s"].items())
-        + f", within {TOL['decay']:.0%}"))
-    (hz, pct), (hz6, pct6) = m["tail_25s"], V6["tail_25s"]
-    out.append((abs(hz - hz6) <= TOL["tail_hz"] * hz6 and pct <= TOL["tail_pct"],
-                f"a tail's end at 25 s: {hz} Hz, {pct} % above 2 kHz (v6 {hz6} Hz, {pct6} %)"))
-    ok = all(abs(a - b) <= TOL["colour"] * b for a, b in zip(m["colour_hz"], V6["colour_hz"]))
+        f"{k}: {dead(m['decay_s'][k])} s (0.2 {dead(v)}, v6 {dead(V6['decay_s'][k])})" for k, v in REF["decay_s"].items())
+        + f", within {TOL['decay']:.0%} of 0.2's"))
+    (hz, pct), (hz2, pct2), (hz6, pct6) = m["tail_25s"], REF["tail_25s"], V6["tail_25s"]
+    out.append((abs(hz - hz2) <= TOL["tail_hz"] * hz2 and pct <= pct2 + TOL["tail_pct"],
+                f"a tail's end at 25 s: {hz} Hz, {pct} % above 2 kHz (0.2 {hz2} Hz, {pct2} %; v6 {hz6} Hz, {pct6} %)"))
+    ok = all(abs(a - b) <= TOL["colour"] * b for a, b in zip(m["colour_hz"], REF["colour_hz"]))
     out.append((ok, f"the colour, repeats 1 to 7: {m['colour_hz'][0]} -> {m['colour_hz'][-1]} Hz "
-                    f"(v6 {V6['colour_hz'][0]} -> {V6['colour_hz'][-1]}), each within {TOL['colour']:.0%}"))
-    d = max(abs(m["octaves_db"][c] - v) for c, v in V6["octaves_db"].items())
-    out.append((d <= TOL["octave_db"], f"the octave bands 250 Hz to 4 kHz within {d:.1f} dB of v6's "
-                                       f"(<= {TOL['octave_db']:g})"))
-    ok = all(abs(m["level_db"][k] - v) <= TOL["level_db"] for k, v in V6["level_db"].items())
-    out.append((ok, "the echo's level, pluck / stab: " + " / ".join(f"{m['level_db'][k]}" for k in V6["level_db"])
-                + " dB (v6 " + " / ".join(f"{v}" for v in V6["level_db"].values()) + ")"))
-    ok = all(-TOL["codec_db"] <= m["codec_db"][t][0] - v[0] <= TOL["codec_db"] + CODEC_RATE_DB
-             and m["codec_db"][t][1] <= v[1] + TOL["codec_db"] for t, v in V6["codec_db"].items())
+                    f"(0.2 {REF['colour_hz'][0]} -> {REF['colour_hz'][-1]}, v6 {V6['colour_hz'][0]} -> "
+                    f"{V6['colour_hz'][-1]}), each within {TOL['colour']:.0%} of 0.2's"))
+    d = max(abs(m["octaves_db"][c] - v) for c, v in REF["octaves_db"].items())
+    d6 = max(abs(m["octaves_db"][c] - v) for c, v in V6["octaves_db"].items())
+    out.append((d <= TOL["octave_db"], f"the octave bands 250 Hz to 4 kHz within {d:.1f} dB of 0.2's "
+                                       f"(<= {TOL['octave_db']:g}; {d6:.1f} dB of v6's)"))
+    ok = all(abs(m["level_db"][k] - v) <= TOL["level_db"] for k, v in REF["level_db"].items())
+    out.append((ok, "the echo's level, pluck / stab: " + " / ".join(f"{m['level_db'][k]}" for k in REF["level_db"])
+                + " dB (0.2 " + " / ".join(f"{v}" for v in REF["level_db"].values()) + ", v6 "
+                + " / ".join(f"{v}" for v in V6["level_db"].values()) + ")"))
+    ok = all(abs(m["codec_db"][t][0] - v[0]) <= TOL["codec_db"] and m["codec_db"][t][1] <= v[1] + TOL["codec_db"]
+             for t, v in REF["codec_db"].items())
     out.append((ok, "the codec's grain in the tail, in the band / above 4 kHz, at " + ", ".join(
-        f"{t} s {m['codec_db'][t][0]} / {m['codec_db'][t][1]}" for t in V6["codec_db"]) + " dB (v6 " + ", ".join(
-        f"{v[0]} / {v[1]}" for v in V6["codec_db"].values()) + f"): in the band from {TOL['codec_db']:g} dB under "
-        f"to {TOL['codec_db'] + CODEC_RATE_DB:.0f} dB over v6's (the loop at {LOOP_RATE // 1000} kHz), above it no "
-        f"more than {TOL['codec_db']:g} dB over"))
-    out.append((abs(m["peak_127_db"] - PEAK_127_DB) <= TOL["peak_db"],
-                f"a loud phrase at Fdbk 127: the echo peaks at {m['peak_127_db']} dB ({PEAK_127_DB} since the drive 3 "
-                f"of notes/69 §22, v6 {V6['peak_127_db']})"))
+        f"{t} s {m['codec_db'][t][0]} / {m['codec_db'][t][1]}" for t in REF["codec_db"]) + " dB (0.2 " + ", ".join(
+        f"{v[0]} / {v[1]}" for v in REF["codec_db"].values()) + "; v6 " + ", ".join(
+        f"{v[0]} / {v[1]}" for v in V6["codec_db"].values()) + f"): in the band within {TOL['codec_db']:g} dB of "
+        f"0.2's (the loop at {LOOP_RATE // 1000} kHz), above it no more than {TOL['codec_db']:g} dB over"))
+    out.append((abs(m["peak_127_db"] - REF["peak_127_db"]) <= TOL["peak_db"],
+                f"a loud phrase at Fdbk 127: the echo peaks at {m['peak_127_db']} dB (0.2 {REF['peak_127_db']}, -3.8 "
+                f"since the drive 3 of notes/69 §22, v6 {V6['peak_127_db']})"))
     out.append((all(v <= HOT[k] for k, vs in m["hot"].items() for v in vs),
                 "sent hot, the tone kept (notes/69 §22: the limiter, the drive 3, the high pass before the codec): what "
                 "the clip and the codec add in the band, at v6's send level / 12 dB above, the chord on C3 "
@@ -348,7 +361,7 @@ def against_v6():
 
 
 def main():
-    out, m = against_v6()
+    out, m = against_ref()
     for ok, text in out:
         print(f"  {'ok' if ok else 'FAIL'}: {text}")
     print(f"  (the loudest return, SNARE's level at Fdbk 127: {m['return_peak_dbfs']} dBFS on the bus)")

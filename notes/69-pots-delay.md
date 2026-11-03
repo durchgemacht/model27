@@ -1037,3 +1037,118 @@ is "tested" (`FEATURES`, `tweaks.js`; its note without the "experimental" senten
 release 0.15, the stamp `2026-10-29-04`, `README.md` (four cards tested), the manifest's `tests` (status "tested"),
 `webflash_smoke.js` (POTS tagged Tested). What was tested on the device is what §23.6 says: the 12 kHz build flashed
 from the page, the project that lagged without lag.
+
+## 24. A third of the load: the loop at 6 kHz, POTS 0.2 (2026-11-03)
+
+### 24.1 Why
+
+The CPU page (notes/78) shows the effect slots' share of a block. The maintainer, 2026-11-03: with POTS switched on
+the FX share jumps from 2.7 % to 10–11 %, « da muss richtig was passieren, ansonsten fliegt das delay aus dem
+flasher ». The sound may change (« ob es anders kaputt klingt, ist nicht so wichtig »), the idea has to stay: a
+narrow, lo-fi telephone line, each repeat darker and grainier, the shift up.
+
+The page's share is time (the DMA timer around `fx_run`, notes/78 §8), caches included, so it is the cycle model of
+§23.1 that matters, not the count. 0.1 in that model (`_scratch/pots-opt/prof4.py`, outside the repository): 6 545
+instructions at most, 247 code lines a block, 8.8 % of a block; a third of it the code's lines from SDRAM. Where the
+instructions went: the conversions 48 ↔ 24 ↔ 12 kHz about 25 %, the receiver's five biquads (each coefficient taken
+twice, Q30) 17 %, the Hilbert pair 11 %, the block's control (lg2, ex2, two sines, the wanders) 10 %, the codec's
+table search 6 %, the limiter's scan of all 32 frames 6 %, the scatter and the sender 5 % each.
+
+### 24.2 What changed
+
+- **The loop at 6 kHz** (`POTS_RATE 8`, 4 loop frames a block): the band's top, 3 kHz, is its Nyquist, so the
+  receiver's low pass goes. The line 32 768 frames, 128 KiB (`line`), still up to 5.44 s; Time by `(d + 4) / 8`; the
+  slew `diff >> 10`, one frame every second frame; the scatter 3 to 18 frames, a whole frame (no interpolation).
+- **Down**: a second-order CIC, the triangle 1, 2 … 8 … 2, 1 over 15 frames at 48 kHz, as two sums a loop frame on
+  the EMAC with MAC with load (`pots_cf.S`, 36 instructions a loop frame; `pots_cic()` in `pots.c` its model for the
+  host, exact: each product `j w 2^24` loses no bit). **Up**: a line over 8 frames from one loop frame's echo to the
+  next. The two droop the top (−6 dB at 2 kHz, about −11 dB at 2.8 kHz) and leave images above 3 kHz.
+- **The receiver**: a 2-pole Butterworth high pass at 350 Hz before the codec (7 products), +6 dB at 1.5 kHz (Q 0.7)
+  after it as a biquad at fs / 4, where b1 = a1 = 0 (3 products), scaled so the loudest frequency passes at unity.
+- **The codec**: G.711 μ-law on 16 bits, encoded and decoded in a few shifts (`ff1` for the segment), no tables.
+- **The Hilbert pair**: 2 + 2 sections for 6 kHz by `gen_hilbert.py`'s fit over 300 Hz to 2.7 kHz: 0.036°, the other
+  side 70 dB under (measured on the 1 kHz test: 106 dB).
+- **The sender**: the clip's cubic in 4 products instead of 10 (`(u / 4)^3` in Q31) and its two clamps in one
+  (`CLIP_LO`, `CLIP_HI`); the 4 kHz low pass goes (above the Nyquist); the 200 Hz high pass on the EMAC.
+- **The control** takes one part a block in turn (`blk & 3`): the leveler's gains, the fading and its dropouts, the
+  scatter's wander with the shift's speed, the phasor's level. Each target is ramped over the 16 loop frames that follow;
+  the wanders, the dropouts and the drift count in turns of 4 blocks (`FADE_COEF`, `SCAT_COEF`, `DRIFT_INC*` for 4
+  blocks). The drift is two triangles instead of two sines (no table). The limiter's gain is `LIM_BUS / lim`, one
+  division, and its peak is the send as it comes, `L / 2 + R / 2`, every 4th frame: on the band-limited frames a beat's
+  peaks hardly showed and the limiter let a hot beat through (−2 dB instead of −11.5 in §22's check).
+- **The feedback's top 1.20**: with it the decays come nearest v6's (§24.5).
+- **The code**: the state through a base register (a pointer GCC cannot see through, `stp()`: `d16(An)` instead of
+  absolute addresses, a third less code) and the filters' last two values by slot (the frame's parity names the older
+  one, read and then overwritten): nothing is shifted. Code 4 650 bytes in the composed object (0.1: 6 258).
+
+### 24.3 Two variants and the maintainer's choice
+
+A listening page (outside the repository, `_scratch/pots-opt/hoer6.py`, the sources of §21.3 at v6's level and 12 dB
+above, a long tail at Fdbk 100): 0.1 (12 kHz), « 6 kHz voll » (a 4-pole high pass as 0.1's, the sender's low pass, an
+8-tap filter 6 → 12 kHz that makes up the droop and holds the images 33 to 60 dB down: 0.40 of 0.1's cycles in the
+model) and « 6 kHz schlank » (the 2-pole high pass, no sender low pass, the line out: 0.35). The maintainer, 2026-11-03:
+« Schlank ». 0.2 is that one, bit for bit (the package's host build gives the prototype's blocks, 0 of 490 differing).
+
+Also looked at, not done: the frame and the output in assembler, written out instruction by instruction, about 265
+instructions a loop frame against GCC's 281 since the base register: −5 to −10 % of the cycles. The code in the
+internal SRAM (§23.1's lines would go): two ranges the OS clears at start-up and never addresses again,
+`0x800074c0`–`0x80008000` and `0x8000f6f0`–`0x80010000` (the SRAM's initial copies end at `0x800074c0` and
+`0x8000f6f0`, `0x4000045c`; no address in the code above `0x8000f2e8`, a wavetable), taken by no card; about 0.20
+to 0.26 of 0.1 in the model, but the standard keeps an effect's code in its payload and `memory.sram` is only for an
+extension of a stock machine (notes/66 §19.5). The maintainer: « Nein, so einbauen ».
+
+### 24.4 Checked (2026-11-03)
+
+- **The interpreter** (§20.1, outside the repository): the device's object its host build's over the 490 blocks; the
+  cost **first 1 778, mean 1 646, max 1 682, reset 3**, declared (0.1: 6 400 / 6 502 / 6 545 / 2); the model **2.95 %
+  of a block, 0.34 of 0.1's**, 139 code lines, 20 data lines. The composer: the delay slot **−884 below the stock
+  delay** (0.1: +3 973), +1 987 in a switch's block.
+- **Sanitizers** (UBSan and ASan, 400 000 blocks: random, full scale, silence, resets, random knobs): clean.
+- **`pots_host.py` ALL OK**, now against 0.2's own numbers (`REF`), v6's beside them: the shift's other side 106 dB
+  under; the decays 2.15 / 4.8 / 20.95 s at Fdbk 40 / 64 / 90 (v6 2.55 / 4.85 / 20.1), on from 100 (v6 from 110); the
+  tail's end 1 743 Hz, 2.6 % above 2 kHz (v6 1 491, 0.1 %); the colour 792 → 1 631 Hz (v6 983 → 1 455); the octaves
+  12 dB off v6's at most (the 4 kHz octave, images); the level −30.4 / −33.2 dB (v6 −27.8 / −32.5); the codec's grain
+  −35.4 / −28.7 / −25.2 / −22.8 dB at 1 / 3 / 6 / 15 s; the loud phrase's peak −4.4 dB; sent hot, the chord −17.3 /
+  −16.1 dB, the beat −12.6 / −6.6 dB (the check's limit for the beat −6 instead of −9: at 6 kHz the clip's harmonics
+  fold back into the band); silence exact. The loudest return −10.7 dBFS. `test_fxslot.py` §9 runs these.
+- **The builds** in `build/pots-0.2/`: MAIN OS `93ad7348…` (pots), `81bc4d1e…` (digidelay, pots), `bf9a0636…` (with
+  SAMPLE); for the device `pots+crush+cpu` (`9a04ef4e…`, the selection of notes/78's try with 0.1, `build/cpu-0.3/`)
+  and every card with the CPU page (`every-card/`, `64db7a94…`). Green: `gen_pots.py --check`, `gen_hilbert.py`
+  (the 6 kHz pair added), `gen_flasher_tweaks.py --check`, `ref_mainos.py` (regenerated), `registry.py`
+  (regenerated: the payload 7 632 bytes, was 11 924), `claims.py --check --self-test`, `check_overlaps.py`,
+  `webbuild_check.sh`, `webflash_check.sh`, `webcompose_check.sh` (identical), `webflash_smoke.sh` with both official
+  files ALL OK (POTS tagged Experimental), `webmanager_check.sh`, `test_fxslot.py --dry`, `test_cpu.py --dry`,
+  `py_compile`. Not run: `relocate_6ch.py --check` (it differs by the toolchain, as before).
+- **Texts**: the card experimental again (`FEATURES`), the guide's line "Experimental", release 0.38 (0.36 is held by
+  Ring 0.3's branch), `README.md`, `BUILD.md`, the stamp `2026-11-03-05`, `webflash_smoke.js` (POTS tagged
+  Experimental), the manifest (0.2, `pots_cf.S`, `POTS_RATE 8`, the line 131 072, the cost, `tests`), `pots_host.py`
+  (`REF`, `against_ref`) and `test_fxslot.py` §9.
+
+### 24.5 For the maintainer
+
+1. The proof, on this object (section 6 the declared cost 1 778 / 1 646 / 1 682 / 3, sections 8 and 10 bit for bit,
+   section 9 the measurements of §24.4):
+   ```sh
+   ../.venv-emu/bin/python tools/emu/test_fxslot.py --cycles <model-cycles_OS1.13.syx> --machines pots --machines sampler,pots,refreverb
+   ```
+2. The device: `build/pots-0.2/model-cycles_OS1.13-pots+crush+cpu.syx`, the same project as with 0.1: the CPU page's
+   FX share with POTS playing (0.1: 10–11 %, the stock delay 2.7 %); then the sound: low notes, a beat in the send, a
+   long tail.
+
+### 24.6 The proof's run (2026-11-03): ALL OK
+
+The maintainer's run of §24.5, item 1, on this object, its output pasted whole: ALL OK. POTS alone (3 380 blocks)
+and with SAMPLE and the reference reverb bit for bit its host build on the OS's own code; the delay slot's line
+131 072 bytes, its address in the effect's code; Digital and POTS in one slot (Digital's 1 MiB line filled with noise
+before each switch) bit for bit; the host measurements of §24.4; the declared cost (1 778 / 1 646 / 1 682 / 3) the one
+counted, the stock delay 2 659, `fxslot` +93 with the effect, +206 in a switch's block. The heading of section 9 in
+the proof's output still read "POTS against v6": now "POTS on the host, against 0.2's numbers". Next the device
+(§24.5, item 2).
+
+### 24.7 The device (2026-11-03)
+
+The maintainer flashed `build/pots-0.2/model-cycles_OS1.13-pots+crush+cpu.syx` (the selection of notes/78's try with
+0.1) and read the CPU page with POTS playing, asked whether the FX share is clearly lower: « Ja, deutlich weniger »
+(the number not given; 0.1: 10–11 %). Then the sound, asked to try a low note, a beat in the send at its level and
+sent hot, and a long tail at Fdbk 100: « Klingt gut ». The card stays experimental until it is flashed from the
+page, as Crush's and Samples' were.

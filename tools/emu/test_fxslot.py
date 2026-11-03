@@ -70,7 +70,7 @@ digidelay,refreverb; sampler,digidelay,refreverb; pots; sampler,pots,refreverb),
      against its host build (tools/emu/pots_host.py: pots.c compiled with the host's C compiler, the EMAC as emac.py
      executes it), bit for bit.
 And once a run (notes/69 §8.2, §8.3):
-  9. POTS against v6: the measurements that settled its sound in the float prototype (the shift's direction, the decay,
+  9. POTS on the host: the measurements that settled its sound in the float prototype (the shift's direction, the decay,
      a tail's end, the colour, the octave bands, the echo's level, the codec's grain, the peak at Fdbk 127, silence),
      taken again on the host build, which section 8 has found to give the device's bits;
  10. Digital Delay and POTS in the delay slot of one build: the pattern switching Digital -> POTS -> Digital -> POTS
@@ -1182,11 +1182,11 @@ def pots_tests(key, img, runtime, tweak, syms):
           + (f"; {'; '.join(b.bad[:3])}" if b.bad else ""))
 
 
-# --- 9. POTS against v6 ------------------------------------------------------------------------------------------------
+# --- 9. POTS against its reference (0.2's numbers, v6's beside them, notes/69 §24) ----------------------------------------
 def v6_tests():
-    out, m = PH.against_v6()
+    out, m = PH.against_ref()
     for ok, text in out:
-        check(ok, f"POTS on the host against v6: {text}")
+        check(ok, f"POTS on the host: {text}")
     print(f"  note  the loudest return, SNARE's level at Fdbk 127: {m['return_peak_dbfs']} dBFS on the bus")
 
 
@@ -1400,7 +1400,7 @@ def main():
         out.write_text(json.dumps(COST, indent=1, sort_keys=True) + "\n")
         print(f"\nthe counted costs: {out}")
     if not args.dry:
-        print("\nPOTS against v6, on the host")
+        print("\nPOTS on the host, against 0.2's numbers (v6's beside them)")
         v6_tests()
         print("\nDigital Delay and POTS in one slot")
         switch_tests(stock)

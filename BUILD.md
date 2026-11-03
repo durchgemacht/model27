@@ -301,15 +301,13 @@ python3 tools/emu/test_fxslot.py --cycles model-cycles_OS1.13.syx --machines pot
 python3 tools/build.py -i model-cycles_OS1.13.syx -t pots
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,digidelay,pots   # avec Digital et SAMPLE
 ```
-MAIN OS patché, `pots` seul : `19ef3b58909ae07f070a948623dd58c426917280b9287c5cc154563e52ca2385` ; `digidelay` et `pots`
-composés : `b37a17848ea281fc15467f9388238eb55d257de4b757c4a24803b50ff6f236b2` ; avec SAMPLE 0.13 (`sampler`,
-`digidelay`, `pots`) : `03a2b64e9eb445c89d02656f4f7c28f2e697cf55f15489d0e9e86b7119149ee7` (SAMPLE 0.12 : `8042e1f6…`,
-note 60 §21), ceux que la page compose avec
-`fxslot` 0.6 (PATTERN + Delay Time, note 68 §23) et la couche de raccourcis 0.4 (MACHINES, note 63 §24) ; avec `fxslot`
-0.4 et la couche 0.2 : `4a1521cb…`, `7e867f70…`, `1d7bc3b1…`). La ligne tourne à 12 kHz avec un codec 8 bits (note 69
-§23), testée sur un Model:Cycles (§23.6, `28cf64c0…`) ; depuis, la partie `fxslot` 0.4 lance la préparation des effets
-d'origine avant la boucle des voix (note 68 §21, l'idée de Model-TG), jouée sur un Model:Cycles depuis la page le
-29/10/2026 : un projet chargé tourne et sonne pareil (§21.8).
+MAIN OS patché, `pots` seul : `93ad7348e2ffa42879d2bcfabf66780f0cce721a03022f543ad785c92ba779e8` ; `digidelay` et `pots`
+composés : `81bc4d1e4cfee2bc8daba59ecf99e89a6c33f924ef11b3819632558ccfc4b64a` ; avec SAMPLE 0.13 (`sampler`,
+`digidelay`, `pots`) : `bf9a06364a5f48b857162e39a49ea5d7d7229f4ef5013787dd471b7c6d09b3b9`, ceux que la page compose avec
+`fxslot` 0.7 (le compteur de la page CPU, note 78 §8) et la couche de raccourcis 0.4. Depuis POTS 0.2 la ligne tourne à
+6 kHz (`pots_cf.S` pour la décimation, note 69 §24), environ un tiers de la charge de la version à 12 kHz ; celle-ci
+(note 69 §23) avait été testée sur un Model:Cycles (§23.6, `28cf64c0…`), puis jouée avec `fxslot` 0.4 depuis la page le
+29/10/2026 (note 68 §21.8). POTS 0.2 n'est pas encore testé sur la machine.
 
 ### Filtre Samples (filtre de piste)
 

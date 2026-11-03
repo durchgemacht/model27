@@ -530,7 +530,7 @@ Code trop gros pour un masque, ajouté à la fin de l'image (`at`) et copié au 
 | acid-tg | 35 | `0x401bf8c0` | 11 792 | `0x401c26d0` | `0x46700000` | 221 928 | model-tg-st |
 | chordtables | 36 | `0x401aa140` | 6 088 | `0x401ab908` | `0x43000000` | 222 292 |  |
 | digidelay | 39 | `0x401aa140` | 3 884 | `0x401ab06c` | `0x43000000` | 1 269 784 |  |
-| pots | 70 | `0x401aa140` | 11 924 | `0x401acfd4` | `0x43000000` | 483 676 |  |
+| pots | 70 | `0x401aa140` | 7 632 | `0x401abf10` | `0x43000000` | 352 504 |  |
 | smpfilter | 72 | `0x401aa140` | 25 980 | `0x401b06bc` | `0x43000000` | 221 628 |  |
 | crush | 73 | `0x401aa140` | 8 472 | `0x401ac258` | `0x43000000` | 221 256 |  |
 | ring | 74 | `0x401aa140` | 7 952 | `0x401ac050` | `0x43000000` | 221 208 |  |
@@ -867,7 +867,7 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | midi-both | 3 | 3 | 0 | 0 | 0 | 0 | 0 |  | notes/53 |
 | midi-live-both | 6 | 0 | 4 | 0 | 1 | 1 | 0 |  | notes/53 |
 | lfo-plus | 30 | 0 | 12 | 4 | 7 | 7 | 0 |  | notes/56 |
-| pots | 10 | 0 | 8 | 0 | 1 | 1 | 0 | 11 924 o | notes/69 |
+| pots | 10 | 0 | 8 | 0 | 1 | 1 | 0 | 7 632 o | notes/69 |
 | smpfilter | 15 | 0 | 10 | 3 | 1 | 1 | 0 | 25 980 o | notes/72 |
 | crush | 15 | 0 | 10 | 3 | 1 | 1 | 0 | 8 472 o | notes/73 |
 | ring | 15 | 0 | 10 | 3 | 1 | 1 | 0 | 7 952 o | notes/74 |

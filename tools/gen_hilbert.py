@@ -2,7 +2,8 @@
 """POTS's Hilbert pair (notes/69 §4.2, §12.1): two chains of allpass sections in z^-2, (c - z^-2) / (1 - c z^-2),
 chain a one frame late, whose phases stay 90 degrees apart over the band the shift needs (150 Hz to 6 kHz: the line
 holds the transmitter's band, the receiver keeps 350 Hz to 3 kHz; for the loop at 12 kHz, notes/69 §23, to 5 kHz,
-6 kHz being its Nyquist). model27's own design, no published numbers: a
+6 kHz being its Nyquist; for the loop at 6 kHz, POTS 0.2's, notes/69 §24, 300 Hz to 2.7 kHz with 2 + 2 sections).
+model27's own design, no published numbers: a
 minimax fit of the phase difference, Nelder-Mead from many seeded starts. The pairs live in
 tools/machines/pots/hilbert.json; tools/gen_pots.py writes them into the package's tables.
 
@@ -22,11 +23,11 @@ import numpy as np
 HERE = pathlib.Path(__file__).resolve().parent
 OUT = HERE / "machines" / "pots" / "hilbert.json"
 BAND = (150.0, 6000.0)
-BAND_OF = {"12000": (150.0, 5000.0)}        # a pair's own band where BAND reaches its Nyquist
+BAND_OF = {"12000": (150.0, 5000.0), "6000": (300.0, 2700.0)}   # a pair's own band where BAND reaches its Nyquist
 GRID = 600
-# sections a chain: the loop at 12 kHz (POTS_RATE 4), at 24 kHz (2), at 48 kHz (1)
-PAIRS = {"12000": (3, 3), "24000": (3, 3), "48000": (4, 4)}
-SEEDS = {"12000": (1, 2, 3), "24000": (1,), "48000": (3,)}   # the fit's starts: the best of these seeds
+# sections a chain: the loop at 6 kHz (POTS_RATE 8, POTS 0.2), at 12 kHz (4), at 24 kHz (2), at 48 kHz (1)
+PAIRS = {"6000": (2, 2), "12000": (3, 3), "24000": (3, 3), "48000": (4, 4)}
+SEEDS = {"6000": (1, 2, 3), "12000": (1, 2, 3), "24000": (1,), "48000": (3,)}   # the fit's starts: the best of these
 LIMIT_DEG = 1.0                             # the most a pair may be off 90 degrees within the band
 STARTS = 60
 

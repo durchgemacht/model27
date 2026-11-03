@@ -4,6 +4,21 @@
   6000.0
  ],
  "note": "model27's own pair (notes/69 \u00a712.1): a minimax fit by tools/gen_hilbert.py --design; sections in z^-2, (c - z^-2) / (1 - c z^-2), chain a one frame late",
+ "6000": {
+  "a": [
+   0.2839450379335571,
+   0.83448458600403
+  ],
+  "b": [
+   0.5454636409683153,
+   0.07990764769596354
+  ],
+  "error_deg": 0.03615431870623809,
+  "band_hz": [
+   300.0,
+   2700.0
+  ]
+ },
  "24000": {
   "a": [
    0.8097016085941275,

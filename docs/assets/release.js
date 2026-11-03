@@ -7,6 +7,11 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.38", date: "2026-11-03", changes: [
+    { en: "POTS takes about a third of the Model:Cycles' time it took: its telephone line now runs at 6 kHz instead of 12 kHz, with simpler parts. The idea stays the same: a narrow, lo-fi line, each repeat darker and grainier, moving up a little in pitch" },
+    { en: "It sounds a little different: a little more low-mid in the first repeats, a slightly duller echo, a faint fizz from bright sounds such as hats, and a hot beat breaks up a bit more. Its decays are as before" },
+    { en: "Checked in an emulator on the OS's own code. Tried on a Model:Cycles from the command line (2026-11-03): the CPU page shows a much smaller effects share with POTS playing, and it sounds good. The POTS card is Experimental until it is flashed from this page" },
+  ] },
   { version: "0.37", date: "2026-11-03", changes: [
     { en: "A new card, the CPU page (experimental): press SETTINGS, go to the list with USB mode, LCD, LED and Contrast and press its last row, CPU. The page shows how much of the Model:Cycles' time the sound takes over the last half second, with a mark at 85 %, where the screen and the knobs start to lag, the peak since you opened it, and the shares of the Track FX and of the effects. It updates twice a second; Return closes it. It goes with every other card" },
     { en: "Checked in an emulator on the OS's own code: with the page the sound is bit for bit the same, and the measure, the row and the page do what they should. Tried on a Model:Cycles from the command line (2026-11-03), with POTS and Crush as this page builds them" },
