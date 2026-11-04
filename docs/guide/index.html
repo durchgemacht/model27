@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-11-04-03">
-<link rel="stylesheet" href="../assets/guide.css?v=2026-11-04-03">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-04-04">
+<link rel="stylesheet" href="../assets/guide.css?v=2026-11-04-04">
 <script>try{var t=localStorage.getItem("mc-theme")}catch(e){}if(t)document.documentElement.setAttribute("data-theme",t)</script>
 </head>
 <body data-page="guide">
@@ -331,10 +331,10 @@
         <ol>
           <li>Hold <b>SETTINGS</b> and press <b>RECORD</b>: the RESAMPLE page opens. Its eight values sit where their knobs are on the panel.</li>
           <li><b>PITCH</b> picks the source: <b>T1</b> to <b>T6</b> (one track, before its level, pan and sends), <b>MAIN</b> (the main mix) or <b>USB</b> (what the computer sends). <b>SHAPE</b> sets <b>STEREO</b> for MAIN and USB; a track is mono.</li>
-          <li><b>DECAY</b> sets how the take starts: <b>TRIG</b> with the source track's trig, <b>LEVEL</b> when the sound gets louder than the level <b>COLOR</b> sets (from −60 to −12 dB; the attack is kept whole), <b>NOW</b> at once. With USB there is no TRIG.</li>
+          <li><b>DECAY</b> sets when the take starts: <b>NOW</b> when you press RECORD; <b>LEVEL</b> after you press RECORD, as soon as the sound gets louder than the level <b>COLOR</b> sets (from −60 to −12 dB; the attack is kept whole); <b>TRIG</b> after you press RECORD, with the source track's next trig, from the sequencer or from Trig Preview (with MAIN, any track's trig). With USB there is no TRIG.</li>
           <li><b>SWEEP</b> sets how it stops: <b>SILENT</b> once the sound has died away, <b>LENGTH</b> after the time <b>CONTOUR</b> sets, <b>RECORD</b> when you press RECORD. CONTOUR is also the longest a take can be.</li>
           <li><b>Delay Send</b> switches <b>NORM</b>: off, the take keeps the level you heard; on, its peak goes to just under full scale. <b>Reverb Send</b> switches <b>TO Tn</b>: on, the saved take goes straight on the selected track when that track plays SAMPLE ("---" when it does not).</li>
-          <li>Press <b>RECORD</b> to arm; the page waits and shows the source's level. For TRIG, stop the sequencer, hold a step of the source track and press <b>PAGE</b> (<a href="#preview">Trig Preview</a>); the page turns GRID RECORDING on for that while it waits, and off again after. RECORD again cancels, or, while recording, stops.</li>
+          <li>Press <b>RECORD</b>. With NOW the take starts right away. With LEVEL and TRIG the page waits and shows the source's level; RECORD again cancels. To play the source track's trig with the sequencer stopped, hold one of its steps and press <b>PAGE</b> (<a href="#preview">Trig Preview</a>); for TRIG the page turns GRID RECORDING on while it waits, and off again after. While recording, RECORD stops the take.</li>
           <li>When the take ends, the stock name editor comes up with the next free name, <b>REC-001</b>, <b>REC-002</b>, … Confirm it, or type your own. The take is saved in <b>/recordings</b>, the page closes, and a message confirms it: <b>Saved</b>, or <b>Saved on T3</b> with TO Tn. A name that is taken brings the editor back, titled <b>Name exists</b>.</li>
           <li>Backing out of the editor keeps the take: the page says <b>NOT SAVED</b>; RECORD brings the editor back, <b>Return</b> drops the take. Otherwise Return closes the page.</li>
         </ol>
@@ -343,7 +343,7 @@
           <div><dt>Level</dt><dd>without NORM, a track's take plays back on SAMPLE as loud as you heard it. The page shows <b>CLIP</b> when a take reached full scale: try NORM, or turn the source down. Volume + Dist above 60 distorts before the recording, so a take played back with the same setting gets it twice; keep it at 60 or below on the track that plays the take.</dd></div>
           <div><dt>Saving</dt><dd>the sound pauses while the take is written to the +Drive, as with every save on the Model:Cycles.</dd></div>
           <div><dt>Settings</dt><dd>the page keeps them until you switch the Model:Cycles off.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, the effects, the Track FX, the CPU Page, Trig conditions, Trig Preview and Control All Config. TRIG needs Trig Preview, TO Tn needs SAMPLE.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, the effects, the Track FX, the CPU Page, Trig conditions, Trig Preview and Control All Config. Playing a trig with the sequencer stopped needs Trig Preview; TO Tn needs SAMPLE.</dd></div>
           <div><dt>Credit</dt><dd>the page, the way SETTINGS is read and the save are built the way Model-TG by TinyGregAudio (MIT) builds its own resampling.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code: the sound bit for bit the same with the recorder as without it, the take, the keys, the page and its picture, the save. Tried on a Model:Cycles from the command line (2026-11-03 and 2026-11-04), then flashed from this page with SAMPLE and Trig Preview and tested on a Model:Cycles (2026-11-04): a track's take by Trig Preview and by LEVEL, the name editor and the save, TO Tn, a track's take played back on SAMPLE as loud as the track, the main mix in stereo with NOW, LENGTH and NORM, and USB in stereo.</dd></div>
         </dl>
@@ -494,8 +494,8 @@
   </div>
 </footer>
 
-<script src="../assets/release.js?v=2026-11-04-03"></script>
-<script src="../assets/cycles.js?v=2026-11-04-03"></script>
-<script src="../assets/site.js?v=2026-11-04-03"></script>
+<script src="../assets/release.js?v=2026-11-04-04"></script>
+<script src="../assets/cycles.js?v=2026-11-04-04"></script>
+<script src="../assets/site.js?v=2026-11-04-04"></script>
 </body>
 </html>
