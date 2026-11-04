@@ -413,7 +413,8 @@ def web_part(pid):
            "data": p["data"], "bundle": relocate.bundle(lay, roots)}
     for key in ("sites", "shortcut", "slots", "track", "release", "load", "init", "early", "late", "formatter_sites",
                 "int_format", "cost", "post", "boot", "keys", "lfo", "conv", "knob", "ptab", "record", "values", "type",
-                "formats", "most", "probe", "row", "order"):
+                "formats", "most", "probe", "row", "order", "mix", "key", "code", "ram", "ring_bytes", "conv_bytes",
+                "shift"):
         if key in p:                         # the effect slots' (notes/68) and the filter slot's besides the shortcut
             out[key] = p[key]                # layer's and dispatchers' 
     if "claims" in p:                        # notes/65: what the part claims, in tools/claims.py's to_json form

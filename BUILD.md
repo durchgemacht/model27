@@ -461,6 +461,28 @@ MAIN OS patché, `cpu` seul : `425ad022c55c0037e7846c3c5b84fd87235dba4c1847cf173
 toutes les cartes de la page (douze, release 0.37) : `5af3a7473353c494edefc8ebec1a36642d22b287a06867145aa7c7fff9afa17d`. Avec POTS et Crush, essayé sur un Model:Cycles depuis la ligne de commande le 03/11/2026, les valeurs
 rafraîchies deux fois par seconde (note 78 §10). La page sans son rafraîchissement (`cpu` 0.2), essayée de même le
 même jour (note 78 §9) : avec Crush et POTS `7773846a…`.
+### RESAMPLE
+
+`tweaks/model-cycles_OS1.13/79-resample.json` est produit par `tools/gen_resample.py`, qui compose seule avec
+`tools/compose.py --resample` la partie `resample` du constructeur (`tools/machines/resample/`, objet construit par
+`tools/gen_parts.py`) : l'appel du mixeur par la fonction audio (`0x40059872`) passe par l'enregistreur, qui prend une
+piste avant le mixeur, le mix principal ou l'USB après lui, dans une réserve de RAM à lui (`0x42800000..0x43000000`) ;
+SETTINGS + RECORD (`0x40024482`, SETTINGS aussi par ses événements, `0x4007240c`) ouvre sa page ; la prise est nommée
+dans l'éditeur de noms d'origine et enregistrée dans `/recordings` ([note 79](notes/79-resample.md)). La preuve tourne
+sur le code de l'OS (Unicorn) :
+```sh
+python3 tools/gen_resample.py --cycles model-cycles_OS1.13.syx [--check]
+python3 tools/emu/resample_host.py
+python3 tools/emu/test_resample.py --cycles model-cycles_OS1.13.syx [--keys] [--show]
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --resample                         # seul
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler --resample      # avec SAMPLE
+```
+MAIN OS patché, `resample` seul : `d88f8603927fd2bbf8eade07af3cd58994e6bafa17a3f4145751e7ba6a8a9a9f` ; avec SAMPLE :
+`e6e162fe354985ce9dc656544b31559a9a054489e8be44cb7ef42e176de9b76e` ; avec SAMPLE et Trig Preview (le fichier essayé sur
+un Model:Cycles depuis la ligne de commande le 04/11/2026, note 79 §12) :
+`15a32ac02984461ede21bca62bf83e93aa2599bf3f4734c6f18ff2828ef6c76a` ; avec toutes les cartes de la page (treize, release
+0.39) : `7359f2a209e377fed9806ec9a768bf1a3f29205385edf3f5ae9c2896d9441847`.
+
 ### Trig Cond dans un autre ordre
 
 `tweaks/model-cycles_OS1.13/80-trig-cond-order.json` est produit par `tools/gen_trig_cond_order.py`, qui assemble

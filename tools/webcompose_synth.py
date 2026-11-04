@@ -72,8 +72,13 @@ SELECTIONS = ((["sampler"], []), (["refmachine"], []), (["sampler", "refmachine"
               # notes/78: the CPU page ("cpu", a part, not a package) alone, with SAMPLE (the registrar), with a Track
               # FX, with an effect, and with the full offered set (both shares read)
               (["cpu"], []), (["sampler", "cpu"], []), (["crush", "cpu"], []), (["pots", "cpu"], []),
-              (["sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu"], []))
-PARTS = ("shortcuts", "dispatch", "fxslot", "fltslot", "cpu")
+              (["sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu"], []),
+              # notes/79: the RESAMPLE recorder ("resample", a part) alone, with SAMPLE (its machine number in the
+              # data block), with an effect and a Track FX, with the CPU page, and with the full offered set
+              (["resample"], []), (["sampler", "resample"], []), (["pots", "crush", "resample"], []),
+              (["cpu", "resample"], []),
+              (["sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample"], []))
+PARTS = ("shortcuts", "dispatch", "fxslot", "fltslot", "cpu", "resample")
 COMPARED = ("id", "order", "name", "version", "conflicts", "writes", "append", "symbols")
 
 
@@ -159,13 +164,15 @@ def part2(out, cycles):
     claimed = {i: c for i, c in cl.tweak_claims().items() if i in ids_} | probe
     pkgs, cases = {}, []
     for sel, with_ in SELECTIONS:
-        ids, cpu = [i for i in sel if i != "cpu"], "cpu" in sel                          # the CPU page: a part
-        tweak, info = compose.compose(img, ids, against=tweaks, against_claims=claimed, cpu=cpu)   # with its parts
+        ids = [i for i in sel if i not in ("cpu", "resample")]                          # the CPU page, RESAMPLE: parts
+        cpu, resample = "cpu" in sel, "resample" in sel
+        tweak, info = compose.compose(img, ids, against=tweaks, against_claims=claimed, cpu=cpu,
+                                      resample=resample)                                # with its parts
         with contextlib.redirect_stdout(io.StringIO()):          # build.py's report of the caves, for each build
             _syx, patched = compose.build_syx(raw, [tweak] + [full[w] for w in with_])
         for i in ids:
             pkgs.setdefault(i, compose.web_package(i))
-        cases.append({"ids": ids, "cpu": cpu, "with": with_, "tweak": {k: tweak[k] for k in COMPARED},
+        cases.append({"ids": ids, "cpu": cpu, "resample": resample, "with": with_, "tweak": {k: tweak[k] for k in COMPARED},
                       "main_os": compose.sha(patched)})
         print(f"{tweak['id']}{''.join(' + ' + w for w in with_)}: {len(tweak['writes'])} writes, "
               f"{info['image']} bytes added, {len(tweak['conflicts'])} conflicts, MAIN OS {compose.sha(patched)[:12]}")

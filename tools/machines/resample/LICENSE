@@ -20,11 +20,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-The device configuration row (cpu_cfg, cpu_add_row, cpu_lab, cpu_nop in
-entries.S) and the page's mechanics (cpu_open, cpu_key and the page's
-destructors and encoder handler: the stock machine-select page with a private
-copy of its vtables, presented as the stock opener presents a page) follow
-Model-TG's System page (https://github.com/TinyGregAudio/Model-TG,
-src/model_tg.s: cfg_hook, lm_add_row, gm_lab, sys_nop, mm_open, mm_key,
-mm_enc): Copyright (c) 2026 TinyGregAudio, MIT License, its text in
+The page's mechanics (rs_open, rs_page_key, rs_page_enc, rs_enc_th and the
+page's destructors: the stock machine-select page with a private copy of its
+vtables, presented as the stock opener presents a page, as the CPU page of
+tools/machines/cpu/ builds its own), the key event's code accessor taken by
+rs_code, and the save's way through the OS (rs_ask_name, rs_run, rs_named: the
+UI task's messages, the stock name editor, the FileWriter in flushed pieces)
+follow Model-TG (https://github.com/TinyGregAudio/Model-TG): its System page
+(mm_open, mm_key, mm_enc), its key_hook and its save of a resampled take
+(sv_post, sv_run, rs_name_open, rs_save_do, rs_fw_put): Copyright (c) 2026
+TinyGregAudio, MIT License, its text in
 tweaks/model-cycles_OS1.13/LICENSE-Model-TG.

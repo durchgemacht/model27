@@ -694,6 +694,43 @@ function cpuLayer(mainOs, part, at, codeEnd, fl, fxs, fltPart, fxPart) {
                    fx_busy: fxBusy } };
 }
 
+// compose.resample_layer(): the RESAMPLE recorder (notes/79), the audio function's call of the mixer (0x40059872) to
+// its rs_mix, TransportView's toggle of GRID RECORDING (0x40024482) to its rs_key and the key event's code accessor
+// (0x4007240c) to its rs_code; its data block starts with the take's buffer and size in words (the RAM claim after the
+// ring, up to the save's 32 KiB at its end), the ring, each kind of source's level shift and SAMPLE's machine number
+// in the build (0xff without).
+function resampleLayer(mainOs, part, at, codeEnd, sample = 0xff) {
+  const d = part.data;
+  const dataAt = align4(at + part.bundle.code.length / 2);
+  if (dataAt + d.size > codeEnd) throw new Error(`the recorder ends at ${hx(dataAt + d.size)}, past ${hx(codeEnd)}`);
+  const { code, symbols } = placePart(part, at, codeEnd, { rs_data: dataAt });
+  const [lo, hi] = part.ram.map((x) => parseInt(x, 16));
+  const ring = lo, buf = lo + part.ring_bytes, conv = hi - part.conv_bytes;
+  const cap = Math.floor((conv - buf) / 4);
+  const block = new Uint8Array(d.size);
+  put32(block, d.buf, buf);
+  put32(block, d.buf + 4, cap);
+  put32(block, d.buf + 8, ring);
+  put32(block, d.conv, conv);
+  block.set([part.shift.track, part.shift.main, part.shift.usb], d.shift);
+  block[d.sample] = sample;
+  const writes = [], skip = new Set();
+  for (const [s, op, tail] of [[part.mix, bytesOf(0x4e, 0xb9), new Uint8Array(0)],                 // jsr rs_mix
+                               [part.key, bytesOf(0x2f, 0x03, 0x4e, 0xb9),                         // rs_key(uis)
+                                concat(bytesOf(0x58, 0x8f), ...Array(6).fill(bytesOf(0x4e, 0x71)))],
+                               [part.code, bytesOf(0x4e, 0xf9), new Uint8Array(0)]]) {             // jmp rs_code
+    const va = parseInt(s.hook, 16), old = fromHex(s.stock), here = hex(mainOs.subarray(va - BASE, va - BASE + old.length));
+    if (here !== hex(old)) throw new Error(`${hx(va)}: ${hex(old)} expected, ${here} found`);
+    const now = concat(op, be32(symbols[s.symbol]), tail);
+    if (now.length !== old.length) throw new Error(`${hx(va)}: ${now.length} bytes for ${old.length}`);
+    writes.push({ off: va - BASE, old: hex(old), new: hex(now) });
+    skip.add(va);
+  }
+  return { blob: concat(code, new Uint8Array(dataAt - at - code.length), block), symbols, writes, skip,
+           info: { id: part.id, code_at: at, code: code.length, data_at: dataAt, data: d.size, ram: [lo, hi], buf, cap,
+                   ring, conv, sample } };
+}
+
 // compose.fl_cost(): six tracks on the dearest state of the dearest filter, from the filters' declared cost.emulation
 function flCost(filters) {
   const costs = Object.fromEntries(filters.map((p) => [p.id, Object.fromEntries(Object.entries(
@@ -883,10 +920,11 @@ function computedConflicts(writes, ram, declared, tweaks) {
 // packages = compose.web_package() of each machine, in order (machines 6, 7, ...), tweaks = what the conflicts are
 // computed against, parts = compose.web_part() of the builder's parts by id (the shortcut layer, the dispatchers),
 // needed only by the builds that use them, claims = the declared claims of those tweaks by id (tools/claims.py's
-// tweak_claims), opts.cpu: with the CPU page (notes/78), also without any machine. Returns { tweak, info }.
+// tweak_claims), opts.cpu: with the CPU page (notes/78), opts.resample: with the RESAMPLE recorder (notes/79), each
+// also without any machine. Returns { tweak, info }.
 function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {}, opts = {}) {
-  const cpu = !!opts.cpu;
-  if (!packages.length && !cpu) throw new Error("name at least one machine");
+  const cpu = !!opts.cpu, resample = !!opts.resample;
+  if (!packages.length && !cpu && !resample) throw new Error("name at least one machine");
   const ids = packages.map((p) => p.id);
   if (new Set(ids).size !== ids.length) throw new Error("a machine is named twice");
   const lay = frames.layout, pay = lay.pay, first = lay.first;
@@ -1005,21 +1043,38 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {},
     blobs.push([at, cpus.blob]);
     codeCursor = at + cpus.blob.length;
   }
+  let rss = null;                                 // the RESAMPLE recorder (notes/79), its buffer in a RAM claim of its own
+  if (resample) {
+    if (!parts.resample) throw new Error("RESAMPLE is ticked, and the page lacks its part");
+    const at = align4(codeCursor);
+    const s = added.findIndex((p) => p.id === "sampler");
+    rss = resampleLayer(mainOs, parts.resample, at, lay.stubs, s < 0 ? 0xff : first + s);
+    blobs.push([at, rss.blob]);
+    codeCursor = at + rss.blob.length;
+  }
   for (const p of packages)                       // a package's RAM claim must lie outside the payload
     for (const [lo, hi] of ramClaims(p))
       if (lo < bssCursor && pay < hi)
         throw new Error(`${p.id}: the payload (${hx(pay)}..${hx(bssCursor)}) runs into its RAM claim ${hx(lo)}..${hx(hi)}`);
   checkRamClaims(packages);
+  if (rss) {                                      // the recorder's buffer outside the payload and every package's claim
+    const [lo, hi] = rss.info.ram;
+    if (lo < bssCursor && pay < hi)
+      throw new Error(`the payload (${hx(pay)}..${hx(bssCursor)}) runs into the recorder's buffer ${hx(lo)}..${hx(hi)}`);
+    for (const p of packages)
+      for (const [a, b] of ramClaims(p))
+        if (a < hi && lo < b) throw new Error(`${p.id}: its RAM claim ${hx(a)}..${hx(b)} meets the recorder's ${hx(lo)}..${hx(hi)}`);
+  }
   const { writes, append } = machines.length ? fill(frameOf(frames, machines.length), mainOs, machines, blobs, bssCursor)
     : fillAlone(frameOf(frames, 0), mainOs, blobs, bssCursor);
   const skip = new Set([...(layer ? layer.skip : []), ...(dispatch ? dispatch.skip : []), ...(fxs ? fxs.skip : []),
-                        ...(fl ? fl.skip : []), ...(cpus ? cpus.skip : [])]);
+                        ...(fl ? fl.skip : []), ...(cpus ? cpus.skip : []), ...(rss ? rss.skip : [])]);
   for (const p of packages) writes.push(...packageWrites(p, mainOs, symsOf[p.id], skip));
-  for (const x of [layer, dispatch, fxs, fl, cpus]) if (x) writes.push(...x.writes);
+  for (const x of [layer, dispatch, fxs, fl, cpus, rss]) if (x) writes.push(...x.writes);
   writes.sort((a, b) => a.off - b.off);
   checkOverlaps(writes);
-  const ram = [[pay, bssCursor]].concat(...packages.map(ramClaims));
-  const tid = ids.concat(cpu ? ["cpu"] : []).join("+");
+  const ram = [[pay, bssCursor]].concat(...packages.map(ramClaims), rss ? [rss.info.ram] : []);
+  const tid = ids.concat(cpu ? ["cpu"] : [], resample ? ["resample"] : []).join("+");
   const declared = packages.flatMap((p) => p.conflicts_declared || [])
     .concat(layer ? parts.shortcuts.conflicts_declared || [] : []);   // none since notes/65 C2: computed
   const holders = buildHolders(packages, layer ? parts.shortcuts : null);       // notes/65: the claims
@@ -1029,6 +1084,7 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {},
     holders.forEach((h, i) => { if (h[0] === "shortcuts" && h[3]) holders[i] = [h[0], narrowed(h[1], flc), narrowed(h[2], flc), true]; });
     holders.push([parts.fltslot.id, flc, flc, true]);
   }
+  if (rss) holders.push([parts.resample.id, parts.resample.claims || {}, parts.resample.claims || {}, true]);
   const flLoad = fl ? flCost(filters) : {};
   if ((flLoad.steady || 0) > FX_REFUSE)            // the effects' rule (notes/68 §17), for six tracks on the dearest filter
     throw new Error(`the filters: ${flLoad.dearest} on six tracks costs ${flLoad.steady} instructions a block `
@@ -1048,24 +1104,26 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {},
   const symbols = {};
   for (const p of packages)
     for (const k of [p.symbols.update, p.symbols.render, ...(p.keep || [])]) symbols[k] = hx(symsOf[p.id][k]);
-  for (const x of [layer, dispatch, fxs, fl, cpus])
+  for (const x of [layer, dispatch, fxs, fl, cpus, rss])
     if (x) for (const [k, v] of Object.entries(x.symbols)) symbols[k] = hx(v);
   for (const [point, [a]] of Object.entries(lines)) symbols[`fx_line_${point.slice(3)}`] = hx(a);
   const tweak = {
     id: tid,
-    order: packages.length ? Math.min(...packages.map((p) => p.order)) : parts.cpu.order,
-    name: packages.map((p) => p.name).concat(cpu ? ["CPU page"] : []).join(" + "),
+    order: Math.min(...packages.map((p) => p.order), ...(cpu ? [parts.cpu.order] : []),
+                    ...(resample ? [parts.resample.order] : [])),
+    name: packages.map((p) => p.name).concat(cpu ? ["CPU page"] : [], resample ? ["RESAMPLE"] : []).join(" + "),
     description: [`Composed in the browser by composer.js (notes/61): ${info.map((x) => (x.extends
       ? `${x.id} extending ${x.extends} (machine ${x.index})` : x.slot ? `${x.id} in the ${x.slot} slot (effect ${x.fx_id})`
         : x.filter_id ? `${x.id} as filter ${x.filter_id}`
         : `${x.id} as machine ${x.index}`)).join(", ")}, `
       + (machines.length ? "registered together through the registrar runtime"
         : "nothing registered (no added machine, notes/66 §3)") + (cpu ? ", with the CPU page (notes/78)" : "")
-      + ", as tools/compose.py composes them."],
+      + (resample ? ", with the RESAMPLE recorder (notes/79)" : "") + ", as tools/compose.py composes them."],
     device: "Model:Cycles",
     os: "1.13",
     section: 3,
-    version: packages.map((p) => p.version).concat(cpu ? [parts.cpu.version] : []).join("+"),
+    version: packages.map((p) => p.version).concat(cpu ? [parts.cpu.version] : [],
+                                                    resample ? [parts.resample.version] : []).join("+"),
     conflicts,
     writes,
     append,
@@ -1074,11 +1132,11 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {},
   return { tweak, info: { pay, end: bssCursor, image: append.pack.reduce((s, [, k]) => s + k, 0), packages: info,
                           part: layer && layer.info, dispatch: dispatch && dispatch.info, fx: fxs && fxs.info,
                           fx_lines: lines, fx_load: load, filters: fl && fl.info, fl_load: flLoad, cpu: cpus && cpus.info,
-                          byClaims } };
+                          resample: rss && rss.info, byClaims } };
 }
 
 const API = { place, frameOf, fill, fillAlone, segments, bootStub, parameterBlock, packageWrites, shortcutUses,
-              shortcutPresses, shortcutLayer, dispatchLayer, fxLayer, fxCost, flLayer, flCost, cpuLayer, narrowed, computedConflicts, resolveClaims,
+              shortcutPresses, shortcutLayer, dispatchLayer, fxLayer, fxCost, flLayer, flCost, cpuLayer, resampleLayer, narrowed, computedConflicts, resolveClaims,
               claimClashes, buildHolders, checkBuildClaims, claimConflicts, compose, fromHex, FX_WARN, FX_PEAK_WARN };
 if (typeof module !== "undefined" && module.exports) module.exports = API;
 if (typeof window !== "undefined") window.MCComposer = API;

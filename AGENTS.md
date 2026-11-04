@@ -174,7 +174,9 @@ tools/machines/resample/      the RESAMPLE recorder, a part (notes/79): the audi
                               RAM claim of its own (0x42800000..0x43000000) on a trigger, a level or at once; compose.py
                               --resample adds it; since 0.2 SETTINGS + RECORD opens its page (0x40024482; SETTINGS
                               also by its events, the key code accessor 0x4007240c); since 0.3 a finished take is
-                              named in the stock name editor and saved to /recordings/ in the UI task (save.c);
+                              named in the stock name editor and saved to /recordings/ in the UI task (save.c); since
+                              0.4 TO Tn puts it on the selected SAMPLE track; tools/gen_resample.py composes it alone
+                              into 79-resample.json, the flasher's RESAMPLE card (a part, composer.js resampleLayer);
                               tools/emu/resample_host.py and test_resample.py prove it
 tools/emu/                    Unicorn emulation of the OS: test_<mod>.py proofs, mcengine.py, emac.py, syntakt.py
 tools/gen_flasher_tweaks.py   FEATURES list -> docs/flasher/tweaks.js (generated); a machine card embeds its package and
