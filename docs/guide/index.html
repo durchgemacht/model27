@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-11-04-02">
-<link rel="stylesheet" href="../assets/guide.css?v=2026-11-04-02">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-04-03">
+<link rel="stylesheet" href="../assets/guide.css?v=2026-11-04-03">
 <script>try{var t=localStorage.getItem("mc-theme")}catch(e){}if(t)document.documentElement.setAttribute("data-theme",t)</script>
 </head>
 <body data-page="guide">
@@ -198,15 +198,15 @@
         <p class="by">model27's own · MIT license</p>
         <p class="lede">A ring modulator on any track, after Volume + Dist: the track multiplied by a carrier, from a chop to bells to metal. It is a Track FX: each sound chooses one, or none.</p>
         <ol>
-          <li>Hold <b>RETRIG</b> and turn <b>PITCH</b> to the right: every four detents the track's sound steps to the next Track FX: OFF, then the ones you ticked, in the order of the cards: <b>SMP</b>, <b>CRU</b>, <b>RNG</b>, <b>RES</b>, <b>EQ</b>. To the left it steps back. Ring starts with Mix at 0 and Shape at 0, so nothing changes until you turn.</li>
+          <li>Hold <b>RETRIG</b> and turn <b>PITCH</b> to the right: every four detents the track's sound steps to the next Track FX: OFF, then the ones you ticked, in the order of the cards: <b>SMP</b>, <b>CRU</b>, <b>RNG</b>, <b>RES</b>, <b>EQ</b>. To the left it steps back. Ring starts with Mix at 0 and Wave at 0, so nothing changes until you turn.</li>
           <li>Hold <b>RETRIG</b> and turn <b>CONTOUR</b> for <b>Ring Mix</b>: at 0 off. Turning right brings in the ring: in the middle the sound stays at half, with new tones above and below it; at 127 only those are left, the sound itself is gone.</li>
           <li>Hold <b>RETRIG</b> and turn <b>SWEEP</b> for <b>Ring Freq</b>, the carrier's note: 0 is 8 Hz, a fast chop; 60 is middle C (262 Hz); 127 is 12.5 kHz. Each step is a semitone; hold <b>FUNC</b> as well to go between them. Low notes chop and wobble, middle ones ring like bells, high ones sound metallic.</li>
-          <li>Hold <b>RETRIG</b> and turn <b>COLOR</b> for <b>Ring Shape</b>: at 0 the carrier is a sine, turning right drives it towards a square: harsher, brighter, a little louder.</li>
-          <li>All three are parameters like any other: hold a trig as well to lock them on that step, hold <b>LFO</b> as well to make them the LFO's destination (it reads FREQ, MIX or SHPE), hold <b>TRACK</b> as well to set them on all six tracks, or send CC 74 (Freq) and CC 71 (Mix).</li>
+          <li>Hold <b>RETRIG</b> and turn <b>COLOR</b> for <b>Ring Wave</b>: at 0 the carrier is a sine, turning right drives it towards a square: harsher, brighter, a little louder.</li>
+          <li>All three are parameters like any other: hold a trig as well to lock them on that step, hold <b>LFO</b> as well to make them the LFO's destination (it reads FREQ, MIX or WAVE), hold <b>TRACK</b> as well to set them on all six tracks, or send CC 74 (Freq) and CC 71 (Mix).</li>
           <li>Save the kit or the project: each sound keeps its Track FX and its settings.</li>
         </ol>
         <dl class="facts">
-          <div><dt>Sound</dt><dd>every note starts the carrier again from its peak, so every hit sounds the same and its attack comes through. At Mix 0 the sound passes untouched. With Shape up, high notes alias. Values glide in, as any parameter does on the Model:Cycles, so right after a switch you may hear them settle for a moment.</dd></div>
+          <div><dt>Sound</dt><dd>every note starts the carrier again from its peak, so every hit sounds the same and its attack comes through. At Mix 0 the sound passes untouched. With Wave up, high notes alias. Values glide in, as any parameter does on the Model:Cycles, so right after a switch you may hear them settle for a moment.</dd></div>
           <div><dt>Other mods</dt><dd>goes with SAMPLE, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a Ring track <b>RETRIG</b> + <b>SHAPE</b> shows <b>RNG ---</b>, and on a sound with no Track FX any of the four shows <b>Track FX OFF</b>: such a knob changes nothing, also with a trig, <b>TRACK</b> or <b>LFO</b> held. On a firmware without Ring, the official one too, a sound plays without it and keeps everything else.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code, bit for bit against its own code built for a computer. Played on a Model:Cycles (2026-11-01) from the command line, then flashed from this page (release 0.28, the same day).</dd></div>
         </dl>
@@ -494,8 +494,8 @@
   </div>
 </footer>
 
-<script src="../assets/release.js?v=2026-11-04-02"></script>
-<script src="../assets/cycles.js?v=2026-11-04-02"></script>
-<script src="../assets/site.js?v=2026-11-04-02"></script>
+<script src="../assets/release.js?v=2026-11-04-03"></script>
+<script src="../assets/cycles.js?v=2026-11-04-03"></script>
+<script src="../assets/site.js?v=2026-11-04-03"></script>
 </body>
 </html>

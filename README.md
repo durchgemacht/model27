@@ -37,7 +37,7 @@ value following. The sixth, **Trig preview** by
 sequencer stopped. The seventh, **Samples**, the first Track FX, puts SAMPLE's filter, the Model:Samples' own, on
 any track after Volume + Dist, chosen per sound. The eighth, **Crush**, model27's own second Track FX, lowers a
 track's sample rate and bits on two knobs. The ninth to eleventh are model27's own Track FX too: **Ring**, a ring
-modulator (the carrier's note, the mix and its shape on three knobs), **Reso**, a tuned resonator that makes a track
+modulator (the carrier's note, the mix and its wave on three knobs), **Reso**, a tuned resonator that makes a track
 ring at a pitch you set, like a plucked string or a struck tube, and **EQ**, a three-band equalizer: a Mid you can
 sweep and Low and High shelves. The twelfth, the **CPU page** (experimental), model27's own, its page built as
 [Model-TG](https://github.com/TinyGregAudio/Model-TG)'s System page, shows in SETTINGS how much of the Model:Cycles'

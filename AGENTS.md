@@ -154,7 +154,7 @@ tools/machines/crush/         Crush (notes/73): a sample-rate and bit reduction,
                               test_fltslot.py, which takes a Track FX's model and cost states from its manifest's
                               proof section
 tools/machines/ring/          Ring (notes/74): a ring modulator, the Track FX's second effect (id 3): Freq, Mix and the
-                              carrier's Shape on RETRIG + SWEEP / CONTOUR / COLOR; tools/gen_ring.py writes its tables
+                              carrier's Wave on RETRIG + SWEEP / CONTOUR / COLOR; tools/gen_ring.py writes its tables
                               and builds it into 74-ring.json; proven by test_fltslot.py from its manifest
 tools/machines/reso/          Reso (notes/75): a tuned resonator, a comb, the Track FX's id 4: Pitch, Amount, Tone and
                               Decay on RETRIG + SWEEP / CONTOUR / COLOR / SHAPE; reso_cf.S its frame loop (EMAC, MAC

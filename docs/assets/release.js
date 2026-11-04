@@ -21,6 +21,10 @@ window.MC_RELEASES = [
     { en: "Checked in an emulator on the OS's own code: with the page the sound is bit for bit the same, and the measure, the row and the page do what they should. Tried on a Model:Cycles from the command line (2026-11-03), with POTS and Crush as this page builds them" },
     { en: "Digital Delay and POTS now time themselves for the CPU page: a few instructions more a block, the sound the same" },
   ] },
+  { version: "0.36", date: "2026-11-03", changes: [
+    { en: "The Ring Track FX takes about a third less of the Model:Cycles' time. Its carrier now comes from a finer table read without steps in between: the difference lies about 60 dB under the sound, and side by side the two sound the same. Checked in an emulator on the OS's own code, and tried on a Model:Cycles (2026-11-04)" },
+    { en: "Ring Shape is now called Ring Wave (WAVE on the LFO's list), so that it is not taken for the SHAPE knob next to COLOR. It stays on RETRIG + COLOR, and the sounds you saved keep it" },
+  ] },
   { version: "0.35", date: "2026-11-03", changes: [
     { en: "The Samples Track FX takes a little less of the Model:Cycles' time: about a twelfth less while it filters, and almost nothing with Cutoff at 0. The sound is the same, bit for bit, checked in an emulator on the OS's own code. Tried on a Model:Cycles from the command line (2026-11-03)" },
   ] },

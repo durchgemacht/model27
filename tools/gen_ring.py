@@ -29,7 +29,7 @@ TABLE = compose.MACHINES / PACKAGE / "ring_tab.h"
 OUT = compose.DEV / "74-ring.json"
 RATE = 48000                       # the audio's frames a second
 NOTES = 128                        # Freq's value, a MIDI note 0 .. 127 (8.8 in the word), and one step after it
-STEPS = 256                        # the carrier's cosine, one period
+STEPS = 2048                       # the carrier's cosine, one period, not interpolated (since 0.3: 256 before)
 FULL = 32767                       # its peak in Q15
 
 
@@ -39,16 +39,18 @@ def rows(values, width, per):
 
 def table():
     """RING_INC[n] = 2^32 f(n) / 48 kHz, f(n) = 440 * 2^((n - 69) / 12), n = 0 .. 128: the phase's step a frame at
-    note n; RING_COS[i] = 32767 cos(2 pi i / 256), i = 0 .. 256: the carrier, its peak at phase 0."""
+    note n; RING_COS[i] = 32767 cos(2 pi (i + 1/2) / 2048), i = 0 .. 2047: the carrier, each step's value at its
+    middle, so that the phase's top 11 bits pick it without interpolation and its peak is at phase 0 (notes/74 §13)."""
     inc = [round(2 ** 32 * 440 * 2 ** ((n - 69) / 12) / RATE) for n in range(NOTES + 1)]
-    cos = [round(FULL * math.cos(2 * math.pi * i / STEPS)) for i in range(STEPS + 1)]
+    cos = [round(FULL * math.cos(2 * math.pi * (i + 0.5) / STEPS)) for i in range(STEPS)]
     return ("/* Ring's tables (notes/74 §3), written by tools/gen_ring.py.\n"
             " * RING_INC[n] = round(2^32 * 440 * 2^((n - 69) / 12) / 48000): the carrier's phase step a frame at Freq n\n"
-            " * (n = word >> 8, a MIDI note 0 .. 127, and the step after the last). RING_COS[i] = round(32767 cos(2 pi i /\n"
-            " * 256)): the carrier, a period in 256 steps and the step after the last, its peak at phase 0. */\n"
+            " * (n = word >> 8, a MIDI note 0 .. 127, and the step after the last). RING_COS[i] = round(32767 cos(2 pi\n"
+            " * (i + 1/2) / 2048)): the carrier, a period in 2048 steps, each at its middle, read without interpolation\n"
+            " * (the phase's top 11 bits), its peak at phase 0. */\n"
             "#ifndef RING_TAB_H\n#define RING_TAB_H\n#include <stdint.h>\n\n"
             f"static const uint32_t RING_INC[{NOTES + 1}] = {{\n\t" + rows(inc, 10, 6) + "\n};\n\n"
-            f"static const int16_t RING_COS[{STEPS + 1}] = {{\n\t" + rows(cos, 6, 10) + "\n};\n\n#endif\n")
+            f"static const int16_t RING_COS[{STEPS}] = {{\n\t" + rows(cos, 6, 10) + "\n};\n\n#endif\n")
 
 
 def main():

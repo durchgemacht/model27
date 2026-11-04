@@ -14,8 +14,8 @@ states). No OS address of its own: the filter slot calls it (notes/72, notes/73)
   middle C, one step a semitone (FUNC between them). A sound starts at 64 (E4, 330 Hz), the slot's neutral word.
 - **Mix** (k 29, RETRIG + CONTOUR, CC 71): 0 dry, an amplitude modulation at the middle (the input at half with its
   sidebands), the ring alone at 127. 0 is the slot's neutral word: a new sound starts dry.
-- **Shape** (k 30, RETRIG + COLOR, no CC): the carrier a sine at 0 (its start word, declared), driven into a clip
-  towards a square at 127. k 31 (SHAPE) is not read.
+- **Wave** (k 30, RETRIG + COLOR, no CC; called Shape until 0.3, §14): the carrier a sine at 0 (its start word,
+  declared), driven into a clip towards a square at 127. k 31 (SHAPE) is not read.
 - **A note starts the carrier at its peak**, so every hit sounds the same and its attack comes through.
 - **Off is dry**: at Mix 0 the track passes untouched, bit for bit; the carrier runs on underneath.
 - **Exact integers**: the host build of `ring.c` is the proof's model, bit for bit; since 0.2 (§10) each frame's
@@ -28,6 +28,10 @@ states). No OS address of its own: the filter slot calls it (notes/72, notes/73)
   from the page.
 - **Ring 0.2** (§10): the same output, bit for bit, in about three quarters of the instructions (each frame's product
   on the EMAC); the maintainer's run ALL OK, its counts declared; played on the Model:Cycles: « getestet, passt ».
+- **Ring 0.3** (§13): another carrier, a cosine of 2 048 steps without interpolation (its noise about 60 dB under
+  0.2's output, 51 dB at Shape 127; heard by the maintainer: « passt »), the frames in `ring_cf.S`, a loop of one
+  frame: about a third fewer instructions (the interpreter: shape 1 119 → 733), and fewer cycles under every cache
+  assumption of notes/27's model. The proof's run and the machine are to do.
 
 ## 1. Decisions (2026-11-01)
 
@@ -387,3 +391,129 @@ checks' lists: `webflash_smoke.js` (the cards' order, the packages, `KIND` `ring
 Merged into `main` with Reso and EQ (notes/73 §17, release 0.28): the maintainer's proof on the merge ALL OK, the build of
 every card played on the Model:Cycles, then a build flashed from the page: « getestet, passt » (notes/73 §18, release
 0.29). The card is tested.
+
+## 13. Another carrier, a third fewer instructions: Ring 0.3 (2026-11-03)
+
+The maintainer: « track Fx: prüfen: wesentliche performance optimierungen möglich wenn der fokus nicht darauf liegt das
+am ende alle bytegleich rauskommt, sondern wirklich darauf die cpu last zu reduzieren » (a change of sound allowed);
+after a listening page, « passt », then « Tc übernehmen ».
+
+### 13.1 Measured outside the repository
+
+A prototype with one switch per idea (`_scratch/ring-opt/`, its `REPORT.md`) against 0.2, in the ColdFire interpreter of
+notes/69 §20.1 (`_scratch/cfemu/cfemu.py`): each device object against its own host build (none differ, 1 500 blocks
+each), the manifest's cost states, a sweep of Shape at Freq 0, 64 and 127 and of Freq at five Shapes (the dearest block
+is the manifest's `shape` state in every build: the cost states cover it), and the host builds against 0.2 on a mix
+(kick, hat, bass, chord) in twelve scenes. Instructions a track and block on the interpreter (its own signal, so compare
+shares, not counts):
+
+| | sine | shape (the dearest) | silent | sound against 0.2 |
+|---|---:|---:|---:|---|
+| 0.2 | 831 | 1 119 | 202 | |
+| E: 0.2's arithmetic in assembly, four frames a turn, MAC with load | 648 | 880 (−21 %) | 144 | bit for bit |
+| E1p: the same, a loop of one frame | 729 | 961 (−14 %) | 144 | bit for bit |
+| T: a cosine of 2 048 steps, not interpolated, four frames a turn | 424 | 656 (−41 %) | 144 | 61 dB under it, 51 at Shape 127 |
+| **Tc: the same, a loop of one frame (kept)** | 505 | 737 (−34 %) | 144 | as T |
+| O: the carrier from a rotation on the EMAC (cos and sin in Q31) | 573 | 891 (−20 %) | 154 | 55 dB (its 0.2 % lower level) |
+| OQ: O with Shape as a blend towards a square | 574 | 744 (−34 %) | 154 | 12 to 19 dB: another sound |
+
+- **The code's size counts.** The proof and `compose.fl_cost` count instructions, which is the load with every cache
+  warm. With the model of notes/27 §2 (1.54 cycles an instruction, 15 a 16-byte line read from SDRAM, calibrated there
+  on the machine) and the lines each call reads, the dearest of six states (sine and shape at Freq 0, 64, 127), in
+  cycles a track and block:
+
+  | | warm | cold once a block | cold at every call |
+  |---|---:|---:|---:|
+  | 0.2 | 1 723 | 1 821 | 2 527 |
+  | E | 1 355 (−21 %) | 1 610 (−12 %) | 2 885 (+14 %) |
+  | E1p | 1 480 (−14 %) | 1 645 (−10 %) | 2 470 (−2 %) |
+  | T | 1 010 (−41 %) | 1 248 (−31 %) | 2 435 (−4 %) |
+  | **Tc** | 1 135 (−34 %) | 1 302 (−29 %) | 2 140 (−15 %) |
+
+  Four frames a turn doubles the code's lines (49 to 67 against 28 to 31); when the voices evict Ring between its
+  calls (heavy machines on the other tracks, notes/27 §2), that costs more than the instructions it saves. The loops of
+  one frame win under every assumption. Which column holds on the machine, only the measuring build says (§13.4).
+- **Tc's table** is 4 KB against 0.2's 514 bytes and touches more data lines a block at middle frequencies (35 against 11
+  at Freq 64); the model above counts them.
+- **Its sound**: each step's value at its middle, the phase's top 11 bits: the steps' phase noise lies about 61 dB under
+  0.2's output on a sine, 51 dB at Shape 127, where the clip steepens the edges. The effect's strength (the output
+  against the dry input) is 0.2's to 0.1 dB in every scene. The maintainer heard both on a listening page (a private page
+  whose browser computes 0.2 and Tc, bit for bit as their host builds, with a track of their difference at +40 dB): a
+  sine tone, E4, Mix 127, Shape 0, « passt ».
+- **Dropped**: O (no cheaper than E, its rotation set again every block), OQ (another sound, dearer than Tc), 1 024
+  steps (the same cost, 6 dB more noise), the loops of four frames (§above).
+- **The interpreter's `movem`**: a register range from the d into the a registers (`%d2-%a0`, as objdump prints it)
+  gave an empty list; fixed in `_scratch/cfemu/cfemu.py`, its self-test identical before and after.
+
+### 13.2 `ring.c` 0.3, `ring_cf.S`
+
+- **The carrier**: `RING_COS[2048]`, 32 767 cos(2π (i + ½) / 2 048), read at `ph >> 21` (`tools/gen_ring.py`); a note
+  still starts it at its peak (the first step's value, 32 767).
+- **The frames in `ring_cf.S`** on the device, a loop of one frame with the block's values in registers (loaded with one
+  `movem.l` from a static `struct run`, so that GCC keeps no frame pointer): the carrier, Shape's clip, the gain
+  k16 + (2 Mix c with its low half cleared) and the product on the EMAC, as 0.2. 13 instructions a frame on the sine,
+  20 with the clip. `frames()` in `ring.c` is its model on the host, the proof's.
+- **The whole block** runs once a frame is not 0 (a frame of 0 gives 0 at any gain); a block is silent when its first
+  frame and the or of the others are 0. The phase is stored once a block, before the test for Mix 0: the same values
+  as 0.2's three stores.
+- **Shape 0** no longer divides for the drive.
+- Code and tables 5 454 bytes (0.2: 1 914), variables 52 (24); 11 492 bytes added to the image (7 952).
+
+### 13.3 Proven, checked
+
+- The repository's host build against the prototype's Tc over 30 000 blocks (random words with every corner, notes,
+  resets, silences, partly silent blocks, full scale, a lone sample anywhere): none differ. The device object in the
+  interpreter against its host build, 1 500 blocks: none differ. The host build under UBSan and ASan, 400 000 blocks:
+  no fault. The bench's 0.2 counts as §10's (sine 831, shape 1 119, glide 1 097, silent 202).
+- Interpreter counts, 0.2 → 0.3: off 39 → 42, sine 831 → 501 (−40 %), shape 1 119 → 733 (−34 %), glide
+  1 097 → 732, silent 202 → 143, first 831 → 501. In the proof's average (five playing tracks and a silent one, §4),
+  about sine 440 and shape 635.
+- **Green:** `gen_ring.py --check` and the other four Track FX generators, `gen_parts.py --check`,
+  `check_overlaps.py`, `registry.py --check` and `gen_flasher_tweaks.py --check` (after regenerating them),
+  `claims.py --check --self-test`, `webbuild_check.sh`, `webcompose_check.sh` with the official file (identical),
+  `webflash_check.sh`, `webmanager_check.sh`, `ref_mainos.py --check` (after regenerating: only the combinations with
+  Ring change), `py_compile`, and `test_fltslot.py --dry` ALL OK.
+- **The proof**, the maintainer's run (2026-11-03, Unicorn, on the tree of this section): everything OK but Ring's
+  cost line, as expected with 0.2's numbers still declared. Counted: off 42, sine 442, shape 635, glide 634, silent
+  143, first 449 (0.2 declared 39, 727, 967, 948, 202, 734: sine −39 %, shape −34 %). These are now Ring's
+  `cost.emulation` (tests dated 2026-11-03); the filters' load of a build with Ring as its dearest Track FX falls from
+  6 × 967 = 5 802 to 6 × 635 = 3 810 instructions a block (5.4 % → 3.5 %). After declaring them: `gen_ring.py
+  --check` and the other four, `gen_flasher_tweaks.py --check` (`tweaks.js` regenerated, it carries the cost),
+  `check_overlaps.py`, `registry.py --check`, `claims.py --check --self-test`, the four web checks, `py_compile` and
+  `test_fltslot.py --dry` ALL OK again; the MAIN OS does not change (the cost is only reported).
+
+MAIN OS, on `0c24e8e` (the CPU page, release 0.37, notes/78; POTS 0.2 and RESAMPLE, releases 0.38 and 0.39, notes/69
+§24 and notes/79; Ring's release 0.36 below 0.37, the stamp 2026-11-04-03) with the name of §14: Ring alone
+`a6340129…`, with Samples and Crush `4a1554a4…`, with the CPU page `df80d34a…` (0.2's: `333bae39…`), all three as on
+`ea102e2` and `22704dc`; every card of the page, thirteen with the CPU page and RESAMPLE, `021d39d1…` (0.2's:
+`289e6c14…`). All match `REF_MAINOS` (92 combinations, only those with Ring changed) or `webcompose_check.sh`; every
+check of §13.3 green again on this tree (with `gen_cpu.py`, `gen_resample.py`, `gen_pots.py`, `gen_digidelay.py` and
+`gen_parts.py --check`), and `webflash_smoke.sh` with both official files ALL PARTS OK. `BUILD.md`'s Track FX sections
+carry the thirteen cards' hash. Builds in `build/ring-0.3-main/` (git-ignored): Ring alone, with Samples and Crush,
+`ring-cpu/` and `ring02-cpu/` (Ring 0.3 and 0.2, each with the CPU page alone, to compare the load on the page's
+TRACK FX line; 0.2 composed from `main` as it is), and `every-card/`. The earlier builds of `build/ring-0.3/` and
+`build/ring-0.3-cpu/` are superseded (their every card lacks cards of the page; their `ring-cpu/` builds are the same).
+
+### 13.4 On the machine
+
+The maintainer tried Ring 0.3 on their Model:Cycles (2026-11-04), from the builds of §13.3, and asked for it on
+main: « habe auf gerät getestet. kannst du in main packen ». The CPU page's numbers (0.3 against 0.2 on six tracks)
+were not reported. The card stays `tested`; the release text says it was tried on the machine.
+
+## 14. Shape becomes Wave (2026-11-03)
+
+The maintainer: « "Ring Shape" liegt auf dem "Color" knob. das ist etwas unglücklich weil direkt daneben ist der knob
+"Shape". würdest du eher unseren Regler umbenennen oder ihn einfach auf den anderen (shape) knob schieben? », then
+« Ja, Ring Wave ».
+
+- **Renamed, not moved.** The value stays k 30 on RETRIG + COLOR, so the sounds, p-locks and LFO destinations saved
+  with Ring since release 0.28 keep it. Moving it to SHAPE would leave COLOR a value that does nothing, as §1 found
+  (`compose.py` takes a Track FX's values in order from k 28), or need gaps in the filter slot, and would lose what is
+  saved in k 30. COLOR holds the sound's colour on the stock machines, as on Reso (Tone, notes/75 §14).
+- **The names**: Ring Wave / WAVE (were Ring Shape / SHPE): the manifest's `params`, the card (`FEAT` in `app.js` and
+  `FEATURES` in `gen_flasher_tweaks.py`), the guide, `AGENTS.md`. The popup breaks it into « Ring » over « Wave ». The
+  LFO's destination list reads WAVE. Nothing else changes: the cost states keep their keys (`shape` is the state with
+  Wave at 127).
+- In the firmware only the names' strings change (the filter slot's data 1 byte shorter); `74-ring.json`,
+  `tweaks.js`, `REGISTRY.md` and `REF_MAINOS` regenerated (again only the combinations with Ring change); the checks of
+  §13.3 again green, `test_fltslot.py --dry` ALL OK.

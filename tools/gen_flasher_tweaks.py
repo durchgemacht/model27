@@ -419,7 +419,7 @@ ALL_FEATURES = [
         "label": "Ring (Track FX)",
         "desc": "A ring modulator on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a sound Ring; "
                 "RETRIG + SWEEP is Freq (the carrier's note, 0 to 127), RETRIG + CONTOUR is Mix (0 dry, 127 the ring "
-                "alone), RETRIG + COLOR is Shape (sine to square), with p-locks, LFO and CC 74 / 71.",
+                "alone), RETRIG + COLOR is Wave (sine to square), with p-locks, LFO and CC 74 / 71.",
         # model27's own (notes/74): a Track FX through the filter slot (fltslot 0.9); bit for bit the host build of
         # the same source in emulation; on the Model:Cycles from the command line on 2026-11-01 (notes/74 §9, §10),
         # then flashed from this page (release 0.28) the same day (notes/73 §18)
