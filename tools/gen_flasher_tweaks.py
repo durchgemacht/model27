@@ -62,7 +62,7 @@ OUT = ROOT / "docs" / "flasher" / "tweaks.js"
 # place of variants. Its excludes are not written here: they are computed from its committed tweak alone (the
 # package's own generator writes it, its "conflicts") against the other cards offered, so they cannot drift.
 # part (model27, notes/78): a part of the builder (tools/machines/<id>/part.json) that a card adds to the composed
-# build, with or without the machine cards ticked: the CPU page. As a machine card, no variants, its excludes
+# build, with or without the machine cards ticked: the CPU page, RESAMPLE (notes/79). As a machine card, no variants, its excludes
 # computed from its tweak alone (tools/gen_<id>.py), and it is composed with the machine cards, never excluded by them.
 CATS = ("pack", "sound", "seq", "live", "screen", "io")
 ALL_FEATURES = [
@@ -481,6 +481,24 @@ ALL_FEATURES = [
         "part": "cpu",
     },
     {
+        "id": "resample",
+        "cat": "sound",
+        "label": "RESAMPLE",
+        "desc": "SETTINGS + RECORD opens a page that records a track, the main mix or USB and saves the take as a "
+                "sample in /recordings, named in the stock name editor; TO Tn puts it on the selected SAMPLE track.",
+        # model27's own (notes/79), its page, key hook and save as Model-TG builds its own (TinyGregAudio, MIT): the
+        # recorder, the page, the save and the level proven in emulation; on the Model:Cycles from the command line
+        # on 2026-11-03 and 2026-11-04 (notes/79 §10 to §12), then tested on 2026-11-04 as this page builds it with
+        # SAMPLE and Trig Preview (§13): a track by Trig Preview and by LEVEL, TO Tn and its level, MAIN in stereo
+        # with NOW, LENGTH and NORM, USB in stereo
+        "status": "tested",
+        "credit": {"kind": "based", "who": "TinyGregAudio", "repo": "TinyGregAudio/Model-TG"},
+        "license": "LICENSE-Model-TG",
+        # a part composed in the page with the machines, effects, Track FX and the CPU page ticked (notes/79): alone it
+        # gives 79-resample.json byte for byte, whose conflicts give its excludes
+        "part": "resample",
+    },
+    {
         "id": "trig-cond-order",
         "cat": "seq",
         "label": "Trig conditions, A:B before the percentages",
@@ -552,8 +570,8 @@ ALL_FEATURES = [
 # model27 offers a short list of cards. The other definitions above stay as they are, for the command-line build
 # (every tweak of tweaks/ is still built by tools/build.py) and so that merges from upstream apply cleanly; a card
 # comes back into the flasher by adding its id here, once it has been reviewed against the Cycles Mod Standard.
-OFFERED = ("sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "control-all-config",
-           "trig-cond-order", "trig-preview")
+OFFERED = ("sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample",
+           "control-all-config", "trig-cond-order", "trig-preview")
 FEATURES = [f for f in ALL_FEATURES if f["id"] in OFFERED]
 _missing = set(OFFERED) - {f["id"] for f in FEATURES}
 if _missing:

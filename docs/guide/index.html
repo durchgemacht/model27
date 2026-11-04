@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-11-03-05">
-<link rel="stylesheet" href="../assets/guide.css?v=2026-11-03-05">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-04-02">
+<link rel="stylesheet" href="../assets/guide.css?v=2026-11-04-02">
 <script>try{var t=localStorage.getItem("mc-theme")}catch(e){}if(t)document.documentElement.setAttribute("data-theme",t)</script>
 </head>
 <body data-page="guide">
@@ -51,6 +51,7 @@
         <li><a href="#preview">Trig Preview</a></li>
         <li><a href="#control-all">Control All Config</a></li>
         <li><a href="#cpu">CPU Page</a></li>
+        <li><a href="#resample">RESAMPLE</a></li>
         <li><a href="#mods-on-samples">Mods on a Model:Samples</a></li>
         <li><a href="#samples">Samples OS</a></li>
         <li><a href="#stock">Back to stock</a></li>
@@ -323,8 +324,33 @@
         </dl>
       </section>
 
+      <section id="resample">
+        <h2><span class="n">15</span>RESAMPLE</h2>
+        <p class="by">model27's own, its page and its save built the way <a href="https://github.com/TinyGregAudio/Model-TG" target="_blank" rel="noopener">Model-TG</a> builds its own · MIT license</p>
+        <p class="lede">Records a track, the main mix or what comes in over USB, and saves the take as a sample on the +Drive, ready for <a href="#sampler">SAMPLE</a>.</p>
+        <ol>
+          <li>Hold <b>SETTINGS</b> and press <b>RECORD</b>: the RESAMPLE page opens. Its eight values sit where their knobs are on the panel.</li>
+          <li><b>PITCH</b> picks the source: <b>T1</b> to <b>T6</b> (one track, before its level, pan and sends), <b>MAIN</b> (the main mix) or <b>USB</b> (what the computer sends). <b>SHAPE</b> sets <b>STEREO</b> for MAIN and USB; a track is mono.</li>
+          <li><b>DECAY</b> sets how the take starts: <b>TRIG</b> with the source track's trig, <b>LEVEL</b> when the sound gets louder than the level <b>COLOR</b> sets (from −60 to −12 dB; the attack is kept whole), <b>NOW</b> at once. With USB there is no TRIG.</li>
+          <li><b>SWEEP</b> sets how it stops: <b>SILENT</b> once the sound has died away, <b>LENGTH</b> after the time <b>CONTOUR</b> sets, <b>RECORD</b> when you press RECORD. CONTOUR is also the longest a take can be.</li>
+          <li><b>Delay Send</b> switches <b>NORM</b>: off, the take keeps the level you heard; on, its peak goes to just under full scale. <b>Reverb Send</b> switches <b>TO Tn</b>: on, the saved take goes straight on the selected track when that track plays SAMPLE ("---" when it does not).</li>
+          <li>Press <b>RECORD</b> to arm; the page waits and shows the source's level. For TRIG, stop the sequencer, hold a step of the source track and press <b>PAGE</b> (<a href="#preview">Trig Preview</a>); the page turns GRID RECORDING on for that while it waits, and off again after. RECORD again cancels, or, while recording, stops.</li>
+          <li>When the take ends, the stock name editor comes up with the next free name, <b>REC-001</b>, <b>REC-002</b>, … Confirm it, or type your own. The take is saved in <b>/recordings</b>, the page closes, and a message confirms it: <b>Saved</b>, or <b>Saved on T3</b> with TO Tn. A name that is taken brings the editor back, titled <b>Name exists</b>.</li>
+          <li>Backing out of the editor keeps the take: the page says <b>NOT SAVED</b>; RECORD brings the editor back, <b>Return</b> drops the take. Otherwise Return closes the page.</li>
+        </ol>
+        <dl class="facts">
+          <div><dt>Length</dt><dd>up to 40 seconds in mono, 20 in stereo, at 48 kHz, 16 bits.</dd></div>
+          <div><dt>Level</dt><dd>without NORM, a track's take plays back on SAMPLE as loud as you heard it. The page shows <b>CLIP</b> when a take reached full scale: try NORM, or turn the source down. Volume + Dist above 60 distorts before the recording, so a take played back with the same setting gets it twice; keep it at 60 or below on the track that plays the take.</dd></div>
+          <div><dt>Saving</dt><dd>the sound pauses while the take is written to the +Drive, as with every save on the Model:Cycles.</dd></div>
+          <div><dt>Settings</dt><dd>the page keeps them until you switch the Model:Cycles off.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, the effects, the Track FX, the CPU Page, Trig conditions, Trig Preview and Control All Config. TRIG needs Trig Preview, TO Tn needs SAMPLE.</dd></div>
+          <div><dt>Credit</dt><dd>the page, the way SETTINGS is read and the save are built the way Model-TG by TinyGregAudio (MIT) builds its own resampling.</dd></div>
+          <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code: the sound bit for bit the same with the recorder as without it, the take, the keys, the page and its picture, the save. Tried on a Model:Cycles from the command line (2026-11-03 and 2026-11-04), then flashed from this page with SAMPLE and Trig Preview and tested on a Model:Cycles (2026-11-04): a track's take by Trig Preview and by LEVEL, the name editor and the save, TO Tn, a track's take played back on SAMPLE as loud as the track, the main mix in stereo with NOW, LENGTH and NORM, and USB in stereo.</dd></div>
+        </dl>
+      </section>
+
       <section id="mods-on-samples">
-        <h2><span class="n">15</span>Mods on a Model:Samples</h2>
+        <h2><span class="n">16</span>Mods on a Model:Samples</h2>
         <p class="lede">A Model:Samples can run the Model:Cycles OS with the same mods as a Model:Cycles. Whatever the machine, the flasher always installs the Model:Cycles OS. With the <a href="#sampler">SAMPLE</a> machine ticked, it can play the samples already on the +Drive (not yet tried on a Model:Samples).</p>
         <ol>
           <li>Back up your samples and projects with Elektron Transfer, then close Transfer.</li>
@@ -348,7 +374,7 @@
       </section>
 
       <section id="samples">
-        <h2><span class="n">16</span>Samples OS</h2>
+        <h2><span class="n">17</span>Samples OS</h2>
         <p class="lede">The Model:Cycles starts as a Model:Samples: you load and play your own samples, managed with Elektron Transfer.</p>
         <p>The <a href="../flasher/?samples">flasher, in its Samples OS tab</a>, puts the official Model:Samples OS inside your Model:Cycles firmware file:</p>
         <dl class="layers fig">
@@ -382,13 +408,13 @@
       </section>
 
       <section id="stock">
-        <h2><span class="n">17</span>Back to stock</h2>
+        <h2><span class="n">18</span>Back to stock</h2>
         <p><b>Back to the official firmware</b>, under the cards of the <a href="../flasher/">flasher</a>, sends your OS file unchanged, over USB, like a normal update. It is also a good rehearsal before a first mod: it checks the cable and the setup without changing anything.</p>
         <p>With the SAMPLE machine, first set your SAMPLE tracks back to an original machine (Kick to Chord): the official OS doesn't have SAMPLE, and a project that still names it can freeze its MACHINES page.</p>
       </section>
 
       <section id="recovery">
-        <h2><span class="n">18</span>Recovery</h2>
+        <h2><span class="n">19</span>Recovery</h2>
         <p class="lede">If the Model:Cycles no longer starts, its startup menu can always reinstall the OS: it lives in an area that updates never write.</p>
         <figure class="fig">
           <div data-device data-scenes="func @logo | func,mainvol | s4 @READY TO/>RECEIVE" data-ms="1300"></div>
@@ -402,7 +428,7 @@
       </section>
 
       <section id="trouble">
-        <h2><span class="n">19</span>Troubleshooting</h2>
+        <h2><span class="n">20</span>Troubleshooting</h2>
         <div class="faq">
           <details>
             <summary>Nothing happens on the Model:Cycles screen</summary>
@@ -468,8 +494,8 @@
   </div>
 </footer>
 
-<script src="../assets/release.js?v=2026-11-03-05"></script>
-<script src="../assets/cycles.js?v=2026-11-03-05"></script>
-<script src="../assets/site.js?v=2026-11-03-05"></script>
+<script src="../assets/release.js?v=2026-11-04-02"></script>
+<script src="../assets/cycles.js?v=2026-11-04-02"></script>
+<script src="../assets/site.js?v=2026-11-04-02"></script>
 </body>
 </html>

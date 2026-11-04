@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.39", date: "2026-11-04", changes: [
+    { en: "A new card, RESAMPLE: hold SETTINGS and press RECORD, and a page records a track, the main mix or what comes in over USB. The take starts with the track's trig (Trig Preview), when the sound gets loud enough, or at once, and stops when it dies away, after a length you set, or on RECORD. The stock name editor then names it, REC-001 and on, and it is saved as a sample in /recordings: as loud as you heard it, or raised to just under full scale with NORM. TO Tn puts it straight on the selected SAMPLE track. It goes with every other card" },
+    { en: "Checked in an emulator on the OS's own code: the sound bit for bit the same with the recorder, the take, the keys, the page, the save, and the level of a track's take. Tested on a Model:Cycles (2026-11-04) with the file this page builds with SAMPLE, Trig Preview and RESAMPLE: a track by Trig Preview and by LEVEL, TO Tn at the level heard, the main mix in stereo with NORM, and USB in stereo" },
+  ] },
   { version: "0.38", date: "2026-11-03", changes: [
     { en: "POTS takes about a third of the Model:Cycles' time it took: its telephone line now runs at 6 kHz instead of 12 kHz, with simpler parts. The idea stays the same: a narrow, lo-fi line, each repeat darker and grainier, moving up a little in pitch" },
     { en: "It sounds a little different: a little more low-mid in the first repeats, a slightly duller echo, a faint fizz from bright sounds such as hats, and a hot beat breaks up a bit more. Its decays are as before" },

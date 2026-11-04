@@ -1152,3 +1152,12 @@ The maintainer flashed `build/pots-0.2/model-cycles_OS1.13-pots+crush+cpu.syx` (
 (the number not given; 0.1: 10–11 %). Then the sound, asked to try a low note, a beat in the send at its level and
 sent hot, and a long tail at Fdbk 100: « Klingt gut ». The card stays experimental until it is flashed from the
 page, as Crush's and Samples' were.
+
+### 24.8 Merged with main (2026-11-04)
+
+While 0.2 waited on its branch, main took RESAMPLE (notes/79, release 0.39), which left 0.38 to POTS. The maintainer,
+asked whether to number POTS 0.40 so that it comes first on the home page: « Mergen, bei 0.38 ». So 0.38 stands below
+0.39 in `release.js`; the home page and the pages' footers show 0.39, the newest number. Merged main into `pots-6k`:
+the stamp `2026-11-04-02`, `README.md` (release 0.39, thirteen cards, eleven tested), `70-pots.json` (RESAMPLE among
+its conflicts), `tweaks.js`, `REGISTRY.md` and `REF_MAINOS` / `REF_MODS` regenerated. POTS's MAIN OS hashes are those
+of §24.4: the proof's run (§24.6) and the device's try (§24.7) still hold.

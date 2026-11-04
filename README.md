@@ -23,8 +23,8 @@ Model:Cycles over USB. Modded-Cycles has since moved to a single OS with 2.0; mo
 together, so that a new machine fits next to the others. The rules a mod follows for that are the
 **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.5), written alongside.
 
-**Status: beta, release 0.38.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers twelve
-cards, ten of them tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
+**Status: beta, release 0.39.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers thirteen
+cards, eleven of them tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
 [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples on the +Drive,
 [Control All Config](https://github.com/durchgemacht/cycles-control-all-config), **Digital Delay**, the first
 effect: a second delay for the delay slot, chosen per pattern with PATTERN + Delay Time, based on the digital delay of
@@ -41,7 +41,9 @@ modulator (the carrier's note, the mix and its shape on three knobs), **Reso**, 
 ring at a pitch you set, like a plucked string or a struck tube, and **EQ**, a three-band equalizer: a Mid you can
 sweep and Low and High shelves. The twelfth, the **CPU page** (experimental), model27's own, its page built as
 [Model-TG](https://github.com/TinyGregAudio/Model-TG)'s System page, shows in SETTINGS how much of the Model:Cycles'
-time the sound takes, with the Track FX' and the effects' shares. The
+time the sound takes, with the Track FX' and the effects' shares. The thirteenth, **RESAMPLE**, model27's own, its page and its save built as Model-TG builds its own, records a track, the main mix or USB on a page
+opened with SETTINGS + RECORD and saves the take as a sample in /recordings, named in the stock name editor, ready for
+SAMPLE. The
 [guide](https://durchgemacht.github.io/model27/guide/) explains them. Combining machines is proven with two internal
 reference machines: SAMPLE with the first one on a Model:Cycles; the second one, with a shortcut, and sharing the
 main screen, the knob view, the screen's tick and the browser with SAMPLE, in emulation so far, composed by the page

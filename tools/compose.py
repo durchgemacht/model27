@@ -413,7 +413,8 @@ def web_part(pid):
            "data": p["data"], "bundle": relocate.bundle(lay, roots)}
     for key in ("sites", "shortcut", "slots", "track", "release", "load", "init", "early", "late", "formatter_sites",
                 "int_format", "cost", "post", "boot", "keys", "lfo", "conv", "knob", "ptab", "record", "values", "type",
-                "formats", "most", "probe", "row", "order"):
+                "formats", "most", "probe", "row", "order", "mix", "key", "code", "ram", "ring_bytes", "conv_bytes",
+                "shift"):
         if key in p:                         # the effect slots' (notes/68) and the filter slot's besides the shortcut
             out[key] = p[key]                # layer's and dispatchers' 
     if "claims" in p:                        # notes/65: what the part claims, in tools/claims.py's to_json form
@@ -1270,6 +1271,55 @@ def cpu_layer(img, part, at, code_end, fls, fxs):
     return blob, out, writes, taken, info
 
 
+def resample_layer(img, part, at, code_end, sample=0xff):
+    """The RESAMPLE recorder of this build (tools/machines/resample/, notes/79): the audio function's
+    call of the mixer (0x40059872) goes to the part's rs_mix, and since 0.2 TransportView's toggle of GRID RECORDING
+    (0x40024482) to its rs_key, which opens the page with SETTINGS held, and the key event's code accessor (0x4007240c)
+    to its rs_code, which keeps SETTINGS's last event. The data block after the part's code starts
+    with what the composer gives it: the take's buffer and its size in words (the RAM claim after the ring, up to the
+    save's 32 KiB at its end, conv), the ring (LEVEL's eight blocks before the start, at the claim's start), each kind
+    of source's level shift (track, main, USB) and SAMPLE's machine number in the build (sample, 0xff without); the
+    rest, the recorder's, the page's and the save's state, is zero. Returns (blob, symbols, writes, the sites taken, info)."""
+    d = part["data"]
+    path = object_path(part)
+    if not path.is_file():
+        sys.exit(f"!! {path} is missing: run tools/gen_parts.py")
+    roots = part["build"]["roots"]
+    lay = relocate.layout(path.read_bytes(), roots[0], roots[1], roots[2:], part["id"])
+    data_at = align4(at + len(lay["code"]))
+    if data_at + d["size"] > code_end:
+        sys.exit(f"!! the recorder ends at {data_at + d['size']:#x}, past {code_end:#x}")
+    values = {"rs_data": data_at}
+    pps = part["build"]["patch_points"]
+    code, syms, _ = relocate.apply(lay, at, at, code_end, {pp["symbol"]: values[pp["kind"]] for pp in pps})
+    lo, hi = (int(x, 16) for x in part["ram"])
+    ring, buf, conv = lo, lo + part["ring_bytes"], hi - part["conv_bytes"]
+    cap = (conv - buf) // 4
+    block = bytearray(d["size"])
+    struct.pack_into(">III", block, d["buf"], buf, cap, ring)
+    struct.pack_into(">I", block, d["conv"], conv)
+    sh = part["shift"]
+    block[d["shift"]:d["shift"] + 3] = bytes([sh["track"], sh["main"], sh["usb"]])
+    block[d["sample"]] = sample
+    blob = code + bytes(data_at - at - len(code)) + bytes(block)
+    writes, taken = [], set()
+    mix, key, acc = part["mix"], part["key"], part["code"]
+    for s, new in ((mix, lambda a: "4eb9" + g7.be32(a).hex()),                                   # jsr rs_mix
+                   (key, lambda a: "2f03" + "4eb9" + g7.be32(a).hex() + "588f" + "4e71" * 6),     # the toggle: rs_key(uis)
+                   (acc, lambda a: "4ef9" + g7.be32(a).hex())):                                  # the code accessor: jmp rs_code
+        va, old = int(s["hook"], 16), bytes.fromhex(s["stock"])
+        if img[va - BASE:va - BASE + len(old)] != old:
+            sys.exit(f"!! {va:#x}: {old.hex()} expected, {img[va - BASE:va - BASE + len(old)].hex()} found")
+        writes.append({"off": va - BASE, "old": old.hex(), "new": new(syms[s["symbol"]])})
+        assert len(writes[-1]["new"]) == len(writes[-1]["old"])
+        taken.add(va)
+    out = {r: syms[r] for r in roots}
+    out.update({pp["symbol"]: values[pp["kind"]] for pp in pps})
+    info = dict(id=part["id"], code_at=at, code=len(code), data_at=data_at, data=d["size"], ram=(lo, hi), buf=buf,
+                cap=cap, ring=ring, conv=conv, sample=sample)
+    return blob, out, writes, taken, info
+
+
 def fl_cost(filters):
     """The filter slot's load, from the filters' declared cost.emulation (instructions per track and block): six
     tracks on the dearest state of the dearest filter, {dearest, steady, share}, or {missing: [ids]} when a filter
@@ -1389,7 +1439,7 @@ def computed_conflicts(writes, ram, declared, tweaks=None):
 
 
 def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime", compare_b1=False, against=None,
-            against_claims=None, diag_filters=False, cpu=False):
+            against_claims=None, diag_filters=False, cpu=False, resample=False):
     """Builds the tweak for the machines named in ids, in that order. relocator: "python" places each
     package's committed object with tools/relocate.py (no toolchain), "ld" compiles and links it as B1 did;
     compare_ld does both and compares them byte for byte (the proof of the relocator). registrar: "runtime" writes
@@ -1398,8 +1448,10 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     against: the tweaks the conflicts are computed against (default: the folder's); against_claims: their claims,
     {id: claims} (default: the folder's, tools/claims.py.tweak_claims). diag_filters: a measuring build of the filter
     slot (its popups show the filters' load, fltslot 0.5), never offered. cpu: with the CPU page (tools/machines/cpu/,
-    notes/78), also without any package; the tweak's id then ends with "+cpu" (or is "cpu"). Returns (tweak, info)."""
-    if not ids and not cpu:
+    notes/78), also without any package; the tweak's id then ends with "+cpu" (or is "cpu"). resample: with the RESAMPLE
+    recorder (tools/machines/resample/), also without any package; the id then ends with "+resample". Returns (tweak,
+    info)."""
+    if not ids and not cpu and not resample:
         sys.exit("!! name at least one package")
     if len(ids) != len(set(ids)):
         sys.exit("!! a package is named twice")
@@ -1510,11 +1562,26 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             cpus = cpu_layer(img, load_part("cpu"), at, gs.STUBS, fls, fxs)
             blobs.append((at, cpus[0]))
             code_cursor = at + len(cpus[0])
+        rss = None                           # the RESAMPLE recorder, its buffer in a RAM claim of its own
+        if resample:
+            at = align4(code_cursor)
+            sample = next((first + i for i, m in enumerate(added) if m["id"] == "sampler"), 0xff)
+            rss = resample_layer(img, load_part("resample"), at, gs.STUBS, sample)
+            blobs.append((at, rss[0]))
+            code_cursor = at + len(rss[0])
         for m in mans:                       # a package's RAM claim must lie outside the payload
             for lo, hi in ram_claims(m):
                 if lo < bss_cursor and pay < hi:
                     sys.exit(f"!! {m['id']}: the payload ({pay:#x}..{bss_cursor:#x}) runs into its RAM claim {lo:#x}..{hi:#x}")
         check_ram_claims(mans)
+        if rss:                              # the recorder's buffer outside the payload and every package's claim
+            lo, hi = rss[4]["ram"]
+            if lo < bss_cursor and pay < hi:
+                sys.exit(f"!! the payload ({pay:#x}..{bss_cursor:#x}) runs into the recorder's buffer {lo:#x}..{hi:#x}")
+            for m in mans:
+                for a_, b_ in ram_claims(m):
+                    if a_ < hi and lo < b_:
+                        sys.exit(f"!! {m['id']}: its RAM claim {a_:#x}..{b_:#x} meets the recorder's {lo:#x}..{hi:#x}")
         reg = load_registrar()
         if not machines:                     # extensions and effects only: their payload copied at boot, nothing registered
             if registrar == "b1" or compare_b1:
@@ -1531,21 +1598,21 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             else:
                 writes, append = writes1, append1
     skip = ((layer[3] if layer else set()) | (dispatch[3] if dispatch else set()) | (fxs[3] if fxs else set())
-            | (fls[3] if fls else set()) | (cpus[3] if cpus else set()))
+            | (fls[3] if fls else set()) | (cpus[3] if cpus else set()) | (rss[3] if rss else set()))
     for m in mans:
         writes += package_writes(m, img, syms_of[m["id"]], skip)
-    for extra in (layer, dispatch, fxs, fls, cpus):
+    for extra in (layer, dispatch, fxs, fls, cpus, rss):
         if extra:
             writes += extra[2]
     writes.sort(key=lambda x: x["off"])
     for a_, b_ in zip(writes, writes[1:]):
         if a_["off"] + len(a_["new"]) // 2 > b_["off"]:
             sys.exit(f"!! writes overlap at {BASE + b_['off']:#x}")
-    ram = [(pay, bss_cursor)] + [r for m in mans for r in ram_claims(m)]
+    ram = [(pay, bss_cursor)] + [r for m in mans for r in ram_claims(m)] + ([rss[4]["ram"]] if rss else [])
     declared = {c["with"] for m in mans for c in m.get("compat", {}).get("conflicts_declared", [])}
     if layer:                                # what the shortcut layer declares (none since notes/65 C2: computed)
         declared |= {c["with"] for c in part.get("conflicts_declared", [])}
-    tid = "+".join(ids + (["cpu"] if cpu else []))
+    tid = "+".join(ids + (["cpu"] if cpu else []) + (["resample"] if resample else []))
     holders = cl.build_holders(mans, part if layer else None)    # notes/65: the claims, rules 2 and 3
     if fxs:                                  # the effect slots' claims (the pattern header's bytes, notes/68 §14)
         fxc = cl.part_claims(load_part("fxslot"))
@@ -1555,6 +1622,9 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
         holders = [(n, cl.narrowed(c, flc), cl.narrowed(x, flc), True) if n == "shortcuts" and part_ else (n, c, x, part_)
                    for n, c, x, part_ in holders]
         holders.append(("fltslot", flc, flc, True))
+    if rss:                                  # the recorder's claims (its RAM)
+        rsc = cl.part_claims(load_part("resample"))
+        holders.append(("resample", rsc, rsc, True))
     load = fx_cost(effects, load_part("fxslot")) if fxs else {}
     for point, c in load.items():             # notes/68 §17: a slot's dearest effect past FX_REFUSE is refused
         if c.get("steady", 0) > FX_REFUSE:
@@ -1575,8 +1645,9 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     conflicts = (by_bytes | declared | set(by_claims)) - {tid}
     tweak = {
         "id": tid,
-        "order": min([m["order"] for m in mans] or [load_part("cpu")["order"]]),
-        "name": " + ".join([m["name"] for m in mans] + (["CPU page"] if cpu else [])),
+        "order": min([m["order"] for m in mans] + [load_part(p)["order"] for p, on in (("cpu", cpu), ("resample", resample))
+                                                    if on]),
+        "name": " + ".join([m["name"] for m in mans] + (["CPU page"] if cpu else []) + (["RESAMPLE"] if resample else [])),
         "description": [
             f"Composed by tools/compose.py (notes/59): {', '.join(placed(p) for p in info_pkgs) or 'no package'},",
         ] + ([
@@ -1589,11 +1660,13 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             "(manifest.json), compiled and linked at build time at its place in the payload (%#x..%#x)." % (pay, bss_cursor),
             "Conflicts computed from the other tweaks: other bytes at the same address, a payload in this build's",
             "payload or in a claimed RAM range, or declared claims that clash (tools/claims.py, notes/65).",
-        ] + [f"{m['id']}: {m['name']}" for m in mans] + ([f"cpu: {load_part('cpu')['name']}"] if cpu else []),
+        ] + [f"{m['id']}: {m['name']}" for m in mans] + ([f"cpu: {load_part('cpu')['name']}"] if cpu else [])
+          + ([f"resample: {load_part('resample')['name']}"] if resample else []),
         "device": "Model:Cycles",
         "os": "1.13",
         "section": 3,
-        "version": "+".join([m["version"] for m in mans] + ([load_part("cpu")["version"]] if cpu else [])),
+        "version": "+".join([m["version"] for m in mans] + ([load_part("cpu")["version"]] if cpu else [])
+                            + ([load_part("resample")["version"]] if resample else [])),
         "conflicts": sorted(conflicts),
         "writes": writes,
         "append": append,
@@ -1631,10 +1704,18 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                                        + (f", the Track FX' load read at {ci['fl_avg']:#x}" if ci["fl_avg"] else "")
                                        + (f", the effect slots' at {ci['fx_busy']:#x}" if ci["fx_busy"] else "") + ".")
         tweak["symbols"].update({k: f"{v:#x}" for k, v in cpus[1].items()})
+    if rss:
+        ri = rss[4]
+        tweak["description"].insert(6, f"With the RESAMPLE recorder (tools/machines/resample/) at {ri['code_at']:#x}, its "
+                                       f"data at {ri['data_at']:#x}: the mixer's call at 0x40059872, SETTINGS + RECORD "
+                                       f"at 0x40024482 and 0x4007240c, the take in "
+                                       f"{ri['buf']:#x}..{ri['conv']:#x} ({ri['cap']} words), the save's 32 KiB at "
+                                       f"{ri['conv']:#x}, the ring at {ri['ring']:#x}.")
+        tweak["symbols"].update({k: f"{v:#x}" for k, v in rss[1].items()})
     info = dict(pay=pay, end=bss_cursor, image=sum(n for _, n in append["pack"]), packages=info_pkgs,
                 part=layer[4] if layer else None, dispatch=dispatch[4] if dispatch else None,
                 fx=fxs[4] if fxs else None, fx_lines=lines, fx_load=load, filters=fls[4] if fls else None,
-                fl_load=fl_load, cpu=cpus[4] if cpus else None,
+                fl_load=fl_load, cpu=cpus[4] if cpus else None, resample=rss[4] if rss else None,
                 claims=dict(by_claims={i: w for i, w in sorted(by_claims.items()) if i != tid},
                             declared_only=sorted(declared - by_bytes - set(by_claims) - {tid}),
                             views=cl.claim_views(holders, others)))
@@ -1725,6 +1806,7 @@ def main():
     ap.add_argument("--diag-filters", action="store_true",
                     help="a measuring build: Filter Cutoff's popup shows the filters' average load, the type's the peak")
     ap.add_argument("--cpu", action="store_true", help="with the CPU page (notes/78), also without --machines")
+    ap.add_argument("--resample", action="store_true", help="with the RESAMPLE recorder, also without --machines")
     args = ap.parse_args()
     raw = pathlib.Path(args.cycles).read_bytes()
     img = g7.cycles_main(args.cycles)
@@ -1732,7 +1814,7 @@ def main():
         sys.exit("!! not the official MAIN OS 1.13")
     ids = [i.strip() for i in args.machines.split(",") if i.strip()]
     tweak, info = compose(img, ids, args.relocator, args.compare_ld, args.registrar, args.compare_b1,
-                          diag_filters=args.diag_filters, cpu=args.cpu)
+                          diag_filters=args.diag_filters, cpu=args.cpu, resample=args.resample)
     for p in info["packages"]:
         what = (f"effect {p['fx_id']} of the {p['slot']} slot" if p.get("slot")
                 else f"filter {p['filter_id']}" if p.get("filter_id")
@@ -1775,6 +1857,11 @@ def main():
         p = info["cpu"]
         print(f"  {p['id']:12s} code {p['code']} bytes at {p['code_at']:#x}, data {p['data']} bytes at {p['data_at']:#x}, "
               f"Track FX' load {p['fl_avg']:#x}, effect slots' {p['fx_busy']:#x} (0: not in the build)")
+    if info["resample"]:
+        p = info["resample"]
+        print(f"  {p['id']:12s} code {p['code']} bytes at {p['code_at']:#x}, data {p['data']} bytes at {p['data_at']:#x}, "
+              f"the take in {p['buf']:#x}..{p['conv']:#x} ({p['cap']} words), the save's 32 KiB after it, the ring at "
+              f"{p['ring']:#x}")
     print(f"  tweak {tweak['id']}: {len(tweak['writes'])} writes, payload {info['pay']:#x}..{info['end']:#x}, "
           f"{info['image']} bytes added to the image, {len(tweak['conflicts'])} conflicts computed")
     ci = info["claims"]

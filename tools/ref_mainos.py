@@ -24,8 +24,9 @@ moteurs du Syntakt, notes/50 et notes/54 §11, ACID avec MACRO), et Model-TG ave
 version « tg »). Une sélection dont un tweak n'a pas le tweak qu'il demande (« requires » du tweak)
 est laissée de côté, car les deux builds la refusent.
 
-model27, Level B (notes/61 §5): the machine cards (« package ») have no tweak in tweaks.js; nor has the CPU page's card
-(« part », notes/78), composed with them, its id last (« cpu », « sampler+cpu »); the page composes the
+model27, Level B (notes/61 §5): the machine cards (« package ») have no tweak in tweaks.js; nor have the CPU page's and
+RESAMPLE's cards (« part », notes/78, notes/79), composed with them, their ids last (« cpu », « sampler+cpu »,
+« sampler+cpu+resample »); the page composes the
 ticked ones into one tweak, placed where the first of them is, its id their packages' ids joined by « + ». Here each
 non-empty set of them, in card order, is composed by tools/compose.py: REF_MODS gets one entry per set, so whatever
 the page composes is checked against the Python composer, and the sample's combinations are built with them.
@@ -143,11 +144,12 @@ class Cards:
         out = []
         machines = [f["package"] for f in self.features if f["id"] in sel and f.get("package")]
         cpu = ["cpu"] if any(f.get("part") == "cpu" for f in self.features if f["id"] in sel) else []
+        cpu += ["resample"] if any(f.get("part") == "resample" for f in self.features if f["id"] in sel) else []
         first = next((f for f in self.features if f["id"] in sel and (f.get("package") or f.get("part"))), None)
         for f in self.features:
             if f["id"] not in sel or self.root(f, sel):        # « joins » : dans la version de sa carte hôte
                 continue
-            if f.get("package") or f.get("part"):              # the machines and the CPU page (notes/78): one
+            if f.get("package") or f.get("part"):              # the machines, the CPU page and RESAMPLE: one
                 if f is first:                                 # composed tweak, where the first is
                     out.append("+".join(machines + cpu))
                 continue
@@ -220,16 +222,18 @@ def blocks(cycles, syntakt):
     known = tw["device"].get("cave_refs_ok")
 
     # the machine cards: each non-empty set of them, in card order, composed as the page composes them (notes/61), and
-    # each with the CPU page when the page offers it (notes/78), and the CPU page alone
+    # each with the CPU page and with RESAMPLE when the page offers them (notes/78, notes/79), and those alone
     machines = [f["package"] for f in tw["features"] if f.get("package")]
     cpus = (False, True) if any(f.get("part") == "cpu" for f in tw["features"]) else (False,)
+    rsms = (False, True) if any(f.get("part") == "resample" for f in tw["features"]) else (False,)
     composed = []
     for r in range(0, len(machines) + 1):
         for ids in itertools.combinations(machines, r):
             for cpu in cpus:
-                if ids or cpu:
-                    with contextlib.redirect_stdout(io.StringIO()):
-                        composed.append(compose.compose(stock, list(ids), cpu=cpu)[0])
+                for rsm in rsms:
+                    if ids or cpu or rsm:
+                        with contextlib.redirect_stdout(io.StringIO()):
+                            composed.append(compose.compose(stock, list(ids), cpu=cpu, resample=rsm)[0])
     by_id.update({t["id"]: t for t in composed})
 
     mods = []

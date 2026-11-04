@@ -47,8 +47,9 @@ SCHEMA = "model27-claims/0.1"
 
 # Keys, by isKeyHeld's logical code (0x4007faf4, notes/63 §1.1); None for a key whose code is not traced yet. PATTERN
 # is 3: MainScreenView's jump table 0x4001c100 and PatternAndBankSelectView's case 3 (0x40020ad0), which marks it held.
+# SETTINGS is 13 (MainScreenView's 0x4001c54c, notes/79 §1).
 KEYS = {"FUNC": 1, "TRACK": 2, "PATTERN": 3, "RETRIG": 4, "MACHINES": 5, "PUNCH": 6, "GATE": 7, "LFO": 8, "RECORD": 9,
-        "PLAY": 10, "STOP": 11, "PAGE": None}
+        "PLAY": 10, "STOP": 11, "SETTINGS": 13, "PAGE": None}
 TRIGS = 16                          # TRIG 1-16, codes 16 to 31
 # Knobs, by their number in the knob -> descriptor lookup 0x4001e814 (notes/63 §1.2; 8 to 15: notes/68 §8.2, where
 # FUNC turns REVERB-SIZE and DELAY-TIME into Reverb Tone and Delay Fdbk); DATA is LEVEL/DATA, not traced.
@@ -100,6 +101,10 @@ STOCK = (
     {"combo": "TRACK + RECORD/PLAY/STOP", "meaning": "copy, clear, paste", "source": "notes/58 §2"},
     {"combo": "RETRIG + NOTES", "meaning": "the retrig", "source": "notes/63 §1.2, notes/32"},
     {"combo": "TRIG 1-16 + PAGE", "situation": "grid", "meaning": "PAGE turns the page", "source": "notes/34"},
+    {"combo": "SETTINGS", "meaning": "a tap opens the settings menu; held, the question to save the project (after 1 s)",
+     "source": "0x4001c54c, 0x40039570; the maintainer's test, 2026-11-03"},
+    {"combo": "SETTINGS + RECORD", "meaning": "toggles GRID RECORDING (SETTINGS is not read); the release of SETTINGS "
+     "after it is not a tap and opens nothing", "source": "0x4002439a, 0x40024482, the key scanner 0x4007fbde; notes/79 §1"},
     {"combo": "LFO", "situation": "page:LFO", "meaning": "closes the LFO page", "source": "notes/65 §3.2",
      "hyp": True},
 )
