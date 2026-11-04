@@ -2,8 +2,9 @@
 """The declared claims of model27's mods, read and checked (notes/65, step C1).
 
 A claim is what a mod takes that no write shows: the sound slots k and the record slots it keeps its values in, other
-saved bytes, the key combinations it answers, the OS's unused descriptors 1-4, an interface object's formatter, the
-p-lock rows of k >= 23, MIDI numbers, RAM, the views it draws on. Three kinds of holder give them in one shape:
+saved bytes, the key combinations it answers, the OS's unused descriptors 1-4, an interface object's formatter or its
+picture (the +0x60 the knob view draws for the value, Cycles Mod Standard draft 0.8), the p-lock rows of k >= 23, MIDI
+numbers, RAM, the views it draws on. Three kinds of holder give them in one shape:
 
   - a package: `claims` in tools/machines/<id>/manifest.json; scope: its own machine's tracks and sounds;
   - a part of the builder: `claims` in tools/machines/<id>/part.json; scope: every track and sound;
@@ -111,8 +112,8 @@ STOCK = (
 
 # --- the claim types ------------------------------------------------------------------------------------------------
 
-CLAIM_TYPES = ("sound_slots", "record_slots", "saved", "descriptors", "formatters", "plock_rows", "midi", "gestures",
-               "ram", "views")
+CLAIM_TYPES = ("sound_slots", "record_slots", "saved", "descriptors", "formatters", "pictures", "plock_rows", "midi",
+               "gestures", "ram", "views")
 SOUND_SLOTS = range(0, 33)          # k 0-32 (STANDARD.md §5.2)
 RECORD_SLOTS = range(0, 32)         # the record's 16-bit slots at +28 + 2 * slot, as far as read (STANDARD.md §5.3)
 DESCRIPTORS = range(1, 5)           # the OS's unused descriptors, "Error" (STANDARD.md §3.1)
@@ -247,12 +248,12 @@ def normalize(claims, kind, packages=()):
                     if not item["where"] or not isinstance(item["bytes"], int) or item["bytes"] < 1:
                         raise ValueError(f"saved {item!r}: a place and a number of bytes")
                 out[key] = [(item["where"], item["bytes"], scope(item)) for item in value]
-            elif key == "formatters":
+            elif key in ("formatters", "pictures"):           # an interface object's +0x20 or +0x60
+                what = key[:-1]
                 for item in value:
-                    _fields(item, ("knob", "object", "replaces", "scope", "why"), ("knob", "object", "replaces"),
-                            "formatter")
+                    _fields(item, ("knob", "object", "replaces", "scope", "why"), ("knob", "object", "replaces"), what)
                     if not isinstance(item["object"], int) or item["object"] < 0:
-                        raise ValueError(f"formatter {item!r}: object is an interface object's number")
+                        raise ValueError(f"{what} {item!r}: object is an interface object's number")
                     int(item["replaces"], 16)
                 out[key] = [(item["object"], scope(item), item["knob"]) for item in value]
             elif key == "ram":
@@ -351,8 +352,9 @@ def to_json(c):
             out[key] = [[n, s] for n, s in c[key]]
     if c.get("saved"):
         out["saved"] = [[w, b, s] for w, b, s in c["saved"]]
-    if c.get("formatters"):
-        out["formatters"] = [[o, s, k] for o, s, k in c["formatters"]]
+    for key in ("formatters", "pictures"):
+        if c.get(key):
+            out[key] = [[o, s, k] for o, s, k in c[key]]
     if c.get("plock_rows"):
         out["plock_rows"] = True
     if c.get("midi") and (c["midi"]["cc"] or c["midi"]["nrpn"]):
@@ -393,8 +395,9 @@ def resolve(c, pid):
             out[key] = [[n, s(t)] for n, t in c[key]]
     if "saved" in c:
         out["saved"] = [[w, b, s(t)] for w, b, t in c["saved"]]
-    if "formatters" in c:
-        out["formatters"] = [[o, s(t), k] for o, t, k in c["formatters"]]
+    for key in ("formatters", "pictures"):
+        if key in c:
+            out[key] = [[o, s(t), k] for o, t, k in c[key]]
     if "views" in c:
         out["views"] = [[v, s(t), h] for v, t, h in c["views"]]
     if "gestures" in c:
@@ -424,8 +427,8 @@ def situations_meet(s, t):
 
 def clash_items(a, b):
     """Why two holders' claims (to_json, resolved) cannot be installed together, by notes/65 §5: the same sound
-    slot, record slot, saved bytes or descriptor in scopes that meet; the same interface object's formatter, whatever
-    the scopes (one pointer per object, §12.2); both re-numbering the p-lock rows; the same CC or NRPN; RAM that
+    slot, record slot, saved bytes or descriptor in scopes that meet; the same interface object's formatter or picture,
+    whatever the scopes (one pointer of each per object, §12.2); both re-numbering the p-lock rows; the same CC or NRPN; RAM that
     overlaps; a shared atom in situations and scopes that meet, with another meaning. As (kind, text, the shared
     atoms or None); empty when they can."""
     out = []
@@ -437,8 +440,9 @@ def clash_items(a, b):
     for w in sorted({w for w, _n, s in a.get("saved", []) for w2, _m, t in b.get("saved", [])
                      if w == w2 and meet(s, t)}):
         out.append(("saved", f"saved bytes: {w}", None))
-    for o in sorted({o for o, _s, _k in a.get("formatters", []) for o2, _t, _l in b.get("formatters", []) if o == o2}):
-        out.append(("formatter", f"the formatter of interface object {o}", None))
+    for key, kind in (("formatters", "formatter"), ("pictures", "picture")):
+        for o in sorted({o for o, _s, _k in a.get(key, []) for o2, _t, _l in b.get(key, []) if o == o2}):
+            out.append((kind, f"the {kind} of interface object {o}", None))
     if a.get("plock_rows") and b.get("plock_rows"):
         out.append(("plock", "the p-lock rows of k >= 23", None))
     ma, mb = a.get("midi", {}), b.get("midi", {})
@@ -500,7 +504,7 @@ def combo_text(atoms_):
 def clash_kinds(a, b):
     """The kinds of clash between two holders, each once and in order, for the web flasher's computed reasons
     (notes/65, step C4): [kind, the shared combination or ""], kind one of slots, saved, descriptors, formatter,
-    plock, midi, ram, combo."""
+    picture, plock, midi, ram, combo."""
     out, seen = [], set()
     for kind, _text, shared in clash_items(a, b):
         if kind not in seen:
@@ -791,6 +795,7 @@ def describe(h, pkgs):
             out.append(f"{label} {_ranges(n for n, t in claims[key] if t == s)} ({s})")
     out += [f"saved: {w}, {b} byte(s) ({s})" for w, b, s in claims.get("saved", [])]
     out += [f"formatter of interface object {o}, {k} ({s})" for o, s, k in claims.get("formatters", [])]
+    out += [f"picture of interface object {o}, {k} ({s})" for o, s, k in claims.get("pictures", [])]
     if claims.get("plock_rows"):
         out.append("the p-lock rows of k >= 23")
     if claims.get("midi"):
@@ -840,6 +845,7 @@ def self_test():
     good = {"sound_slots": [28, {"slots": [29, 31], "scope": "all"}], "record_slots": [30, 31],
             "saved": [{"where": "pattern, track +512", "bytes": 1}], "descriptors": [1, 2], "plock_rows": True,
             "formatters": [{"knob": "Cutoff", "object": 53, "replaces": "0x400456c8", "scope": "all"}],
+            "pictures": [{"knob": "Cutoff", "object": 53, "replaces": "0x400466a2", "scope": "all"}],
             "midi": {"cc": [74], "nrpn": ["1:20"]}, "ram": [["0x4233f000", "0x4233f49c"]],
             "views": ["main", {"view": "knob", "how": "a hook"}],
             "gestures": ["RETRIG + COLOR", {"combo": "FUNC + PITCH", "situation": "params", "scope": "machine:MACRO",
@@ -855,7 +861,8 @@ def self_test():
                 {"plock_rows": "yes"}, {"midi": {"cc": [128]}}, {"midi": {"nrpn": ["1:200"]}},
                 {"ram": [["0x2000", "0x1000"]]}, {"views": ["browser"]}, {"saved": [{"where": "x", "bytes": 0}]},
                 {"gestures": [{"combo": "LFO", "situation": "page:FOO"}]}, {"gestures": [{"combo": "LFO", "why": 1}]},
-                {"formatters": [{"knob": "Cutoff", "object": 53}]}):
+                {"formatters": [{"knob": "Cutoff", "object": 53}]}, {"pictures": [{"knob": "Reso", "object": 54}]},
+                {"pictures": [{"knob": "Reso", "object": "54", "replaces": "0x400466f0"}]}):
         case(f"refused: {json.dumps(bad)}", bool(normalize(bad, "package", ("sampler",))[1]))
     case("refused: scope machine in a tweak", bool(normalize({"sound_slots": [{"slots": [28, 28], "scope": "machine"}]},
                                                              "tweak")[1]))
@@ -953,6 +960,13 @@ def self_test():
     fa, fb = (resolve(j({"formatters": [{"knob": "X", "object": 53, "replaces": "0x400456c8"}]}, "package"), x)
               for x in ("a", "b"))
     case("two formatters on one interface object clash, whatever their scopes", bool(clashes(fa, fb)))
+    pa, pb = (resolve(j({"pictures": [{"knob": "X", "object": 54, "replaces": "0x400466f0"}]}, "package"), x)
+              for x in ("a", "b"))
+    case("two pictures on one interface object clash, whatever their scopes",
+         [k for k, _ in clash_kinds(pa, pb)] == ["picture"])
+    case("a picture and a formatter of one object do not clash: two pointers",
+         not clashes(fa, resolve(j({"pictures": [{"knob": "X", "object": 53, "replaces": "0x400466a2"}]},
+                                   "package"), "b")))
     chord = j({"sound_slots": [{"slots": [25, 25], "scope": "machine:CHORD"}]})
     case("k 25 on CHORD's tracks × SAMPLE's k 25: no clash", not clashes(chord, real["sampler"]))
     menu = j({"gestures": [{"combo": "MACHINES + COLOR", "situation": "menu:RETRIG", "meaning": "a probe"}]})

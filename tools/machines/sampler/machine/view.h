@@ -25,6 +25,10 @@ void smp_note_draw(void *view, smp_bitmap *b);
    stock 0..127 otherwise (the object is SNARE's SWEEP's too). Installed into the object by
    smp_view_install, which the tick calls; it does its work once. */
 int32_t smp_fmt_cutoff(void *self, int32_t value, char *buf);
+/* Cutoff's and Reso's pictures in the knob view: the Model:Samples' frames when the selected track
+   plays SAMPLE, SNARE's SWEEP's and CONTOUR's otherwise. Installed by smp_view_install as well. */
+void smp_pic_cutoff(void *self, void *b, int32_t x, int32_t y, int32_t value);
+void smp_pic_reso(void *self, void *b, int32_t x, int32_t y, int32_t value);
 void smp_view_install(void);
 
 #endif

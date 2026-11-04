@@ -5,7 +5,8 @@
 
    It takes the place of MainScreenView while that shows the track, and of the knob view while that
    shows Start or Length (COLOR or SHAPE), so the markers follow those two knobs as they turn. Any
-   other knob shows its value as before. While a trig is held, the OS's NoteVelocityView covers the
+   other knob shows its value as before, Cutoff and Reso with the Model:Samples' pictures of them
+   (see the end of this file). While a trig is held, the OS's NoteVelocityView covers the
    left half with the trig's note, velocity and length; when Start or Length turns then, the view
    takes the whole screen as without a held trig, its markers on the held trig's locks and its sample
    and name a sound lock's, and NoteVelocityView stays away until the value is gone. Tracks on other
@@ -26,6 +27,9 @@ extern char cm_descriptor_base[];
 #define DESC_LENGTH (DESC_START + 1)
 #ifndef CUTOFF_OBJECT
 #define CUTOFF_OBJECT 53                /* the parameter object Cutoff shares: SNARE's SWEEP; the build sets it */
+#endif
+#ifndef RESO_OBJECT
+#define RESO_OBJECT (CUTOFF_OBJECT + 1) /* Reso's: SNARE's CONTOUR, the knob after SWEEP */
 #endif
 
 #define SOUND_NAME  4                   /* sound: name, 16 bytes */
@@ -475,17 +479,58 @@ int32_t smp_fmt_cutoff(void *self, int32_t value, char *buf)
     return n;
 }
 
-/* Puts smp_fmt_cutoff into the shared object, once the OS has built it with the stock formatter
-   in place (anything else there is left alone). The tick calls this; it is done after the first
-   screen redraw. */
+/* --- Cutoff's and Reso's pictures ----------------------------------------------------------- */
+
+/* While Cutoff or Reso turns, the knob view shows the parameter's picture for its value (os.h,
+   UI_PICTURE); SAMPLE's knobs share SNARE's objects and so showed SWEEP's and CONTOUR's. On a
+   SAMPLE track these show the Model:Samples' own frames for its Cutoff and Resonance instead, which
+   the OS builds at boot anyway, picked and drawn as SNARE's are; anything else gets SNARE's. */
+static int frames_built(const void *list)
+{
+    const void *const volatile *v = (const void *const volatile *)list;
+
+    return v[0] != v[1];
+}
+
+static void picture(const void *frames, smp_picture stock, void *self, void *b, int32_t x, int32_t y,
+                    int32_t value)
+{
+    if (!sample_sound() || !frames_built(frames)) {
+        stock(self, b, x, y, value);
+        return;
+    }
+    DRAW_SPRITE(b, PICK_FRAME(frames, value, 1), x, y, 1);
+}
+
+void smp_pic_cutoff(void *self, void *b, int32_t x, int32_t y, int32_t value)
+{
+    picture(FRAMES_CUTOFF, PIC_SWEEP, self, b, x, y, value);
+}
+
+void smp_pic_reso(void *self, void *b, int32_t x, int32_t y, int32_t value)
+{
+    picture(FRAMES_RESO, PIC_CONTOUR, self, b, x, y, value);
+}
+
+/* Puts smp_fmt_cutoff, smp_pic_cutoff and smp_pic_reso into the shared objects, each once the OS
+   has built its object with the stock entry in place (anything else there is left alone). The
+   tick calls this; it is done after the first screen redraw. */
 void smp_view_install(void)
 {
-    static int done;
+    static int done;                    /* bit 0 Cutoff's text, bit 1 its picture, bit 2 Reso's */
 
-    if (done)
+    if (done == 7)
         return;
-    if (UI_FORMATTER(CUTOFF_OBJECT) == FMT_INT) {
+    if (!(done & 1) && UI_FORMATTER(CUTOFF_OBJECT) == FMT_INT) {
         UI_FORMATTER(CUTOFF_OBJECT) = smp_fmt_cutoff;
-        done = 1;
+        done |= 1;
+    }
+    if (!(done & 2) && UI_PICTURE(CUTOFF_OBJECT) == PIC_SWEEP) {
+        UI_PICTURE(CUTOFF_OBJECT) = smp_pic_cutoff;
+        done |= 2;
+    }
+    if (!(done & 4) && UI_PICTURE(RESO_OBJECT) == PIC_CONTOUR) {
+        UI_PICTURE(RESO_OBJECT) = smp_pic_reso;
+        done |= 4;
     }
 }

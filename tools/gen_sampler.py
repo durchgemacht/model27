@@ -5,15 +5,16 @@ added machine of the Model:Cycles.
   - 27-sampler.json: 7th machine, after the 6 stock ones.
 
 The code is Cycles One-Shot's (durchgemacht, MIT: tools/machines/sampler/LICENSE, copied next to the tweaks as
-LICENSE-One-Shot), taken as is from https://github.com/durchgemacht/cycles-one-shot at tag v0.13 (UPSTREAM_COMMIT below; 0.8 made the
+LICENSE-One-Shot), taken as is from https://github.com/durchgemacht/cycles-one-shot at tag v0.14 (UPSTREAM_COMMIT below; 0.8 made the
 patch points SAMPLE_MACHINE and DESC_START symbols behind CM_SYMBOLS in pool.h and view.c, and gave each assembly
 file a section of its own, for builders like this one; 0.9 split the bar above the waveform into the pattern's
 number and the sample's name; 0.10 puts a column on the left with the pattern's number, the track's number and its
 level; 0.11 loops and plays in reverse on two switches, MACHINES + PUNCH and MACHINES + GATE (RETRIG up to the layer's 0.2), which it reads only when
 built with SMP_SWITCHES, as the manifest builds it here; 0.12 shows the whole view for a held trig while Start or
 Length turns, its locks marked, and so takes NoteVelocityView's draw too; 0.13 lets Start and Length act on the note
-that plays: once, Length moves its end; a loop takes its end at once and its start from the next seam), with the same
-paths as there: src/ the sound core
+that plays: once, Length moves its end; a loop takes its end at once and its start from the next seam; 0.14 shows
+the Model:Samples' own pictures for Cutoff and Reso in the knob view, the frames the OS builds at boot anyway), with
+the same paths as there: src/ the sound core
 (6-tap polyphase interpolation at 96 kHz, the Model:Samples' filter), machine/ the bridge to the voice loop, the
 sample memory (loaded from the +Drive, chosen in the PRESET browser, saved with the sound), the waveform view and
 the hooks. The build recipe is tools/machines/sampler/manifest.json; the compiled object sampler.o is committed next
@@ -69,8 +70,8 @@ LICENSE_OUT = DEV / "LICENSE-One-Shot"
 SRC = HERE / "machines" / "sampler"
 
 UPSTREAM = "https://github.com/durchgemacht/cycles-one-shot"
-UPSTREAM_TAG, UPSTREAM_COMMIT = "v0.13", "213b4e49268db69aae7a8397008a43b10000d3cd"
-VERSION = "0.13"
+UPSTREAM_TAG, UPSTREAM_COMMIT = "v0.14", "e7df5849269800a95b1671ae1b08b349cb9aef5f"
+VERSION = "0.14"
 
 POOL = (0x43800000, 0x46700000)
 # The build recipe (sources, flags, defines, patch points, symbols to keep) is the manifest's,
@@ -120,7 +121,8 @@ def build_tweak(img, check=False):
             "amp chain set up like TONE, then the Model:Samples' filter. The sample is chosen for a SAMPLE track in",
             "the PRESET browser (FUNC + MACHINE) and saved with the sound; stereo files play as mono, other rates at",
             "their pitch. COLOR = Start, SHAPE = Length (0..120 each, as on the Model:Samples; the trig ends at",
-            "Start + Length), SWEEP = Cutoff (-64 .. 63: lowpass below 0, off at 0, highpass above), CONTOUR = Reso;",
+            "Start + Length), SWEEP = Cutoff (-64 .. 63: lowpass below 0, off at 0, highpass above), CONTOUR = Reso,",
+            "both with the Model:Samples' pictures in the knob view;",
             "DECAY, GATE and PUNCH: the stock amp chain. MACHINES + PUNCH = Loop (a hard seam, as on the",
             "Model:Samples), MACHINES + GATE = Reverse (from the next trig), two switches of the builder's shortcut",
             "layer (notes/63 §16), saved with the sound. A trig that cuts a sounding note brings the new one in over",

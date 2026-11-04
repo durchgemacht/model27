@@ -11,7 +11,7 @@ Adresses : VA de l'OS 1.13 (la section 3 commence en `0x40000400`). Un mod qui v
 - Crochets sur l'OS : 119 adresses détournées, dont 76 à l'identique par des mods de familles différentes.
 - Pointeurs réécrits : 67 adresses. Écritures dans des octets 0xFF hors masques : 14 zones.
 - Charges utiles ajoutées après l'OS : 276 tweaks ; place restante au §3.
-- Declared claims (notes/65): 16 holders; the saved data in §6, the key combinations in §8, the descriptors, formatters, p-lock rows and MIDI in §9, the views in §10.
+- Declared claims (notes/65): 16 holders; the saved data in §6, the key combinations in §8, the descriptors, formatters, pictures, p-lock rows and MIDI in §9, the views in §10.
 
 ## 1. Masques de sprites libérés
 
@@ -395,7 +395,7 @@ Code trop gros pour un masque, ajouté à la fin de l'image (`at`) et copié au 
 | macro | 25 | `0x401aa140` | 105 152 | `0x401c3c00` | `0x43000000` | 324 576 |  |
 | macro-acid | 25 | `0x401aa140` | 111 760 | `0x401c55d0` | `0x43000000` | 492 288 |  |
 | acid | 26 | `0x401aa140` | 11 380 | `0x401acdb4` | `0x43000000` | 221 928 |  |
-| sampler | 27 | `0x401aa140` | 42 616 | `0x401b47b8` | `0x43000000` | 283 432 |  |
+| sampler | 27 | `0x401aa140` | 42 980 | `0x401b4924` | `0x43000000` | 283 432 |  |
 | refmachine | 28 | `0x401aa140` | 6 868 | `0x401abc14` | `0x43000000` | 221 376 |  |
 | refmachine2 | 29 | `0x401aa140` | 10 464 | `0x401aca20` | `0x43000000` | 221 428 |  |
 | model-tg | 30 | `0x401aa140` | 87 936 | `0x401bf8c0` | `0x401aa140` | 87 936 |  |
@@ -840,7 +840,7 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | macro | 122 | 56 | 14 | 48 | 2 | 2 | 0 | 105 152 o | notes/36 |
 | macro-acid | 122 | 55 | 15 | 48 | 2 | 2 | 0 | 111 760 o | notes/36 |
 | acid | 122 | 56 | 14 | 48 | 2 | 2 | 0 | 11 380 o | notes/36 |
-| sampler | 128 | 55 | 19 | 52 | 1 | 1 | 0 | 42 616 o | notes/60 |
+| sampler | 128 | 55 | 19 | 52 | 1 | 1 | 0 | 42 980 o | notes/60 |
 | refmachine | 116 | 55 | 11 | 48 | 1 | 1 | 0 | 6 868 o | notes/65 |
 | refmachine2 | 128 | 55 | 19 | 52 | 1 | 1 | 0 | 10 464 o | notes/63 |
 | model-tg | 142 | 94 | 32 | 0 | 1 | 1 | 14 | 87 936 o | notes/36 |
@@ -937,14 +937,16 @@ The stock combinations, as far as they are read:
 | SETTINGS + RECORD | any | toggles GRID RECORDING (SETTINGS is not read); the release of SETTINGS after it is not a tap and opens nothing | 0x4002439a, 0x40024482, the key scanner 0x4007fbde; notes/79 §1 |
 | LFO | page:LFO | closes the LFO page (a hypothesis) | notes/65 §3.2 |
 
-## 9. Descriptors, formatters, p-lock rows and MIDI (declared claims, notes/65)
+## 9. Descriptors, formatters, pictures, p-lock rows and MIDI (declared claims, notes/65)
 
-Two mods that can be ticked together never share one of these in scopes that meet; a formatter belongs to its interface object, whatever the scopes (notes/65 §12.2). The stock CC and NRPN map is not collected (STANDARD.md §5.5): a MIDI claim is checked against the other mods only.
+Two mods that can be ticked together never share one of these in scopes that meet; a formatter and a picture belong to their interface object, whatever the scopes (notes/65 §12.2, STANDARD.md draft 0.8). The stock CC and NRPN map is not collected (STANDARD.md §5.5): a MIDI claim is checked against the other mods only.
 
 | claim | held by |
 |---|---|
 | descriptors 1–4 | shortcuts (part); track-filter |
 | the formatter of interface object 53 | sampler (Cutoff) |
+| the picture of interface object 53 | sampler (Cutoff) |
+| the picture of interface object 54 | sampler (Reso) |
 | the p-lock rows of k ≥ 23 | lfo-plus; track-filter |
 | CC 71, 74 | track-filter |
 | NRPN 1:20, 1:21 | track-filter |

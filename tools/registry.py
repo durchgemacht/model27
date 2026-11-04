@@ -29,7 +29,7 @@ masque (dans un masque libérable), cave (octets 0xFF d'origine), crochet (jsr, 
 instructions de l'OS), pointeur (constante 32 bits vers le code d'un mod), patch (tout le reste).
 
 model27, notes/65 (step C3): §6 (the saved data) and §8 to §10 (the key combinations; the descriptors, formatters,
-p-lock rows and MIDI numbers; the views) come from the declared claims (tools/claims.py: the packages' manifests, the
+pictures, p-lock rows and MIDI numbers; the views) come from the declared claims (tools/claims.py: the packages' manifests, the
 parts' part.json, the tweaks' claims/claims.json), which replace the table DECLARED this script kept.
 """
 import argparse
@@ -135,8 +135,8 @@ def merged_rows(by_n):
 
 
 def claims_lines(holders):
-    """§6 (the saved data) and §8 to §10 (the key combinations; the descriptors, formatters, p-lock rows and MIDI;
-    the views) of the registry, from the declared claims: (lines of §6, lines of §8 to §10)."""
+    """§6 (the saved data) and §8 to §10 (the key combinations; the descriptors, formatters, pictures, p-lock rows
+    and MIDI; the views) of the registry, from the declared claims: (lines of §6, lines of §8 to §10)."""
     six, rest = [], []
     p = six.append
     p("## 6. Saved data (declared claims, notes/65)")
@@ -195,10 +195,10 @@ def claims_lines(holders):
         p(f"| {st['combo']} | {st.get('situation', 'any')} | {st['meaning']}"
           f"{' (a hypothesis)' if st.get('hyp') else ''} | {st['source']} |")
     p("")
-    p("## 9. Descriptors, formatters, p-lock rows and MIDI (declared claims, notes/65)")
+    p("## 9. Descriptors, formatters, pictures, p-lock rows and MIDI (declared claims, notes/65)")
     p("")
-    p("Two mods that can be ticked together never share one of these in scopes that meet; a formatter belongs to its "
-      "interface object, whatever the scopes (notes/65 §12.2). The stock CC and NRPN map is not collected "
+    p("Two mods that can be ticked together never share one of these in scopes that meet; a formatter and a picture "
+      "belong to their interface object, whatever the scopes (notes/65 §12.2, STANDARD.md draft 0.8). The stock CC and NRPN map is not collected "
       "(STANDARD.md §5.5): a MIDI claim is checked against the other mods only.")
     p("")
     p("| claim | held by |")
@@ -215,6 +215,12 @@ def claims_lines(holders):
             fmts[o].append(f"{label} ({knob})")
     for o in sorted(fmts):
         p(f"| the formatter of interface object {o} | {'; '.join(sorted(fmts[o]))} |")
+    pics = collections.defaultdict(list)
+    for label, c, _src in holders:
+        for o, _s, knob in c.get("pictures", []):
+            pics[o].append(f"{label} ({knob})")
+    for o in sorted(pics):
+        p(f"| the picture of interface object {o} | {'; '.join(sorted(pics[o]))} |")
     plock = [label for label, c, _src in holders if c.get("plock_rows")]
     if plock:
         p(f"| the p-lock rows of k ≥ 23 | {'; '.join(plock)} |")
@@ -462,7 +468,7 @@ def render(tweaks, zones, rows, warns):
       f"{len(caves)} zones.")
     p(f"- Charges utiles ajoutées après l'OS : {len(apps)} tweaks ; place restante au §3.")
     p(f"- Declared claims (notes/65): {len(holders)} holders; the saved data in §6, the key combinations in §8, the "
-      "descriptors, formatters, p-lock rows and MIDI in §9, the views in §10.")
+      "descriptors, formatters, pictures, p-lock rows and MIDI in §9, the views in §10.")
     p("")
     # §1
     p("## 1. Masques de sprites libérés")

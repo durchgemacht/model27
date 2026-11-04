@@ -566,3 +566,47 @@ half-finished step never blocks a build.
   `test_shortcuts.py`, `test_views.py`, `test_refchord.py`, `test_chordtables.py`, `test_fxslot.py`,
   `test_fltslot.py`, **ALL OK** `[FAIT en émulation]` (they load no sample: SAMPLE's place, layout and memory accesses
   in the OS, next to the other packages). The card stays `tested`.
+
+## 22. One-Shot 0.14 pinned: the Model:Samples' pictures for Cutoff and Reso (2026-11-04)
+
+- **What changed upstream**: One-Shot 0.14 (`e7df584`, tag `v0.14`) shows the Model:Samples' own pictures while
+  SWEEP (Cutoff) or CONTOUR (Reso) turns on a SAMPLE track (One-Shot's TECHNICAL.md §9 and §16). The knob view draws a
+  parameter's picture through its interface object: `0x4001d818` calls the parameter's entry +68 (`0x4000a6b0`), which
+  calls the object's `+0x60` as `picture(object + 0x54, bitmap, 32, 19, value)` while `+0x5c` is set. SAMPLE's Cutoff
+  and Reso share SNARE's objects 53 and 54, so they showed SNARE's pictures (`0x400466a2`, `0x400466f0`). The Cycles
+  OS builds the Model:Samples' sprites at boot anyway (the same constructor as the Model:Samples OS, 2047 sprites pixel
+  for pixel), among them its Cutoff's 87 frames of 50 × 22 (`0x40fe3638`) and its Resonance's 11 (`0x40fe35f4`), which
+  nothing in the Cycles draws. `smp_pic_cutoff` and `smp_pic_reso` pick and draw those (`0x40072058`, `0x40071da4`)
+  on a SAMPLE track and call SNARE's otherwise; the tick puts each into its slot once SNARE's is there, as it does the
+  Cutoff formatter. `machine/os.h`, `machine/view.c` and `machine/view.h` differ from 0.13.
+- **Here**: the three files copied as they are; every file of `tools/machines/sampler/` is byte for byte One-Shot's at
+  `e7df584`. The manifest's version, name, description, source and hardware test, and a new claim: `pictures`, objects
+  53 and 54 (Cycles Mod Standard draft 0.8, `4781879`). No new point or view.
+- **The claim `pictures`** (`{"knob", "object", "replaces"}`, an interface object's `+0x60`): `tools/claims.py` reads
+  it as it reads `formatters`, and rule 2 holds for it the same way: one picture per object, whatever the scopes, so
+  two holders of one object's picture clash; a picture and a formatter of one object do not (two pointers). The web
+  flasher's `composer.js` applies the same rule (`resolveClaims`, `claimClashes`), `app.js` says why
+  (`why_picture`), `registry.py` lists the pictures in `REGISTRY.md` §9, and `webcompose_synth.py` adds a probe
+  (object 54 on CHORD's tracks) so that `webcompose_check.sh` compares both composers on it. No other tweak or part of
+  the folder writes these two slots (only the OS's boot code does, `0x400e0414` and `0x400e04a2`), so the claim
+  changes no conflict today: 280 as before.
+- **`gen_sampler.py`**: pinned on v0.14. 128 writes and 280 conflicts, as before; 36 226 bytes of code and tables,
+  62 248 of variables, 42 980 bytes added to the image (42 616 before).
+- **Hashes**: SAMPLE alone `522bc89c…` (`compose.py` and `build.py -t sampler` alike), with Control All Config
+  `26218ef3…`, with Digital Delay `bec8dcca…`, with POTS `e34890b1…`; SAMPLE with both effects `14345987…`, with
+  Samples `b7507068…`, with RESAMPLE `87476afd…`, every card of the page `4f6a8756…` (BUILD.md); the smoke test's
+  pins: 128 writes and 42 980 bytes in the log line, the Model:Samples packings `60f640bb…` (`_smp-os`) and
+  `5438cc6d…` (`_cyc-os`), computed apart from the page with `build.py -t sampler` and `mods_for_samples.py`.
+- The card's text, the guide's SAMPLE section (the version, the knob table, the Tested line), release 0.43, stamp
+  `2026-11-04-08`; PROVENANCE.md names the tag and commit the files come from.
+- **Cost**: the pictures are drawn only while the knob view shows Cutoff or Reso, as SNARE's were, through the same
+  two functions; nothing changes on the audio side.
+- **Tested**: One-Shot's host tests (`make machine-test` with and without the switches, `test_pictures` and
+  `test_pictures_install`, four deliberate faults caught), under ASan too. One-Shot 0.14's own build (without
+  CM_SYMBOLS and SMP_SWITCHES), by the maintainer in digiemu and on a Model:Cycles (2026-11-04): the pictures on a
+  SAMPLE track, SNARE's on a SNARE track, "passt". Unicorn, run by the maintainer on this pin (2026-11-04):
+  `test_compose.py`, `test_shortcuts.py`, `test_views.py`, `test_refchord.py`, `test_chordtables.py`, `test_fxslot.py`,
+  `test_fltslot.py`, **ALL OK** `[FAIT en émulation]`. The composed 0.14 with the shortcut layer, SAMPLE alone as
+  this pin composes it (`.syx` `856b552f…`, the same file as `build.py -t sampler`, MAIN OS `522bc89c…`), by the
+  maintainer on a Model:Cycles flashed over USB (2026-11-04): the pictures on a SAMPLE track, SNARE's on a SNARE track,
+  Loop and Reverse with L and R, "passt" `[FAIT sur la machine]`. The card stays `tested`.

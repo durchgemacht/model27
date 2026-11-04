@@ -15,8 +15,8 @@ compose.frames() gives), the folder's tweaks reduced to what the conflicts read 
 compose.fill() for 1 to 6 synthetic machines, what two packages cannot reach. The parts go with them
 (compose.web_part), and the selections with REF2 bring in the shortcut layer and the dispatchers (B4e). The
 declared claims of the folder's tweaks go with them too (tools/claims.py, notes/65 C2), and a few probes of claims
-only: a slot and a combination of the shortcut layer, SAMPLE's formatter object in another scope, SAMPLE's k 25 on
-another machine's tracks (no clash), a view (a warning, no clash).
+only: a slot and a combination of the shortcut layer, SAMPLE's formatter and picture objects in another scope,
+SAMPLE's k 25 on another machine's tracks (no clash), a view (a warning, no clash).
 
     python3 tools/webcompose_synth.py <outdir> [--cycles model-cycles_OS1.13.syx]
         # writes <outdir>/compose.json, with --cycles also <outdir>/composed.json
@@ -157,6 +157,7 @@ def part2(out, cycles):
                                                     "situation": "params", "scope": "all", "meaning": "a probe",
                                                     "replaces": None}]},
              "probe-claim-formatter": {"formatters": [[53, "machine:CHORD", "a probe"]]},
+             "probe-claim-picture": {"pictures": [[54, "machine:CHORD", "a probe"]]},
              "probe-claim-scope": {"sound_slots": [[25, "machine:CHORD"]]},
              "probe-claim-view": {"views": [["main", "all", "a probe"]]}}
     tweaks += [{"id": i, "writes": []} for i in probe]

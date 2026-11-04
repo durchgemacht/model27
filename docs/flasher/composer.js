@@ -25,8 +25,8 @@
  * variables; fxCost() is compose.fx_cost(), and a build whose slot passes FX_REFUSE is refused.
  *
  * C2 (notes/65): the declared claims. A package's and a part's come with them (tools/claims.py's to_json form), the
- * tweaks' as a map by id. claimClashes() is claims.clashes(): the same saved slot, key combination, descriptor or
- * formatter, so a build also conflicts with the tweaks whose claims clash with its own, and a build whose own packages
+ * tweaks' as a map by id. claimClashes() is claims.clashes(): the same saved slot, key combination, descriptor,
+ * formatter or picture, so a build also conflicts with the tweaks whose claims clash with its own, and a build whose own packages
  * clash is refused.
  *
  * License: MIT (the repository's LICENSE).
@@ -802,7 +802,7 @@ function resolveClaims(c, pid) {
   for (const key of ["sound_slots", "record_slots", "descriptors"])
     if (c[key]) out[key] = c[key].map(([n, t]) => [n, s(t)]);
   if (c.saved) out.saved = c.saved.map(([w, b, t]) => [w, b, s(t)]);
-  if (c.formatters) out.formatters = c.formatters.map(([o, t, k]) => [o, s(t), k]);
+  for (const key of ["formatters", "pictures"]) if (c[key]) out[key] = c[key].map(([o, t, k]) => [o, s(t), k]);
   if (c.views) out.views = c.views.map(([v, t, h]) => [v, s(t), h]);
   if (c.gestures) out.gestures = c.gestures.map((g) => Object.assign({}, g, { scope: s(g.scope) }));
   return out;
@@ -819,9 +819,11 @@ function claimClashes(a, b) {
   const saved = new Set();
   for (const [w, , s] of a.saved || []) for (const [w2, , t] of b.saved || []) if (w === w2 && meet(s, t)) saved.add(w);
   for (const w of [...saved].sort()) out.push(`saved bytes: ${w}`);
-  const objects = new Set();                      // one formatter per interface object: the scope does not narrow it
-  for (const [o] of a.formatters || []) for (const [o2] of b.formatters || []) if (o === o2) objects.add(o);
-  for (const o of [...objects].sort((x, y) => x - y)) out.push(`the formatter of interface object ${o}`);
+  for (const [key, kind] of [["formatters", "formatter"], ["pictures", "picture"]]) {
+    const objects = new Set();                    // one of each per interface object: the scope does not narrow it
+    for (const [o] of a[key] || []) for (const [o2] of b[key] || []) if (o === o2) objects.add(o);
+    for (const o of [...objects].sort((x, y) => x - y)) out.push(`the ${kind} of interface object ${o}`);
+  }
   if (a.plock_rows && b.plock_rows) out.push("the p-lock rows of k >= 23");
   const ma = a.midi || {}, mb = b.midi || {};
   const cc = [...new Set(ma.cc || [])].filter((x) => (mb.cc || []).includes(x)).sort((x, y) => x - y);

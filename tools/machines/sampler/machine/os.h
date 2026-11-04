@@ -178,6 +178,26 @@ typedef int32_t (*smp_formatter)(void *, int32_t, char *);
 #define UI_OBJECT(i)        ((char *)0x40a71754 + 100 * (i))
 #define UI_FORMATTER(i)     (*(smp_formatter volatile *)(UI_OBJECT(i) + 0x20))
 #define FMT_INT             ((smp_formatter)0x400456c8)
+/* An object's +0x60 is the function that draws the parameter's picture for a value, in the knob
+   view's light box: picture(object + 0x54, bitmap, 32, 19, value), called through the parameter's
+   vtable +68 (0x4000a6b0, only while +0x5c is set) from 0x4001d85e. SNARE's SWEEP and CONTOUR,
+   whose objects SAMPLE's Cutoff and Reso share, have 0x400466a2 and 0x400466f0: each picks a frame
+   from a list of sprites by the value and draws it centred on (x, y). */
+typedef void (*smp_picture)(void *, void *, int32_t, int32_t, int32_t);
+#define UI_PICTURE(i)       (*(smp_picture volatile *)(UI_OBJECT(i) + 0x60))
+#define PIC_SWEEP           ((smp_picture)0x400466a2)
+#define PIC_CONTOUR         ((smp_picture)0x400466f0)
+/* A list of frames is a vector {first, end} of sprites, 28 bytes each (Bitmap objects with masks).
+   The OS builds them all at boot (0x400ab7b8, a constructor of the table at 0x4019b430), the
+   Model:Samples' own among them, though nothing in the Cycles draws those: its Cutoff's 87 frames
+   of 50 x 22 (the lowpass's edge moving up, then the highpass's) and its Resonance's 11 (a peak
+   growing at the edge). PICK_FRAME(list, value, 1) gives frame round(value * (n - 1) / (127 << 8)),
+   clamped (0x40072058 into 0x40071ff4); DRAW_SPRITE(bitmap, sprite, x, y, 1) draws it centred on
+   (x, y) (0x40071da4). The Model:Samples draws them the same way, from the same place. */
+#define FRAMES_CUTOFF       ((const void *)0x40fe3638)
+#define FRAMES_RESO         ((const void *)0x40fe35f4)
+#define PICK_FRAME(l, v, f) ((const void *(*)(const void *, int32_t, int32_t))0x40072058)(l, v, f)
+#define DRAW_SPRITE(b, s, x, y, c) ((void (*)(void *, const void *, int32_t, int32_t, int32_t))0x40071da4)(b, s, x, y, c)
 
 #endif
 #endif
