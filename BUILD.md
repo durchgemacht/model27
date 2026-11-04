@@ -307,7 +307,8 @@ composés : `81bc4d1e4cfee2bc8daba59ecf99e89a6c33f924ef11b3819632558ccfc4b64a` ;
 `fxslot` 0.7 (le compteur de la page CPU, note 78 §8) et la couche de raccourcis 0.4. Depuis POTS 0.2 la ligne tourne à
 6 kHz (`pots_cf.S` pour la décimation, note 69 §24), environ un tiers de la charge de la version à 12 kHz ; celle-ci
 (note 69 §23) avait été testée sur un Model:Cycles (§23.6, `28cf64c0…`), puis jouée avec `fxslot` 0.4 depuis la page le
-29/10/2026 (note 68 §21.8). POTS 0.2 n'est pas encore testé sur la machine.
+29/10/2026 (note 68 §21.8). POTS 0.2 essayé depuis la ligne de commande le 03/11/2026 (note 69 §24.7), puis flashé
+depuis la page et testé sur un Model:Cycles le 04/11/2026 (note 69 §25).
 
 ### Filtre Samples (filtre de piste)
 
@@ -469,7 +470,8 @@ MAIN OS patché, `cpu` seul : `425ad022c55c0037e7846c3c5b84fd87235dba4c1847cf173
 (dans l'ordre des cartes, comme la page) : `49a0e74a0ad3ffe2ca67e0f068a239ba28cbde319aa86295e8588df91886a1c8` ; avec
 toutes les cartes de la page (douze, release 0.37) : `5af3a7473353c494edefc8ebec1a36642d22b287a06867145aa7c7fff9afa17d`. Avec POTS et Crush, essayé sur un Model:Cycles depuis la ligne de commande le 03/11/2026, les valeurs
 rafraîchies deux fois par seconde (note 78 §10). La page sans son rafraîchissement (`cpu` 0.2), essayée de même le
-même jour (note 78 §9) : avec Crush et POTS `7773846a…`.
+même jour (note 78 §9) : avec Crush et POTS `7773846a…`. Flashée depuis la page et testée sur un Model:Cycles le
+04/11/2026 (note 78 §11).
 ### RESAMPLE
 
 `tweaks/model-cycles_OS1.13/79-resample.json` est produit par `tools/gen_resample.py`, qui compose seule avec

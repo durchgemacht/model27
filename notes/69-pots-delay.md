@@ -1161,3 +1161,10 @@ asked whether to number POTS 0.40 so that it comes first on the home page: « Me
 the stamp `2026-11-04-02`, `README.md` (release 0.39, thirteen cards, eleven tested), `70-pots.json` (RESAMPLE among
 its conflicts), `tweaks.js`, `REGISTRY.md` and `REF_MAINOS` / `REF_MODS` regenerated. POTS's MAIN OS hashes are those
 of §24.4: the proof's run (§24.6) and the device's try (§24.7) still hold.
+
+## 25. Tested from the page (2026-11-04)
+
+The maintainer, 2026-11-04, after the releases 0.40 and 0.41: « ich habe alles was aktuell als experimental auf der
+live seite steht, geflasht und getestet. passt. » The page then had two experimental cards, POTS 0.2 and the CPU page;
+both flashed from the page and tested on their Model:Cycles. The card is `tested` (release 0.42, `gen_flasher_tweaks.py`,
+`tweaks.js`, the guide, `README.md`, `PROVENANCE.md`, `BUILD.md`); nothing in the firmware changes.

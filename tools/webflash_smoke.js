@@ -334,9 +334,9 @@ async function main() {
     check(potsAlone === "pots" && potsDd === "digidelay+pots" && potsSmp === "sampler+digidelay+pots"
       && potsAll === "control-all-config,sampler+digidelay+pots" && fourOn && !chosen().length
       && doc.querySelector('#features a[href$="#pots"]') && doc.querySelectorAll('input[name="var-pots"]').length === 0
-      && (doc.querySelector("#mod-pots .tag") || {}).textContent === "Experimental",
+      && !doc.querySelector("#mod-pots .tag"),
       `POTS alone ${potsAlone}; with Digital ${potsDd}, one composed tweak; with SAMPLE ${potsSmp}; with Control All ` +
-      `Config too ${potsAll}, all ticked, no clash; no sub-choice; its guide link; 0.2 experimental, so tagged`);
+      `Config too ${potsAll}, all ticked, no clash; no sub-choice; its guide link; tested, so no tag`);
     // Samples: a filter card, composed with the machine and effect cards into one tweak (notes/72)
     box("feat-smpfilter").click(); await wait(5);
     const sfAlone = chosen();
@@ -396,9 +396,9 @@ async function main() {
     for (const i of ["control-all-config", "cpu"]) { box("feat-" + i).click(); await wait(5); }
     check(cpuAlone === "cpu" && cpuSmp === "sampler+cpu" && cpuCr === "sampler+crush+cpu" && cpuCac === "control-all-config,cpu"
       && cpuOn && !chosen().length && doc.querySelector('#grp-mod #feat-cpu') && doc.querySelector('#features a[href$="#cpu"]')
-      && doc.querySelectorAll('input[name="var-cpu"]').length === 0 && doc.querySelector("#mod-cpu .tag"),
+      && doc.querySelectorAll('input[name="var-cpu"]').length === 0 && !doc.querySelector("#mod-cpu .tag"),
       `the CPU page alone ${cpuAlone}; with SAMPLE ${cpuSmp} and Crush ${cpuCr}, one composed tweak; with Control All ` +
-      `Config ${cpuCac}, no clash; in Mods; no sub-choice; its guide link; experimental, so tagged`);
+      `Config ${cpuCac}, no clash; in Mods; no sub-choice; its guide link; tested, so no tag`);
     // RESAMPLE: a part card too, composed with the machine cards and the CPU page, its id last (notes/79)
     box("feat-resample").click(); await wait(5);
     const rsAlone = chosen();

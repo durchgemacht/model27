@@ -7,6 +7,9 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.42", date: "2026-11-04", changes: [
+    { en: "POTS and the CPU page are tested: flashed from this page and played on a Model:Cycles (2026-11-04). Every card on this page is now tested" },
+  ] },
   { version: "0.41", date: "2026-11-04", changes: [
     { en: "The EQ Track FX takes less of the Model:Cycles' time: about a seventh less where it is heaviest (every value moving at once with High boosted, or the block a track comes to EQ), about a tenth less while it holds its settings. The sound is the same, bit for bit, checked in an emulator on the OS's own code. Tried on a Model:Cycles (2026-11-04)" },
   ] },

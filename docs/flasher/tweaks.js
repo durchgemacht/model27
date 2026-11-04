@@ -281,7 +281,7 @@ window.MC_TWEAKS = {
    "id": "pots",
    "label": "POTS (effect)",
    "desc": "A delay whose repeats go down an old telephone line: each pass darker and narrower, a little out of tune, fading and now and then dropping out, with a coarse grain on the tail. Hold PATTERN and turn Delay Time to switch the pattern's delay between the stock Delay, Digital and POTS; Time and Fdbk keep their knobs.",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "by",
     "who": "durchgemacht",
@@ -360,7 +360,7 @@ window.MC_TWEAKS = {
    "id": "cpu",
    "label": "CPU page",
    "desc": "A page that shows how much of the Model:Cycles' time the sound takes. SETTINGS, then the list with USB mode, LCD, LED and Contrast: its last row, CPU, opens it; Return closes it. CPU is the share of the last half second, with a bar and a mark at 85 %, where the screen and the knobs start to lag; PEAK the dearest moment since the page opened; TRACK FX and EFFECTS their own shares.",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "based",
     "who": "TinyGregAudio",

@@ -249,3 +249,10 @@ maintainer, 2026-11-03, « Passt » `[FAIT]`.
   CPU page): CPU and the bar moving about twice a second while a pattern plays, falling when it stops, PEAK never
   under CPU and starting again at the next opening: the maintainer, 2026-11-03, « Passt » `[FAIT]`. The card stays
   experimental until it is flashed from the page.
+
+## 11. Tested from the page (2026-11-04)
+
+The maintainer, 2026-11-04, after the releases 0.40 and 0.41: « ich habe alles was aktuell als experimental auf der
+live seite steht, geflasht und getestet. passt. » The page then had two experimental cards, POTS 0.2 and the CPU page;
+both flashed from the page and tested on their Model:Cycles. The card is `tested` (release 0.42, `gen_flasher_tweaks.py`,
+`tweaks.js`, the guide, `README.md`, `PROVENANCE.md`, `BUILD.md`); nothing in the firmware changes.

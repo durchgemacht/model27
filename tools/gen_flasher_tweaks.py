@@ -370,9 +370,9 @@ ALL_FEATURES = [
                 "keep their knobs.",
         # model27's own (notes/69), its sound settled in a float prototype; bit for bit its host build in emulation;
         # the 24 kHz build tested on the Model:Cycles (notes/69 §18, §22.5), the 12 kHz one of §23 too (§23.6); 0.2
-        # (§24) runs the loop at 6 kHz with cheaper parts, about a third of the load, chosen by ear: experimental
-        # until the maintainer has played it on the Model:Cycles
-        "status": "experimental",
+        # (§24) runs the loop at 6 kHz with cheaper parts, about a third of the load, chosen by ear: tried from the
+        # command line (§24.7), then flashed from this page and tested on 2026-11-04 (§25)
+        "status": "tested",
         "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
         # an effect composed in the page from its package (notes/69 §19), with the machines and Digital ticked:
         # alone it gives 70-pots.json byte for byte, whose conflicts give its excludes
@@ -472,8 +472,9 @@ ALL_FEATURES = [
                 "PEAK the dearest moment since the page opened; TRACK FX and EFFECTS their own shares.",
         # model27's own (notes/78), its row and page as Model-TG builds its System page (TinyGregAudio, MIT): the
         # measure, the row and the page proven in emulation; on the Model:Cycles from the command line on 2026-11-03,
-        # the page without its redraw (notes/78 §9), then with it, POTS and Crush as the page builds them (§10)
-        "status": "experimental",
+        # the page without its redraw (notes/78 §9), then with it, POTS and Crush as the page builds them (§10); flashed
+        # from this page and tested on 2026-11-04 (§11)
+        "status": "tested",
         "credit": {"kind": "based", "who": "TinyGregAudio", "repo": "TinyGregAudio/Model-TG"},
         "license": "LICENSE-Model-TG",
         # a part composed in the page with the machines, effects and Track FX ticked (notes/78): alone it gives
