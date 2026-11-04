@@ -1650,6 +1650,7 @@ const FEAT = {
         "12 dB. (-64–63)"],
     ] },
   cpu: { label: "CPU Page",
+    credit_name: "Model-TG",   // "based on Model-TG", linked to its repository, as Digital Delay's PPPCCC
     short: "Shows how much of the Model:Cycles' processor the sound takes.",
     desc: [
       ["", "Press [SETTINGS], open DEVICE and select its last row, CPU. Press [SETTINGS] again to close the page. The " +
@@ -1662,6 +1663,7 @@ const FEAT = {
       ["EFFECTS", "The share of the effects you install, -- without them."],
     ] },
   resample: { label: "RESAMPLE",
+    credit_name: "Model-TG",   // "based on Model-TG", linked to its repository, as Digital Delay's PPPCCC
     short: "Records a track, the main mix or the USB input and saves it as a sample on the +Drive.",
     desc: [
       ["", "Press and hold [SETTINGS] and press [RECORD] to open the RESAMPLE page, and again to close it. Its settings " +
