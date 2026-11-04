@@ -162,7 +162,8 @@ tools/machines/reso/          Reso (notes/75): a tuned resonator, a comb, the Tr
                               for the host; tools/gen_reso.py writes its tables and builds it into 75-reso.json; proven
                               by test_fltslot.py from its manifest
 tools/machines/eq/            EQ (notes/76): a three-band equalizer, the Track FX's id 5 (a sweepable Mid bell, Low and
-                              High shelves, the Audio EQ Cookbook's biquads on the EMAC: eq_cf.S, its model in eq.c):
+                              High shelves, the Audio EQ Cookbook's biquads on the EMAC: eq_cf.S, since 0.6 the block
+                              and the coefficients too, its model in eq.c):
                               the Mid's frequency and gain on RETRIG + SWEEP / CONTOUR, Low and High on COLOR / SHAPE;
                               tools/gen_eq.py writes its coefficient tables and builds it into 76-eq.json, --response
                               compares them with the Cookbook

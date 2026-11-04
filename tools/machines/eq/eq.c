@@ -29,10 +29,11 @@
  * words; the next block follows the input (flat) or starts the states at its first frame, so it need not clear them
  * (since 0.3). The trig bit is not read: an equalizer has no notes.
  *
- * Everything here is the device's but the frame loops, eq_frames and eq_frames3: eq_cf.S on the ColdFire, and below
- * (#ifndef __mcoldfire__) their model for the host with the EMAC's arithmetic in fractional, saturating mode (each
- * product floored to 2^-39, the sum read floored to Q31 and saturated), so that the host build is the proof's model,
- * bit for bit (tools/emu/test_fltslot.py).
+ * On the ColdFire everything but eq_reset is in eq_cf.S (since 0.6; the frame loops alone before): eq_process, the
+ * shelves and the bell, the same integer steps as here, the three-band loop inline, eq_frames for a band alone. This
+ * file holds the same as C for the host (#ifndef __mcoldfire__), the EMAC's arithmetic in fractional, saturating mode
+ * (each product floored to 2^-39, the sum read floored to Q31 and saturated), so that the host build is the proof's
+ * model, bit for bit (tools/emu/test_fltslot.py).
  *
  * Contract (fltslot.c): eq_process(block, words, track, triggered), block 32 frames of 32 bits changed in place,
  * called with MACSR 0xa0 and the accumulators clear; eq_reset(track). C ABI.
@@ -65,19 +66,20 @@ struct track {
 	uint8_t set;                                /* 0 after a reset: the next block that is not flat starts the
 	                                               states at its first frame */
 	uint8_t hs;                                 /* High's shift: 1 while its coefficients are under 2, else 2 */
+	uint8_t pad[2];                             /* 128 bytes: eq_cf.S finds a track's by a shift (since 0.6) */
 };
 
-static struct track state[TRACKS];
+struct track eq_state[TRACKS];                      /* eq_cf.S reads it (global since 0.6) */
+#define state eq_state
 
-void eq_frames(const int32_t *c, int32_t *s, int32_t *block, uint32_t shift);
-void eq_frames3(const int32_t *c, int32_t (*s)[4], int32_t *block, uint32_t hshift);
-
-/* A band whose output is its input, the newest frame f1 and the one before f2 (flat, or after a reset or silence). */
-static void follow(int32_t *s, int32_t f1, int32_t f2)
-{
-	s[0] = s[2] = f1;
-	s[1] = s[3] = f2;
-}
+#ifdef __mcoldfire__
+/* for eq_cf.S: the tables' addresses (the header's tables are static) and High's fit */
+const void *const eq_tab[3] = {EQ_LOW, EQ_HIGH, EQ_MID};
+const int32_t eq_high_fit = EQ_HIGH_FIT;
+typedef char eq_layout[sizeof(struct track) == 128 && __builtin_offsetof(struct track, c) == 48 &&
+		       __builtin_offsetof(struct track, w) == 108 && __builtin_offsetof(struct track, set) == 124 &&
+		       __builtin_offsetof(struct track, hs) == 125 && sizeof EQ_MID[0] == 396 ? 1 : -1];
+#endif
 
 void eq_reset(uint32_t track)
 {
@@ -86,6 +88,18 @@ void eq_reset(uint32_t track)
 			state[track].w[k] = NONE;
 		state[track].set = 0;
 	}
+}
+
+#ifndef __mcoldfire__
+/* --- the host's model of eq_cf.S ------------------------------------------------------------------------- */
+void eq_frames(const int32_t *c, int32_t *s, int32_t *block, uint32_t shift);
+void eq_frames3(const int32_t *c, int32_t (*s)[4], int32_t *block, uint32_t hshift);
+
+/* A band whose output is its input, the newest frame f1 and the one before f2 (flat, or after a reset or silence). */
+static void follow(int32_t *s, int32_t f1, int32_t f2)
+{
+	s[0] = s[2] = f1;
+	s[1] = s[3] = f2;
 }
 
 static int32_t clamp(int32_t w)
@@ -225,8 +239,7 @@ void eq_process(int32_t *block, const int16_t *words, uint32_t track, uint32_t t
 	}
 }
 
-#ifndef __mcoldfire__
-/* The host model of eq_cf.S: the EMAC in fractional, saturating mode (MACSR 0xa0), its accumulator here in units of
+/* The frames, as eq_cf.S runs them: the EMAC in fractional, saturating mode (MACSR 0xa0), its accumulator here in units of
  * 2^-39: each product of two Q31 values floored to 2^-39, the sum exact, read floored to Q31 and saturated; then the
  * doublings of the loop's add.l, saturated as its overflow branches do. */
 typedef int64_t acc_t;

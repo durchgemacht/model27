@@ -7,6 +7,9 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.41", date: "2026-11-04", changes: [
+    { en: "The EQ Track FX takes less of the Model:Cycles' time: about a seventh less where it is heaviest (every value moving at once with High boosted, or the block a track comes to EQ), about a tenth less while it holds its settings. The sound is the same, bit for bit, checked in an emulator on the OS's own code. Tried on a Model:Cycles (2026-11-04)" },
+  ] },
   { version: "0.40", date: "2026-11-04", changes: [
     { en: "The Reso Track FX takes less of the Model:Cycles' time: about a fifth less where it is heaviest (the block a track comes to Reso, and its values all moving at once), about a tenth less while it rings. The sound is the same, bit for bit, checked in an emulator on the OS's own code; only a ringing tail far under hearing (-90 dB) may be let go a block sooner or later. Tried on a Model:Cycles (2026-11-04)" },
   ] },
