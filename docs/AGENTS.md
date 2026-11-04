@@ -82,7 +82,8 @@ mods, the guide, the rest.
   short again. A section window and, as they are rewritten, the Details: blocks, each a short heading (the action or
   the parameter) and one or two sentences. In a card's Details, a block per knob: the heading the knob alone
   (SWEEP), then a whole sentence on what it sets, the term written out and the screen's abbreviation in brackets
-  ("Sets the sample rate (RATE)."). A default goes into that sentence ("127, the default, is off"), not a block of
+  ("Sets the sample rate (RATE)."). A card whose mod has a page of its own (the CPU page, RESAMPLE): a block per
+  setting of that page, its heading the name the page shows, not the knob. A default goes into that sentence ("127, the default, is off"), not a block of
   its own. The name the screen shows starts the card's short text, without brackets: "CRU - Makes a track grainy …"
   (`screen` in `FEAT`, none where it is the card's name). `Note:` at the end, smaller, only for what protects the user's work. What all
   the cards of a section share lives in its window, not on each card.

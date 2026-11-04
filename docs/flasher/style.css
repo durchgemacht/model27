@@ -153,7 +153,9 @@ code{font:.9em var(--f);background:none;padding:0;border-radius:0}
 .info-body .lede{margin-bottom:4px}
 
 /* in a user text (rich() in app.js): a key an inverted box, a knob underlined with dashes */
-.key{display:inline-block;padding:0 5px;background:var(--ink);color:var(--paper);font:700 .86em/1.45 var(--f);letter-spacing:0}
+/* inline, not inline-block: a full stop right after a key stays on its line */
+.key{display:inline;padding:1px 5px;background:var(--ink);color:var(--paper);font:700 .86em/1.45 var(--f);letter-spacing:0;
+  white-space:nowrap}
 .knob{font-weight:700;text-decoration:underline dashed;text-decoration-thickness:2px;text-underline-offset:4px}
 .info-body .info-note{margin-top:18px;font-size:13px;line-height:1.55;opacity:.72}   /* in the background: not model27's */
 

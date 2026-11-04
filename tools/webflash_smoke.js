@@ -538,17 +538,17 @@ async function main() {
     await click(box("more-control-all-config"));
     const opened = !box("det-control-all-config").hidden && box("more-control-all-config").getAttribute("aria-expanded") === "true"
       && !box("feat-control-all-config").checked && !!doc.querySelector('#det-control-all-config a[href$="#control-all"]')
-      && /Good to know/.test(text(doc, "det-control-all-config")) && !/Status/.test(text(doc, "det-control-all-config"))
+      && /Guide/.test(text(doc, "det-control-all-config")) && !/Status/.test(text(doc, "det-control-all-config"))
       && box("mod-control-all-config").classList.contains("open")
       && /Close/.test(textOf(doc, "#more-control-all-config"));
     await click(box("more-control-all-config"));
     check(opened && box("det-control-all-config").hidden && box("more-control-all-config").getAttribute("aria-expanded") === "false"
       && !box("mod-control-all-config").classList.contains("open"),
-      "Details opens the card to the whole row (description, Good to know, guide link; no status) without ticking, and closes it");
-    // a ticked card keeps its height: Good to know stays in Details
+      "Details opens the card to the whole row (description, guide link; no status) without ticking, and closes it");
+    // a ticked card keeps its height: nothing is added to it
     await click(box("feat-control-all-config"));
     check(!doc.querySelector("#mod-control-all-config .ext > .say") && box("det-control-all-config").hidden,
-      "ticking a card adds nothing to it (Good to know only in Details)");
+      "ticking a card adds nothing to it");
     await click(box("feat-control-all-config"));
     // the bar
     const nx = () => doc.querySelector("#mod-sel .sel-next");
@@ -617,7 +617,7 @@ async function main() {
     // search: only from 20 mods
     check(feats.length < 20 && box("mod-find").hidden, `no search field with ${feats.length} mods (it appears from 20)`);
     // each section's one line, its keys as boxes and its knobs marked (the Effects one naming only the slots its cards
-    // play in: no reverb card yet), none for Mods; a card not rewritten yet keeps its Details in paragraphs
+    // play in: no reverb card yet), none for Mods; every card's Details in blocks under headings (Writing for users)
     const marks = (sel) => [...doc.querySelectorAll(sel + " .key, " + sel + " .knob")].map((e) => e.className + ":" + e.textContent).join();
     check(textOf(doc, "#grp-effect .grp-sub") === "Press and hold PATTERN and turn DELAY TIME to select the effect for the pattern."
       && marks("#grp-effect .grp-sub") === "key:PATTERN,knob:DELAY TIME"
@@ -625,8 +625,8 @@ async function main() {
       && marks("#grp-filter .grp-sub") === "key:RETRIG,knob:PITCH"
       && /^Press MACHINES to open the MACHINES menu\. The machines you install come after CHORD\.$/.test(textOf(doc, "#grp-machine .grp-sub"))
       && marks("#grp-machine .grp-sub") === "key:MACHINES" && !doc.querySelector("#grp-mod .grp-sub")
-      && doc.querySelectorAll("#det-sampler > p").length === 2,
-      "the sections' one line each, keys and knobs marked, the Effects one with DELAY TIME only; Details in paragraphs");
+      && [...doc.querySelectorAll("#features .det")].every((d) => d.querySelector("h4") && !/[[\]]|Good to know/.test(d.textContent)),
+      "the sections' one line each, keys and knobs marked, the Effects one with DELAY TIME only; every card's Details in blocks");
     // Machines, Effects and Track FX open their How to use in one window over the page, in blocks under headings (the
     // Effects one naming the stock delay only, no placeholder or bracket left); a note only for Machines
     const info = async (k) => {

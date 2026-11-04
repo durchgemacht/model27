@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.47", date: "2026-11-04", changes: [
+    { en: "SAMPLE, the CPU page, RESAMPLE, Control All Config, Trig Preview and Trig Condition Order are rewritten like the other cards: a block for each key, knob or setting on the page, in the Model:Cycles manual's words. RESAMPLE now explains THRESH and STEREO too" },
+    { en: "The Machines window says what happens when you flash other machines: a track plays whichever machine now has its place, and its own again once you flash the same machines; if you saved the project in between, pick the sample of a SAMPLE track again" },
+  ] },
   { version: "0.46", date: "2026-11-04", changes: [
     { en: "Digital Delay and POTS are rewritten like the Track FX cards: their Details say only what differs from the stock delay. The cards' short texts now describe the sound, and the Details no longer repeat them" },
     { en: "The Effects and Track FX windows say what happens on a firmware without the effect or the Track FX, another model27 build or the official one: the pattern plays the stock delay, the preset plays without it, and flashing it again brings it back" },

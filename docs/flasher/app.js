@@ -1264,8 +1264,9 @@ const T = {
   kind_machine_info: [
     ["Select", "Press [MACHINES] to open the MACHINES menu, then use LEVEL/DATA to select a machine. The machines you " +
       "install are listed after CHORD."],
-    ["Flashing other machines", "Flashing model27 with other machines breaks nothing. A track whose machine is no " +
-      "longer there plays another one, and plays its own again once you flash the same machines."],
+    ["Flashing other machines", "On a model27 firmware with other machines, a track plays whichever machine now has " +
+      "its place in the list. Flash the same machines again and the track plays its own again. If you saved the project " +
+      "in between, pick the sample of a SAMPLE track again."],
   ],
   // a section's note at the end of its window, smaller and lighter: what is not model27's (kind_<k>_note, optional)
   info_note: "Note:",
@@ -1578,10 +1579,17 @@ const FEAT = {
   "latching-mute": { label: "Latching mute mode",
     short: "TRACK + FUNC: mute mode stays on, no need to hold FUNC.",
     desc: "Hold TRACK and tap FUNC: mute mode stays on, so you mute tracks without holding FUNC. A short tap on FUNC leaves it." },
+  // The cards below in Mods, and SAMPLE, as in Writing for users (docs/AGENTS.md); a card with a page of its own
+  // (the CPU page, RESAMPLE) has a block per setting on that page, not per knob
   "control-all-config": { label: "Control All Config",
-    short: "Choose which tracks Control All moves: hold TRACK and press TRIG 1–6.",
-    desc: "Hold TRACK and press TRIG 1–6 to take a track out of Control All, or to put it back. While TRACK is held, the trig keys of the tracks that follow light up. The active track always follows, as on the Digitakt and Digitone.\n\nTracks left out also keep their machine, LFO destination and PUNCH/GATE when you change those with TRACK held. TRACK + LEVEL/DATA (volume, pan) still moves all six tracks.",
-    note: "Your choice resets when you switch the Model:Cycles off." },
+    short: "Choose which tracks Control All changes.",
+    desc: [
+      ["[TRACK] + [TRIG 1–6]", "Takes a track out of Control All, or puts it back. While [TRACK] is held, the [TRIG] " +
+        "keys of the tracks that follow light up. The active track always follows. Your choice lasts until you switch " +
+        "the Model:Cycles off."],
+      ["Tracks left out", "A track you take out also keeps its machine, LFO destination, PUNCH and GATE when you change " +
+        "these with [TRACK] held. Volume and pan ([TRACK] + LEVEL/DATA) still change on all six tracks."],
+    ] },
   // The effect cards, as in Writing for users (docs/AGENTS.md): what the Effects window says stays out
   digidelay: { label: "Digital Delay",
     credit_name: "PPPCCC",     // the credit's link text, in place of the long repository name
@@ -1648,18 +1656,59 @@ const FEAT = {
         "12 dB. (-64–63)"],
     ] },
   cpu: { label: "CPU Page",
-    short: "A page in SETTINGS that shows how much of the Model:Cycles' time the sound takes.",
-    desc: "Press SETTINGS, go to the list with USB mode, LCD, LED and Contrast, and press its last row, CPU. The page shows CPU, the share of the Model:Cycles' time the sound took over the last half second, with a bar and a mark at 85 %: above it the screen and the knobs start to lag. PEAK is the dearest moment since you opened the page, TRACK FX and EFFECTS the shares of the Track FX and of the delay and reverb slot effects (\"--\" without them). It updates twice a second; Return closes it.\n\nThe sequencer keeps playing while the page is up. The share counts the sound only, not the screen." },
+    short: "Shows how much of the Model:Cycles' processor the sound takes.",
+    desc: [
+      ["", "Press [SETTINGS], open DEVICE and select its last row, CPU. Press [SETTINGS] again to close the page. The " +
+        "sequencer keeps playing."],
+      ["CPU", "The share of the processor's time the sound took over the last half second, with a bar. Above the mark " +
+        "at 85 % the screen and the knobs start to lag. It counts the sound only, not the screen, and updates twice a " +
+        "second."],
+      ["PEAK", "The highest share since you opened the page."],
+      ["TRACK FX", "The share of the Track FX, -- without them."],
+      ["EFFECTS", "The share of the effects you install, -- without them."],
+    ] },
   resample: { label: "RESAMPLE",
-    short: "Record a track, the main mix or USB and save it as a sample: hold SETTINGS and press RECORD.",
-    desc: "Records a track, the main mix or the USB input, and saves it as a sample on the +Drive.\n\n1. Hold SETTINGS and press RECORD. The RESAMPLE page opens.\n\n2. Set SOURCE: one track (T1–T6), MAIN or USB.\n\n3. Set START:\n\nNOW – recording starts when you press RECORD.\n\nLEVEL – recording starts when the sound gets louder than THRESH. The beginning of the sound is kept.\n\nTRIG – recording starts with the next trig of the source track (with MAIN: of any track; not with USB). With the sequencer stopped, hold a step and press PAGE to play that trig (needs Trig Preview).\n\n4. Press RECORD. With LEVEL and TRIG the page waits for the start; pressing RECORD again cancels.\n\n5. Recording ends as set in STOP: when the sound has died away, after LENGTH, or when you press RECORD.\n\n6. Confirm the suggested name (REC-001, REC-002, …) or type your own. The sample is saved in /recordings.\n\nNORM ON sets the recording's peak just under full scale. With NORM OFF, a recording of a single track plays back on SAMPLE as loud as you heard it. TO Tn ON puts the recording straight on the selected track, if that track plays SAMPLE.",
-    note: "Playing a trig with the sequencer stopped needs Trig Preview, and TO Tn needs SAMPLE, both on this page. A recording lasts up to 40 seconds in mono, 20 in stereo. Volume + Dist above 60 distorts before the recording: played back with the same setting, the recording gets it twice. The sound pauses while the recording is written to the +Drive. The page's settings last until you switch the Model:Cycles off." },
+    short: "Records a track, the main mix or the USB input and saves it as a sample on the +Drive.",
+    desc: [
+      ["", "Press and hold [SETTINGS] and press [RECORD] to open the RESAMPLE page, and again to close it. Its settings " +
+        "last until you switch the Model:Cycles off."],
+      ["SOURCE", "Sets what to record: one track (T1–T6), MAIN or USB."],
+      ["START", "Sets when the recording starts. NOW starts when you press [RECORD]. LEVEL starts when the sound gets " +
+        "louder than THRESH, and keeps the beginning of the sound. TRIG starts with the next trig of the source track " +
+        "(with MAIN, of any track; not with USB). With the sequencer stopped, press and hold a [TRIG] key and press " +
+        "[PAGE] to play that trig; this needs Trig Preview."],
+      ["THRESH", "Sets the level LEVEL waits for, from -60 to -12 dB."],
+      ["STEREO", "ON records MAIN or USB in stereo. A track is always mono."],
+      ["STOP", "Sets when the recording ends. SILENT ends it when the sound has died away, LENGTH after the time set on " +
+        "LENGTH, RECORD when you press [RECORD]."],
+      ["LENGTH", "Sets the longest recording: up to 40 seconds in mono, 20 in stereo."],
+      ["[RECORD]", "Starts the recording. With LEVEL and TRIG the page waits for the start; press [RECORD] again to " +
+        "cancel. While it records, [RECORD] stops it."],
+      ["Name", "Confirm the suggested name (REC-001, REC-002 …) or type your own. The sample is saved in /recordings. " +
+        "The sound pauses while it is written to the +Drive."],
+      ["NORM", "ON raises the recording's peak to just under full scale. OFF keeps it as loud as you heard it: a track " +
+        "recorded this way plays back on SAMPLE at the same level."],
+      ["TO Tn", "YES puts the recording straight on the selected track, if that track plays SAMPLE."],
+      ["VOLUME + DIST", "Above 60 it distorts the track before the recording. Played back with the same setting, the " +
+        "recording gets the distortion twice."],
+    ] },
   "trig-cond-order": { label: "Trig Condition Order",
-    short: "On the CHANCE knob, the A:B conditions now come before the percentages.",
-    desc: "Hold a trig and turn CHANCE: FILL to !1st come first, then the A:B conditions from 1:2 to 8:8, then the percentages from 1% to 99%. The stock OS puts the percentages first.\n\nThe five dots under the value follow the new order. Only the knob changes: every trig keeps its condition, so your patterns play the same with or without the mod." },
+    short: "On CHANCE, the A:B conditions come before the percentages.",
+    desc: [
+      ["[TRIG] + CHANCE", "With a [TRIG] key held, CHANCE steps through FILL to !1st, then the A:B conditions from 1:2 " +
+        "to 8:8, then the percentages from 1% to 99%. The stock OS puts the percentages first. The five dots under the " +
+        "value follow the new order."],
+      ["Patterns", "Only the knob changes. Every trig keeps its condition, so a pattern plays the same with or without " +
+        "this mod."],
+    ] },
   "trig-preview": { label: "Trig Preview",
-    short: "With the sequencer stopped, hold a trig and press PAGE to hear that step.",
-    desc: "With the sequencer stopped or paused, hold a trig and press PAGE: the step plays as the sequencer would play it, with its note, length, p-locks and sound lock, and the page doesn't turn.\n\nThe step plays whatever its trig condition, even on a muted track. While the sequencer runs, PAGE turns the page as usual." },
+    short: "Hear a step without starting the sequencer.",
+    desc: [
+      ["[TRIG] + [PAGE]", "With the sequencer stopped or paused, press and hold a [TRIG] key and press [PAGE]. The step " +
+        "plays as the sequencer would play it, with its note, length, parameter locks and preset lock, whatever its " +
+        "trig condition, even on a muted track. The page does not turn."],
+      ["While playing", "While the sequencer runs, [PAGE] turns the page as on the stock OS."],
+    ] },
   "browser-scroll": { label: "Scroll long names",
     short: "In the sound browser, names too long for the screen scroll.",
     desc: "In the sound browser, a name too long for the screen scrolls so you can read it." },
@@ -1714,13 +1763,27 @@ const FEAT = {
     desc: "An extra machine after Chord, always the last one (after the Sampler with Model-TG, then the Syntakt engines and MACRO if you tick them too): an acid bass in the style of the TB-303, from the open-source Open303 model by Robin Schmidt. COLOR is the cutoff, SHAPE the resonance, SWEEP the env mod, CONTOUR the drive (from clean to fuzz, at about the same volume) and DECAY the decay; PUNCH switches the wave from saw to square. A trig whose length (LEN) runs past the next trig slides into the next note instead of playing it again; a pad played while another is held slides too.",
     note: "About as heavy on the processor as Tone. Turn GATE on for notes that hold their whole length, as on the original. With the Syntakt engines, their load governor looks after ACID tracks too: a track it stopped plays its next note afresh, without sliding. A project using ACID needs a firmware with ACID at the same place: it is the last machine, so its number depends on Model-TG, the ticked Syntakt engines and MACRO." },
   sampler: { label: "SAMPLE",
-    short: "Play samples from the +Drive and shape them with the built-in LP/HP filter, loop, reverse and gate.",
+    short: "Plays samples from the +Drive, once or in a loop, forwards or backwards, through the Model:Samples' filter.",
     clash: "both add machines at the same place of the firmware, and there is no combined build with SAMPLE yet",
     "clash_model-tg": "both change the same sound record functions of the firmware",
     "clash_track-filter": "both change the same sound record functions of the firmware",
     "clash_sample-preview": "both read sample files from the same PRESET browser, and sample preview needs Model-TG",
-    desc: "On a SAMPLE track, open the PRESET browser (FUNC + MACHINE) and pick a sample: the sound takes its name. Hold a trig while you pick one to give that step its own sample as a sound lock.\n\nCOLOR sets the start, SHAPE the length, SWEEP the Model:Samples' filter and CONTOUR its resonance, both shown with the Model:Samples' own pictures. SHAPE also moves the end of the note that plays; on a loop, COLOR moves where the next time round starts. Hold MACHINES and press PUNCH for loop or GATE for reverse.",
-    note: "Load samples onto the +Drive with Elektron Transfer. Before installing a firmware without SAMPLE, switch SAMPLE tracks back to a stock machine." },
+    desc: [
+      ["", "Put samples on the +Drive with Elektron Transfer first."],
+      ["[FUNC] + [MACHINES]", "Opens the PRESET menu. Select a sample: the track plays it, and the preset takes its " +
+        "name. Press and hold a [TRIG] key while you select one to give that step its own sample, as a preset lock."],
+      ["COLOR", "Sets where a trig starts in the sample (STRT). Moving it keeps the length. On a loop that plays, it " +
+        "moves where the next time round starts. (0–120)"],
+      ["SHAPE", "Sets how far a trig plays (LEN): to the start plus the length, at most to the sample's end. 120, the " +
+        "default, plays to the end. The note that plays follows at once. (0–120)"],
+      ["SWEEP", "Sets the cutoff of the Model:Samples' filter (FREQ). 0, the default, is off. Turn left for a lowpass, " +
+        "right for a highpass. (-64–63)"],
+      ["CONTOUR", "Sets the filter's resonance (RESO), up to a peak of about +27 dB at the cutoff."],
+      ["[MACHINES] + [PUNCH]", "Switches Loop on or off. The sample plays from its start point to the end, again and " +
+        "again. The screen shows L after the sample's name."],
+      ["[MACHINES] + [GATE]", "Switches Reverse on or off, from the next trig. The screen shows R after the sample's " +
+        "name."],
+    ] },
   "chord-keys": { label: "Chord Keys",
     short: "On a CHORD track, TRIG 1–16 play the chords of your scale.",
     clash: "both change the notes of the TRIG keys (Model-TG has its own Scale Lock)",
