@@ -475,6 +475,62 @@ off with the editor's message, not again in the save): ALL OK; in Unicorn part 7
 toggle stood in for as it works, `+358 = +357 && !on`) and part 9 (the editor's message): the maintainer's `--keys`,
 ALL OK. Code 16 150 bytes; build `182839fa…`. On the machine (2026-11-04): GRID RECORDING off, armed for TRIG: the
 REC LED on; RECORD again: off; armed, a take by Trig Preview, the editor up and the LED off again: « passt ».
+Committed `4ad19a4`.
+
+## 12. Step R3b: TO T*n* and the level as heard (2026-11-04)
+
+The maintainer: « Ja, R3b starten ». The part's 0.4.
+
+- **TO T*n*** `[FAIT dans le code]`: SAMPLE names its sample in the sound by a key at +70 (k 25..27: the file's inode,
+  its id high and low; `machine/pool.c`), which its browser hook writes when the OS's browser opens a file for a
+  SAMPLE track, and the OS's browser then copies the file's name into the sound's +4 (16 characters, `0x400a6650` →
+  `0x4008eeb8`); SAMPLE's loader checks `FS_ENTRY(inode, h)` (`0x4007de78`) and `h[1] == id`, and its tick loads what
+  a live sound names. So after the commit, with TO T*n* on YES and the selected track playing SAMPLE: the file is
+  opened by its path, its handle's +0 the inode (`0x4007bd28`), closed; its entry's +4 the id (odd: a file); the
+  track's live sound (as SAMPLE's `os_sound`: the project + 212 + 68 t, its vtable's +40) gets the key and the name.
+  The popup says « Saved on T*n* » and the name. Without SAMPLE in the build, or on a track that does not play it,
+  the file is only saved.
+- **The level as heard** `[FAIT]`: a full-scale sample (32767) comes out of SAMPLE's interpolator at 2^30, at 96 kHz
+  (its rows sum to 32768, `src/smp_coeffs.c`; « half of Q31, the level the Cycles machines hand to that decimator »,
+  `smp_core.h`). SAMPLE then hands it to the stock amp chain, as TONE does (`machine/sampler.c`): the 2:1 decimator
+  `0x400a9f58` (a polyphase IIR halfband: the odd frame plus an allpass of the even ones, no ½: it doubles, 2^31), the
+  amp envelope `0x400a9252` and the VCA `0x400a9430` (−1.0 at the top of the envelope, negated: unity), and PUNCH
+  `0x400a967a`, which with PUNCH off (SAMPLE's update: `+0x2a0` and `+0x2a4` at 0x20000000, `+0x294` at 0x7fffffff)
+  gives (0.25 · 1.0) · (4 · 0.25 · x): a quarter, 2^29. The OS's voice loop then halves every track's 32 frames in
+  place after its machine (`0x400a7e2a`: `move.l (a1),d1 ; asr.l #1,d1 ; ... move.l d1,(a1)+`, the « halving » of
+  notes on 6ch-usbup): a full-scale SAMPLE track reaches the buffer the part takes at 2^28 (−18.1 dB of Q31; with
+  PUNCH on −18.5 dB once its envelope settles). A track's full scale is that (part.json's shift: track 3), so that a
+  take of a track saved without NORM (`>> 13`) replays on a SAMPLE track with the same amp and level as it was heard,
+  and the meter, LEVEL's threshold and CLIP count from it. Before the tap there are also the per-track gain
+  `0x40056d9c` (w/127 from `0x40fe4c90`, unity at 127) and the Dist of Volume + Dist (`0x40056f58`, only clean up to
+  60, cycles-voldist-level): a replay goes through them again. The volume (V/64)², the level and the pan are the
+  mixer's, after the tap: a replay goes through them as the original did. So a take replays as heard when Volume +
+  Dist stays at 60 or below; above it the take holds its distortion and the replay adds its own. A track louder than
+  a full-scale SAMPLE (a hot stock machine, the Dist) shows CLIP and saturates in the file as heard; NORM keeps it
+  whole.
+- **On the machine, first try (2026-11-04, `c372bdeb…`, shift 1)**: TO T*n* « passt »; the take « hörbar leiser »:
+  the voice loop's halving left out (and, found later, the decimator's and PUNCH's: 12 dB in all). The main mix (the bus
+  after its x4) and USB (32 bits from the computer) keep 2^31, their full scale at the output and at the input.
+- **Proven here**: cfemu (`save_check.py`: the key from the opened file's handle and its entry, the name, the popup;
+  without SAMPLE, nothing touched; a file exists only once committed, as in the file system): ALL OK; `page_check.py`,
+  `check.py`: ALL OK; `--dry` and the repository's checks. Unicorn (the maintainer's run): part 9 (the track's save at
+  `>> 15`; TO T*n* on the track's sound, stood in for, with the file system's entry; without SAMPLE untouched), part 8
+  (the recording screen's meter at the track's scale): the maintainer's `--keys`, ALL OK (TO T3 in the build with
+  SAMPLE, untouched without it). Code 16 650 bytes; build `c372bdeb…`.
+- **Proven again with shift 2** (2026-11-04): part 1b (SAMPLE's rows and the voice loop's halving read from the
+  sources and the stock OS: shift 2), part 9 (the save at `>> 14`), part 8 (the meter at the new scale): the
+  maintainer's `--keys`, ALL OK in the three selections. Build `f7dd6b35…`; the level on the machine is next.
+- **On the machine, second try (2026-11-04, `f7dd6b35…`, shift 2)**: T1 and T2 SAMPLE with the same sample, T1 recorded
+  (START LEVEL) and saved to T2 with TO T*n*: T2 « deutlich leiser »; « Volume auf T2 auf 110 » matched it (the Dist's
+  gain, not the mixer's, which stops at 64). Still 6 dB short: the decimator (×2) and PUNCH (×¼) had been left out.
+  Measured first in cfemu on the OS's own four functions (`_scratch/resample/chain/measure.py`, local): SAMPLE's full
+  scale −6.02 dB, after the decimator −0.00, the VCA −0.01, PUNCH −12.05, halved −18.07 (2^28); the per-track gain
+  at 127 exactly 1. Shift 3 since: `test_resample.py` part 1b now runs the same chain in Unicorn (`mcengine`'s exact
+  EMAC, a voice after its own reset, the fields SAMPLE's update sets, read from `sampler.c`) and checks 2^31 >> shift
+  against it (the maintainer's `--keys`: 0.1250 of 2^31, 2^31 >> 3; part 8's recording case, its peak fixed at
+  2^28, then showed CLIP, rightly: its peak is now half the track's full scale; then ALL OK). Build `15a32ac0…`.
+- **On the machine, third try (2026-11-04, `15a32ac0…`, shift 3)**: the same A/B, both tracks at Volume + Dist 50:
+  « gleich laut ».
 - **The maintainer, the same day**: GRID RECORDING has to be on before the page opens, since Trig Preview plays only
   with it on and RECORD on the page arms instead of toggling it (§2.2). A point for the page, not the editor's cause;
   decided in §11.1.

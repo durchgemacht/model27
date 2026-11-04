@@ -86,17 +86,21 @@ static int settings_held(void)
 	return KEY_HELD(K_SETTINGS) || D->set_held;
 }
 
-static uint32_t selected(void)
+uint32_t rs_selected(void)
 {
 	return TRACK_OF(PATTERN_OF(PROJECT())) % 6u;
 }
 
+#define selected rs_selected
+
 /* TO Tn applies: the build has SAMPLE and the selected track's sound plays it (the machine, k 9's high byte at +38). */
-static int to_track_ok(void)
+int rs_to_track_ok(void)
 {
 	const uint8_t *k = KIT_SOUNDS;
 	return D->sample != 0xffu && k && k[0x1c + 100u * selected() + 38u] == D->sample;
 }
+
+#define to_track_ok rs_to_track_ok
 
 static uint32_t length_most(void)
 {

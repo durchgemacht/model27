@@ -17,7 +17,11 @@
  * (later steps) names and saves it; nothing here touches the drive.
  *
  * The levels are magnitudes in each source's own scale: full scale is 2^31 >> shift, the shift per kind of source
- * (track, main, USB) written by the composer, 0 until the levels are measured (notes/79 §3.3).
+ * (track, main, USB) written by the composer from part.json: a track 3, SAMPLE's full scale in the track's buffer
+ * (its interpolator's rows sum to 32768: a full-scale sample comes out at 2^30 at 96 kHz; the OS's 2:1 decimator
+ * 0x400a9f58 doubles it, the VCA keeps it, PUNCH 0x400a967a takes a quarter with PUNCH off, and the voice loop halves
+ * every track, 0x400a7e2c: 2^28), main and USB 0 (the output's and the USB input's full scale); the save maps that full
+ * scale to 16-bit full scale (notes/79 §3.3, §12).
  *
  * The UI task arms (rs_arm), asks the end (rs_stop), drops (rs_cancel) and, once the take is saved, lets it go
  * (rs_release); the audio interrupt only reads what the UI writes before it sets the state, and the UI only reads what

@@ -101,5 +101,7 @@ void rs_norm(uint32_t peak, uint32_t *s, uint32_t *g);
 uint32_t rs_pcm16(uint8_t *out, const int32_t *x, uint32_t words, uint32_t s, uint32_t g);
 void rs_ask_name(void);                             /* save.c: the name editor, in the UI task */
 void rs_grid_back(void);                            /* page.c: GRID RECORDING as it was before the page armed */
+uint32_t rs_selected(void);                         /* page.c: the selected track, 0..5 */
+int rs_to_track_ok(void);                           /* page.c: TO Tn applies (SAMPLE plays on the selected track) */
 
 #endif

@@ -24,8 +24,8 @@
  *   The FileWriter mutes the audio while it lives, as every stock save does (notes/79 §4).
  * - ACT_WRITE: 16 384 words of the take into 16-bit in the 32 KiB at the claim's end and written, one piece a message
  *   (a write only fills the FileWriter's 32 KiB buffer, so each piece is written and flushed: Model-TG's rs_fw_put).
- * - ACT_CLOSE: the 16 zero bytes after the frames, then commit, or abort on an error; the take let go, the page closed
- *   and the OS's popup (0x400747c0 on 0x9c bytes, its holder 0x400fbf40, as 0x4000d750 shows "Lock mem full!")
+ * - ACT_CLOSE: the 16 zero bytes after the frames, then commit, or abort on an error; with TO Tn, the file on the
+ *   selected track's SAMPLE sound (to_track); the take let go, the page closed and the OS's popup (0x400747c0 on 0x9c bytes, its holder 0x400fbf40, as 0x4000d750 shows "Lock mem full!")
  *   saying where it went; after an error the take stays and the popup says so. Should a step find no free message,
  *   the file is given up the same way, so that the FileWriter (and the mute) never outlives the save.
  *
@@ -65,6 +65,12 @@
 #define PRESENT(t, pair, x) ((void (*)(void *, void *, uint32_t))0x4007700e)(t, pair, x)
 #define DROP(ref) ((void (*)(void *))0x400cf23c)(ref)
 #define NEEDS_REDRAW(v) ((void (*)(void *))0x40076082)(v)
+#define PROJECT() ((char *(*)(void))0x400cf866)()
+#define FS_ENTRY(ino, h) ((int32_t (*)(uint32_t, uint32_t *))0x4007de78)(ino, h)   /* {.., id, size, ..}, 0 */
+#define SOUND_NAME_AT 4                             /* a sound's name, 16 characters (0x400a6650's copy) */
+#define SOUND_NAME_LEN 16
+#define SOUND_MACHINE_AT 38                         /* its machine (k 9's high byte) */
+#define SOUND_KEY_AT 70                             /* SAMPLE's key: k 25..27 = inode, id high, id low (pool.c) */
 #define CLOSE_AT 0x28                               /* the view's close, in its primary vtable */
 #define NAME_MAX 12
 #define PIECE 16384u                                /* words a message: 32 KiB of 16-bit */
@@ -324,12 +330,61 @@ static void write(void)
 	step(d->pos < d->total ? ACT_WRITE : ACT_CLOSE);
 }
 
+/* A track's live sound, as SAMPLE's os_sound (machine/os.h): the project + 212 + 68 t, through its vtable's +40. */
+static char *sound_of(uint32_t t)
+{
+	char *project = PROJECT(), *track;
+	void **vt;
+
+	if (!project)
+		return 0;
+	track = project + 212 + 68u * t;
+	vt = *(void ***)track;
+	return vt && vt[10] ? ((char *(*)(char *))vt[10])(track) : 0;
+}
+
+/* TO Tn: the saved file on the selected track's SAMPLE sound, as SAMPLE's browser puts one there (pool.c's
+   smp_browser_open: its key, the file's inode and id; the OS's browser then names the sound after the file,
+   0x400a6650): the inode from the file opened by its path (the handle's +0, 0x4007bd28), the id from the file system's
+   entry for it (0x4007de78, +4), which is what SAMPLE's loader checks. SAMPLE's tick then sees the sound name a new
+   sample and loads it. The track, or 0 when it did not go there. */
+static uint32_t to_track(void)
+{
+	struct data *d = D;
+	uint32_t fh[4], h[4], t, ino;
+	uint16_t *key;
+	char *s;
+	int i;
+
+	if (!d->to_track || !rs_to_track_ok())
+		return 0;
+	if (FILE_OPEN(d->path, READ_MODE, fh))
+		return 0;
+	ino = fh[0];
+	FILE_CLOSE(fh);
+	if (FS_ENTRY(ino, h) || !(h[1] & 1u))
+		return 0;
+	t = rs_selected();
+	s = sound_of(t);
+	if (!s || (uint8_t)s[SOUND_MACHINE_AT] != d->sample)
+		return 0;
+	key = (uint16_t *)(s + SOUND_KEY_AT);
+	key[0] = (uint16_t)ino;
+	key[1] = (uint16_t)(h[1] >> 16);
+	key[2] = (uint16_t)h[1];
+	for (i = 0; i < SOUND_NAME_LEN; i++)
+		s[SOUND_NAME_AT + i] = 0;
+	for (i = 0; i < NAME_MAX && d->name[i]; i++)
+		s[SOUND_NAME_AT + i] = d->name[i];
+	return t + 1u;
+}
+
 static void finish(void)
 {
 	struct data *d = D;
-	uint32_t *z = (uint32_t *)d->conv;
+	uint32_t *z = (uint32_t *)d->conv, t;
 	int ok;
-	char text[32];
+	char text[40], on[16] = "Saved on T0\n";
 
 	z[0] = z[1] = z[2] = z[3] = 0;
 	fw_put(z, 16);
@@ -341,10 +396,12 @@ static void finish(void)
 		popup("Save failed");
 		return;
 	}
+	t = to_track();
 	rs_release();
 	if (d->page)
 		(*(void (**)(void *))(*(char **)d->page + CLOSE_AT))((void *)d->page);
-	cat(text, "Saved\n", d->name, sizeof text);
+	on[10] = (char)('0' + t);
+	cat(text, t ? on : "Saved\n", d->name, sizeof text);
 	popup(text);
 }
 

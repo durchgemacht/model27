@@ -11,6 +11,9 @@ official OS 1.13:
      buffer and its words, the ring, the sources' shifts as part.json gives them, the rest zero; the RAM claim
      (0x42800000..0x43000000) outside the payload, after the stock delay line (0x42400000..0x42800000) and before
      SAMPLE's pool; the tweaks that write other bytes at 0x40059872 or 0x4007240c among the computed conflicts;
+ 1b. a track's full scale (notes/79 §12): SAMPLE's interpolator rows, the voice loop's halving and the fields SAMPLE's
+     update gives the stock amp chain, read from the sources and the stock OS (also with --dry); in Unicorn, SAMPLE's
+     full scale through the OS's decimator, amp envelope, VCA and PUNCH, halved: 2^31 >> part.json's track shift;
   2. idle: the whole audio interrupt, block for block, from its body (0x40058ca0) through the call of the audio
      function (0x40059382), six stock machines playing with both sends up, on the build without the recorder (the
      stock OS for the recorder alone) and with it: after every block the SRAM, the voices, the mixer's state, the
@@ -54,7 +57,8 @@ official OS 1.13:
      the page's screen by the OS's own 0x4007722a (not stood in for: its 0x4007700e is), its title Resample; confirmed,
      the save, the pieces of at most 32 KiB and the close: the stock FileWriter's file /recordings/<name> of the size
      given, its bytes the header, the frames as heard and 16 zero bytes, committed, the take let go, the page closed and
-     the OS's popup "Saved"; a name that exists brings the editor back, its title NAME EXISTS, and opens no file; an
+     the OS's popup "Saved"; with TO Tn the file on the track's SAMPLE sound (its key, its name, "Saved on Tn"); a
+     name that exists brings the editor back, its title NAME EXISTS, and opens no file; an
      error aborts, says "Save failed" and keeps the take; NORM in stereo, in five pieces; a step that finds no free
      message gives the file up the same way.
 
@@ -73,6 +77,7 @@ import struct
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
+TOOLS = HERE.parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent))
 
@@ -184,6 +189,80 @@ def build_tests(key, w, wo):
         check(takers and takers <= set(tweak["conflicts"]),
               f"{key}: the {len(takers)} tweaks that take {site:#x} ({', '.join(sorted(takers)[:4])}"
               f"{', ...' if len(takers) > 4 else ''}) among its computed conflicts")
+
+
+AMP_FIELDS = {0x274: 0x012c0f26, 0x278: 0x012c0f26, 0x280: 0x001f7c5c, 0x284: 0x001f7c5c, 0x290: 0x7fffffff,
+              0x294: 0x7fffffff, 0x27c: 0x82581e4b, 0x288: 0x803ef8b8,
+              0x29c: 0x7fffffff, 0x2a0: 0x20000000, 0x2a4: 0x20000000, 0x48: 0}   # SAMPLE's update, PUNCH off
+DECIMATE, AMP_ENV, VCA, PUNCH = 0x400a9f58, 0x400a9252, 0x400a9430, 0x400a967a
+LUT_DECAY = 0x4011d84c
+
+
+def level_tests(stock, dry):
+    """1b. A track's full scale (part.json's shift, notes/79 §12), from the code it follows from. Statically: SAMPLE's
+    interpolator's rows sum to 32768 (src/smp_coeffs.c): a full-scale sample (32767 << 15) at 2^30 at 96 kHz; the
+    OS's voice loop halves each track's 32 frames in place after its machine (0x400a7e2a: move.l (a1),d1 ; asr.l
+    #1,d1 ; ...). In Unicorn (not with --dry), SAMPLE's way through the stock amp chain, on the OS's own code after a
+    voice's own reset (0x400a7ab8), with the fields SAMPLE's update sets (sampler.c, PUNCH off) and a trig: the 2:1
+    decimator (0x400a9f58), the amp envelope (0x400a9252), the VCA (0x400a9430) and PUNCH (0x400a967a): its peak,
+    halved, is the track's full scale in the buffer the part takes, 2^31 >> part.json's track shift, so that the save
+    gives the sample back as it was."""
+    import re
+    src = (TOOLS / "machines" / "sampler" / "src" / "smp_coeffs.c").read_text()
+    rows = [[int(x) for x in r.split(",") if x.strip()] for r in re.findall(r"\{([^{}]*)\}", src.split("= {", 1)[1])]
+    sums = {sum(r) for r in rows}
+    loop = stock[0x400a7e2a - compose.BASE:0x400a7e38 - compose.BASE].hex()
+    smp = (TOOLS / "machines" / "sampler" / "machine" / "sampler.c").read_text()
+    amp = smp[smp.index("if (V32(0x38)) {"):smp.index("start(t, v, p")]     # the trig's set-up in sampler_update
+    common, rest = amp.split("if (P16(0x1e)) {")
+    off_branch = rest.split("} else {")[1].split("}")[0]                      # PUNCH off
+    fields = {}
+    for line in (common + off_branch).splitlines():
+        m = re.match(r"\s*((?:V32\(0x[0-9a-f]+\) = )+)(?:\(int32_t\))?(0x[0-9a-f]+|\d+);", line)
+        if m:
+            for a in re.findall(r"V32\((0x[0-9a-f]+)\)", m.group(1)):
+                fields[int(a, 16)] = int(m.group(2), 0)
+    check(sums == {32768} and len(rows) == 256 and loop == "2211e281528022c17220b28066f2"
+          and fields == AMP_FIELDS,
+          f"SAMPLE's {len(rows)} interpolator rows each sum to 32768 (a full-scale sample at 2^30 at 96 kHz), the voice "
+          f"loop halves each track (0x400a7e2a: {loop}), SAMPLE's update sets the stock amp chain's "
+          f"{len(fields)} fields (PUNCH off) as this proof does")
+    if dry:
+        return
+    import mcengine as E
+    e = E.Engine(stock)
+    uc = e.uc
+    v, buf, out = E.VOICE0, 0x4c000000, 0x4c001000
+    uc.mem_map(buf, 0x10000)
+    fs = 32767 << 15
+    uc.mem_write(buf + 32, struct.pack(">64i", *[fs] * 64))
+    decay = struct.unpack_from(">I", stock, LUT_DECAY + 4 * 127 - compose.BASE)[0]
+    e.emac.macsr = 0xa0                         # as the voice loop sets it (0x400a7d5a) before the machines
+
+    def put(off, val):
+        uc.mem_write(v + off, struct.pack(">I", val & 0xffffffff))
+    peaks = []
+    for n in range(6):                          # the trig in block 0, its sound from block 1
+        put(0x34, n == 0)
+        put(0x38, n == 1)
+        put(0x250, decay)
+        if n == 1:
+            for off, val in AMP_FIELDS.items():
+                put(off, val)
+        e.call(DECIMATE, v, buf, out)
+        dec = max(map(abs, words(uc, out, 32)))
+        e.call(AMP_ENV, v)
+        e.call(VCA, out, v)
+        e.call(PUNCH, out, v)
+        peaks.append((dec, max(map(abs, words(uc, out, 32)))))
+    dec, amp = peaks[2]
+    full = amp >> 1                             # the voice loop's halving
+    shift = PART["shift"]["track"]
+    check(peaks[0][1] == 0 and abs(dec - (1 << 31)) < (1 << 31) // 200 and abs(full - (2 ** 31 >> shift)) <
+          (2 ** 31 >> shift) // 100 and e.unmapped == [],
+          f"a track's full scale: SAMPLE's full scale (2^30) through the OS's decimator ({dec / 2 ** 31:.4f} of 2^31), "
+          f"amp envelope, VCA and PUNCH (off: {amp / 2 ** 31:.4f}), halved by the voice loop: {full / 2 ** 31:.4f} of "
+          f"2^31 = 2^31 >> {shift}, part.json's track shift; the trig's block silent")
 
 
 # --- the emulator -----------------------------------------------------------------------------------------------------
@@ -807,8 +886,8 @@ def render_tests(key, w, u, copy, page, show):
         fb = bytes(u.uc.mem_read(CP.FB, CP.W * CP.PITCH * 4))
         return [[CP.lit(fb, x, r) for x in range(CP.W)] for r in range(CP.H)], u.sp_ok and not u.bad
 
-    def down(level):
-        return u.call(syms["rs_db"], level, 0) if level else 96
+    def down(level, sh=0):
+        return u.call(syms["rs_db"], level, sh) if level else 96
     yes = sample != 0xff                                    # TO Tn applies on a SAMPLE track of a build with SAMPLE
     cases = [
         ("idle, T3, LEVEL -40 dB", 0, dict(state=IDLE, src_set=SELECTED, start_set=LEVEL, thr_set=40, stereo_set=0,
@@ -827,8 +906,9 @@ def render_tests(key, w, u, copy, page, show):
                                                 limit=480000, level=0),
          lambda: RS.armed(SELECTED, 0, TRIG, LENGTH, 480000, 40, 96)),
         ("recording, 2.4 s of 10", 0, dict(state=REC, src=SELECTED, stereo=0, frames=115200, limit=480000,
-                                           stop=LENGTH, level=0x02000000, peak=0x10000000),
-         lambda: RS.recording(115200, 480000, LENGTH, False, down(0x02000000))),
+                                           stop=LENGTH, level=0x02000000,
+                                           peak=(2 ** 31 >> PART["shift"]["track"]) >> 1),   # -6 dB: no CLIP
+         lambda: RS.recording(115200, 480000, LENGTH, False, down(0x02000000, PART["shift"]["track"]))),
         ("recording, 12 s, clipped", 0, dict(state=REC, src=6, stereo=1, frames=600000, limit=960000, stop=SILENT,
                                              level=0x7fffffff, peak=0x80000000),
          lambda: RS.recording(600000, 960000, SILENT, True, down(0x7fffffff))),
@@ -874,7 +954,7 @@ def save_tests(key, w, u, page):
 
     def cstr(a):
         return bytes(u.uc.mem_read(a, 64)).split(b"\0")[0].decode("latin-1")
-    st = {"existing": set(), "file": bytearray(), "fail": 0, "editor": [], "popup": [], "present": []}
+    st = {"existing": set(), "file": bytearray(), "fail": 0, "editor": [], "popup": [], "present": [], "path": ""}
     methods = {0x0c: "fw flush", 0x10: "fw write", 0x14: "fw commit", 0x18: "fw abort", 0x1c: "fw error"}
     for off, name in methods.items():
         u.uc.mem_write(FAKE_VT + off, struct.pack(">I", FAKE_FW + off))
@@ -883,7 +963,8 @@ def save_tests(key, w, u, page):
     u.hooks.update({STRING: ("string", 0), STRING_DROP: ("string drop", 0), FREE_CLOSURE: ("free closure", 0),
                     EDITOR: ("editor", 0), F_OPEN: ("open", 0),
                     F_CLOSE: ("close file", 0), FW_CTOR: ("fw ctor", 0), FW_DTOR: ("fw dtor", 0),
-                    DELETE: ("delete", 0), POPUP: ("popup", 0),
+                    DELETE: ("delete", 0), POPUP: ("popup", 0), FS_ENTRY: ("fs entry", 0),
+                    SOUND_FN: ("sound", SOUND_OBJ),
                     **{FAKE_FW + off: (name, 0) for off, name in methods.items()}})
 
     def side(uc, addr, size, ud):                 # after the stand-in noted the call: what it does to memory
@@ -895,17 +976,25 @@ def save_tests(key, w, u, page):
         elif addr == CP.PRESENT:
             st["present"].append((args[0], rd32(args[1]), args[2]))                  # target, the pair's view, 0
         elif addr == F_OPEN:
-            uc.reg_write(mk.UC_M68K_REG_D0, 0 if cstr(args[0]) in st["existing"] else 0xffffffff)
+            there = cstr(args[0]) in st["existing"]
+            uc.reg_write(mk.UC_M68K_REG_D0, 0 if there else 0xffffffff)
+            if there:
+                uc.mem_write(args[2], struct.pack(">IIII", INO, 0, 0, 1))           # the handle: its inode at +0
+        elif addr == FS_ENTRY:
+            uc.mem_write(args[1], struct.pack(">IIII", args[0], FILE_ID if args[0] == INO else 0, 0, 0))
         elif addr == FW_CTOR:
             uc.mem_write(args[0], struct.pack(">I", FAKE_VT))
-            st["file"] = bytearray()
+            st["file"], st["path"] = bytearray(), cstr(args[1])
+        elif addr == FAKE_FW + 0x14:
+            st["existing"].add(st["path"])                                         # committed: the file is there
         elif addr == FAKE_FW + 0x10:
             st["file"] += bytes(uc.mem_read(args[1], args[2]))
         elif addr == FAKE_FW + 0x1c:
             uc.reg_write(mk.UC_M68K_REG_D0, st["fail"])
         elif addr == POPUP:
             st["popup"].append(cstr(rd32(args[1])))
-    for a in (STRING, EDITOR, F_OPEN, FW_CTOR, FAKE_FW + 0x10, FAKE_FW + 0x1c, POPUP, CP.PRESENT):
+    for a in (STRING, EDITOR, F_OPEN, FS_ENTRY, FW_CTOR, FAKE_FW + 0x10, FAKE_FW + 0x14, FAKE_FW + 0x1c, POPUP,
+              CP.PRESENT):
         u.uc.hook_add(UC_HOOK_CODE, side, begin=a, end=a)
     done = [0]
 
@@ -925,7 +1014,7 @@ def save_tests(key, w, u, page):
         u.uc.mem_write(buf, b"".join(struct.pack(">i", x) for x in words))
         for name, v, n in (("state", TAKEN, 1), ("src", src, 1), ("stereo", stereo, 1), ("frames", frames, 4),
                            ("peak", max(abs(x) for x in words), 4), ("page", page, 4), ("norm_set", norm, 1),
-                           ("saving", 0, 1), ("asked", 1, 1), ("exists", 0, 1)):
+                           ("saving", 0, 1), ("asked", 1, 1), ("exists", 0, 1), ("to_track", 0, 1)):
             u.uc.mem_write(at + DATA[name], v.to_bytes(n, "big"))
 
     def header(frames, stereo):
@@ -970,7 +1059,8 @@ def save_tests(key, w, u, page):
           f"0)) ({acts}, {ed[:3] if ed else ed}, {shown})")
     confirm("MYTAKE  ")
     acts = ui()
-    want = header(4800, 0) + pcm(words, 16, 0) + bytes(16)
+    heard = 16 - PART["shift"]["track"]                           # a track's full scale, SAMPLE's, to 16-bit's
+    want = header(4800, 0) + pcm(words, heard, 0) + bytes(16)
     ctor = named(u, "fw ctor")[-1]
     ok = (acts == [ACT_SAVE, ACT_WRITE, ACT_CLOSE] and cstr(ctor[1]) == "/recordings/MYTAKE" and ctor[2] == len(want)
           and bytes(st["file"]) == want and len(named(u, "fw commit")) == 1 and not named(u, "fw abort")
@@ -978,7 +1068,7 @@ def save_tests(key, w, u, page):
           and named(u, "close") and u.uc.mem_read(at + DATA["state"], 1)[0] == IDLE
           and all(a[2] <= 0x8000 for a in named(u, "fw write")) and not u.bad)
     check(ok, f"{key}: confirmed MYTAKE: the FileWriter's /recordings/MYTAKE of {len(want)} bytes, the header, the "
-              f"frames as heard (>> 16), 16 zero bytes, committed; the take let go, the page closed, the popup "
+              f"frames as heard (>> {heard}), 16 zero bytes, committed; the take let go, the page closed, the popup "
               f"\"Saved\" ({acts}, {len(st['file'])} bytes, {st['popup'][-1:]})")
     st["existing"] = {"/recordings/REC-001", "/recordings/KICK"}
     take(words[:2400], 2400, 0, SELECTED)
@@ -1024,6 +1114,33 @@ def save_tests(key, w, u, page):
           and len(named(u, "fw write")) - writes == 7 and not u.bad,
           f"{key}: NORM, main in stereo: 80 000 words in five pieces of 32 KiB at most, the header stereo, the peak at "
           f"-0.3 dB ({acts})")
+    sample = u.uc.mem_read(at + DATA["sample"], 1)[0]
+    u.uc.mem_write(FAKE + 212 + 68 * SELECTED, struct.pack(">I", TRACK_VT))         # the track's sound, as os_sound
+    u.uc.mem_write(TRACK_VT + 40, struct.pack(">I", SOUND_FN))
+    snd = bytearray(100)
+    snd[4:9], snd[38] = b"OLDNM", sample
+    u.uc.mem_write(SOUND_OBJ, bytes(snd))
+    u.uc.mem_write(KIT_FAKE + 0x1c + 100 * SELECTED + 38, bytes([sample]))           # TO Tn applies (if SAMPLE)
+    take(words[:960], 960, 0, SELECTED)
+    u.uc.mem_write(at + DATA["to_track"], b"\1")
+    u.call(k_, page, event(u, RECORD_K, PRESS))
+    ui()
+    confirm("ONTRACK")
+    acts = ui()
+    got = bytes(u.uc.mem_read(SOUND_OBJ, 100))
+    key3 = struct.unpack(">HHH", got[70:76])
+    if sample != 0xff:
+        ok = (key3 == (INO & 0xffff, FILE_ID >> 16, FILE_ID & 0xffff) and got[4:20] == b"ONTRACK".ljust(16, b"\0")
+              and st["popup"][-1] == f"Saved on T{SELECTED + 1}\nONTRACK")
+    else:
+        ok = key3 == (0, 0, 0) and got[4:9] == b"OLDNM" and st["popup"][-1] == "Saved\nONTRACK"
+    check(ok and acts == [ACT_SAVE, ACT_WRITE, ACT_CLOSE] and not u.bad,
+          f"{key}: TO T{SELECTED + 1}: " + (f"the saved file on the track's SAMPLE sound as SAMPLE's browser puts one "
+          f"there: its key the file's inode and id (the handle of the file opened by its path, its file system entry), "
+          f"its name, the popup \"Saved on T{SELECTED + 1}\"" if sample != 0xff else
+          "without SAMPLE in the build: saved, the track's sound untouched") + f" ({key3}, {got[4:12]}, "
+          f"{st['popup'][-1]!r})")
+    u.uc.mem_write(KIT_FAKE + 0x1c + 100 * SELECTED + 38, bytes(1))
     take(words[:960], 960, 0, SELECTED)
     u.call(k_, page, event(u, RECORD_K, PRESS))
     ui()
@@ -1043,6 +1160,9 @@ def save_tests(key, w, u, page):
 
 
 NAME_AT = 0x93f01000
+FS_ENTRY, SOUND_FN = 0x4007de78, 0x93f02000                # the file system's entry; the track's sound, stood in for
+TRACK_VT, SOUND_OBJ = 0x93f02100, 0x93f02200
+INO, FILE_ID = 0x1234, 0x5a5a0003
 ACT_EDITOR, ACT_SAVE, ACT_WRITE, ACT_CLOSE = 1, 2, 3, 4
 
 
@@ -1059,6 +1179,7 @@ def main():
     args = ap.parse_args()
     stock = T.main_os_from_syx(args.cycles)
     sels = [[i for i in args.machines.split(",") if i]] if args.machines is not None else SELECTIONS
+    level_tests(stock, args.dry)
     for sel in sels:
         key = key_of(sel)
         print(key)
