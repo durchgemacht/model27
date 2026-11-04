@@ -1281,16 +1281,16 @@ const T = {
       "effect again."],
   ],
   kind_filter_info: [
-    ["", "Each preset can have one Track FX. It processes only its track and comes after VOLUME + DIST in the signal path."],
+    ["", "Each track can have one Track FX, an insert effect after VOLUME + DIST in the track's signal path."],
     ["Select", "Press and hold [RETRIG] and turn PITCH to select a Track FX."],
     ["Adjust", "Keep [RETRIG] held and turn SWEEP, CONTOUR, COLOR or SHAPE. Each Track FX's card says what they set."],
     ["Parameter lock", "In GRID RECORDING mode, press and hold a [TRIG] key and [RETRIG], then turn the knob."],
     ["LFO destination", "Press and hold [LFO] and [RETRIG], then turn the knob."],
     ["Control All", "Press and hold [TRACK] and [RETRIG], then turn the knob to change the setting on all tracks."],
     ["MIDI", "The setting on SWEEP responds to CC 74, the one on CONTOUR to CC 71."],
-    ["Saving", "The preset saves its Track FX and its settings."],
-    ["Other firmware", "On a firmware without that Track FX, another model27 build or the official one, a preset plays " +
-      "without it. Flash the Track FX again and the preset plays it again. If you saved the preset in between, select " +
+    ["Saving", "The track's preset saves its Track FX and its settings."],
+    ["Other firmware", "On a firmware without that Track FX, another model27 build or the official one, the track plays " +
+      "without it. Flash the Track FX again and the track plays it again. If you saved the project in between, select " +
       "the Track FX and set it again."],
   ],
   // the sections of the old list, still searched (search from SEARCH_FROM cards)

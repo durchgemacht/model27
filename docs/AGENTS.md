@@ -66,6 +66,9 @@ mods, the guide, the rest.
 - **The manual's words**: preset (not sound), parameter lock, preset lock, LFO destination, Control All, MACHINES
   menu, PRESET menu, GRID RECORDING mode, signal path, recording. Never words from the code or the notes: record,
   slot, k 32, descriptor, id, neutral, real parameter, dearest, block, claim, take.
+- **Where a thing lives, as the player sees it, not as the code stores it.** A Track FX is on a track (an insert
+  effect), an effect on a pattern, a machine on a track. "preset" only where something is saved or loaded: the
+  code keeps the Track FX in the sound record, but "each preset can have one Track FX" is wrong for the reader.
 - **Keys and knobs.** A key in brackets in the source: `[RETRIG]`, `[TRIG] key`, `[FUNC] + [MACHINES]`; the page
   shows it as an inverted box, without the brackets. A knob or parameter in capitals: PITCH, SWEEP, LEVEL/DATA, DELAY
   TIME, VOLUME + DIST; the page underlines the names in `KNOBS` with dashes. Both by `rich()` in `flasher/app.js`
