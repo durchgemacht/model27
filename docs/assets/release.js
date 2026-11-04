@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.46", date: "2026-11-04", changes: [
+    { en: "Digital Delay and POTS are rewritten like the Track FX cards: their Details say only what differs from the stock delay. The cards' short texts now describe the sound, and the Details no longer repeat them" },
+    { en: "The Effects and Track FX windows say what happens on a firmware without the effect or the Track FX, another model27 build or the official one: the pattern plays the stock delay, the preset plays without it, and flashing it again brings it back" },
+  ] },
   { version: "0.45", date: "2026-11-04", changes: [
     { en: "The Track FX cards are rewritten: each card's Details has a block per knob, with what it sets and what you hear, and the name the screen shows starts the card's text (SMP, CRU, RNG, RES). What all Track FX share is in the section's How to use window" },
   ] },

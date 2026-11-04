@@ -1257,10 +1257,9 @@ const T = {
   kind_filter_sub: "Press and hold [RETRIG] and turn PITCH to select a Track FX.",
   // the added machines (notes/64)
   kind_machine_sub: "Press [MACHINES] to open the MACHINES menu. The machines you install come after CHORD.",
-  // A section's "How to use" window: what its cards share, so that the cards only say their own. Blocks of
-  // [heading, text]; a block without a heading opens the window. The Effects one takes {knobs} and {stock}, and in
-  // place of "{slots}" the blocks of each slot its cards play in (fx_info_<slot>; none for the reverb slot yet: write
-  // them with the first reverb effect).
+  // A section's "How to use" window: what its cards share, so that the cards only say their own; nothing that works
+  // as on the stock OS. Blocks of [heading, text]; a block without a heading opens the window. The Effects window
+  // takes {knobs} and {stock}. Say which firmware a sentence means: a model27 build, the official one, or both.
   info_btn: "How to use", info_of: "How to use: {name}", info_close: "Close",
   kind_machine_info: [
     ["Select", "Press [MACHINES] to open the MACHINES menu, then use LEVEL/DATA to select a machine. The machines you " +
@@ -1276,13 +1275,9 @@ const T = {
     ["", "Each pattern plays {stock} or one of the effects you install."],
     ["Select", "Press and hold [PATTERN] and turn {knobs} to select the effect for the pattern. The pattern saves your " +
       "choice. A new pattern starts with {stock}."],
-    "{slots}",
-    ["Other firmware", "On a firmware without that effect, the pattern plays {stock}."],
-  ],
-  fx_info_delay: [
-    ["Send", "Each track's DELAY SEND sends to the effect, as before."],
-    ["Adjust", "Turn DELAY TIME to set the effect's time. Press and hold [FUNC] and turn DELAY TIME to set its " +
-      "feedback. The screen shows the effect's name with them."],
+    ["Other firmware", "On a firmware without that effect, another model27 build or the official one, a pattern plays " +
+      "{stock}. Flash the effect again and the pattern plays it again. If you saved the pattern in between, select the " +
+      "effect again."],
   ],
   kind_filter_info: [
     ["", "Each preset can have one Track FX. It processes only its track and comes after VOLUME + DIST in the signal path."],
@@ -1292,8 +1287,10 @@ const T = {
     ["LFO destination", "Press and hold [LFO] and [RETRIG], then turn the knob."],
     ["Control All", "Press and hold [TRACK] and [RETRIG], then turn the knob to change the setting on all tracks."],
     ["MIDI", "The setting on SWEEP responds to CC 74, the one on CONTOUR to CC 71."],
-    ["Saving", "The preset saves its Track FX and its settings. On a firmware without that Track FX, the preset plays " +
-      "without it. Nothing breaks."],
+    ["Saving", "The preset saves its Track FX and its settings."],
+    ["Other firmware", "On a firmware without that Track FX, another model27 build or the official one, a preset plays " +
+      "without it. Flash the Track FX again and the preset plays it again. If you saved the preset in between, select " +
+      "the Track FX and set it again."],
   ],
   // the sections of the old list, still searched (search from SEARCH_FROM cards)
   cat_pack: "Packs", cat_sound: "Sounds & machines", cat_seq: "Sequencer", cat_live: "Live playing",
@@ -1585,19 +1582,27 @@ const FEAT = {
     short: "Choose which tracks Control All moves: hold TRACK and press TRIG 1–6.",
     desc: "Hold TRACK and press TRIG 1–6 to take a track out of Control All, or to put it back. While TRACK is held, the trig keys of the tracks that follow light up. The active track always follows, as on the Digitakt and Digitone.\n\nTracks left out also keep their machine, LFO destination and PUNCH/GATE when you change those with TRACK held. TRACK + LEVEL/DATA (volume, pan) still moves all six tracks.",
     note: "Your choice resets when you switch the Model:Cycles off." },
+  // The effect cards, as in Writing for users (docs/AGENTS.md): what the Effects window says stays out
   digidelay: { label: "Digital Delay",
     credit_name: "PPPCCC",     // the credit's link text, in place of the long repository name
-    short: "A bright, clean delay of up to 5.4 seconds.",
-    desc: "Where the stock delay is dark, this one is bright and clean, with up to 5.4 seconds of delay time. Each repeat loses a little low end.\n\nWhile it plays, Time and Fdbk work as usual and are labelled Digi Time and Digi Fdbk. The delay is mono." },
+    short: "A bright, clean delay, the opposite of the dark stock one: each repeat a little thinner.",
+    desc: [
+      ["", "It is mono."],
+      ["[FUNC] + DELAY TIME", "Sets the feedback (Digi Fdbk). At the top the repeats go on almost endlessly without " +
+        "running away."],
+    ] },
   pots: { label: "POTS",
-    short: "A lo-fi delay like an old phone line: each repeat darker and more out of tune.",
-    desc: "Every repeat goes down an old telephone line once more. The echoes get darker and narrower, drift further out of tune, fade in and out, and pick up a coarse grain as they die away.\n\nWhile it plays, Time and Fdbk work as usual and are labelled POTS Time and POTS Fdbk. Even at full feedback the repeats never run away. The delay is mono." },
+    short: "A lo-fi delay like an old phone line: each repeat darker, narrower and grainier.",
+    desc: [
+      ["", "The echoes rise a little in pitch with each pass, fade in and out and now and then drop out. The grain " +
+        "leaves them as they die away. It is mono."],
+      ["[FUNC] + DELAY TIME", "Sets the feedback (POTS Fdbk). At the top the repeats go on without running away."],
+    ] },
   // The Track FX cards, as in Writing for users (docs/AGENTS.md): what the Track FX window says stays out; screen, the
   // name the screen shows, at the start of the card's short text (shortOf; none where it is the label)
   smpfilter: { label: "Samples filter", screen: "SMP",
-    short: "The Model:Samples' filter on any track: lowpass, off or highpass on one knob, with resonance.",
+    short: "The Model:Samples' filter: lowpass, off or highpass on one knob, with resonance.",
     desc: [
-      ["", "It is the Model:Samples' filter, measured on a Model:Samples and rebuilt, the same one SAMPLE has."],
       ["SWEEP", "Sets the cutoff (CUTO). 0 is off. Turn left for a lowpass: the further, the darker, down to about 5 Hz " +
         "at -64. Turn right for a highpass: the further, the thinner, up to about 19 kHz at 63. (-64–63)"],
       ["CONTOUR", "Sets the resonance (RESO): a peak at the cutoff, up to about +27 dB at 127."],
@@ -1605,17 +1610,14 @@ const FEAT = {
   crush: { label: "Crush", screen: "CRU",
     short: "Makes a track grainy and lo-fi: a lower sample rate and fewer bits.",
     desc: [
-      ["", "Crush lowers the sample rate and the bit depth of the track."],
       ["SWEEP", "Sets the sample rate (RATE). 0 is off. Turn right to lower it with a hard, metallic edge, or left to " +
         "lower it more softly. At the ends it is below 1 kHz. (-64–63)"],
       ["CONTOUR", "Sets the bit depth (BITS). 127, the default, is off. Just below it the track has 8 bits. Turn left " +
         "for fewer, down to 1 bit at 0, without steps."],
     ] },
   ring: { label: "Ring", screen: "RNG",
-    short: "A ring modulator on any track: the carrier's pitch, the mix and its wave, from sine to square.",
+    short: "A ring modulator: the track times a second tone, the carrier, from a fast chop to bell-like, metallic sounds.",
     desc: [
-      ["", "Ring multiplies the track by a second tone, the carrier. The result ranges from a fast chop to bell-like and " +
-        "metallic sounds."],
       ["SWEEP", "Sets the carrier's pitch (FREQ) as a MIDI note. 0 is about 8 Hz, a fast chop. 60 is middle C. 64, the " +
         "default, is the E above it. 127 is 12.5 kHz, metallic."],
       ["CONTOUR", "Sets the mix (MIX). 0, the default, is dry. In the middle the track stays at half, with bell-like " +
@@ -1624,9 +1626,8 @@ const FEAT = {
         "harsher and a little louder."],
     ] },
   reso: { label: "Reso", screen: "RES",
-    short: "A tuned resonator on any track: noise and hits ring at a pitch you set.",
+    short: "A tuned resonator: noise and hits ring at a pitch you set.",
     desc: [
-      ["", "Reso makes the track ring at a pitch you set: noise and hits turn into tuned notes."],
       ["SWEEP", "Sets the pitch (PTCH) as a MIDI note. 60, the default, is middle C, and 69 is A at 440 Hz. The pitch " +
         "stays where the knob is, whatever note the track plays. Lock it on trigs to play a melody. Under about 16 it " +
         "turns into a short metallic echo."],
@@ -1636,10 +1637,8 @@ const FEAT = {
         "this."],
     ] },
   eq: { label: "EQ",
-    short: "A three-band EQ on any track: a Mid you can sweep, Low and High, each up to 12 dB either way.",
+    short: "A three-band EQ: a Mid band you can sweep, a Low and a High shelf, each up to 12 dB either way.",
     desc: [
-      ["", "The EQ has three bands: a Mid band you can sweep, a Low shelf and a High shelf. Each cuts or boosts up to " +
-        "12 dB. A boost on a loud track clips."],
       ["SWEEP", "Sets the Mid band's frequency (MIDF): 200 Hz at 0, 1 kHz at 64, about 4.9 kHz at 127."],
       ["CONTOUR", "Sets the Mid band's gain (MIDG). 0, the default, is flat. -64 cuts 12 dB, 63 boosts about 12 dB. " +
         "(-64–63)"],
@@ -1951,12 +1950,14 @@ function fxSub(cards) {
   return { knobs: slots.map((s) => t("fx_knob_" + s)).join(t("fx_or")),
     stock: t(slots.length === 1 ? "fx_stock_" + slots[0] : "fx_stock") };
 }
-// a section's "How to use" blocks, [heading, text]; the Effects one names those slots only, with the blocks of each
-function infoBlocks(k, cards) {
+// a section's "How to use" blocks, [heading, text], and its note; the Effects ones name the slots its cards play in
+function infoFill(k, cards) {
   const vars = k === "effect" ? fxSub(cards) : {};
-  const fill = (s) => Object.keys(vars).reduce((x, v) => x.split("{" + v + "}").join(vars[v]), s);
-  return T["kind_" + k + "_info"].flatMap((b) => b === "{slots}" ? fxSlots(cards).flatMap((s) => T["fx_info_" + s] || []) : [b])
-    .map(([h, p]) => [h, fill(p)]);
+  return (s) => Object.keys(vars).reduce((x, v) => x.split("{" + v + "}").join(vars[v]), s);
+}
+function infoBlocks(k, cards) {
+  const fill = infoFill(k, cards);
+  return T["kind_" + k + "_info"].map(([h, p]) => [h, fill(p)]);
 }
 // a user text on the page (the style sheet, docs/AGENTS.md): a key written [KEY] becomes an inverted box, a knob of
 // the Model:Cycles named in capitals gets a dashed underline; the rest is escaped
@@ -1985,9 +1986,11 @@ function openInfo(k) {
   }
   d.dataset.kind = k;
   d.querySelector("h2").textContent = t("kind_" + k);
-  d.querySelector(".info-body").innerHTML = infoBlocks(k, order().filter((f) => kindOf(f) === k))
+  const cards = order().filter((f) => kindOf(f) === k);
+  d.querySelector(".info-body").innerHTML = infoBlocks(k, cards)
     .map(([h, p]) => h ? `<h3>${esc(h)}</h3><p>${rich(p)}</p>` : `<p class="lede">${rich(p)}</p>`).join("") +
-    (T["kind_" + k + "_note"] ? `<p class="info-note"><b>${esc(t("info_note"))}</b> ${rich(t("kind_" + k + "_note"))}</p>` : "");
+    (T["kind_" + k + "_note"] ? `<p class="info-note"><b>${esc(t("info_note"))}</b> ` +
+      `${rich(infoFill(k, cards)(T["kind_" + k + "_note"]))}</p>` : "");
   if (typeof d.showModal === "function") d.showModal(); else d.setAttribute("open", "");
 }
 function closeInfo() {

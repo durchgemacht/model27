@@ -617,7 +617,7 @@ async function main() {
     // search: only from 20 mods
     check(feats.length < 20 && box("mod-find").hidden, `no search field with ${feats.length} mods (it appears from 20)`);
     // each section's one line, its keys as boxes and its knobs marked (the Effects one naming only the slots its cards
-    // play in: no reverb card yet), none for Mods; Details come in paragraphs
+    // play in: no reverb card yet), none for Mods; a card not rewritten yet keeps its Details in paragraphs
     const marks = (sel) => [...doc.querySelectorAll(sel + " .key, " + sel + " .knob")].map((e) => e.className + ":" + e.textContent).join();
     check(textOf(doc, "#grp-effect .grp-sub") === "Press and hold PATTERN and turn DELAY TIME to select the effect for the pattern."
       && marks("#grp-effect .grp-sub") === "key:PATTERN,knob:DELAY TIME"
@@ -625,10 +625,10 @@ async function main() {
       && marks("#grp-filter .grp-sub") === "key:RETRIG,knob:PITCH"
       && /^Press MACHINES to open the MACHINES menu\. The machines you install come after CHORD\.$/.test(textOf(doc, "#grp-machine .grp-sub"))
       && marks("#grp-machine .grp-sub") === "key:MACHINES" && !doc.querySelector("#grp-mod .grp-sub")
-      && doc.querySelectorAll("#det-pots > p").length === 2 && doc.querySelectorAll("#det-sampler > p").length === 2,
+      && doc.querySelectorAll("#det-sampler > p").length === 2,
       "the sections' one line each, keys and knobs marked, the Effects one with DELAY TIME only; Details in paragraphs");
     // Machines, Effects and Track FX open their How to use in one window over the page, in blocks under headings (the
-    // Effects one with the delay slot's blocks only, no placeholder or bracket left); a note only for Machines
+    // Effects one naming the stock delay only, no placeholder or bracket left); a note only for Machines
     const info = async (k) => {
       await click(doc.getElementById("info-" + k));
       const d = doc.getElementById("grp-info");
@@ -641,9 +641,10 @@ async function main() {
     await click(doc.querySelector("#grp-info [data-close]"));
     check(!doc.getElementById("info-mod") && doc.querySelectorAll("dialog#grp-info").length === 1
       && im.open && im.title === "Machines" && im.heads === "Select|Flashing other machines"
-      && /^Note: To use a project on a firmware other than model27/.test(im.note) && !ie.note && !iff.note
-      && ie.open && ie.title === "Effects" && ie.heads === "Select|Send|Adjust|Other firmware" && /the stock delay/.test(ie.text)
-      && iff.open && iff.title === "Track FX" && iff.heads === "Select|Adjust|Parameter lock|LFO destination|Control All|MIDI|Saving"
+      && /^Note: To use a project on a firmware other than model27/.test(im.note)
+      && !ie.note && !iff.note
+      && ie.open && ie.title === "Effects" && ie.heads === "Select|Other firmware" && /the stock delay/.test(ie.text)
+      && iff.open && iff.title === "Track FX" && iff.heads === "Select|Adjust|Parameter lock|LFO destination|Control All|MIDI|Saving|Other firmware"
       && [im, ie, iff].every((x) => x.keys > 0 && !/[[\]{}]|Reverb|REVERB/.test(x.text))
       && !doc.getElementById("grp-info").hasAttribute("open"),
       `How to use in one window, in blocks: Machines (${im.heads}), Effects (${ie.heads}), Track FX (${iff.heads}); ` +
@@ -658,10 +659,21 @@ async function main() {
       return !det || [...det.querySelectorAll("h4")].map((h) => h.textContent).join("|") !== heads
         || [...det.querySelectorAll("h4 .knob")].map((k) => k.textContent).join("|") !== heads
         || !textOf(doc, `#mod-${id} .short`).startsWith(tag ? tag + " - " : "A ")
-        || /[[\]]|RETRIG|Good to know|On the screen|\(0–127\)/.test(det.textContent);
+        || /[[\]]|RETRIG|Good to know|On the screen|\(0–127\)/.test(det.textContent)
+        || /any track/.test(textOf(doc, `#mod-${id} .short`));
     });
     check(tfxBad.length === 0, "the five Track FX cards: the screen's name first in the short text; Details a block per knob, the knob " +
       "as its heading, nothing the Track FX window says" + (tfxBad.length ? ": " + tfxBad.join() : ""));
+    // the effect cards, rewritten the same way: a block for [FUNC] + DELAY TIME only (DELAY TIME works as on the stock
+    // delay), the key as a box
+    const fxBad = ["digidelay", "pots"].filter((id) => {
+      const det = doc.getElementById("det-" + id);
+      return !det || [...det.querySelectorAll("h4")].map((h) => h.textContent).join("|") !== "FUNC + DELAY TIME"
+        || marks("#det-" + id + " h4") !== "key:FUNC,knob:DELAY TIME"
+        || /[[\]]|Good to know|labelled|PATTERN/.test(det.textContent);
+    });
+    check(fxBad.length === 0, "Digital Delay's and POTS' Details: a block for each knob, the key marked, nothing the " +
+      "Effects window says" + (fxBad.length ? ": " + fxBad.join() : ""));
     check(errors.length === 0, "no JS error in the mod picker " + (errors.length ? JSON.stringify(errors) : ""));
   }
   // flasher/?samples: the tabs and the machine picker come back

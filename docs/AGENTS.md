@@ -77,8 +77,9 @@ mods, the guide, the rest.
   knobs", "real parameters"). A range at the end, in brackets, only where it is not the usual 0–127: (-64–63).
 - **Only what you need to start** on a card or in a window. Background, measurements and history go to the guide
   or the notes.
-- **Structure.** A card: `short`, one sentence on what it does on the machine; the Details, the way in, then the
-  controls. A section window and, as they are rewritten, the Details: blocks, each a short heading (the action or
+- **Structure.** A card: `short`, one sentence on what it does to the sound, in musicians' words (not "on any track":
+  its section's window says where it works); the Details, what the short does not say, then the controls, never the
+  short again. A section window and, as they are rewritten, the Details: blocks, each a short heading (the action or
   the parameter) and one or two sentences. In a card's Details, a block per knob: the heading the knob alone
   (SWEEP), then a whole sentence on what it sets, the term written out and the screen's abbreviation in brackets
   ("Sets the sample rate (RATE)."). A default goes into that sentence ("127, the default, is off"), not a block of
