@@ -84,7 +84,6 @@ code{font:.9em var(--f);background:none;padding:0;border-radius:0}
 .grp{margin:0 0 6rem}
 .grp-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px;margin:0 0 1rem;padding-top:1rem;border-top:3px solid var(--ink)}
 .grp-h{margin:0;font-size:20px}
-.grp-sub{margin:-4px 0 16px;max-width:72ch;font-size:14px}
 .grp-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
 
 /* a card: a checkbox with its name and one sentence; picked, it inverts */
@@ -93,7 +92,6 @@ code{font:.9em var(--f);background:none;padding:0;border-radius:0}
 /* hover thickens the shadow in place: the cards are rebuilt on every click, and a card moved by a transform left
    stray lines in the paint when it was replaced */
 .mod:hover{box-shadow:6px 6px 0 var(--ink)}
-.mod.open{grid-column:1 / -1}
 .mod-row{display:grid;grid-template-columns:minmax(0,1fr) 28px;grid-template-areas:"ttl key" "short short";gap:8px 12px;
   padding:16px 16px 14px;cursor:pointer}
 .mod-row>input{grid-area:key}
@@ -130,7 +128,7 @@ code{font:.9em var(--f);background:none;padding:0;border-radius:0}
 .say.clash::before{content:"!! ";font-weight:700}
 .say.swap{border-left-style:dashed}
 
-/* Details: the full description and the facts; the card takes the whole row */
+/* Details: the full description and the facts, shown in the window (openCard); the card keeps a hidden copy */
 .det{margin:0 0 14px;padding:12px 0 0;border-top:3px dashed currentColor;font-size:14.5px;line-height:1.6}
 .det>p{margin:0 0 12px;max-width:72ch}
 .det>h4{margin:16px 0 2px;font-size:13px;line-height:1.4;text-transform:uppercase}
@@ -140,17 +138,22 @@ code{font:.9em var(--f);background:none;padding:0;border-radius:0}
 .facts dd{margin:0;max-width:66ch}
 .facts dd b{font-weight:700}
 .facts a{color:inherit;font-weight:700}
+.guide-link{margin:14px 0 0;font-size:14px}
+.guide-link a{color:inherit;font-weight:700}
 
 /* a section's How to use: a window over the page, the cards stay where they are; the backdrop a 1-bit dither */
 .info{width:min(640px,calc(100vw - 32px));max-width:none;max-height:calc(100vh - 48px);margin:auto;padding:0;
   border:3px solid var(--ink);background:var(--card);color:var(--ink);box-shadow:8px 8px 0 var(--ink);overflow:auto}
 .info::backdrop{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h1v1H0zM2 0h1v1H2zM1 2h1v1H1zM3 2h1v1H3z' fill='%230b0c0e'/%3E%3C/svg%3E")}
-.info-in{padding:14px 20px 4px}
+.info-in{padding:14px 20px 20px}
+.info-body>:last-child,.info-body .det>:last-child{margin-bottom:0}   /* the bottom padding alone, as at the sides */
 .info-top{display:flex;align-items:baseline;gap:12px;margin:0 0 14px;padding-bottom:8px;border-bottom:3px dashed currentColor}
 .info-top h2{margin:0;font-size:20px}
 .info-body p{margin:0 0 12px;max-width:72ch;font-size:14.5px;line-height:1.6}
 .info-body h3{margin:16px 0 2px;font-size:13px;line-height:1.4}
 .info-body .lede{margin-bottom:4px}
+.info-body .det{margin:0;padding:0;border-top:0}
+.info-body .det>h4:first-child{margin-top:0}
 
 /* in a user text (rich() in app.js): a key an inverted box, a knob underlined with dashes */
 /* inline, not inline-block: a full stop right after a key stays on its line */

@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.48", date: "2026-11-04", changes: [
+    { en: "A card's Details open in a window over the page, like the sections' How to use: the cards no longer move. The window ends with a link to the card's part of the guide" },
+    { en: "The sections show only their title and the How to use button: the line under the title is gone, the window says it all" },
+  ] },
   { version: "0.47", date: "2026-11-04", changes: [
     { en: "SAMPLE, the CPU page, RESAMPLE, Control All Config, Trig Preview and Trig Condition Order are rewritten like the other cards: a block for each key, knob or setting on the page, in the Model:Cycles manual's words. RESAMPLE now explains THRESH and STEREO too" },
     { en: "The Machines window says what happens when you flash other machines: a track plays whichever machine now has its place, and its own again once you flash the same machines; if you saved the project in between, pick the sample of a SAMPLE track again" },

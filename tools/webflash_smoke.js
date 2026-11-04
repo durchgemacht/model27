@@ -534,17 +534,18 @@ async function main() {
     check(!!doc.querySelector("#grp-mod #feat-control-all-config"), "a mod without cat still shows, in Mods");
     cac.cat = cacCat;
     app.applyTexts();
-    // Details: opens and closes, doesn't tick, holds the guide link; the card takes the whole row
+    // Details: opens the card's description and facts in the window over the page (the card stays as it is, its copy
+    // hidden), doesn't tick, holds the guide link; Close closes it
     await click(box("more-control-all-config"));
-    const opened = !box("det-control-all-config").hidden && box("more-control-all-config").getAttribute("aria-expanded") === "true"
-      && !box("feat-control-all-config").checked && !!doc.querySelector('#det-control-all-config a[href$="#control-all"]')
-      && /Guide/.test(text(doc, "det-control-all-config")) && !/Status/.test(text(doc, "det-control-all-config"))
-      && box("mod-control-all-config").classList.contains("open")
-      && /Close/.test(textOf(doc, "#more-control-all-config"));
-    await click(box("more-control-all-config"));
-    check(opened && box("det-control-all-config").hidden && box("more-control-all-config").getAttribute("aria-expanded") === "false"
-      && !box("mod-control-all-config").classList.contains("open"),
-      "Details opens the card to the whole row (description, guide link; no status) without ticking, and closes it");
+    const win = doc.getElementById("grp-info");
+    const opened = !!win && win.hasAttribute("open") && textOf(doc, "#grp-info-h") === "Control All Config"
+      && !box("feat-control-all-config").checked && !!doc.querySelector('#grp-info .info-body a[href$="#control-all"]')
+      && /Takes a track out of Control All/.test(textOf(doc, "#grp-info .info-body"))
+      && /Guide/.test(textOf(doc, "#grp-info .info-body")) && !/Status/.test(textOf(doc, "#grp-info .info-body"))
+      && box("det-control-all-config").hidden && box("more-control-all-config").getAttribute("aria-haspopup") === "dialog";
+    await click(doc.querySelector("#grp-info [data-close]"));
+    check(opened && !win.hasAttribute("open") && box("det-control-all-config").hidden,
+      "Details opens the card in the window (description, guide link; no status) without ticking, and Close closes it");
     // a ticked card keeps its height: nothing is added to it
     await click(box("feat-control-all-config"));
     check(!doc.querySelector("#mod-control-all-config .ext > .say") && box("det-control-all-config").hidden,
@@ -616,17 +617,12 @@ async function main() {
     await clearAll();
     // search: only from 20 mods
     check(feats.length < 20 && box("mod-find").hidden, `no search field with ${feats.length} mods (it appears from 20)`);
-    // each section's one line, its keys as boxes and its knobs marked (the Effects one naming only the slots its cards
-    // play in: no reverb card yet), none for Mods; every card's Details in blocks under headings (Writing for users)
+    // a section shows only its title and its How to use (no line under the title); every card's Details in blocks under
+    // headings (Writing for users)
     const marks = (sel) => [...doc.querySelectorAll(sel + " .key, " + sel + " .knob")].map((e) => e.className + ":" + e.textContent).join();
-    check(textOf(doc, "#grp-effect .grp-sub") === "Press and hold PATTERN and turn DELAY TIME to select the effect for the pattern."
-      && marks("#grp-effect .grp-sub") === "key:PATTERN,knob:DELAY TIME"
-      && textOf(doc, "#grp-filter .grp-sub") === "Press and hold RETRIG and turn PITCH to select a Track FX."
-      && marks("#grp-filter .grp-sub") === "key:RETRIG,knob:PITCH"
-      && /^Press MACHINES to open the MACHINES menu\. The machines you install come after CHORD\.$/.test(textOf(doc, "#grp-machine .grp-sub"))
-      && marks("#grp-machine .grp-sub") === "key:MACHINES" && !doc.querySelector("#grp-mod .grp-sub")
+    check(!doc.querySelector("#features .grp > p")
       && [...doc.querySelectorAll("#features .det")].every((d) => d.querySelector("h4") && !/[[\]]|Good to know/.test(d.textContent)),
-      "the sections' one line each, keys and knobs marked, the Effects one with DELAY TIME only; every card's Details in blocks");
+      "no line under the sections' titles; every card's Details in blocks");
     // Machines, Effects and Track FX open their How to use in one window over the page, in blocks under headings (the
     // Effects one naming the stock delay only, no placeholder or bracket left); a note only for Machines
     const info = async (k) => {

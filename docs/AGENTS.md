@@ -30,9 +30,11 @@ to). `SAMPLES_UI` in `app.js` (true on `flasher/?samples`, which the guide links
 Samples OS tabs and the machine picker; `CLASSIC_UI` (false) the classic method and Advanced. Those parts stay in the
 page, hidden, and the smoke test still drives them. The cards sit in four sections by kind (`kindOf()`: added
 machines, effects, Track FX, mods); only the exceptions carry a tag (Experimental), a card's Details say how it was
-tested. Each section but Mods has a line under its title (`kind_<k>_sub` in `T`, the way in) and a How to use button
+tested. Each section but Mods has a How to use button next to its title (no line under it: the window says it all)
 that opens one window over the page (`openInfo()`): `kind_<k>_info`, blocks of `[heading, text]` with what all the
 section's cards share, and `kind_<k>_note`, an optional smaller note at the end. A card does not repeat its window.
+A card's Details button opens its description and facts in the same window (`openCard()`), so the cards never move;
+the card keeps a hidden copy (`#det-<id>`), which the search and the smoke test read.
 
 ## The manager
 

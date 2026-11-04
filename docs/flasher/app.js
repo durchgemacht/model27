@@ -1247,16 +1247,10 @@ const T = {
   tab_restore: "Official firmware",
   kind_machine: "Machines", kind_effect: "Effects", kind_filter: "Track FX", kind_mod: "Mods",
   // Section texts follow the style sheet (docs/AGENTS.md): a key as [KEY], a knob by its name in capitals (KNOBS);
-  // rich() marks both.
-  // A section's one line: how to start with its cards (the effect slots are model27's, notes/68); {knobs} and {stock}
-  // name only the slots that the offered effect cards play in (fxSub)
-  kind_effect_sub: "Press and hold [PATTERN] and turn {knobs} to select the effect for the pattern.",
+  // rich() marks both. {knobs} and {stock} in the Effects window name only the slots that the offered effect cards
+  // play in (fxSub; the effect slots are model27's, notes/68)
   fx_knob_delay: "DELAY TIME", fx_knob_reverb: "REVERB SIZE", fx_or: " or ",
   fx_stock_delay: "the stock delay", fx_stock_reverb: "the stock reverb", fx_stock: "the stock effect",
-  // the filter slot's, the Track FX (notes/72, notes/73)
-  kind_filter_sub: "Press and hold [RETRIG] and turn PITCH to select a Track FX.",
-  // the added machines (notes/64)
-  kind_machine_sub: "Press [MACHINES] to open the MACHINES menu. The machines you install come after CHORD.",
   // A section's "How to use" window: what its cards share, so that the cards only say their own; nothing that works
   // as on the stock OS. Blocks of [heading, text]; a block without a heading opens the window. The Effects window
   // takes {knobs} and {stock}. Say which firmware a sentence means: a model27 build, the official one, or both.
@@ -1296,7 +1290,7 @@ const T = {
   // the sections of the old list, still searched (search from SEARCH_FROM cards)
   cat_pack: "Packs", cat_sound: "Sounds & machines", cat_seq: "Sequencer", cat_live: "Live playing",
   cat_screen: "Screen & browsing", cat_io: "USB & MIDI", cat_other: "Other mods",
-  details: "Details", details_close: "Close",
+  details: "Details",
   details_of: "Details: {name}",
   also: "Also contains {n} mods of this list: {names}.",
   need_syntakt: "+ Syntakt OS in step 2",
@@ -1329,7 +1323,7 @@ const T = {
   d_requires: "Works with", d_requires_v: "{name} only: ticking this one ticks it too, and unticking {name} unticks this one.",
   d_engines: "Engines",
   d_note: "Good to know",
-  d_guide: "Guide", read_guide: "Read the guide",
+  read_guide: "Guide",
   sel_title: "Your selection",
   sel_exp: "{n} experimental", sel_exp1: "1 experimental",
   sel_go: "Install {n} mods", sel_go1: "Install 1 mod",
@@ -1913,8 +1907,8 @@ function applyTexts() {
 // feature id -> { on: bool, variant: id } ; engine cards (real Syntakt engines): { on: bool, engines: [codes] } ;
 // machine cards (an added machine composed in the page, f.package, notes/61): { on: bool }
 const selection = {};
-// display-only state of the picker (never saved): open Details drawers, search, last swap (Undo)
-const pick = { open: new Set(), q: "", swap: null };
+// display-only state of the picker (never saved): search, last swap (Undo)
+const pick = { q: "", swap: null };
 
 // Engine card: the combination of ticked engines (kept in catalog order) and its tweak.
 // Two cards that can't be ticked together (Model-TG and the tweaks it already holds, or the Syntakt engines).
@@ -2032,9 +2026,10 @@ function rich(s) {
     ? `<kbd class="key">${part.slice(1, -1)}</kbd>`
     : part.replace(KNOB_RE, (m, pre, n) => `${pre}<span class="knob">${n}</span>`)).join("");
 }
-// one "How to use" window for every section, over the page: opening it moves no card (a card's Details unfold in
-// place). A click on the backdrop reaches the dialog itself, whose padding is the inner box's.
-function openInfo(k) {
+// One window over the page for a section's How to use and a card's Details: opening it moves no card. A click on
+// the backdrop reaches the dialog itself, whose padding is the inner box's; on closing, the button that opened it
+// gets the focus back.
+function openWindow(title, html, back) {
   let d = $("grp-info");
   if (!d) {
     d = document.createElement("dialog");
@@ -2044,17 +2039,25 @@ function openInfo(k) {
     d.innerHTML = `<div class="info-in"><div class="info-top"><h2 id="grp-info-h"></h2>` +
       `<button type="button" class="more" data-close>${esc(t("info_close"))}</button></div><div class="info-body"></div></div>`;
     d.addEventListener("click", (e) => { if (e.target === d || e.target.closest("[data-close]")) closeInfo(); });
-    d.addEventListener("close", () => { const b = $("info-" + d.dataset.kind); if (b) b.focus({ preventScroll: true }); });
+    d.addEventListener("close", () => { const b = $(d.dataset.back); if (b) b.focus({ preventScroll: true }); });
     document.body.appendChild(d);
   }
-  d.dataset.kind = k;
-  d.querySelector("h2").textContent = t("kind_" + k);
+  d.dataset.back = back;
+  d.querySelector("h2").textContent = title;
+  d.querySelector(".info-body").innerHTML = html;
+  d.querySelector(".info-body").scrollTop = 0;
+  if (typeof d.showModal === "function") { if (!d.open) d.showModal(); } else d.setAttribute("open", "");
+}
+function openInfo(k) {
   const cards = order().filter((f) => kindOf(f) === k);
-  d.querySelector(".info-body").innerHTML = infoBlocks(k, cards)
+  openWindow(t("kind_" + k), infoBlocks(k, cards)
     .map(([h, p]) => h ? `<h3>${esc(h)}</h3><p>${rich(p)}</p>` : `<p class="lede">${rich(p)}</p>`).join("") +
     (T["kind_" + k + "_note"] ? `<p class="info-note"><b>${esc(t("info_note"))}</b> ` +
-      `${rich(infoFill(k, cards)(T["kind_" + k + "_note"]))}</p>` : "");
-  if (typeof d.showModal === "function") d.showModal(); else d.setAttribute("open", "");
+      `${rich(infoFill(k, cards)(T["kind_" + k + "_note"]))}</p>` : ""), "info-" + k);
+}
+function openCard(id) {
+  const f = featById(id);
+  if (f) openWindow(label(f), `<div class="det">${detailsHtml(f)}</div>`, "more-" + id);
 }
 function closeInfo() {
   const d = $("grp-info");
@@ -2186,11 +2189,9 @@ function renderFeatures() {
     g.id = "grp-" + k;
     g.setAttribute("aria-labelledby", "grp-h-" + k);
     g.hidden = !mine.some(matches);
-    const sub = T["kind_" + k + "_sub"] && t("kind_" + k + "_sub", k === "effect" ? fxSub(mine) : undefined);
     const info = T["kind_" + k + "_info"] ? `<button type="button" class="grp-info" id="info-${k}" data-info="${k}" ` +
       `aria-haspopup="dialog" aria-label="${esc(t("info_of", { name: t("kind_" + k) }))}">${esc(t("info_btn"))}</button>` : "";
-    g.innerHTML = `<div class="grp-top"><h2 class="grp-h" id="grp-h-${k}">${esc(t("kind_" + k))}</h2>${info}</div>` +
-      (sub ? `<p class="grp-sub">${rich(sub)}</p>` : "");
+    g.innerHTML = `<div class="grp-top"><h2 class="grp-h" id="grp-h-${k}">${esc(t("kind_" + k))}</h2>${info}</div>`;
     const body = document.createElement("div");
     body.className = "grp-body";
     for (const f of mine) body.appendChild(renderRow(f));
@@ -2205,9 +2206,8 @@ function renderFeatures() {
 
 function renderRow(f) {
   const sel = selOf(f), holder = includedBy(f), status = statusOf(f), on = sel.on || !!holder;
-  const open = pick.open.has(f.id);
   const d = document.createElement("div");
-  d.className = "mod" + (on ? " on" : "") + (holder ? " incl" : "") + (open ? " open" : "");
+  d.className = "mod" + (on ? " on" : "") + (holder ? " incl" : "");
   d.id = "mod-" + f.id;
   d.hidden = !matches(f);
   const side = [];
@@ -2226,8 +2226,8 @@ function renderRow(f) {
     `<div class="mod-foot">` +
       `<span class="st">${tagHtml(status)}</span>` +
       `<span class="by">${side.join("")}</span>` +
-      `<button type="button" class="more" id="more-${f.id}" aria-expanded="${open}" aria-controls="det-${f.id}" aria-label="${esc(t("details_of", { name: label(f) }))}">` +
-        `<span class="lbl">${esc(t(open ? "details_close" : "details"))}</span></button>` +
+      `<button type="button" class="more" id="more-${f.id}" aria-haspopup="dialog" aria-label="${esc(t("details_of", { name: label(f) }))}">` +
+        `<span class="lbl">${esc(t("details"))}</span></button>` +
     `</div>`;
   const ext = d.querySelector(".ext");
   const add = (html) => ext.insertAdjacentHTML("beforeend", html);
@@ -2247,7 +2247,7 @@ function renderRow(f) {
   // several variants of one mod (none today): a sub-choice once ticked
   if (f.variants && f.variants.length > 1 && sel.on) add(renderVariants(f, sel));
   if (f.engines && sel.on) add(renderEngines(f, sel, status));
-  add(renderDetails(f, open));
+  add(renderDetails(f));
   return d;
 }
 
@@ -2299,9 +2299,12 @@ function renderEngines(f, sel, status) {
 }
 const dist = (c, sel) => c.engines.filter((x) => !sel.engines.includes(x)).length + sel.engines.filter((x) => !c.engines.includes(x)).length;
 
-// The Details drawer: the description, then the facts (Good to know among them: a card never grows when ticked).
-// Always in the page, hidden while closed.
-function renderDetails(f, open) {
+// A card's Details: the description, then the facts. openCard() shows them in the window; the card keeps a hidden
+// copy, which the search and the smoke test read.
+function renderDetails(f) {
+  return `<div class="det" id="det-${f.id}" hidden>${detailsHtml(f)}</div>`;
+}
+function detailsHtml(f) {
   const rows = [];
   const row = (k, v) => rows.push(`<dt>${esc(t(k))}</dt><dd>${v}</dd>`);
   const held = (f.includes || []).map(featById).filter(Boolean);
@@ -2314,14 +2317,16 @@ function renderDetails(f, open) {
   if (f.engines) row("d_engines", f.engines.map((e) =>
     `<b>${esc(e.name)}</b> (${esc(e.label)})${featText("eng-" + e.code, "note", "") ? " : " + esc(featText("eng-" + e.code, "note", "")) : ""}`).join("<br>"));
   if (featText(f.id, "note", "")) row("d_note", esc(featText(f.id, "note", "")));
-  if (GUIDE_OF[f.id]) row("d_guide", `<a class="feat-guide" href="${GUIDE}#${GUIDE_OF[f.id]}">${esc(t("read_guide"))} <span aria-hidden="true">→</span></a>`);
+  // the guide's section: one link, last
+  const guide = GUIDE_OF[f.id] ? `<p class="guide-link"><a class="feat-guide" href="${GUIDE}#${GUIDE_OF[f.id]}">` +
+    `${esc(t("read_guide"))} <span aria-hidden="true">→</span></a></p>` : "";
   // the description: blocks of [heading, text] for a card rewritten as in Writing for users (docs/AGENTS.md), its keys
   // and knobs marked; paragraphs for the others (a blank line between them in FEAT)
   const d = featText(f.id, "desc", f.desc);
   const desc = Array.isArray(d)
     ? d.map(([h, p]) => (h ? `<h4>${rich(h)}</h4>` : "") + `<p>${rich(p)}</p>`).join("")
     : String(d).split(/\n\s*\n/).map((x) => `<p>${esc(x)}</p>`).join("");
-  return `<div class="det" id="det-${f.id}"${open ? "" : " hidden"}>${desc}<dl class="facts">${rows.join("")}</dl></div>`;
+  return desc + (rows.length ? `<dl class="facts">${rows.join("")}</dl>` : "") + guide;
 }
 
 function renderFind() {
@@ -2383,9 +2388,7 @@ function wirePicker() {
     const b = e.target.closest("button");
     if (!b) return;
     if (b.classList.contains("more")) {
-      const id = b.id.slice(5);
-      if (pick.open.has(id)) pick.open.delete(id); else pick.open.add(id);
-      renderFeatures();
+      openCard(b.id.slice(5));
     } else if (b.dataset.info) {
       openInfo(b.dataset.info);
     } else if (b.hasAttribute("data-undo")) {
