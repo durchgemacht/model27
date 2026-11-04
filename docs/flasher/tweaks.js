@@ -374,7 +374,7 @@ window.MC_TWEAKS = {
    "id": "resample",
    "label": "RESAMPLE",
    "desc": "SETTINGS + RECORD opens a page that records a track, the main mix or USB and saves the take as a sample in /recordings, named in the stock name editor; TO Tn puts it on the selected SAMPLE track.",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "based",
     "who": "TinyGregAudio",

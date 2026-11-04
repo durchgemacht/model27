@@ -480,7 +480,8 @@ python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler --r
 MAIN OS patché, `resample` seul : `d88f8603927fd2bbf8eade07af3cd58994e6bafa17a3f4145751e7ba6a8a9a9f` ; avec SAMPLE :
 `e6e162fe354985ce9dc656544b31559a9a054489e8be44cb7ef42e176de9b76e` ; avec SAMPLE et Trig Preview (le fichier essayé sur
 un Model:Cycles depuis la ligne de commande le 04/11/2026, note 79 §12) :
-`15a32ac02984461ede21bca62bf83e93aa2599bf3f4734c6f18ff2828ef6c76a` ; avec toutes les cartes de la page (treize, release
+`15a32ac02984461ede21bca62bf83e93aa2599bf3f4734c6f18ff2828ef6c76a`, le même que la page construit avec ces trois cartes,
+téléchargé depuis la page et testé sur un Model:Cycles le 04/11/2026 (note 79 §13) ; avec toutes les cartes de la page (treize, release
 0.39) : `7359f2a209e377fed9806ec9a768bf1a3f29205385edf3f5ae9c2896d9441847`.
 
 ### Trig Cond dans un autre ordre

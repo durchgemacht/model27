@@ -414,9 +414,9 @@ async function main() {
     check(rsAlone === "resample" && rsSmp === "sampler+resample" && rsCpu === "sampler+cpu+resample"
       && rsTp === "control-all-config,trig-preview,resample" && rsOn && !chosen().length
       && doc.querySelector('#grp-mod #feat-resample') && doc.querySelector('#features a[href$="#resample"]')
-      && doc.querySelectorAll('input[name="var-resample"]').length === 0 && doc.querySelector("#mod-resample .tag"),
+      && doc.querySelectorAll('input[name="var-resample"]').length === 0 && !doc.querySelector("#mod-resample .tag"),
       `RESAMPLE alone ${rsAlone}; with SAMPLE ${rsSmp} and the CPU page ${rsCpu}, one composed tweak; with Control All ` +
-      `Config and Trig Preview ${rsTp}, no clash; in Mods; no sub-choice; its guide link; experimental, so tagged`);
+      `Config and Trig Preview ${rsTp}, no clash; in Mods; no sub-choice; its guide link; tested, so no tag`);
     const every = ["sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample", "control-all-config", "trig-cond-order", "trig-preview"];
     for (const i of every) { box("feat-" + i).click(); await wait(5); }
     const fxAll = chosen();

@@ -487,9 +487,10 @@ ALL_FEATURES = [
                 "sample in /recordings, named in the stock name editor; TO Tn puts it on the selected SAMPLE track.",
         # model27's own (notes/79), its page, key hook and save as Model-TG builds its own (TinyGregAudio, MIT): the
         # recorder, the page, the save and the level proven in emulation; on the Model:Cycles from the command line
-        # on 2026-11-03 and 2026-11-04 (notes/79 §10 to §12): the page, Trig Preview's start, LEVEL, the editor, the
-        # save, TO Tn and the level as heard
-        "status": "experimental",
+        # on 2026-11-03 and 2026-11-04 (notes/79 §10 to §12), then tested on 2026-11-04 as this page builds it with
+        # SAMPLE and Trig Preview (§13): a track by Trig Preview and by LEVEL, TO Tn and its level, MAIN in stereo
+        # with NOW, LENGTH and NORM, USB in stereo
+        "status": "tested",
         "credit": {"kind": "based", "who": "TinyGregAudio", "repo": "TinyGregAudio/Model-TG"},
         "license": "LICENSE-Model-TG",
         # a part composed in the page with the machines, effects, Track FX and the CPU page ticked (notes/79): alone it

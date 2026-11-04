@@ -560,4 +560,10 @@ The maintainer: « Ja, R3b starten ». The part's 0.4.
 - **To try on the machine**: the file the page builds with SAMPLE, Trig Preview and RESAMPLE ticked, flashed from the
   page: the same checks as §11 and §12 (SETTINGS + RECORD, a take by Trig Preview and by LEVEL, the editor, the save,
   TO T*n*, the level).
+- **Tested on the Model:Cycles (2026-11-04)** `[FAIT]`, the file the page builds with SAMPLE, Trig Preview and RESAMPLE
+  ticked (the page served from the branch on the maintainer's computer, the file downloaded from it and flashed):
+  a track's take by Trig Preview, named and saved (« passt »); T1 by LEVEL saved onto T2 with TO T*n*, both at Volume +
+  Dist 50, as loud (« passt »); MAIN in stereo, START NOW, STOP LENGTH 5 s, NORM ON, played back on SAMPLE (« passt »);
+  USB in stereo, START LEVEL, STOP RECORD (« passt »). The card is tested since (status `tested`, guide, release 0.39,
+  README, PROVENANCE).
 
