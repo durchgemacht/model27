@@ -7,6 +7,9 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.45", date: "2026-11-04", changes: [
+    { en: "The Track FX cards are rewritten: each card's Details has a block per knob, with what it sets and what you hear, and the name the screen shows starts the card's text (SMP, CRU, RNG, RES). What all Track FX share is in the section's How to use window" },
+  ] },
   { version: "0.44", date: "2026-11-04", changes: [
     { en: "SAMPLE is now Cycles One-Shot 0.14. Turn SWEEP or CONTOUR on a SAMPLE track: the screen shows the Model:Samples' own pictures of its filter, not SNARE's. They are already in the Model:Cycles' firmware, so SAMPLE adds only what draws them" },
     { en: "Checked in an emulator on the OS's own code. Tested in One-Shot's own firmware in the digiemu emulator and on a Model:Cycles, and this page's build of SAMPLE, the same file, on a Model:Cycles (2026-11-04)" },

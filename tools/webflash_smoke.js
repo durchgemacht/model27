@@ -648,6 +648,20 @@ async function main() {
       && !doc.getElementById("grp-info").hasAttribute("open"),
       `How to use in one window, in blocks: Machines (${im.heads}), Effects (${ie.heads}), Track FX (${iff.heads}); ` +
       `none for Mods; keys as boxes, no bracket left; Close closes it`);
+    // the Track FX cards rewritten as in Writing for users (docs/AGENTS.md): the screen's name starts the short text
+    // (none for EQ, whose name it is); their Details a block per knob, its heading the knob (marked), no usual range
+    // (0–127), nothing the section's window says (no Good to know)
+    const TFX = { smpfilter: ["SMP", "SWEEP|CONTOUR"], crush: ["CRU", "SWEEP|CONTOUR"], ring: ["RNG", "SWEEP|CONTOUR|COLOR"],
+      reso: ["RES", "SWEEP|CONTOUR|COLOR|SHAPE"], eq: ["", "SWEEP|CONTOUR|COLOR|SHAPE"] };
+    const tfxBad = Object.keys(TFX).filter((id) => {
+      const det = doc.getElementById("det-" + id), [tag, heads] = TFX[id];
+      return !det || [...det.querySelectorAll("h4")].map((h) => h.textContent).join("|") !== heads
+        || [...det.querySelectorAll("h4 .knob")].map((k) => k.textContent).join("|") !== heads
+        || !textOf(doc, `#mod-${id} .short`).startsWith(tag ? tag + " - " : "A ")
+        || /[[\]]|RETRIG|Good to know|On the screen|\(0–127\)/.test(det.textContent);
+    });
+    check(tfxBad.length === 0, "the five Track FX cards: the screen's name first in the short text; Details a block per knob, the knob " +
+      "as its heading, nothing the Track FX window says" + (tfxBad.length ? ": " + tfxBad.join() : ""));
     check(errors.length === 0, "no JS error in the mod picker " + (errors.length ? JSON.stringify(errors) : ""));
   }
   // flasher/?samples: the tabs and the machine picker come back

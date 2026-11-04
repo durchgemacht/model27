@@ -1286,14 +1286,14 @@ const T = {
   ],
   kind_filter_info: [
     ["", "Each preset can have one Track FX. It processes only its track and comes after VOLUME + DIST in the signal path."],
-    ["Select", "Press and hold [RETRIG] and turn PITCH to select a Track FX: OFF, then the ones you install."],
+    ["Select", "Press and hold [RETRIG] and turn PITCH to select a Track FX."],
     ["Adjust", "Keep [RETRIG] held and turn SWEEP, CONTOUR, COLOR or SHAPE. Each Track FX's card says what they set."],
     ["Parameter lock", "In GRID RECORDING mode, press and hold a [TRIG] key and [RETRIG], then turn the knob."],
     ["LFO destination", "Press and hold [LFO] and [RETRIG], then turn the knob."],
     ["Control All", "Press and hold [TRACK] and [RETRIG], then turn the knob to change the setting on all tracks."],
     ["MIDI", "The setting on SWEEP responds to CC 74, the one on CONTOUR to CC 71."],
     ["Saving", "The preset saves its Track FX and its settings. On a firmware without that Track FX, the preset plays " +
-      "without it."],
+      "without it. Nothing breaks."],
   ],
   // the sections of the old list, still searched (search from SEARCH_FROM cards)
   cat_pack: "Packs", cat_sound: "Sounds & machines", cat_seq: "Sequencer", cat_live: "Live playing",
@@ -1331,7 +1331,7 @@ const T = {
   d_requires: "Works with", d_requires_v: "{name} only: ticking this one ticks it too, and unticking {name} unticks this one.",
   d_engines: "Engines",
   d_note: "Good to know",
-  d_guide: "How to use it", read_guide: "Read the guide",
+  d_guide: "Guide", read_guide: "Read the guide",
   sel_title: "Your selection",
   sel_exp: "{n} experimental", sel_exp1: "1 experimental",
   sel_go: "Install {n} mods", sel_go1: "Install 1 mod",
@@ -1592,26 +1592,62 @@ const FEAT = {
   pots: { label: "POTS",
     short: "A lo-fi delay like an old phone line: each repeat darker and more out of tune.",
     desc: "Every repeat goes down an old telephone line once more. The echoes get darker and narrower, drift further out of tune, fade in and out, and pick up a coarse grain as they die away.\n\nWhile it plays, Time and Fdbk work as usual and are labelled POTS Time and POTS Fdbk. Even at full feedback the repeats never run away. The delay is mono." },
-  smpfilter: { label: "Samples filter",
+  // The Track FX cards, as in Writing for users (docs/AGENTS.md): what the Track FX window says stays out; screen, the
+  // name the screen shows, at the start of the card's short text (shortOf; none where it is the label)
+  smpfilter: { label: "Samples filter", screen: "SMP",
     short: "The Model:Samples' filter on any track: lowpass, off or highpass on one knob, with resonance.",
-    desc: "Hold RETRIG and turn PITCH to give the track's sound a filter: OFF, SMP, then any other Track FX you installed. Then hold RETRIG and turn SWEEP for Cutoff: below 0 a lowpass (-64 is the most closed), 0 off, above 0 a highpass, as on SAMPLE. RETRIG + CONTOUR sets the resonance.\n\nBoth are real parameters of every machine: lock them on a trig, make them the LFO's destination (hold LFO and RETRIG and turn the knob), set them on all tracks with TRACK, or send CC 74 and 71. Each sound keeps its own filter and settings, saved with it. The filter is the one inside SAMPLE, measured on the Model:Samples, and comes after Volume + Dist.",
-    note: "Six tracks filtered at once use about a tenth of the processor's time. A sound saved on this firmware loses its filter on another firmware, nothing else." },
-  crush: { label: "Crush",
-    short: "A lower sample rate and fewer bits on any track, each on its own knob.",
-    desc: "Hold RETRIG and turn PITCH to give the track's sound Crush (CRU). Then hold RETRIG and turn SWEEP for Rate: 0 is off; to the right the sample rate drops with a hard, metallic edge, to the left it drops softer. RETRIG + CONTOUR sets Bits: 127 is off, turning left leaves fewer bits, down to a single one at 0. Both work together. Each time you switch to Crush it starts with Rate at 0 and Bits at 127.\n\nBoth are real parameters of every machine: lock them on a trig, make them the LFO's destination (hold LFO and RETRIG and turn the knob), set them on all tracks with TRACK, or send CC 74 and 71. Each sound keeps its own settings, saved with it. Every note restarts the sample-rate clock. Crush comes after Volume + Dist.",
-    note: "A sound saved on this firmware loses Crush on another firmware, nothing else." },
-  ring: { label: "Ring",
-    short: "A ring modulator on any track: the carrier's note, the mix, and its shape from sine to square.",
-    desc: "Hold RETRIG and turn PITCH to give the track's sound Ring (RNG). Then hold RETRIG and turn CONTOUR for Mix: 0 is dry, in the middle the sound stays at half with bell-like tones around it, at 127 only the ring is left. RETRIG + SWEEP sets the carrier's note, Freq: 0 is 8 Hz, a fast chop; 60 is middle C; 127 is 12.5 kHz, metallic. RETRIG + COLOR sets Wave: 0 is a sine, turning right drives it towards a square, harsher and a little louder. Each time you switch to Ring it starts with Mix at 0 and Wave at 0, so nothing changes until you turn.\n\nAll three are real parameters of every machine: lock them on a trig, make them the LFO's destination (hold LFO and RETRIG and turn the knob), set them on all tracks with TRACK, or send CC 74 (Freq) and 71 (Mix). Each sound keeps its own settings, saved with it. Every note starts the carrier again from its peak, so every hit sounds the same. Ring comes after Volume + Dist.",
-    note: "A sound saved on this firmware loses Ring on another firmware, nothing else." },
-  reso: { label: "Reso",
+    desc: [
+      ["", "It is the Model:Samples' filter, measured on a Model:Samples and rebuilt, the same one SAMPLE has."],
+      ["SWEEP", "Sets the cutoff (CUTO). 0 is off. Turn left for a lowpass: the further, the darker, down to about 5 Hz " +
+        "at -64. Turn right for a highpass: the further, the thinner, up to about 19 kHz at 63. (-64–63)"],
+      ["CONTOUR", "Sets the resonance (RESO): a peak at the cutoff, up to about +27 dB at 127."],
+    ] },
+  crush: { label: "Crush", screen: "CRU",
+    short: "Makes a track grainy and lo-fi: a lower sample rate and fewer bits.",
+    desc: [
+      ["", "Crush lowers the sample rate and the bit depth of the track."],
+      ["SWEEP", "Sets the sample rate (RATE). 0 is off. Turn right to lower it with a hard, metallic edge, or left to " +
+        "lower it more softly. At the ends it is below 1 kHz. (-64–63)"],
+      ["CONTOUR", "Sets the bit depth (BITS). 127, the default, is off. Just below it the track has 8 bits. Turn left " +
+        "for fewer, down to 1 bit at 0, without steps."],
+    ] },
+  ring: { label: "Ring", screen: "RNG",
+    short: "A ring modulator on any track: the carrier's pitch, the mix and its wave, from sine to square.",
+    desc: [
+      ["", "Ring multiplies the track by a second tone, the carrier. The result ranges from a fast chop to bell-like and " +
+        "metallic sounds."],
+      ["SWEEP", "Sets the carrier's pitch (FREQ) as a MIDI note. 0 is about 8 Hz, a fast chop. 60 is middle C. 64, the " +
+        "default, is the E above it. 127 is 12.5 kHz, metallic."],
+      ["CONTOUR", "Sets the mix (MIX). 0, the default, is dry. In the middle the track stays at half, with bell-like " +
+        "tones around it. At 127 only the ring is left."],
+      ["COLOR", "Sets the carrier's wave (WAVE). 0, the default, is a sine. Turn right to drive it towards a square: " +
+        "harsher and a little louder."],
+    ] },
+  reso: { label: "Reso", screen: "RES",
     short: "A tuned resonator on any track: noise and hits ring at a pitch you set.",
-    desc: "Hold RETRIG and turn PITCH to give the track's sound Reso (RES). Then hold RETRIG and turn SWEEP for Pitch: the value is the MIDI note, 60 is middle C (C4), 69 is A at 440 Hz; under about 16 it turns into a short metallic echo. RETRIG + CONTOUR sets Amount: 0 leaves the sound untouched, 127 leaves only the ringing. RETRIG + COLOR sets Tone, dull at 0 (the overtones die fast), every overtone ringing at 127; RETRIG + SHAPE sets Decay, from 20 ms to 10 seconds. Each time you switch to Reso it starts at C4 with Amount 0.\n\nAll four are real parameters of every machine: lock them on a trig (a melody of pitches on one track), make them the LFO's destination (hold LFO and RETRIG and turn the knob), set them on all tracks with TRACK, or send CC 74 (Pitch) and 71 (Amount). Each sound keeps its own settings, saved with it. The pitch does not follow the notes you play: it is the knob's. Reso comes after Volume + Dist.",
-    note: "A dull or high pitch rings shorter than Decay asks. A sound saved on this firmware loses Reso on another firmware, nothing else." },
+    desc: [
+      ["", "Reso makes the track ring at a pitch you set: noise and hits turn into tuned notes."],
+      ["SWEEP", "Sets the pitch (PTCH) as a MIDI note. 60, the default, is middle C, and 69 is A at 440 Hz. The pitch " +
+        "stays where the knob is, whatever note the track plays. Lock it on trigs to play a melody. Under about 16 it " +
+        "turns into a short metallic echo."],
+      ["CONTOUR", "Sets the amount (AMT). 0, the default, leaves the track untouched. At 127 only the ringing is left."],
+      ["COLOR", "Sets the tone (TONE). At 0 the overtones die fast and the ringing is dull. At 127 every overtone rings."],
+      ["SHAPE", "Sets how long it rings (DEC), from 20 ms to 10 seconds. A dull tone or a high pitch rings shorter than " +
+        "this."],
+    ] },
   eq: { label: "EQ",
     short: "A three-band EQ on any track: a Mid you can sweep, Low and High, each up to 12 dB either way.",
-    desc: "Hold RETRIG and turn PITCH to give the track's sound the EQ (EQ). Then hold RETRIG and turn SWEEP for the Mid's frequency, from 200 Hz (0) through 1 kHz (64) to about 4.9 kHz (127), and CONTOUR for the Mid's gain: 0 is flat, -64 cuts 12 dB, 63 boosts about 12 dB. RETRIG + COLOR boosts or cuts the lows the same way (a shelf at 100 Hz), and RETRIG + SHAPE the highs (a shelf at 8 kHz). Each time you switch to EQ every band starts flat.\n\nAll four are real parameters of every machine: lock them on a trig, make them the LFO's destination (hold LFO and RETRIG and turn the knob), or set them on all tracks with TRACK; the Mid's frequency and gain also answer CC 74 and 71. Each sound keeps its own settings, saved with it. The EQ comes after Volume + Dist; a boost past full scale clips.",
-    note: "A sound saved on this firmware loses the EQ on another firmware, nothing else." },
+    desc: [
+      ["", "The EQ has three bands: a Mid band you can sweep, a Low shelf and a High shelf. Each cuts or boosts up to " +
+        "12 dB. A boost on a loud track clips."],
+      ["SWEEP", "Sets the Mid band's frequency (MIDF): 200 Hz at 0, 1 kHz at 64, about 4.9 kHz at 127."],
+      ["CONTOUR", "Sets the Mid band's gain (MIDG). 0, the default, is flat. -64 cuts 12 dB, 63 boosts about 12 dB. " +
+        "(-64–63)"],
+      ["COLOR", "Sets the Low shelf's gain (LOWG), at 100 Hz. 0, the default, is flat. -64 cuts 12 dB, 63 boosts about " +
+        "12 dB. (-64–63)"],
+      ["SHAPE", "Sets the High shelf's gain (HIGG), at 8 kHz. 0, the default, is flat. -64 cuts 12 dB, 63 boosts about " +
+        "12 dB. (-64–63)"],
+    ] },
   cpu: { label: "CPU Page",
     short: "A page in SETTINGS that shows how much of the Model:Cycles' time the sound takes.",
     desc: "Press SETTINGS, go to the list with USB mode, LCD, LED and Contrast, and press its last row, CPU. The page shows CPU, the share of the Model:Cycles' time the sound took over the last half second, with a bar and a mark at 85 %: above it the screen and the knobs start to lag. PEAK is the dearest moment since you opened the page, TRACK FX and EFFECTS the shares of the Track FX and of the delay and reverb slot effects (\"--\" without them). It updates twice a second; Return closes it.\n\nThe sequencer keeps playing while the page is up. The share counts the sound only, not the screen." },
@@ -1888,10 +1924,11 @@ function selOf(f) {
     : f.package || f.part ? { on: false } : { on: false, variant: f.variants[0].id });
 }
 const label = (f) => featText(f.id, "label", f.label);
-// a mod without a short text shows the first sentence of its description (cut to 2 lines by the CSS)
+// a mod without a short text shows the first sentence of its description (cut to 2 lines by the CSS); the name the
+// screen shows, if any, comes first ("CRU - Makes a track …")
 function shortOf(f) {
-  const d = featText(f.id, "desc", f.desc);
-  return featText(f.id, "short", "") || (d.match(/^.*?[.!?](?=\s|$)/) || [d])[0];
+  const d = featText(f.id, "desc", f.desc), scr = featText(f.id, "screen", "");
+  return (scr ? scr + " - " : "") + (featText(f.id, "short", "") || (d.match(/^.*?[.!?](?=\s|$)/) || [d])[0]);
 }
 const catOf = (f) => (f.cat && CATS.includes(f.cat) ? f.cat : "other");
 // The four sections of step 1: added machines, effects (a package that takes an effect slot, notes/68), filters (a
@@ -2056,7 +2093,7 @@ function haystack(f) {
   if (hay[f.id]) return hay[f.id];
   const parts = [f.label, f.desc];
   const x = FEAT[f.id] || {};
-  parts.push(x.label, x.short, x.desc, x.clash, (x.parts || []).join(" "), T["cat_" + catOf(f)]);
+  parts.push(x.label, x.screen, x.short, [].concat(x.desc || []).flat().join(" "), x.clash, (x.parts || []).join(" "), T["cat_" + catOf(f)]);
   for (const e of f.engines || []) parts.push(e.name, e.label, (FEAT["eng-" + e.code] || {}).short);
   if (f.credit) parts.push(f.credit.who);
   return (hay[f.id] = fold(parts.filter(Boolean).join(" ")));
@@ -2212,8 +2249,12 @@ function renderDetails(f, open) {
     `<b>${esc(e.name)}</b> (${esc(e.label)})${featText("eng-" + e.code, "note", "") ? " : " + esc(featText("eng-" + e.code, "note", "")) : ""}`).join("<br>"));
   if (featText(f.id, "note", "")) row("d_note", esc(featText(f.id, "note", "")));
   if (GUIDE_OF[f.id]) row("d_guide", `<a class="feat-guide" href="${GUIDE}#${GUIDE_OF[f.id]}">${esc(t("read_guide"))} <span aria-hidden="true">→</span></a>`);
-  // the description in paragraphs (a blank line between them in FEAT)
-  const desc = String(featText(f.id, "desc", f.desc)).split(/\n\s*\n/).map((x) => `<p>${esc(x)}</p>`).join("");
+  // the description: blocks of [heading, text] for a card rewritten as in Writing for users (docs/AGENTS.md), its keys
+  // and knobs marked; paragraphs for the others (a blank line between them in FEAT)
+  const d = featText(f.id, "desc", f.desc);
+  const desc = Array.isArray(d)
+    ? d.map(([h, p]) => (h ? `<h4>${rich(h)}</h4>` : "") + `<p>${rich(p)}</p>`).join("")
+    : String(d).split(/\n\s*\n/).map((x) => `<p>${esc(x)}</p>`).join("");
   return `<div class="det" id="det-${f.id}"${open ? "" : " hidden"}>${desc}<dl class="facts">${rows.join("")}</dl></div>`;
 }
 

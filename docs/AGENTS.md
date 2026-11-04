@@ -74,13 +74,17 @@ mods, the guide, the rest.
   hands move: "In GRID RECORDING mode, press and hold a [TRIG] key and [RETRIG], then turn the knob." Never leave a
   key for the reader to fill in ("…, LFO to make them …").
 - **Then what you hear or see**, in a sentence of its own. No filler ("as usual", "they work like the other
-  knobs", "real parameters"). Ranges at the end, in brackets, as in the manual: (-64–63).
+  knobs", "real parameters"). A range at the end, in brackets, only where it is not the usual 0–127: (-64–63).
 - **Only what you need to start** on a card or in a window. Background, measurements and history go to the guide
   or the notes.
 - **Structure.** A card: `short`, one sentence on what it does on the machine; the Details, the way in, then the
   controls. A section window and, as they are rewritten, the Details: blocks, each a short heading (the action or
-  the parameter) and one or two sentences. `Note:` at the end, smaller, only for what protects the user's work. What
-  all the cards of a section share lives in its window, not on each card.
+  the parameter) and one or two sentences. In a card's Details, a block per knob: the heading the knob alone
+  (SWEEP), then a whole sentence on what it sets, the term written out and the screen's abbreviation in brackets
+  ("Sets the sample rate (RATE)."). A default goes into that sentence ("127, the default, is off"), not a block of
+  its own. The name the screen shows starts the card's short text, without brackets: "CRU - Makes a track grainy …"
+  (`screen` in `FEAT`, none where it is the card's name). `Note:` at the end, smaller, only for what protects the user's work. What all
+  the cards of a section share lives in its window, not on each card.
 - **Before showing a text**: every key combination checked against the code or the maintainer's test, every word as
   above, and each sentence one a Model:Cycles owner can follow without guessing a word.
 

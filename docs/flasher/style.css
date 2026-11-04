@@ -133,6 +133,8 @@ code{font:.9em var(--f);background:none;padding:0;border-radius:0}
 /* Details: the full description and the facts; the card takes the whole row */
 .det{margin:0 0 14px;padding:12px 0 0;border-top:3px dashed currentColor;font-size:14.5px;line-height:1.6}
 .det>p{margin:0 0 12px;max-width:72ch}
+.det>h4{margin:16px 0 2px;font-size:13px;line-height:1.4;text-transform:uppercase}
+.det>h4+p{margin-top:0}
 .facts{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 18px;margin:0;font-size:14px;line-height:1.5}
 .facts dt{font-weight:700}
 .facts dd{margin:0;max-width:66ch}
