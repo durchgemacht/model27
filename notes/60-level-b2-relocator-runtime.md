@@ -597,8 +597,8 @@ half-finished step never blocks a build.
   Samples `b7507068…`, with RESAMPLE `87476afd…`, every card of the page `4f6a8756…` (BUILD.md); the smoke test's
   pins: 128 writes and 42 980 bytes in the log line, the Model:Samples packings `60f640bb…` (`_smp-os`) and
   `5438cc6d…` (`_cyc-os`), computed apart from the page with `build.py -t sampler` and `mods_for_samples.py`.
-- The card's text, the guide's SAMPLE section (the version, the knob table, the Tested line), release 0.43, stamp
-  `2026-11-04-08`; PROVENANCE.md names the tag and commit the files come from.
+- The card's text, the guide's SAMPLE section (the version, the knob table, the Tested line), release 0.44 (after the
+  sections' How to use, 0.43), stamp `2026-11-04-09`; PROVENANCE.md names the tag and commit the files come from.
 - **Cost**: the pictures are drawn only while the knob view shows Cutoff or Reso, as SNARE's were, through the same
   two functions; nothing changes on the audio side.
 - **Tested**: One-Shot's host tests (`make machine-test` with and without the switches, `test_pictures` and

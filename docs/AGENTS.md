@@ -28,8 +28,11 @@ The main page (redesign of 2026-10-31, 1-bit look in `flasher/style.css`) offers
 only, on two screens: the cards, then the install steps (1 recalls the choice; 2 to 4 keep the numbers the texts refer
 to). `SAMPLES_UI` in `app.js` (true on `flasher/?samples`, which the guide links) brings back the Official firmware and
 Samples OS tabs and the machine picker; `CLASSIC_UI` (false) the classic method and Advanced. Those parts stay in the
-page, hidden, and the smoke test still drives them. The cards sit in three sections by kind (`kindOf()`: added
-machines, effects, mods); only the exceptions carry a tag (Experimental), a card's Details say how it was tested.
+page, hidden, and the smoke test still drives them. The cards sit in four sections by kind (`kindOf()`: added
+machines, effects, Track FX, mods); only the exceptions carry a tag (Experimental), a card's Details say how it was
+tested. Each section but Mods has a line under its title (`kind_<k>_sub` in `T`, the way in) and a How to use button
+that opens one window over the page (`openInfo()`): `kind_<k>_info`, blocks of `[heading, text]` with what all the
+section's cards share, and `kind_<k>_note`, an optional smaller note at the end. A card does not repeat its window.
 
 ## The manager
 
@@ -50,6 +53,36 @@ and on a Model:Cycles by the maintainer.
 The whole site is in English (the maintainer's decision of 31/10/2026): no French, no `data-l` spans, no EN/FR
 switch. `app.js` has one `T` and one `FEAT`; a `release.js` change is `{ en: "…" }`.
 Write for musicians: what changes on the machine, which buttons to press, the limits; no addresses.
+
+## Writing for users
+
+Every text a user reads (cards, section windows, guide, home page, release notes) follows these rules, drawn from the
+Model:Cycles and Syntakt manuals, Korg's monologue manual and teenage engineering's EP-133 guide (the maintainer's
+decision of 04/11/2026). Existing texts are brought to them group by group: the Track FX cards, the effects, the
+mods, the guide, the rest.
+
+- **The reader** owns a Model:Cycles and knows its manual, not our code. They want to know what to press and what
+  they will hear.
+- **The manual's words**: preset (not sound), parameter lock, preset lock, LFO destination, Control All, MACHINES
+  menu, PRESET menu, GRID RECORDING mode, signal path, recording. Never words from the code or the notes: record,
+  slot, k 32, descriptor, id, neutral, real parameter, dearest, block, claim, take.
+- **Keys and knobs.** A key in brackets in the source: `[RETRIG]`, `[TRIG] key`, `[FUNC] + [MACHINES]`; the page
+  shows it as an inverted box, without the brackets. A knob or parameter in capitals: PITCH, SWEEP, LEVEL/DATA, DELAY
+  TIME, VOLUME + DIST; the page underlines the names in `KNOBS` with dashes. Both by `rich()` in `flasher/app.js`
+  (classes `key` and `knob`). Settings and machine names in capitals, unmarked: OFF, CHORD.
+- **One action per sentence.** It starts with the verb and names every key, the held keys first, in the order the
+  hands move: "In GRID RECORDING mode, press and hold a [TRIG] key and [RETRIG], then turn the knob." Never leave a
+  key for the reader to fill in ("…, LFO to make them …").
+- **Then what you hear or see**, in a sentence of its own. No filler ("as usual", "they work like the other
+  knobs", "real parameters"). Ranges at the end, in brackets, as in the manual: (-64–63).
+- **Only what you need to start** on a card or in a window. Background, measurements and history go to the guide
+  or the notes.
+- **Structure.** A card: `short`, one sentence on what it does on the machine; the Details, the way in, then the
+  controls. A section window and, as they are rewritten, the Details: blocks, each a short heading (the action or
+  the parameter) and one or two sentences. `Note:` at the end, smaller, only for what protects the user's work. What
+  all the cards of a section share lives in its window, not on each card.
+- **Before showing a text**: every key combination checked against the code or the maintainer's test, every word as
+  above, and each sentence one a Model:Cycles owner can follow without guessing a word.
 
 ## Adding a mod to the flasher
 
@@ -72,7 +105,7 @@ Write for musicians: what changes on the machine, which buttons to press, the li
    rules between mods (`excludes`, `includes`, a card's `requires`, `with`, the Syntakt engines' `tg` version) are read
    by `ref_mainos.py` as `app.js` reads them: a new kind of rule goes into both (`tools/webflash_smoke.js` ticks each card alone and every
    pair in the page and checks that each one is in the sample).
-3. In `flasher/app.js`: the card texts in `FEAT`: `label`, the name alone (no "(effect)", no half sentence);
+3. In `flasher/app.js`: the card texts in `FEAT`, as in *Writing for users*: `label`, the name alone (no "(effect)", no half sentence);
    `short`, one plain sentence on the card (about 80 characters, what it does on the machine); `desc`, the Details,
    a few short paragraphs separated by a blank line (`\n\n`): what it is, the buttons, the main limit, the rest in
    the guide; optional `note` (shown once ticked), only for what protects the user, one or two short sentences; `clash` if it

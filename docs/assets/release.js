@@ -7,9 +7,13 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
-  { version: "0.43", date: "2026-11-04", changes: [
-    { en: "SAMPLE is Cycles One-Shot 0.14: on a SAMPLE track, turning SWEEP (Cutoff) or CONTOUR (Reso) shows the Model:Samples' own pictures of its filter instead of Snare's. The Model:Cycles' firmware already carries them, so only the code that draws them is added" },
+  { version: "0.44", date: "2026-11-04", changes: [
+    { en: "SAMPLE is now Cycles One-Shot 0.14. Turn SWEEP or CONTOUR on a SAMPLE track: the screen shows the Model:Samples' own pictures of its filter, not SNARE's. They are already in the Model:Cycles' firmware, so SAMPLE adds only what draws them" },
     { en: "Checked in an emulator on the OS's own code. Tested in One-Shot's own firmware in the digiemu emulator and on a Model:Cycles, and this page's build of SAMPLE, the same file, on a Model:Cycles (2026-11-04)" },
+  ] },
+  { version: "0.43", date: "2026-11-04", changes: [
+    { en: "The Machines, Effects and Track FX sections have a How to use button. It opens a window with what all their cards share: how to select a machine, an effect or a Track FX, and how to set, lock and save it. Keys show as boxes, knobs with a dashed underline" },
+    { en: "A Track FX parameter lock as the window describes it (a held trig, then RETRIG, then the knob) was tried on a Model:Cycles (2026-11-04)" },
   ] },
   { version: "0.42", date: "2026-11-04", changes: [
     { en: "POTS and the CPU page are tested: flashed from this page and played on a Model:Cycles (2026-11-04). Every card on this page is now tested" },

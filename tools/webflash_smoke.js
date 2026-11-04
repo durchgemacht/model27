@@ -616,13 +616,38 @@ async function main() {
     await clearAll();
     // search: only from 20 mods
     check(feats.length < 20 && box("mod-find").hidden, `no search field with ${feats.length} mods (it appears from 20)`);
-    // the Effects section says what its cards share, naming only the slots they play in (no reverb card yet);
-    // Details come in paragraphs
-    check(/Hold PATTERN and turn Delay Time to switch between the stock delay and/.test(textOf(doc, "#grp-effect .grp-sub"))
-      && !/Reverb|\{/.test(textOf(doc, "#grp-effect .grp-sub")) && !doc.querySelector("#grp-mod .grp-sub")
-      && textOf(doc, "#grp-filter .grp-sub") === "Hold RETRIG and turn PITCH to give a track's sound one of them."
+    // each section's one line, its keys as boxes and its knobs marked (the Effects one naming only the slots its cards
+    // play in: no reverb card yet), none for Mods; Details come in paragraphs
+    const marks = (sel) => [...doc.querySelectorAll(sel + " .key, " + sel + " .knob")].map((e) => e.className + ":" + e.textContent).join();
+    check(textOf(doc, "#grp-effect .grp-sub") === "Press and hold PATTERN and turn DELAY TIME to select the effect for the pattern."
+      && marks("#grp-effect .grp-sub") === "key:PATTERN,knob:DELAY TIME"
+      && textOf(doc, "#grp-filter .grp-sub") === "Press and hold RETRIG and turn PITCH to select a Track FX."
+      && marks("#grp-filter .grp-sub") === "key:RETRIG,knob:PITCH"
+      && /^Press MACHINES to open the MACHINES menu\. The machines you install come after CHORD\.$/.test(textOf(doc, "#grp-machine .grp-sub"))
+      && marks("#grp-machine .grp-sub") === "key:MACHINES" && !doc.querySelector("#grp-mod .grp-sub")
       && doc.querySelectorAll("#det-pots > p").length === 2 && doc.querySelectorAll("#det-sampler > p").length === 2,
-      "the Effects and Track FX sections' one line each, the Effects one with Delay Time only; Details in paragraphs");
+      "the sections' one line each, keys and knobs marked, the Effects one with DELAY TIME only; Details in paragraphs");
+    // Machines, Effects and Track FX open their How to use in one window over the page, in blocks under headings (the
+    // Effects one with the delay slot's blocks only, no placeholder or bracket left); a note only for Machines
+    const info = async (k) => {
+      await click(doc.getElementById("info-" + k));
+      const d = doc.getElementById("grp-info");
+      return { open: !!d && d.hasAttribute("open"), title: textOf(doc, "#grp-info-h"),
+        heads: [...doc.querySelectorAll("#grp-info .info-body > h3")].map((h) => h.textContent).join("|"),
+        text: textOf(doc, "#grp-info .info-body"), keys: doc.querySelectorAll("#grp-info .key").length,
+        note: textOf(doc, "#grp-info .info-note") };
+    };
+    const im = await info("machine"), ie = await info("effect"), iff = await info("filter");
+    await click(doc.querySelector("#grp-info [data-close]"));
+    check(!doc.getElementById("info-mod") && doc.querySelectorAll("dialog#grp-info").length === 1
+      && im.open && im.title === "Machines" && im.heads === "Select|Flashing other machines"
+      && /^Note: To use a project on a firmware other than model27/.test(im.note) && !ie.note && !iff.note
+      && ie.open && ie.title === "Effects" && ie.heads === "Select|Send|Adjust|Other firmware" && /the stock delay/.test(ie.text)
+      && iff.open && iff.title === "Track FX" && iff.heads === "Select|Adjust|Parameter lock|LFO destination|Control All|MIDI|Saving"
+      && [im, ie, iff].every((x) => x.keys > 0 && !/[[\]{}]|Reverb|REVERB/.test(x.text))
+      && !doc.getElementById("grp-info").hasAttribute("open"),
+      `How to use in one window, in blocks: Machines (${im.heads}), Effects (${ie.heads}), Track FX (${iff.heads}); ` +
+      `none for Mods; keys as boxes, no bracket left; Close closes it`);
     check(errors.length === 0, "no JS error in the mod picker " + (errors.length ? JSON.stringify(errors) : ""));
   }
   // flasher/?samples: the tabs and the machine picker come back

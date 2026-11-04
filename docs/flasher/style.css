@@ -82,7 +82,8 @@ code{font:.9em var(--f);background:none;padding:0;border-radius:0}
 .fl-head h1{display:inline-block;margin:0 0 8px -8px;padding:8px;background:var(--head-bg);color:var(--paper);font-size:36px}
 .fl-head p{margin:0;max-width:64ch;font-size:15px}
 .grp{margin:0 0 6rem}
-.grp-h{margin:0 0 1rem;padding-top:1rem;border-top:3px solid var(--ink);font-size:20px}
+.grp-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px;margin:0 0 1rem;padding-top:1rem;border-top:3px solid var(--ink)}
+.grp-h{margin:0;font-size:20px}
 .grp-sub{margin:-4px 0 16px;max-width:72ch;font-size:14px}
 .grp-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
 
@@ -108,9 +109,9 @@ code{font:.9em var(--f);background:none;padding:0;border-radius:0}
 .by{display:flex;flex-wrap:wrap;gap:0 12px;min-width:0;font-size:13px;line-height:1.4;overflow-wrap:anywhere}
 .by a{color:inherit}
 .credit{display:flex;flex-direction:column}       /* author, then license: a long name never breaks the line */
-.more{margin-left:auto;min-height:40px;padding:0 8px;border:0;background:none;color:inherit;font:700 14px/1 var(--f);text-transform:uppercase;
+.more,.grp-info{margin-left:auto;min-height:40px;padding:0 8px;border:0;background:none;color:inherit;font:700 14px/1 var(--f);text-transform:uppercase;
   text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px;cursor:pointer}
-.more:hover{text-decoration-thickness:4px}
+.more:hover,.grp-info:hover{text-decoration-thickness:4px}
 
 /* square checkboxes: an empty frame, a pixel check once ticked (a picked card itself stays as it is) */
 .mod-row>input,.variants input,.check input{appearance:none;-webkit-appearance:none;flex:none;width:28px;height:28px;margin:0;border:3px solid currentColor;
@@ -137,6 +138,22 @@ code{font:.9em var(--f);background:none;padding:0;border-radius:0}
 .facts dd{margin:0;max-width:66ch}
 .facts dd b{font-weight:700}
 .facts a{color:inherit;font-weight:700}
+
+/* a section's How to use: a window over the page, the cards stay where they are; the backdrop a 1-bit dither */
+.info{width:min(640px,calc(100vw - 32px));max-width:none;max-height:calc(100vh - 48px);margin:auto;padding:0;
+  border:3px solid var(--ink);background:var(--card);color:var(--ink);box-shadow:8px 8px 0 var(--ink);overflow:auto}
+.info::backdrop{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h1v1H0zM2 0h1v1H2zM1 2h1v1H1zM3 2h1v1H3z' fill='%230b0c0e'/%3E%3C/svg%3E")}
+.info-in{padding:14px 20px 4px}
+.info-top{display:flex;align-items:baseline;gap:12px;margin:0 0 14px;padding-bottom:8px;border-bottom:3px dashed currentColor}
+.info-top h2{margin:0;font-size:20px}
+.info-body p{margin:0 0 12px;max-width:72ch;font-size:14.5px;line-height:1.6}
+.info-body h3{margin:16px 0 2px;font-size:13px;line-height:1.4}
+.info-body .lede{margin-bottom:4px}
+
+/* in a user text (rich() in app.js): a key an inverted box, a knob underlined with dashes */
+.key{display:inline-block;padding:0 5px;background:var(--ink);color:var(--paper);font:700 .86em/1.45 var(--f);letter-spacing:0}
+.knob{font-weight:700;text-decoration:underline dashed;text-decoration-thickness:2px;text-underline-offset:4px}
+.info-body .info-note{margin-top:18px;font-size:13px;line-height:1.55;opacity:.72}   /* in the background: not model27's */
 
 /* packs, variants and engines (none offered today) */
 .parts{margin:0 0 8px;padding:0;list-style:none;font-size:14px;line-height:1.5}
