@@ -30,6 +30,10 @@ manifest's `proof` section, notes/73 §16, no change to the proof). Branch `trac
   the first block, 128 for a silent track, 24 off. Six tracks at most 6 636 instructions a block, 6.1 % (Samples'
   worst 8 952, 8.3 %; Reso 0.1 7 398, 6.8 %, §8). The frame loop is ColdFire assembly (`reso_cf.S`, 19 instructions a
   frame, MAC with load); `reso.c`'s C loop is its host model, bit for bit. Not measured on the machine yet.
+- **Reso 0.4** (§17): about a fifth fewer instructions where it is dearest (its first block, the coefficients moving):
+  the block's bookkeeping and the coefficients in assembly too, bit for bit, and the silence test's energy from every
+  fourth frame (a rung-out tail under −90 dB may be let go a block sooner or later). Code and tables 7 808 bytes
+  (8 610).
 - **On the machine** (2026-11-01): Reso with Samples and Crush, flashed from the command line: « passt » (§12); Reso
   0.3, Tone on COLOR and Decay on SHAPE, the popups checked: « getestet, passt » (§14).
 
@@ -448,3 +452,97 @@ lists of `tools/webflash_smoke.js`; then the checks of AGENTS.md, with the firmw
 Merged into `main` with Ring and EQ (notes/73 §17, release 0.28): the maintainer's proof on the merge ALL OK, the build of
 every card played on the Model:Cycles, then a build flashed from the page: « getestet, passt » (notes/73 §18, release
 0.29). The card is tested.
+
+## 17. A fifth fewer where it is dearest: Reso 0.4 (2026-11-04)
+
+The main session, for the maintainer: « Senke die CPU-Last der Track FX Reso und EQ » (a change of sound allowed, a
+listening test deciding; bit-for-bit gains need none); after the report, « Reso B+E4, EQ B ».
+
+### 17.1 Measured outside the repository
+
+A prototype with one switch per idea (`_scratch/reso-opt2/`, its `REPORT.md`) against 0.3 in the ColdFire interpreter
+(`_scratch/cfemu/cfemu.py`, notes/69 §20.1), on the manifest's cost states as the proof runs them (a new engine, the
+slot's reset, 8 blocks of warm-up, the most of the next 8; `first`: 8 blocks on another filter, the reset and the
+block). Where 0.3 spent its instructions in `first` (1 297 on the interpreter's own signal): the frame loop 639,
+`reso_process` around it 314 (the silence test 96, the copy of the line's first 32 frames 60, the rest GCC keeping
+its values on the stack), `work_out` 288, the clearing 38, the reset 18. Instructions a track and block (compare
+shares, not counts):
+
+| | mid | low | glide | silent | first | code |
+|---|---:|---:|---:|---:|---:|---:|
+| 0.3 | 771 | 821 | 1 127 | 128 | 1 297 | 2 682 B |
+| A: `reso_process` in assembly | 709 | 744 | 1 059 | 70 | 1 085 (−16 %) | 2 342 B |
+| B: A, and `reso_work_out` in assembly | 709 | 744 | 1 006 | 70 | 1 032 (−20 %) | 1 852 B |
+| **B + E4: B, the energy from every fourth frame (kept)** | 685 | 720 | 982 | 70 | **1 008 (−22 %)** | 1 840 B |
+
+- **The cost states hold the dearest case**: a sweep (held over Pitch × Tone × Decay, 300 random pairs gliding,
+  `first` at every corner, 3 000 random blocks with resets and silences) finds at most 1 % more than `first` (0.3:
+  1 305; B: 1 042).
+- **The code's size**: with the cache model of notes/27 §2 (as notes/74 §13.1), B and B + E4 win under every
+  assumption, the caches warm, the code cold once a block, everything cold at every call (`first`: 1 997 / 3 002 /
+  4 727 cycles for 0.3, 1 552 / 2 507 / 3 832 for B + E4): the assembly is smaller than GCC's code.
+- **E4's sound**: none of 100 000 random blocks differs from 0.3; aimed at it (a hit, then silence until the comb is
+  let go, 72 settings, 9.2 million frames), 4 860 frames differ, at most 54 674 LSB, −91.9 dBFS: the tail is cut a
+  block sooner or later. Nothing to hear; no listening page.
+- **Dropped**: linear interpolation instead of the allpass (about −9 % more): the high harmonics would then die at a
+  rate set by the period's fraction, some notes bright and others dull, which the allpass is there to avoid (§3).
+
+### 17.2 `reso.c` 0.4, `reso_cf.S`
+
+- **`reso_process` in `reso_cf.S`** on the device: the bookkeeping in registers, the frame loop inline (four frames a
+  turn, as 0.2), the silence test stopping at the first frame that is not 0, the line's lazy clearing eight frames a
+  `movem`, the copy of the line's first 32 frames by four `movem` pairs. The state is the same `struct track`, its
+  offsets checked at compile time; `reso_state` and `reso_line` are global for the assembly.
+- **`reso_work_out` in `reso_cf.S`**, a section of its own (called by its address): `work_out`'s integer steps and
+  EMAC products in the same order, the words clamped and kept there; the tables through `reso_tab`, their addresses in
+  `reso.c` (the header's tables are static).
+- **The silence test's energy** (E4): `mac.l y,y,acc1` on the first frame of each four only (`FRAME`, then three
+  `FRAMEQ`), 18 instructions on those frames; the threshold a quarter (`QUIET_E` 16).
+- **`reso.c`** keeps `reso_reset` for the device and, under `RESO_HOST`, the whole model: `work_out`, `frames()`,
+  `reso_process`, the proof's.
+- Code and tables 7 808 bytes (8 610), variables 143 424 (unchanged); 13 860 bytes added to the image (14 664).
+
+### 17.3 Proven, checked
+
+- The repository's host build against the prototype's B + E4 over 100 000 blocks (random words with every corner,
+  notes, resets, silences): none differ. The device object, as the generator commits it (`reso.o`, linked alone), in
+  the interpreter against its host build, 5 000 blocks: none differ (after each call the word behind the block
+  untouched, every accumulator 0). The prototype's `reso_work_out` against GCC's code of the C over 153 000 word
+  triples (every corner of the three words, in range and out, sweeps, random): the same coefficients and keys; four
+  branches never run there, none reachable in range (§8). Two faults put into the assembly on purpose showed at once
+  in the comparison. UBSan and ASan, 400 000 blocks, without `-fwrapv`: clean.
+- `tools/emu/emac.py` takes the new forms (an address register as a product's operand and as `movclr`'s target);
+  the MAC with load into one of its operands, `reso_cf.S` 0.3 already ran on the machine.
+- **Green**: `gen_reso.py --check` and the other Track FX', parts', CPU page's, RESAMPLE's, POTS' and Digital
+  Delay's generators, `check_overlaps.py`, `registry.py --check` and `gen_flasher_tweaks.py --check` (after
+  regenerating them), `claims.py --check --self-test`, `webbuild_check.sh`, `webcompose_check.sh` with the official
+  file, `webflash_check.sh`, `webmanager_check.sh`, `ref_mainos.py` (regenerated: only the combinations with Reso
+  change), `py_compile`, and `test_fltslot.py --dry` ALL OK.
+- **The proof**, the maintainer's run (2026-11-04, Unicorn, on the tree of this section): everything OK but Reso's
+  cost line, as expected with 0.3's numbers still declared. Counted: off 18, mid 590, low 612, high 583, glide 830,
+  silent 70, first 855 (0.3 declared 24, 674, 706, 664, 961, 128, 1 106: first −23 %, glide −14 %, held −12 %).
+  These are now Reso's `cost.emulation` (tests dated 2026-11-04); the filters' load of a build with Reso as its
+  dearest Track FX falls from 6 × 1 106 = 6 636 to 6 × 855 = 5 130 instructions a block (6.1 % → 4.7 %). The proof
+  saves more than the interpreter's ratio foretold (about 880 in `first`), in part because its six tracks average one
+  that is silent at the switch, which 0.4 lets go in 70 instructions instead of 128. After declaring them: the checks of the list above
+  green again; the MAIN OS does not change (the cost is only reported).
+
+MAIN OS, on `d320fa9`: Reso alone `7626270e…`, with Samples and Crush `ccdcf75a…`, with the CPU page `4bb34c3a…`
+(0.3's: `3599328e…`), every card of the page `9e7c87d2…` (0.3's: `021d39d1…`); all as `REF_MAINOS` or
+`webcompose_check.sh` give them. Builds in `build/reso-0.4/` (git-ignored): `reso/`, `smpfilter+crush+reso/`,
+`reso-cpu/` and `reso03-cpu/` (0.3 with the CPU page, composed from `main`, to compare the TRACK FX line).
+
+### 17.4 On the machine
+
+The maintainer flashed `build/reso-0.4/smpfilter+crush+reso/` (Samples, Crush and Reso 0.4, from the command line) on
+their Model:Cycles (2026-11-04), three tests, each « passt »:
+
+1. Hats or noise through Reso, Amount 127, Pitch, Tone and Decay turned: as 0.3, no clicks.
+2. Decay 127, Pitch about 12: a short metallic echo; a hit, rung out, five seconds of silence, another hit: the same
+   as the first, nothing left of the old one (the comb let go and started again); an LFO on Pitch: a clean glide (the
+   coefficients worked out every block).
+3. Reso on all six tracks, Amount 127, a long Decay, a full pattern, switching a few times to a pattern without Reso
+   and back: no dropout, no stutter, Reso starting cleanly each time (the first block of six tracks).
+
+The CPU page's numbers (`reso-cpu/` against `reso03-cpu/`) were not measured. The card stays `tested`; the release
+text says it was tried on the machine.

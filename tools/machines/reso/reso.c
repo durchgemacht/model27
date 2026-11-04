@@ -27,17 +27,20 @@
  * pitch decays sooner. The coefficients are worked out when a word has moved, from tables by value, in product forms
  * that do not cancel at low pitches.
  *
- * Every product goes through the EMAC in signed fractional mode, truncating (MACSR 0xa0, as the slot calls it): on
- * the device mac.l / msac.l / movclr.l, and the frame loop in reso_cf.S (MAC with load, 19 instructions a frame); on
- * the host (RESO_HOST) frames() below, the same arithmetic as tools/emu/emac.py executes it (each product truncated
- * to 2^-23 of an LSB, the accumulator read as acc >> 31, saturated), so that both give the same bits. The comb is
- * saturated at full scale wherever it is read, so the loop never runs away nor wraps.
+ * Every product goes through the EMAC in signed fractional mode, truncating (MACSR 0xa0, as the slot calls it). On the
+ * device everything but reso_reset is in reso_cf.S (since 0.4): reso_process, the block, with the frame loop (MAC with
+ * load, 19 instructions a frame, 18 on three frames in four), and reso_work_out, the coefficients. This file holds the
+ * same as C for the host (RESO_HOST), the proof's model: the same integer steps, the same products in the same order
+ * in the same accumulator, the EMAC as tools/emu/emac.py executes it (each product truncated to 2^-23 of an LSB, the
+ * accumulator read as acc >> 31, saturated), so that both give the same bits. The comb is saturated at full scale
+ * wherever it is read, so the loop never runs away nor wraps.
  *
  * Off (Amount 0): the block is not touched and the comb starts again from silence (its line is cleared lazily: each
- * block clears what it reads that was written before, at most 33 frames, eight a store in reso_cf.S). A silent block
- * once the comb's output has stayed under an RMS of 2^-15 of full scale (-90 dB) block after block for a whole line
- * (since 0.2: its energy in acc1; every frame under 2^-15 before): the same. A note (triggered) changes nothing: the
- * comb rings on.
+ * block clears what it reads that was written before, at most 33 frames, eight a store on the device). A silent block
+ * once the comb's output has stayed under an RMS of 2^-15 of full scale (-90 dB) block after block for a whole line:
+ * the same. The RMS since 0.4 from every fourth frame (0, 4, .. 28; every frame in 0.2 and 0.3, each frame's level in
+ * 0.1): a rung-out comb may be let go a block sooner or later, its tail under -90 dB. A note (triggered) changes
+ * nothing: the comb rings on.
  *
  * Contract (fltslot.c): reso_process(block, words, track, triggered), block 32 frames of 32 bits changed in place;
  * reso_reset(track). C ABI.
@@ -54,11 +57,62 @@
 #define ONE 0x7fffffff
 #define G_MAX (ONE - (1 << 19))                     /* 1 - 2^-12: the loop's gain, and so its DC mode's, under 1 */
 #define AMT 66052                                   /* Amount's word (0 .. 0x7f00) to Q31 */
-#define QUIET_E 64                                  /* sum y^2 / 2^31 of a block at an RMS of 2^-15 of full scale */
+#define QUIET_E 16                                  /* sum y^2 / 2^31 over every fourth frame at an RMS of 2^-15 */
 #define R_DC (ONE - (1 << 22))                      /* the DC blocker's pole, 1 - 2^-9 (about 15 Hz) */
 
-/* --- the EMAC ----------------------------------------------------------------------------------------------- */
-#ifdef RESO_HOST
+/* --- the state ---------------------------------------------------------------------------------------------- */
+struct track {
+	/* the frame loop's (its offsets in reso_cf.S): pointers (the host's model), constants in the order it loads
+	 * them, states */
+	int32_t *blk, *rp, *wp, *end;               /* +0: the block, the line's window, where it writes, the block's end */
+	int32_t kq, q, nrm, rdc, gt, ia, amt;       /* +16: the damping (1 - q, q), the input's scale, the DC blocker's
+						       pole, the loop's gain, the output's dry and wet parts */
+	int32_t eta;                                /* +44: the allpass */
+	int32_t x1, v1, lp, hp;                     /* +48: the last input, the allpass, the damping, the DC blocker */
+	uint32_t m;                                 /* +64: the block's energy, sum y^2 / 2^31 (acc1), saturated */
+	/* the block's */
+	uint32_t w;                                 /* +68: the next frame written, 0 .. LEN - 32, a multiple of 32 */
+	uint32_t fill;                              /* +72: frames written since the comb started, up to LEN */
+	uint32_t quiet;                             /* +76: frames since a block's RMS last reached 2^-15, up to LEN */
+	uint32_t dint;                              /* +80: the line read dint frames back, then the allpass */
+	int16_t key[3];                             /* +84: the words of Pitch, Tone and Decay the coefficients are for */
+	uint8_t set;                                /* +90: the coefficients are worked out */
+};
+#ifndef RESO_HOST                                   /* reso_cf.S's offsets (the host's pointers are wider) */
+typedef char reso_layout[offsetof(struct track, kq) == 16 && offsetof(struct track, eta) == 44 &&
+			 offsetof(struct track, x1) == 48 && offsetof(struct track, m) == 64 &&
+			 offsetof(struct track, w) == 68 && offsetof(struct track, fill) == 72 &&
+			 offsetof(struct track, quiet) == 76 && offsetof(struct track, dint) == 80 &&
+			 offsetof(struct track, key) == 84 && offsetof(struct track, set) == 90 &&
+			 sizeof(struct track) == 92 ? 1 : -1];
+#endif
+
+/* reso_cf.S reads both (global since 0.4) */
+struct track reso_state[TRACKS];
+int32_t reso_line[TRACKS][LEN + 33];                /* then the first 32 frames again (read across the end), and a
+						       frame the loop reads ahead */
+
+static void silence(struct track *st)               /* the comb starts again from nothing */
+{
+	st->fill = 0;
+	st->quiet = LEN;                            /* the line is silent: what was written before reads as 0 */
+	st->x1 = st->hp = st->v1 = st->lp = 0;
+}
+
+void reso_reset(uint32_t track)
+{
+	if (track < TRACKS) {
+		silence(&reso_state[track]);
+		reso_state[track].set = 0;
+	}
+}
+
+#ifndef RESO_HOST
+/* the tables' addresses for reso_cf.S's reso_work_out (the header's tables are static) */
+const void *const reso_tab[10] = {RESO_L, RESO_SH, RESO_CH, RESO_P, RESO_SP2, RESO_CP2, RESO_E, RESO_ETA, RESO_EXP,
+				  RESO_SQRT};
+#else
+/* --- the host's model of reso_cf.S --------------------------------------------------------------------------- */
 typedef __int128 wide;
 static wide acc, acc1;                              /* acc0, and acc1 the frames' energy */
 #define TRUNC(p) ((p) & ~(wide)0x7fffff)
@@ -76,81 +130,16 @@ static inline int32_t movclr(void)
 	acc = 0;
 	return r;
 }
-static inline int clz32(uint32_t x) { return __builtin_clz(x); }
-#else
-static inline void acc_set(int32_t v) { __asm__ volatile("move.l %0,%%acc0" : : "r"(v)); }
-static inline void mac(int32_t a, int32_t b) { __asm__ volatile("mac.l %0,%1,%%acc0" : : "r"(a), "r"(b)); }
-static inline void msac(int32_t a, int32_t b) { __asm__ volatile("msac.l %0,%1,%%acc0" : : "r"(a), "r"(b)); }
-static inline int32_t acc_get(void)
-{
-	int32_t r;
-	__asm__ volatile("move.l %%acc0,%0" : "=d"(r));
-	return r;
-}
-static inline int32_t movclr(void)
-{
-	int32_t r;
-	__asm__ volatile("movclr.l %%acc0,%0" : "=d"(r));
-	return r;
-}
-static inline int clz32(uint32_t x)                 /* ff1: the first set bit counted from the top */
-{
-	int r = (int)x;
-	__asm__("ff1.l %0" : "+d"(r));
-	return r;
-}
-#endif
-/* A mul() empties the accumulator: never call one inside a run of mac. */
+static inline int clz32(uint32_t x) { return __builtin_clz(x); }   /* ff1 */
 static inline int32_t mul(int32_t a, int32_t b) { mac(a, b); return movclr(); }               /* a b, Q31 */
 static inline int32_t mul2(int32_t a, int32_t b) { mac(a, b); mac(a, b); return movclr(); }   /* 2 a b */
-
-/* --- the state ---------------------------------------------------------------------------------------------- */
-struct track {
-	/* the frame loop's (its offsets in reso_frames): pointers, constants in the order it loads them, states */
-	int32_t *blk, *rp, *wp, *end;               /* +0: the block, the line's window, where it writes, the block's end */
-	int32_t kq, q, nrm, rdc, gt, ia, amt;       /* +16: the damping (1 - q, q), the input's scale, the DC blocker's
-						       pole, the loop's gain, the output's dry and wet parts */
-	int32_t eta;                                /* +44: the allpass */
-	int32_t x1, v1, lp, hp;                     /* +48: the last input, the allpass, the damping, the DC blocker */
-	uint32_t m;                                 /* +64: the block's energy, sum y^2 / 2^31 (acc1), saturated */
-	/* the block's */
-	uint32_t w;                                 /* the next frame written, 0 .. LEN - 32, a multiple of 32 */
-	uint32_t fill;                              /* frames written since the comb started, up to LEN */
-	uint32_t quiet;                             /* frames since a block's RMS last reached 2^-15, up to LEN */
-	uint32_t dint;                              /* the line read dint frames back, then the allpass */
-	int16_t key[3];                             /* the words of Pitch, Tone and Decay the coefficients are for */
-	uint8_t set;                                /* the coefficients are worked out */
-};
-#ifndef RESO_HOST                                   /* reso_cf.S's offsets (the host's pointers are wider) */
-typedef char reso_layout[offsetof(struct track, kq) == 16 && offsetof(struct track, eta) == 44 &&
-			 offsetof(struct track, x1) == 48 && offsetof(struct track, m) == 64 ? 1 : -1];
-#endif
-
-static struct track state[TRACKS];
-static int32_t line[TRACKS][LEN + 33];              /* then the first 32 frames again (read across the end), and a
-						       frame the loop reads ahead */
-
-static void silence(struct track *st)               /* the comb starts again from nothing */
-{
-	st->fill = 0;
-	st->quiet = LEN;                            /* the line is silent: what was written before reads as 0 */
-	st->x1 = st->hp = st->v1 = st->lp = 0;
-}
-
-void reso_reset(uint32_t track)
-{
-	if (track < TRACKS) {
-		silence(&state[track]);
-		state[track].set = 0;
-	}
-}
 
 static int32_t clamp(int32_t w)
 {
 	return w < 0 ? 0 : w > TOP ? TOP : w;
 }
 
-/* --- the coefficients --------------------------------------------------------------------------------------- */
+/* --- the coefficients (reso_work_out in reso_cf.S) --------------------------------------------------------------- */
 static int32_t lerp(const int32_t *t, uint32_t w)   /* a table by value at the word w (8.8): between two values */
 {
 	uint32_t n = w >> 8;
@@ -158,7 +147,7 @@ static int32_t lerp(const int32_t *t, uint32_t w)   /* a table by value at the w
 }
 
 /* n / d, Q31, to 2^-14 of itself, for 0 <= n, 0 < d */
-static inline __attribute__((always_inline)) int32_t divq(uint32_t n, uint32_t d)
+static int32_t divq(uint32_t n, uint32_t d)
 {
 	int32_t sn, sd, s;
 	uint32_t q;
@@ -200,11 +189,10 @@ static int32_t sqrtq(int32_t u)                     /* sqrt(u), Q31 */
 	return t0 >> (z >> 1);
 }
 
-#ifndef RESO_HOST
-__attribute__((noinline))                           /* on its own GCC keeps reso_process's registers (since 0.2) */
-#endif
-static void work_out(struct track *c, uint32_t pitch, uint32_t tone, uint32_t decay)
+/* The coefficients for the words of Pitch, Tone and Decay (clamped here), which it keeps. */
+static void work_out(struct track *c, const int16_t *words)
 {
+	uint32_t pitch = (uint32_t)clamp(words[0]), tone = (uint32_t)clamp(words[2]), decay = (uint32_t)clamp(words[3]);
 	uint32_t n = pitch >> 8, f = pitch & 0xff, L, P, D, e;
 	int32_t sh, ch, kq = ONE, tau = 0, dmp = 0, g, dg;
 	L = RESO_L[n] - (((RESO_L[n] - RESO_L[n + 1]) * f) >> 8);          /* the period, 20.12 */
@@ -249,11 +237,15 @@ static void work_out(struct track *c, uint32_t pitch, uint32_t tone, uint32_t de
 	c->nrm = sqrtq(ONE - mul(g, g));                    /* white noise in, as loud out */
 	dg = mul(g, dmp);
 	c->gt = dg > G_MAX - g ? G_MAX : g + dg;
+	c->rdc = R_DC;
+	c->key[0] = words[0];
+	c->key[1] = words[2];
+	c->key[2] = words[3];
+	c->set = 1;
 }
 
-/* --- the block ---------------------------------------------------------------------------------------------- */
-#ifdef RESO_HOST
-/* The frames, as reso_frames below runs them on the device: the same products, in the same accumulator. */
+/* --- the block (reso_process in reso_cf.S) ------------------------------------------------------------------- */
+/* The frames, as reso_cf.S runs them: the same products, in the same accumulator. */
 static void frames(struct track *st)
 {
 	int32_t *b = st->blk, *rp = st->rp, *wp = st->wp, u0 = *rp++, x1 = st->x1, v1 = st->v1, lp = st->lp,
@@ -277,7 +269,8 @@ static void frames(struct track *st)
 		*wp++ = y;
 		mac(x, st->ia);                             /* the output */
 		mac(y, st->amt);
-		acc1 += TRUNC((wide)y * y);                 /* the block's energy (acc1 on the device) */
+		if (!((b - st->blk) & 3))                   /* the block's energy from every fourth frame (acc1) */
+			acc1 += TRUNC((wide)y * y);
 		*b++ = movclr();
 		x1 = x;
 		u0 = u1;
@@ -290,18 +283,6 @@ static void frames(struct track *st)
 	st->m = acc1 > INT32_MAX ? INT32_MAX : (uint32_t)acc1;
 }
 
-static void zero(int32_t *p, int32_t n)
-{
-	while (n-- > 0)
-		*p++ = 0;
-}
-#else
-void reso_frames(struct track *st);                 /* reso_cf.S: the same loop on the EMAC, 19 instructions a frame */
-void reso_zero(int32_t *p, int32_t n);              /* reso_cf.S: eight frames a store */
-#define frames reso_frames
-#define zero reso_zero
-#endif
-
 void reso_process(int32_t *block, const int16_t *words, uint32_t track, uint32_t triggered)
 {
 	struct track *st;
@@ -311,7 +292,7 @@ void reso_process(int32_t *block, const int16_t *words, uint32_t track, uint32_t
 	(void)triggered;
 	if (track >= TRACKS)
 		return;
-	st = &state[track];
+	st = &reso_state[track];
 	amt = clamp(words[1]) * AMT;
 	if (!amt) {                                         /* off: untouched */
 		silence(st);
@@ -326,38 +307,28 @@ void reso_process(int32_t *block, const int16_t *words, uint32_t track, uint32_t
 			return;
 		}
 	}
-	if (!st->set || words[0] != st->key[0] || words[2] != st->key[1] || words[3] != st->key[2]) {
-		work_out(st, (uint32_t)clamp(words[0]), (uint32_t)clamp(words[2]), (uint32_t)clamp(words[3]));
-		st->key[0] = words[0];
-		st->key[1] = words[2];
-		st->key[2] = words[3];
-		st->set = 1;
-	}
-	ln = line[track];
+	if (!st->set || words[0] != st->key[0] || words[2] != st->key[1] || words[3] != st->key[2])
+		work_out(st, words);
+	ln = reso_line[track];
 	w = st->w;
 	start = w + LEN - st->dint - 1;                     /* the window's first frame: dint + 1 back */
 	if (start >= LEN)
 		start -= LEN;
 	if (st->fill < LEN) {                               /* the frames of the window written before the comb started */
 		int32_t nz = (int32_t)st->dint + 1 - (int32_t)st->fill;
-		if (nz > 0)
-			zero(&ln[start], nz > FRAMES + 1 ? FRAMES + 1 : nz);
+		for (n = 0; n < (nz > FRAMES + 1 ? FRAMES + 1 : nz); n++)
+			ln[start + n] = 0;
 	}
 	st->blk = block;
 	st->end = block + FRAMES;
 	st->rp = &ln[start];
 	st->wp = &ln[w ? w : LEN];                          /* at the line's start, into its copy: the reads see it */
-	st->rdc = R_DC;
 	st->ia = ONE - amt;
 	st->amt = amt;
 	frames(st);
 	if (!w)                                             /* the line's first 32 frames from their copy */
-		for (n = 0; n < FRAMES; n += 4) {
+		for (n = 0; n < FRAMES; n++)
 			ln[n] = ln[LEN + n];
-			ln[n + 1] = ln[LEN + n + 1];
-			ln[n + 2] = ln[LEN + n + 2];
-			ln[n + 3] = ln[LEN + n + 3];
-		}
 	st->w = w + FRAMES < LEN ? w + FRAMES : 0;
 	if (st->fill < LEN)
 		st->fill += FRAMES;
@@ -366,3 +337,4 @@ void reso_process(int32_t *block, const int16_t *words, uint32_t track, uint32_t
 	else if (st->quiet < LEN)
 		st->quiet += FRAMES;
 }
+#endif

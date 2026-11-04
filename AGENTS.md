@@ -157,9 +157,10 @@ tools/machines/ring/          Ring (notes/74): a ring modulator, the Track FX's 
                               carrier's Wave on RETRIG + SWEEP / CONTOUR / COLOR; tools/gen_ring.py writes its tables
                               and builds it into 74-ring.json; proven by test_fltslot.py from its manifest
 tools/machines/reso/          Reso (notes/75): a tuned resonator, a comb, the Track FX's id 4: Pitch, Amount, Tone and
-                              Decay on RETRIG + SWEEP / CONTOUR / COLOR / SHAPE; reso_cf.S its frame loop (EMAC, MAC
-                              with load), reso.c the rest and the loop's C model for the host; tools/gen_reso.py writes
-                              its tables and builds it into 75-reso.json; proven by test_fltslot.py from its manifest
+                              Decay on RETRIG + SWEEP / CONTOUR / COLOR / SHAPE; reso_cf.S the block with its frame loop
+                              (EMAC, MAC with load) and the coefficients (since 0.4), reso.c the reset and their C model
+                              for the host; tools/gen_reso.py writes its tables and builds it into 75-reso.json; proven
+                              by test_fltslot.py from its manifest
 tools/machines/eq/            EQ (notes/76): a three-band equalizer, the Track FX's id 5 (a sweepable Mid bell, Low and
                               High shelves, the Audio EQ Cookbook's biquads on the EMAC: eq_cf.S, its model in eq.c):
                               the Mid's frequency and gain on RETRIG + SWEEP / CONTOUR, Low and High on COLOR / SHAPE;

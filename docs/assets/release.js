@@ -7,6 +7,9 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.40", date: "2026-11-04", changes: [
+    { en: "The Reso Track FX takes less of the Model:Cycles' time: about a fifth less where it is heaviest (the block a track comes to Reso, and its values all moving at once), about a tenth less while it rings. The sound is the same, bit for bit, checked in an emulator on the OS's own code; only a ringing tail far under hearing (-90 dB) may be let go a block sooner or later. Tried on a Model:Cycles (2026-11-04)" },
+  ] },
   { version: "0.39", date: "2026-11-04", changes: [
     { en: "A new card, RESAMPLE: hold SETTINGS and press RECORD, and a page records a track, the main mix or what comes in over USB. The take starts when you press RECORD, or after it with the track's next trig or when the sound gets loud enough, and stops when it dies away, after a length you set, or on RECORD. The stock name editor then names it, REC-001 and on, and it is saved as a sample in /recordings: as loud as you heard it, or raised to just under full scale with NORM. TO Tn puts it straight on the selected SAMPLE track. It goes with every other card" },
     { en: "Checked in an emulator on the OS's own code: the sound bit for bit the same with the recorder, the take, the keys, the page, the save, and the level of a track's take. Tested on a Model:Cycles (2026-11-04) with the file this page builds with SAMPLE, Trig Preview and RESAMPLE: a track by Trig Preview and by LEVEL, TO Tn at the level heard, the main mix in stereo with NORM, and USB in stereo" },
