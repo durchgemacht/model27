@@ -1246,13 +1246,55 @@ const T = {
   tab_mods: "Mods",
   tab_restore: "Official firmware",
   kind_machine: "Machines", kind_effect: "Effects", kind_filter: "Track FX", kind_mod: "Mods",
-  // a section's one line: what all its cards share (the effect slots are model27's, notes/68); {knobs} and {stock}
+  // Section texts follow the style sheet (docs/AGENTS.md): a key as [KEY], a knob by its name in capitals (KNOBS);
+  // rich() marks both.
+  // A section's one line: how to start with its cards (the effect slots are model27's, notes/68); {knobs} and {stock}
   // name only the slots that the offered effect cards play in (fxSub)
-  kind_effect_sub: "Hold PATTERN and turn {knobs} to switch between {stock} and the ones you install. Your choice is saved with each pattern.",
-  fx_knob_delay: "Delay Time", fx_knob_reverb: "Reverb Size", fx_or: " or ",
+  kind_effect_sub: "Press and hold [PATTERN] and turn {knobs} to select the effect for the pattern.",
+  fx_knob_delay: "DELAY TIME", fx_knob_reverb: "REVERB SIZE", fx_or: " or ",
   fx_stock_delay: "the stock delay", fx_stock_reverb: "the stock reverb", fx_stock: "the stock effect",
-  // the filter slot's, the Track FX (notes/72, notes/73): what every card of the section shares
-  kind_filter_sub: "Hold RETRIG and turn PITCH to give a track's sound one of them.",
+  // the filter slot's, the Track FX (notes/72, notes/73)
+  kind_filter_sub: "Press and hold [RETRIG] and turn PITCH to select a Track FX.",
+  // the added machines (notes/64)
+  kind_machine_sub: "Press [MACHINES] to open the MACHINES menu. The machines you install come after CHORD.",
+  // A section's "How to use" window: what its cards share, so that the cards only say their own. Blocks of
+  // [heading, text]; a block without a heading opens the window. The Effects one takes {knobs} and {stock}, and in
+  // place of "{slots}" the blocks of each slot its cards play in (fx_info_<slot>; none for the reverb slot yet: write
+  // them with the first reverb effect).
+  info_btn: "How to use", info_of: "How to use: {name}", info_close: "Close",
+  kind_machine_info: [
+    ["Select", "Press [MACHINES] to open the MACHINES menu, then use LEVEL/DATA to select a machine. The machines you " +
+      "install are listed after CHORD."],
+    ["Flashing other machines", "Flashing model27 with other machines breaks nothing. A track whose machine is no " +
+      "longer there plays another one, and plays its own again once you flash the same machines."],
+  ],
+  // a section's note at the end of its window, smaller and lighter: what is not model27's (kind_<k>_note, optional)
+  info_note: "Note:",
+  kind_machine_note: "To use a project on a firmware other than model27, first set the tracks with these machines to an " +
+    "original machine (KICK to CHORD).",
+  kind_effect_info: [
+    ["", "Each pattern plays {stock} or one of the effects you install."],
+    ["Select", "Press and hold [PATTERN] and turn {knobs} to select the effect for the pattern. The pattern saves your " +
+      "choice. A new pattern starts with {stock}."],
+    "{slots}",
+    ["Other firmware", "On a firmware without that effect, the pattern plays {stock}."],
+  ],
+  fx_info_delay: [
+    ["Send", "Each track's DELAY SEND sends to the effect, as before."],
+    ["Adjust", "Turn DELAY TIME to set the effect's time. Press and hold [FUNC] and turn DELAY TIME to set its " +
+      "feedback. The screen shows the effect's name with them."],
+  ],
+  kind_filter_info: [
+    ["", "Each preset can have one Track FX. It processes only its track and comes after VOLUME + DIST in the signal path."],
+    ["Select", "Press and hold [RETRIG] and turn PITCH to select a Track FX: OFF, then the ones you install."],
+    ["Adjust", "Keep [RETRIG] held and turn SWEEP, CONTOUR, COLOR or SHAPE. Each Track FX's card says what they set."],
+    ["Parameter lock", "In GRID RECORDING mode, press and hold a [TRIG] key and [RETRIG], then turn the knob."],
+    ["LFO destination", "Press and hold [LFO] and [RETRIG], then turn the knob."],
+    ["Control All", "Press and hold [TRACK] and [RETRIG], then turn the knob to change the setting on all tracks."],
+    ["MIDI", "The setting on SWEEP responds to CC 74, the one on CONTOUR to CC 71."],
+    ["Saving", "The preset saves its Track FX and its settings. On a firmware without that Track FX, the preset plays " +
+      "without it."],
+  ],
   // the sections of the old list, still searched (search from SEARCH_FROM cards)
   cat_pack: "Packs", cat_sound: "Sounds & machines", cat_seq: "Sequencer", cat_live: "Live playing",
   cat_screen: "Screen & browsing", cat_io: "USB & MIDI", cat_other: "Other mods",
@@ -1860,12 +1902,61 @@ function kindOf(f) {
   if (p) return (p.uses || []).some((u) => /^fx\./.test(u.point || "")) ? "effect" : "machine";
   return f.engines ? "machine" : "mod";
 }
-// the Effects section's knobs and stock effect: only the slots (fx.delay, fx.reverb) the offered effect cards play in
-function fxSub(cards) {
+// the slots (fx.delay, fx.reverb) the offered effect cards play in
+function fxSlots(cards) {
   const uses = (f) => (window.MC_TWEAKS.packages[f.package] || {}).uses || [];
-  const slots = ["delay", "reverb"].filter((s) => cards.some((f) => uses(f).some((u) => u.point === "fx." + s)));
+  return ["delay", "reverb"].filter((s) => cards.some((f) => uses(f).some((u) => u.point === "fx." + s)));
+}
+// the Effects section's knobs and stock effect: only those slots'
+function fxSub(cards) {
+  const slots = fxSlots(cards);
   return { knobs: slots.map((s) => t("fx_knob_" + s)).join(t("fx_or")),
     stock: t(slots.length === 1 ? "fx_stock_" + slots[0] : "fx_stock") };
+}
+// a section's "How to use" blocks, [heading, text]; the Effects one names those slots only, with the blocks of each
+function infoBlocks(k, cards) {
+  const vars = k === "effect" ? fxSub(cards) : {};
+  const fill = (s) => Object.keys(vars).reduce((x, v) => x.split("{" + v + "}").join(vars[v]), s);
+  return T["kind_" + k + "_info"].flatMap((b) => b === "{slots}" ? fxSlots(cards).flatMap((s) => T["fx_info_" + s] || []) : [b])
+    .map(([h, p]) => [h, fill(p)]);
+}
+// a user text on the page (the style sheet, docs/AGENTS.md): a key written [KEY] becomes an inverted box, a knob of
+// the Model:Cycles named in capitals gets a dashed underline; the rest is escaped
+const KNOBS = ["LEVEL/DATA", "VOLUME + DIST", "DELAY TIME", "REVERB SIZE", "DELAY SEND", "REVERB SEND", "LFO SPEED",
+  "MAIN VOLUME", "PITCH", "DECAY", "COLOR", "SHAPE", "SWEEP", "CONTOUR", "SWING", "CHANCE"];
+const KNOB_RE = new RegExp("(^|[^A-Z/])(" + KNOBS.map((n) => esc(n).replace(/[+/]/g, "\\$&")).join("|") + ")(?![A-Z])", "g");
+function rich(s) {
+  return esc(s).split(/(\[[A-Z0-9][A-Z0-9 –-]*\])/).map((part, i) => i % 2
+    ? `<kbd class="key">${part.slice(1, -1)}</kbd>`
+    : part.replace(KNOB_RE, (m, pre, n) => `${pre}<span class="knob">${n}</span>`)).join("");
+}
+// one "How to use" window for every section, over the page: opening it moves no card (a card's Details unfold in
+// place). A click on the backdrop reaches the dialog itself, whose padding is the inner box's.
+function openInfo(k) {
+  let d = $("grp-info");
+  if (!d) {
+    d = document.createElement("dialog");
+    d.id = "grp-info";
+    d.className = "info";
+    d.setAttribute("aria-labelledby", "grp-info-h");
+    d.innerHTML = `<div class="info-in"><div class="info-top"><h2 id="grp-info-h"></h2>` +
+      `<button type="button" class="more" data-close>${esc(t("info_close"))}</button></div><div class="info-body"></div></div>`;
+    d.addEventListener("click", (e) => { if (e.target === d || e.target.closest("[data-close]")) closeInfo(); });
+    d.addEventListener("close", () => { const b = $("info-" + d.dataset.kind); if (b) b.focus({ preventScroll: true }); });
+    document.body.appendChild(d);
+  }
+  d.dataset.kind = k;
+  d.querySelector("h2").textContent = t("kind_" + k);
+  d.querySelector(".info-body").innerHTML = infoBlocks(k, order().filter((f) => kindOf(f) === k))
+    .map(([h, p]) => h ? `<h3>${esc(h)}</h3><p>${rich(p)}</p>` : `<p class="lede">${rich(p)}</p>`).join("") +
+    (T["kind_" + k + "_note"] ? `<p class="info-note"><b>${esc(t("info_note"))}</b> ${rich(t("kind_" + k + "_note"))}</p>` : "");
+  if (typeof d.showModal === "function") d.showModal(); else d.setAttribute("open", "");
+}
+function closeInfo() {
+  const d = $("grp-info");
+  if (!d || !d.hasAttribute("open")) return;
+  if (typeof d.close === "function") d.close();
+  else { d.removeAttribute("open"); d.dispatchEvent(new Event("close")); }
 }
 // display order: by section, then CATS, then FEATURES order
 const order = () => KINDS.flatMap((k) => CATS.flatMap((c) => features().filter((f) => kindOf(f) === k && catOf(f) === c)));
@@ -1992,7 +2083,10 @@ function renderFeatures() {
     g.setAttribute("aria-labelledby", "grp-h-" + k);
     g.hidden = !mine.some(matches);
     const sub = T["kind_" + k + "_sub"] && t("kind_" + k + "_sub", k === "effect" ? fxSub(mine) : undefined);
-    g.innerHTML = `<h2 class="grp-h" id="grp-h-${k}">${esc(t("kind_" + k))}</h2>` + (sub ? `<p class="grp-sub">${esc(sub)}</p>` : "");
+    const info = T["kind_" + k + "_info"] ? `<button type="button" class="grp-info" id="info-${k}" data-info="${k}" ` +
+      `aria-haspopup="dialog" aria-label="${esc(t("info_of", { name: t("kind_" + k) }))}">${esc(t("info_btn"))}</button>` : "";
+    g.innerHTML = `<div class="grp-top"><h2 class="grp-h" id="grp-h-${k}">${esc(t("kind_" + k))}</h2>${info}</div>` +
+      (sub ? `<p class="grp-sub">${rich(sub)}</p>` : "");
     const body = document.createElement("div");
     body.className = "grp-body";
     for (const f of mine) body.appendChild(renderRow(f));
@@ -2184,6 +2278,8 @@ function wirePicker() {
       const id = b.id.slice(5);
       if (pick.open.has(id)) pick.open.delete(id); else pick.open.add(id);
       renderFeatures();
+    } else if (b.dataset.info) {
+      openInfo(b.dataset.info);
     } else if (b.hasAttribute("data-undo")) {
       const by = undo();
       changed();

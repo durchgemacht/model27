@@ -78,7 +78,8 @@ maintained by 18nelli18; model27 is not affiliated with it, and never speaks for
 - **The site is English only** (the maintainer's decision of 31/10/2026): flasher, guide, home page and release notes;
   no French there, no `data-l` spans, no EN/FR switch.
 - User-facing text speaks to musicians: what the mod does on the machine, which buttons to press, its limits. No
-  addresses or jargon there; those belong in the notes.
+  addresses or jargon there; those belong in the notes. Its words, notation and sentences: *Writing for users* in
+  [`docs/AGENTS.md`](docs/AGENTS.md).
 
 ## Repository map
 
