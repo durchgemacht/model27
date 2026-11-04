@@ -2029,8 +2029,8 @@ function rich(s) {
     : part.replace(KNOB_RE, (m, pre, n) => `${pre}<span class="knob">${n}</span>`)).join("");
 }
 // One window over the page for a section's How to use and a card's Details: opening it moves no card. A click on
-// the backdrop reaches the dialog itself, whose padding is the inner box's; on closing, the button that opened it
-// gets the focus back.
+// the backdrop reaches the dialog itself, as does one on its padding: only a click outside its box closes it. On
+// closing, the button that opened it gets the focus back.
 function openWindow(title, html, back) {
   let d = $("grp-info");
   if (!d) {
@@ -2040,7 +2040,12 @@ function openWindow(title, html, back) {
     d.setAttribute("aria-labelledby", "grp-info-h");
     d.innerHTML = `<div class="info-in"><div class="info-top"><h2 id="grp-info-h"></h2>` +
       `<button type="button" class="more" data-close>${esc(t("info_close"))}</button></div><div class="info-body"></div></div>`;
-    d.addEventListener("click", (e) => { if (e.target === d || e.target.closest("[data-close]")) closeInfo(); });
+    d.addEventListener("click", (e) => {
+      if (e.target.closest("[data-close]")) return closeInfo();
+      if (e.target !== d) return;
+      const r = d.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) closeInfo();
+    });
     d.addEventListener("close", () => { const b = $(d.dataset.back); if (b) b.focus({ preventScroll: true }); });
     document.body.appendChild(d);
   }

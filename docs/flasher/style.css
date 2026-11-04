@@ -142,7 +142,7 @@ code{font:.9em var(--f);background:none;padding:0;border-radius:0}
 .guide-link a{color:inherit;font-weight:700}
 
 /* a section's How to use: a window over the page, the cards stay where they are; the backdrop a 1-bit dither */
-.info{width:min(640px,calc(100vw - 32px));max-width:none;max-height:calc(100vh - 48px);margin:auto;padding:0;
+.info{width:min(640px,calc(100vw - 32px));max-width:none;max-height:calc(100vh - 48px);margin:auto;
   border:3px solid var(--ink);background:var(--card);color:var(--ink);box-shadow:8px 8px 0 var(--ink);overflow:auto}
 .info::backdrop{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h1v1H0zM2 0h1v1H2zM1 2h1v1H1zM3 2h1v1H3z' fill='%230b0c0e'/%3E%3C/svg%3E")}
 .info-in{padding:14px 20px 20px}
