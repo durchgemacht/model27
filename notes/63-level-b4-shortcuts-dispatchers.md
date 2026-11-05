@@ -1467,4 +1467,44 @@ the release, as the MACHINES list since §24.
   Here: `gen_parts.py --check`, the generators' `--check`, `test_fltslot.py --dry`, claims, overlaps, registry,
   flasher data, webcompose (identical), webbuild, webflash, the smoke test with both official files ALL PARTS OK.
   **Run by the maintainer, 2026-11-05:** `test_shortcuts.py` ALL OK (150 ok) `[FAIT en émulation]`. `test_fltslot.py`
-  and `test_chordtables.py`, whose builds only moved, run once after step P3, which changes the layer again.
+  and `test_chordtables.py`, whose builds only moved, run once after step P4 (P3 changes the layer again, P4
+  SAMPLE, which their selections hold).
+
+## 27. The switches as p-locks (2026-11-05, the layer's 0.5, step P3)
+
+The maintainer's request (§25): Loop and Reverse locked per step. The gesture: trigs held, MACHINES, then PUNCH (Loop)
+or GATE (Reverse). The maintainer's choices of 2026-11-05: a lock holds each switch on its own (E1), a switch flipped
+back to the sound's value leaves the lock (E2), the LEDs show the held step and SAMPLE's L / R the sound (E3).
+
+- **The stock OS** `[FAIT]`, read and in `probe_switch_locks.py` (the maintainer's run of 2026-11-05): a held trig +
+  a knob ends in `0x4000bb94` (the sound parameters' vt+40, `0x400fd15c`), which takes the selected track's sequence
+  `0x4000cfcc(0x4000f208(project), track)` (= `0x4000f23e(project)`) and calls `0x4001646a(seq, step, k, value)`;
+  the clear (`0x4000bc00`, vt+44) calls `0x400164b0(seq, step, k)`. Both take k 32. The steps held are a 64-bit mask in
+  the UI's state (+352 steps 0..31, +348 steps 32..63); the stock knob lock brackets its writes with
+  `0x4006b740(state, 1)` and `0x4006b954(state)`, which clears the step keys' words (+92 + 4 s) so that the trig's
+  release does not toggle the trig. A lock's word is read as the OS reads it (`0x4000dece`): the object at +44 of
+  the sequence, its vt+40 the pattern's locks, the track at +56, the word at `+ 4385 t + 68 step + 2 k`, -1 none.
+- **The change** (`sc_press`): MACHINES held, TRACK not, on a track whose machine declared the press, `TRIG_HELD` asked
+  (`0x4006b736`); no trig: the sound's switch as before. A trig held: `sc_locks` for each held step below the
+  pattern's length (`0x40016402`): what the step plays (the lock's value when the lock holds that switch, else the
+  sound's) flipped; the same as the sound's: the lock lets that switch go, else it holds it with the flipped value. A
+  lock word holds bits 8 / 9 (Loop, Reverse: the values) and 10 / 11 (the switches it holds), nothing else; a lock that
+  holds neither is cleared (`0x400164b0`), else written (`0x4001646a`). Around them the stock bracket. Then, as without
+  a trig, the hold marked (+0x13: the PRESET browser stays shut, §26) and one LED frame. The sound never changes.
+- **The LEDs** (`sc_leds` → `sc_shown`): with a trig held, the first held step's switches: for each switch the lock's
+  value when its lock holds it, else the sound's.
+- **For a player:** on a SAMPLE track, hold one or more trigs, hold MACHINES, press PUNCH or GATE: those steps get Loop
+  or Reverse the other way round from what they play; press again and they follow the sound again. The PUNCH and GATE
+  LEDs show the first held step. Until step P4, SAMPLE does not read the locks yet: nothing is heard.
+- **Builds:** the layer 1 824 bytes of code; SAMPLE 132 writes, 43 744 bytes; every build with the layer moves again
+  (REF_MAINOS, REF_MODS, the smoke test's line and files `d71222b7…` and `1a912265…`). The layer claims
+  `TRIG 1-16 + MACHINES + PUNCH/GATE`.
+- **Proof:** `test_shortcuts.py` §8: the press without a trig as before (`TRIG_HELD` asked once); with a trig held,
+  on the OS's own lock functions over a pattern in memory, eight presses in a row on REF2 and on SAMPLE (on, off
+  again, a lock that holds one switch and then both, back to the sound's value, a step past the pattern's length, a
+  step not held, another k's lock on a held step, the sound's Track FX byte not in the lock, a sound that reverses):
+  the expected words, the sound unchanged, one LED frame, the hold marked, the step words cleared, registers and
+  stack kept; §9: the LEDs with a trig held, 28 cases per machine. Here: `gen_parts.py --check`, the generators'
+  `--check`, `test_fltslot.py --dry`, claims, overlaps, registry, flasher data, webcompose (identical), webbuild,
+  webflash, the smoke test with both official files ALL PARTS OK. **Run by the maintainer, 2026-11-05:**
+  `test_shortcuts.py` ALL OK (164 ok) `[FAIT en émulation]`; the long proofs after step P4.

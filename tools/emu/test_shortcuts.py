@@ -34,14 +34,20 @@ on the official OS 1.13:
      switch flipped while a note plays acts from the next block; REF ignores k 32;
   8. the press (0x4001ac4a, called with the view and parameter 44 PUNCH or 45 GATE, as MainScreenView's key handler
      calls it): MACHINES held, TRACK not, on a REF2 or SAMPLE track flips bit 8 or 9 of k 32 in the track's sound, asks
-     once for a new LED frame (0x400760ba with the view) and switches nothing (0x4001abe2 not called), without asking
-     whether a trig is held (0x4006b736 not called); every other case (no key, RETRIG, TRACK, TRACK + MACHINES, another
-     machine, no project, no sound, another parameter) calls what the stock OS calls with the same arguments and leaves
-     k 32; d2..d7 and a2..a6 and the stack come back;
+     once for a new LED frame (0x400760ba with the view) and switches nothing (0x4001abe2 not called), when no trig is
+     held (0x4006b736 asked once, since the layer's 0.5); every other case (no key, RETRIG, TRACK, TRACK + MACHINES,
+     another machine, no project, no sound, another parameter) calls what the stock OS calls with the same arguments
+     and leaves k 32; d2..d7 and a2..a6 and the stack come back. With a trig held (the layer's 0.5, notes/63 §27), on
+     the OS's own lock functions (0x4001646a, 0x400164b0, 0x4000dece, 0x4000dcec) over a pattern in memory: the sound
+     stays, each held step below the pattern's length gets its switch flipped as a lock of k 32 (bits 8/9 the values,
+     10/11 the switches it holds), a switch flipped back to the sound's value leaves the lock, a lock that holds none is
+     cleared, other steps and other k untouched; the stock knob lock's bracket around the writes (0x4006b740 sets +356,
+     0x4006b954 clears the step words), one LED frame, the hold marked;
   9. the LEDs: MainScreenView's LED method from 0x4001cc80 to its second LED (0x4001ccc2), with PUNCH and GATE of the
      selected track in d2 and d0: MACHINES held, TRACK not, on a REF2 or SAMPLE track, LED 19 and 20 show the switches
      (state 2 on, 1 off); every other case lights them as the stock OS; d5 leaves as the stock code leaves it there, the
-     other registers kept.
+     other registers kept; with a trig held (0.5), the first held step's switches: a locked switch the lock's value, the
+     other the sound's.
   10. MACHINES as the level's key (the layer's 0.4): MainScreenView's key handler from its MACHINES case (0x4001c252),
      stock and with the layer, for every machine, the MACHINES list open or not, a shortcut or switch used in between or
      not: on a track of a machine with a shortcut or a switch a press that would open the list is taken and the release
@@ -394,11 +400,12 @@ def sentinels(u):
     return vals
 
 
-def press(u, held, t, machine, k32, param, **kw):
+def press(u, held, t, machine, k32, param, trig=0, **kw):
     """0x4001ac4a(view, param) as MainScreenView's key handler calls it: (the calls it made, k 32 after, whether the
     stack and the registers d2..d7, a2..a6 came back and memory stayed in bounds)."""
     u.keys(held)
     u.hooks = project(u, t, machine, k32, **kw)
+    u.hooks[TRIG_HELD] = ("trig", trig)
     u.calls.clear()
     vals = sentinels(u)
     u.call(PRESS, VIEW, param)
@@ -422,13 +429,13 @@ def press_tests(key, stock, img, runtime, ref2, machines, switchers):
                         act = LAYER in held and TRACK not in held and m in switchers and param in BIT
                         if act:
                             acted += 1
-                            good = cb == [("leds", (VIEW,))] and kb == k32 ^ BIT[param] and okb
+                            good = cb == [("trig", (STATE,)), ("leds", (VIEW,))] and kb == k32 ^ BIT[param] and okb
                         else:
                             good = cb == ca and kb == ka == k32 and okb and oka
                         if not good:
                             bad.append((held, s32(m), t, hex(k32), param, cb, ca, hex(kb)))
     check(not bad and acted, f"{key}: the press (0x4001ac4a): MACHINES held, TRACK not, on a track of a machine with "
-                             f"switches (machines {sorted(switchers)}): "
+                             f"switches (machines {sorted(switchers)}), no trig held: "
                              f"bit 8 (PUNCH) or 9 (GATE) of k 32 flipped, one LED frame asked with the view, no stock "
                              f"switch ({acted} cases); every other case calls what the stock OS calls ({cases} cases "
                              f"in all; keys, machines, tracks 0, 3, 5, k 32, parameters 43..46); registers and stack "
@@ -451,12 +458,119 @@ def press_tests(key, stock, img, runtime, ref2, machines, switchers):
           "the stock OS's press, as the proof stubs it: 0x4001abe2(44, 3) for PUNCH on track 3, (45, 0..5) with TRACK")
 
 
-def leds(u, held, t, machine, k32, punch, gate):
+# the switches as p-locks (the layer's 0.5, notes/63 §27): a sequence and its pattern in memory, the OS's lock
+# functions
+STATE = 0x93a20000                                   # what project() gives as the UI's state
+SEQ, SEQVT, SEQ_PAT, PATTRK = 0x93e10000, 0x93e20000, 0x93e20100, 0x93e30000
+HOLDER, HVT, H_BASE, H_NOTE = 0x93e40000, 0x93e50000, 0x93e50100, 0x93e50200
+SEQ_OF, REDRAW = 0x4000f23e, 0x40069b84
+
+
+def seq_hooks(u, t, length):
+    """The selected track's sequence (0x4000f23e stubbed): its pattern of `length` steps, its locks in PL_RAM through
+    the object at +44, track t; the hooks to add."""
+    for a, v in ((SEQ, SEQVT), (SEQ + 44, HOLDER), (SEQ + 56, t), (SEQ + 60, 0), (SEQVT + 40, SEQ_PAT), (HOLDER, HVT),
+                 (HVT + 40, H_BASE), (HVT + 16, H_NOTE)):
+        u.uc.mem_write(a, struct.pack(">I", v))
+    u.uc.mem_write(PATTRK + 713, struct.pack(">h", length))
+    return {SEQ_OF: ("seq", SEQ), SEQ_PAT: ("pattern", PATTRK), H_BASE: ("locks", PL_RAM), H_NOTE: ("note", 0),
+            REDRAW: ("redraw", 0)}
+
+
+def held_mask(u, steps):
+    m = sum(1 << n for n in steps)
+    u.uc.mem_write(STATE + 348, struct.pack(">II", m >> 32, m & 0xffffffff))
+
+
+def lock_press(u, t, machine, k32, param, steps, length, data):
+    """0x4001ac4a with MACHINES held, a trig held over these steps: (the k 32 locks {step: word}, the other locks, the
+    sound's k 32 after, the calls by name, the step words cleared, the hold marked, regs/stack/memory fine)."""
+    u.keys((LAYER,))
+    u.hooks = project(u, t, machine, k32)
+    u.hooks.update(seq_hooks(u, t, length))
+    u.hooks[TRIG_HELD] = ("trig", 1)
+    held_mask(u, steps)
+    u.uc.mem_write(STATE + 92, b"\x01" * 256)
+    u.uc.mem_write(data + PENDING, bytes(2))
+    u.calls.clear()
+    vals = sentinels(u)
+    u.call(PRESS, VIEW, param)
+    kept = [u.uc.reg_read(r) & 0xffffffff for r in KEPT] == vals
+    w = pl_words(u)
+    mine = w.pop((t, 32), {})
+    names = [n for n, _a in u.calls if n in ("trig", "seq", "leds", "switch", "redraw")]
+    return (mine, w, struct.unpack(">H", u.uc.mem_read(SOUND + K32, 2))[0], names,
+            bytes(u.uc.mem_read(STATE + 92, 256)) == bytes(256), u.uc.mem_read(data + USED, 1)[0],
+            u.sp_ok and kept and not u.bad)
+
+
+def lock_tests(key, img, runtime, machine, data):
+    """The switches as p-locks: a sequence of steps, each press against what the previous ones left."""
+    u = UI(img, runtime)
+    t = 3
+    pl_init(u)
+    pl_lock(u, t, 5, 28, 0x1234)                      # another k's lock on a held step stays
+    pl_lock(u, t, 7, 32, 0x0e00)                      # a step not held keeps its lock
+    other = {(t, 28): {5: 0x1234}}
+    seq = [  # (sound's k 32, press, held steps, length, the k 32 locks after, why)
+        (0x0005, PUNCH_P, (2, 5, 40), 64, {2: 0x0500, 5: 0x0500, 7: 0x0e00, 40: 0x0500},
+         "Loop on as a lock on the three held steps, the sound's Track FX byte not in it"),
+        (0x0005, PUNCH_P, (2, 5, 40), 64, {7: 0x0e00}, "Loop back to the sound's: the locks cleared"),
+        (0x0100, PUNCH_P, (3,), 64, {3: 0x0400, 7: 0x0e00}, "the sound loops: Loop off as a lock"),
+        (0x0100, GATE_P, (3,), 64, {3: 0x0e00, 7: 0x0e00}, "Reverse on next to it"),
+        (0x0100, PUNCH_P, (3,), 64, {3: 0x0a00, 7: 0x0e00}, "Loop back to the sound's: the lock keeps Reverse"),
+        (0x0100, GATE_P, (3,), 64, {7: 0x0e00}, "Reverse back too: the lock cleared"),
+        (0x0000, GATE_P, (1, 20), 16, {1: 0x0a00, 7: 0x0e00}, "a step past the length (20 of 16) left alone"),
+        (0x0200, GATE_P, (1, 7), 16, {1: 0x0800, 7: 0x0c00},
+         "the sound reverses: both held locks hold Reverse off now, step 7 keeps its Loop"),
+    ]
+    bad = []
+    for k32, param, steps, length, want, why in seq:
+        mine, w, after, names, cleared, used, ok = lock_press(u, t, machine, k32, param, steps, length, data)
+        good = (mine == want and w == other and after == k32 and "switch" not in names and names.count("leds") == 1
+                and names.count("trig") == 1 and names.count("seq") == 1 and cleared and used == 1 and ok)
+        if not good:
+            bad.append((why, {s_: hex(v) for s_, v in mine.items()}, hex(after), names, cleared, used, ok))
+    check(not bad, f"{key}: MACHINES + PUNCH / GATE with a trig held on machine {s32(machine)}: the switch of each "
+                   "held step flipped as a lock of k 32 (bits 8/9 the values, 10/11 what it holds), back to the sound's "
+                   "value it leaves the lock, a lock that holds none cleared, a step past the length, a step not held "
+                   "and another k untouched; the sound stays; one LED frame, the hold marked, the step words cleared; "
+                   f"{len(seq)} presses in a row" + (f"; DIFFERENT {bad[:2]}" if bad else ""))
+
+
+def led_lock_tests(key, img, runtime, machine):
+    """The LEDs with a trig held: the first held step's switches."""
+    u = UI(img, runtime)
+    t, bad, n = 3, [], 0
+    for k32 in (0, 0x100, 0x200, 0x300):
+        for word in (None, 0x0500, 0x0400, 0x0a00, 0x0800, 0x0e00, 0x0c00):
+            pl_init(u)
+            if word is not None:
+                pl_lock(u, t, 6, 32, word)
+            pl_lock(u, t, 9, 32, 0x0f00)              # a later held step: not shown
+            extra = seq_hooks(u, t, 64)
+            held_mask(u, (6, 9))
+            got, regs, ok = leds(u, (LAYER,), t, machine, k32, 0, 0, trig=1, extra=extra)
+            show = k32
+            for i in (0, 1):
+                if word is not None and word >> (10 + i) & 1:
+                    show = show & ~(1 << (8 + i)) | (word >> (8 + i) & 1) << (8 + i)
+            want = [(0x13, 2 if show & 0x100 else 1), (0x14, 2 if show & 0x200 else 1)]
+            n += 1
+            if got != want or not ok:
+                bad.append((hex(k32), word and hex(word), got, want))
+    check(not bad, f"{key}: the LEDs with a trig held: the first held step's switches, a locked switch the lock's "
+                   f"value, the other the sound's ({n} cases)" + (f"; DIFFERENT {bad[:3]}" if bad else ""))
+
+
+def leds(u, held, t, machine, k32, punch, gate, trig=0, extra=None):
     """MainScreenView's LED method from 0x4001cc80 (PUNCH in d2, GATE in d0, the selected track in d4, the LED
     singleton in d3, the LED setter in a4, as the method has them there) to 0x4001ccc2, after its second LED: its LED
     calls [(led, state)], the registers d2..d7, a2..a6 after, and whether it got there with memory in bounds."""
     u.keys(held)
     u.hooks = project(u, t, machine, k32)
+    u.hooks[TRIG_HELD] = ("trig", trig)
+    u.hooks.update(extra or {})
     u.hooks[LED_SET] = ("led", 0)
     u.calls.clear()
     sentinels(u)
@@ -726,8 +840,8 @@ def plock_tests(key, stock, img, runtime, syms):
             got = s32(b.call(IDX_TO_K, t, i))
             if got != want or b.bad:
                 bad.append((t, i, got, want))
-    check(not bad, f"{key}: 0x4005aa1a (track, index -> k), tracks 0..7, indices 0..40: 18 -> k 32 and 24..32 -> k 23..31 "
-                   "on tracks 0..5, every other answer the stock OS's" + (f"; DIFFERENT {bad[:4]}" if bad else ""))
+    check(not bad, f"{key}: 0x4005aa1a (track, index -> k), tracks 0..7, indices 0..40: 18 -> k 32 and 24..32 -> k "
+                   "23..31 on tracks 0..5, every other answer the stock OS's" + (f"; DIFFERENT {bad[:4]}" if bad else ""))
     locks = [(0, 0, 1, 0x3000), (2, 5, 32, 0x0101), (2, 6, 32, 0x0e00), (5, 63, 32, 0x0200), (3, 4, 31, 0x0400),
              (1, 3, 23, 0x0800), (4, 9, 9, 0x0500), (4, 9, 32, 0x0301), (0, 15, 13, 0x4400)]
     rows, file = pl_save(b, locks)
@@ -837,8 +951,13 @@ def main():
         voice_tests(key, tweak, img, runtime, added, args.blocks)
         print("the press")
         press_tests(key, stock, img, runtime, ref2, machines, switchers)
+        print("the press with a trig held: the switches as p-locks")
+        for m in sorted(switchers):
+            lock_tests(key, img, runtime, m, syms["sc_data"])
         print("the LEDs")
         led_tests(key, stock, img, runtime, ref2, machines, switchers)
+        for m in sorted(switchers):
+            led_lock_tests(key, img, runtime, m)
         print("MACHINES, the level's key")
         check(bytes(u.uc.mem_read(MACH_SITE, 6)).hex() == f"4eb9{syms['sc_mach']:08x}",
               f"{key}: 0x4001ca1e -> jsr sc_mach")

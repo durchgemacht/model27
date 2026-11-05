@@ -22,11 +22,13 @@
  *            GATE's presses call (0x4001c2d2, 0x4001caa2), (view, parameter 44 or 45), which switches PUNCH or GATE
  *            on the selected track, or on all six with TRACK held (Control All). MACHINES held, TRACK not, on a track
  *            whose machine declared that press: flips the machine's switch, asks for a new LED frame and returns to
- *            the caller, PUNCH or GATE left as they were. Anything else: the 6 bytes, then the stock body.
+ *            the caller, PUNCH or GATE left as they were; since 0.5 (notes/63 §27), with a trig held, the switch of
+ *            each held step instead, as a p-lock of k 32 (sc_locks). Anything else: the 6 bytes, then the stock body.
  *   sc_leds  jsr from 0x4001cc86, over 6 bytes (move.l d0,d5 ; tst.l d2 ; seq d0) of MainScreenView's LED method,
  *            where d2 holds PUNCH and d0 GATE of the selected track (d4) and d0's byte then picks LED 19's state.
  *            MACHINES held, TRACK not, on a track whose machine declared a press: that key's LED shows the machine's
- *            switch instead. Returns with d5 and d0's byte as the 6 bytes leave them.
+ *            switch instead (since 0.5, with a trig held, the first held step's: sc_shown). Returns with d5 and d0's
+ *            byte as the 6 bytes leave them.
  *   sc_mach  jsr from 0x4001ca1e, over 6 bytes (move.l d3,-(sp) ; jsr (a3) ; addq.l #4,sp) of MainScreenView's MACHINES
  *            case (0x4001c252): a3 the "fresh press" test (0x400724a0), d3 the event, a2 the view; the stock code then
  *            toggles the MACHINES list on d0 != 0 (0x4001ca2a: opens it, or closes it when it is open, 0x40077da8 with
@@ -103,6 +105,15 @@
 	.equ	KEY_TAKEN, 0x4001c2a8		/* MainScreenView's key handler: d2 = 1 (taken), its end */
 	.equ	BROWSER, 0x4001c996		/* its MACHINES case: the PRESET browser pushed, then its end */
 	.equ	MACH_SITE, 0x4001ca1e		/* its MACHINES case after the held-trig test: jsr sc_mach */
+	.equ	SEQ_OF, 0x4000f23e		/* (project) -> the selected track's sequence: +44 the pattern's locks, +56 its track */
+	.equ	SEQ_LENGTH, 0x40016402		/* (sequence) -> the pattern's length in steps */
+	.equ	LOCK_SET, 0x4001646a		/* (sequence, step, k, value) -> 1: the lock written, the pattern's file told */
+	.equ	LOCK_CLEAR, 0x400164b0		/* (sequence, step, k) -> 1: the lock cleared */
+	.equ	EDIT_BEGIN, 0x4006b740		/* (state, 1): what the stock knob lock does before its writes */
+	.equ	EDIT_END, 0x4006b954		/* (state): after them; the held trigs' release then toggles nothing */
+	.equ	HELD_HI, 348			/* the UI's state: the held steps, 32..63 */
+	.equ	HELD_LO, 352			/* 0..31 */
+	.equ	LOCK_K, 32			/* the switches' k */
 	.equ	MACHINES_VT, 0x40117920	/* the MACHINES list's vtable */
 	.equ	CONTROLLER_AT, 44		/* MainScreenView: its controller, whose views are a list at +20 (node: +0 next, +8 view) */
 	.equ	VIEWS_AT, 20
@@ -301,11 +312,21 @@ sc_press:
 	bsr.w	sc_track
 	btst	%d2, %d1			/* the machine declared this press */
 	beq.w	8f
-	addq.l	#8, %d2				/* its switch: bit 8 or 9 of k 32 */
+	move.l	%a0, -(%sp)			/* the sound */
+	jsr	UI_STATE
+	move.l	%d0, -(%sp)
+	jsr	TRIG_HELD
+	addq.l	#4, %sp
+	movea.l	(%sp)+, %a0
+	tst.b	%d0
+	beq.s	1f
+	bsr.w	sc_locks			/* a trig held: the switch of each held step, as a lock */
+	bra.s	2f
+1:	addq.l	#8, %d2				/* its switch: bit 8 or 9 of k 32 */
 	mvz.w	SWITCHES_AT(%a0), %d1
 	bchg	%d2, %d1
 	move.w	%d1, SWITCHES_AT(%a0)
-	lea	sc_data, %a1
+2:	lea	sc_data, %a1
 	move.b	#1, USED(%a1)			/* MACHINES acted as a modifier */
 	move.l	8(%sp), -(%sp)			/* the view: PUNCH's or GATE's LED follows */
 	jsr	VIEW_LEDS
@@ -340,6 +361,7 @@ sc_leds:
 	move.l	%d1, %d3			/* the presses the machine declared */
 	beq.s	9f
 	mvz.w	SWITCHES_AT(%a0), %d1
+	bsr.w	sc_shown			/* with a trig held, the first held step's */
 	btst	#0, %d3
 	beq.s	1f
 	move.l	%d1, %d2
@@ -351,6 +373,191 @@ sc_leds:
 9:	move.l	(%sp)+, %d3
 	tst.l	%d2
 	seq	%d0
+	rts
+
+/* The switches as p-locks of k 32 (since 0.5, notes/63 §27): d2 the switch (0 Loop on PUNCH, 1 Reverse on GATE), a0
+ * the selected track's sound. For each held step below the pattern's length, its switch flipped against what the
+ * step plays: the lock's when the lock holds that switch, else the sound's. A lock's word holds bits 8 and 9, the
+ * values, and bits 10 and 11, which switches it holds (the maintainer's E1); a switch flipped back to the sound's
+ * value leaves the lock, and a lock that holds none is cleared (E2). Around the writes what the stock knob lock does
+ * (EDIT_BEGIN, EDIT_END), so that the trig's release does not toggle it. Keeps d2..d7, a2..a6. */
+sc_locks:
+	lea	-32(%sp), %sp
+	movem.l	%d2-%d7/%a2-%a3, (%sp)
+	move.l	%d2, %d7			/* the switch */
+	mvz.w	SWITCHES_AT(%a0), %d6		/* the sound's word */
+	jsr	UI_STATE
+	movea.l	%d0, %a3			/* the UI's state */
+	pea	1
+	move.l	%a3, -(%sp)
+	jsr	EDIT_BEGIN
+	addq.l	#8, %sp
+	jsr	PROJECT
+	move.l	%d0, -(%sp)
+	jsr	SEQ_OF
+	movea.l	%d0, %a2			/* the selected track's sequence */
+	move.l	%a2, (%sp)
+	jsr	SEQ_LENGTH
+	addq.l	#4, %sp
+	move.l	%d0, %d5			/* the pattern's length */
+	moveq	#0, %d4				/* the step */
+10:	cmp.l	%d5, %d4
+	bge.w	19f
+	move.l	%d4, %d0
+	move.l	HELD_LO(%a3), %d1
+	moveq	#32, %d2
+	cmp.l	%d2, %d0
+	blt.s	11f
+	sub.l	%d2, %d0
+	move.l	HELD_HI(%a3), %d1
+11:	btst	%d0, %d1
+	beq.w	18f				/* not held */
+	bsr.w	sc_lockword
+	move.l	%d0, %d3			/* the step's lock, -1 none */
+	moveq	#0, %d1
+	tst.l	%d3
+	bmi.s	12f
+	move.l	%d3, %d1
+	andi.l	#0xf00, %d1			/* what the lock holds */
+12:	move.l	%d7, %d0
+	addq.l	#8, %d0				/* the value's bit */
+	moveq	#0, %d2				/* what the step plays: the sound's... */
+	btst	%d0, %d6
+	beq.s	13f
+	moveq	#1, %d2
+13:	addq.l	#2, %d0				/* ... or the lock's, when it holds the switch */
+	btst	%d0, %d1
+	beq.s	14f
+	subq.l	#2, %d0
+	moveq	#0, %d2
+	btst	%d0, %d1
+	beq.s	14f
+	moveq	#1, %d2
+14:	moveq	#1, %d0
+	eor.l	%d0, %d2			/* flipped */
+	move.l	%d7, %d0
+	addq.l	#8, %d0
+	btst	%d0, %d6			/* the sound's value */
+	beq.s	15f
+	tst.l	%d2
+	bne.s	16f				/* the sound's again: the lock lets the switch go */
+	bra.s	17f
+15:	tst.l	%d2
+	beq.s	16f
+17:	bclr	%d0, %d1			/* the lock holds the switch, its value flipped */
+	tst.l	%d2
+	beq.s	1f
+	bset	%d0, %d1
+1:	addq.l	#2, %d0
+	bset	%d0, %d1
+	bra.s	2f
+16:	bclr	%d0, %d1
+	addq.l	#2, %d0
+	bclr	%d0, %d1
+2:	move.l	%d1, %d0
+	andi.l	#0xc00, %d0
+	bne.s	3f
+	tst.l	%d3				/* holds no switch: cleared, if there was one */
+	bmi.s	18f
+	pea	LOCK_K
+	move.l	%d4, -(%sp)
+	move.l	%a2, -(%sp)
+	jsr	LOCK_CLEAR
+	lea	12(%sp), %sp
+	bra.s	18f
+3:	move.l	%d1, -(%sp)
+	pea	LOCK_K
+	move.l	%d4, -(%sp)
+	move.l	%a2, -(%sp)
+	jsr	LOCK_SET
+	lea	16(%sp), %sp
+18:	addq.l	#1, %d4
+	bra.w	10b
+19:	move.l	%a3, -(%sp)
+	jsr	EDIT_END
+	addq.l	#4, %sp
+	movem.l	(%sp), %d2-%d7/%a2-%a3
+	lea	32(%sp), %sp
+	rts
+
+/* a2 a sequence, d4 a step -> d0 the step's lock of k 32 (sign-extended, -1 none or no pattern), read as the OS's
+ * lock functions read it (0x4000dece): the pattern's locks from the method at +40 of the vtable of the object at +44,
+ * the track at +56, the word at + 4385 t + 68 step + 2 k. Keeps d2..d7, a2..a6. */
+sc_lockword:
+	move.l	44(%a2), %d0
+	beq.s	1f
+	movea.l	%d0, %a0
+	move.l	%a0, -(%sp)
+	movea.l	(%a0), %a1
+	movea.l	40(%a1), %a1
+	jsr	(%a1)
+	addq.l	#4, %sp
+	tst.l	%d0
+	beq.s	1f
+	movea.l	%d0, %a0
+	move.l	56(%a2), %d0
+	bmi.s	1f
+	mulu.w	#4385, %d0
+	adda.l	%d0, %a0
+	move.l	%d4, %d0
+	mulu.w	#68, %d0
+	adda.l	%d0, %a0
+	mvs.w	2 * LOCK_K(%a0), %d0
+	rts
+1:	moveq	#-1, %d0
+	rts
+
+/* d1 the sound's switches (k 32), with a trig held -> d1 the first held step's: for each switch the lock's value
+ * when the step's lock holds it, else the sound's (since 0.5). d0, a0 and a1 are free; keeps d2..d7, a2..a6. */
+sc_shown:
+	lea	-16(%sp), %sp
+	movem.l	%d2-%d4/%a2, (%sp)
+	move.l	%d1, %d2			/* the sound's */
+	jsr	UI_STATE
+	movea.l	%d0, %a2
+	move.l	%d0, -(%sp)
+	jsr	TRIG_HELD
+	addq.l	#4, %sp
+	tst.b	%d0
+	beq.s	8f
+	moveq	#0, %d4
+	move.l	HELD_LO(%a2), %d0
+	bne.s	1f
+	moveq	#32, %d4
+	move.l	HELD_HI(%a2), %d0
+	beq.s	8f
+1:	move.l	%d0, %d1			/* its lowest bit: the first held step */
+	neg.l	%d1
+	and.l	%d0, %d1
+	ff1	%d1
+	moveq	#31, %d0
+	sub.l	%d1, %d0
+	add.l	%d0, %d4
+	jsr	PROJECT
+	move.l	%d0, -(%sp)
+	jsr	SEQ_OF
+	addq.l	#4, %sp
+	movea.l	%d0, %a2
+	bsr.w	sc_lockword
+	tst.l	%d0
+	bmi.s	8f
+	move.l	%d2, %d1
+	btst	#10, %d0
+	beq.s	2f
+	bclr	#8, %d1
+	btst	#8, %d0
+	beq.s	2f
+	bset	#8, %d1
+2:	btst	#11, %d0
+	beq.s	9f
+	bclr	#9, %d1
+	btst	#9, %d0
+	beq.s	9f
+	bset	#9, %d1
+	bra.s	9f
+8:	move.l	%d2, %d1
+9:	movem.l	(%sp), %d2-%d4/%a2
+	lea	16(%sp), %sp
 	rts
 
 /* -> d0 the selected track, 0..5, or -1 without a project. */
