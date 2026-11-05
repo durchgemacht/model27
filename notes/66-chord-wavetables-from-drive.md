@@ -13,6 +13,9 @@ W4 done. W5 built and W6 prepared the same day (§15): `tools/wavetable.py` (sel
 and a converter-made file; the maintainer's third run ALL OK (§15.4), the cost in the manifest. Tested in digiemu by
 the maintainer on 2026-10-24 (§15.7): "getestet, funktioniert". The device test is open.**
 
+**Later: 0.2 tested on the device and paused (§25, §26). 2026-11-05: a new way planned, one table per pattern in the
+stock table's place (§27).**
+
 The maintainer asked on 2026-10-23 whether a mod could let the stock CHORD machine load wavetables from the +Drive
 and pick them with RETRIG + CONTOUR ("the exact knob does not matter"), or with FUNC + MACHINES as SAMPLE does. Two
 ways were weighed the same day. Way A, a shortcut, is this plan ("weg a planen"). Way B, the browser, stays a later
@@ -1978,4 +1981,268 @@ python3 tools/compose.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx --
 
 The two Unicorn runs are the maintainer's: Unicorn stops with SIGILL inside the agent's sandbox. They can run side
 by side.
+
+## 27. A new way (2026-11-05): one table per pattern, in the stock table's place (plan)
+
+The maintainer, 2026-11-05, after an overview of §26: « warum tauschen wir nicht einfach die tabelle aus die auf dem
+tisch liegt? wenn man die pro pattern tauschen könnte würde es ausreichen. es ist nicht nötig durch die wavetables per
+lfo zu wechseln ». Nothing built: code and notes read, and a few trial builds in a scratch folder.
+
+### 27.1 The idea, and what is decided
+
+- **Why 0.2 still lags.** 0.2 keeps the frames the tracks play in a pool of 30 SRAM slots. It copies a frame in
+  whenever SWEEP reaches one that is not there (§19). With an LFO on SWEEP, that is a copy in most blocks: the lag
+  left on the device (§25.3, §26.2).
+- **The new way:**
+  - the pattern chooses one table, and the whole table takes the stock table's place in SRAM;
+  - SWEEP, an LFO on it included, then reads SRAM as on the stock OS, with no copy while the pattern plays;
+  - a copy happens only when the table changes: at a pattern change, or when the choice is edited.
+- **Decided by the maintainer (2026-11-05):**
+  1. every CHORD track of a pattern plays the pattern's table;
+  2. the table is global: a CHORD track has no choice of its own any more, and the per-sound Wavetable 0 goes;
+  3. a click at a pattern change is accepted at first; a clean change would be nicer. §27.3 shows that the clean
+     way is needed anyway for a pattern's first note, and costs little more.
+- **What this gives up:** two CHORD tracks cannot play two tables in one pattern.
+
+### 27.2 Read in the code and the notes `[FAIT]`
+
+- **Room in the pattern.**
+  - A pattern's header is 64 bytes. The OS saves it whole (`0x4005ba0a`) but loads only bytes 0..28 and 38
+    (`0x4005b3b4`). A new header's initializer (`0x40061526`) leaves 28..37 and 39..63 alone (notes/68 §13.2).
+  - The effect slots keep bytes 29..31 (notes/68 §14). Chord Keys, which the flasher does not offer, keeps 32..35
+    and 40..63 (notes/42).
+  - **Free: 36, 37 and 39**, whatever comes back into the flasher. Proposed: 36 for the table (0..64), 37 for a check
+    (`0x5a` + byte 36), like the effect slots' byte 31.
+- **The loader and the initializer** each need a hook to keep the bytes. Today the effect slots take both:
+  `0x4005b4b0` (`fx_load`) and `0x4006155e` (`fx_init`), in `tools/machines/fxslot/entries.S`.
+- **The key.**
+  - The key map of 2026-10-31 makes PATTERN the pattern's level and leaves "PATTERN + the other knobs" free
+    (`_scratch/keymap/keymap-concept.md`, not committed).
+  - In the stock OS, PATTERN + a knob disarms the pattern selection, then edits as without PATTERN (`claims.py`,
+    the stock list).
+  - The effect slots take PATTERN + Delay Time / Reverb Size at `0x4001f886`, in ParameterPageView's encoder
+    handler (`fx_keys`). The track filter's `fl_keys` is chained in front of it there.
+  - The effect slots also fix PATTERN's release (`fx_release` at `0x40020dca`, notes/68 §23). Any PATTERN + knob
+    gesture needs that fix.
+- **The knob at that hook** arrives as a descriptor (`d3`). For SWEEP the descriptor depends on the track's
+  machine: the machine record's entry `knob − 2`, SWEEP being knob 6 (notes/63 §1.3).
+- **The audio reads the playing pattern in every block**, as the effect slots do (`*0x40a7887c`, its number at
+  +30706, its object at `*0x40fe4228` + 5192 + 732 n, the header at +60). Proven in emulation and on the device for
+  the effect slots (notes/68 §14.5, §14.8).
+- **What a copy costs** (§22.5, §24.6): about 1 000 to 1 150 instructions and 65 SDRAM lines a frame. All 30 frames
+  in one block come to about 30 000 instructions, more than three CHORD voices (8 292 each, §15.4).
+- **What stays as it is:** the stock frames' copy in the RAM claim (0.2's move, on the first tick), and the
+  loader's 72 buffers of 33 pointers and 32 frames.
+- **Trial builds of today's 0.2** (scratch, nothing in the repository):
+  - alone, with SAMPLE, with `--cpu` and with Digital Delay: composed;
+  - with Crush: refused by rule R1, because the machine value on MACHINES + SWEEP and the Track FX' values share
+    k 28..31.
+
+### 27.3 The design
+
+**The audio side** (`cw_setup`, the same hook at `0x400ab15e`):
+- **Each call** reads bytes 36 and 37 of the playing pattern (a few instructions, one or two lines).
+  - The target is the table they name, if its file is loaded; otherwise the stock table.
+  - A table the loader replaces is a new target: targets are compared by buffer, not by number.
+- **The resident table** is the one whose frames sit in the 30 SRAM slots. At start, the stock table.
+- **The steady state** (the target is resident):
+  - the stock table: the stock function, bit for bit (as 0.2's Wavetable 0 before the move);
+  - a file's table: the stock function's work on the resident list of 33 pointers. Positions 2–31 are in SRAM,
+    positions 0 and 1 in the table's buffer in SDRAM.
+  - The stock OS reads its frame 1 in SDRAM too (§19.1), so the lines come close to the stock OS's. No pool, no
+    map, no copy.
+- **A change** (the target is not resident), the clean way:
+  1. From that call on, the voices read the target's own list, with its frames in SDRAM. That is 0.1's way, +110
+     to 121 lines a track a block, for a few blocks. The new table plays from the first block, so from the
+     pattern's first note.
+  2. Each call then copies one frame into a slot no CHORD sub-voice points at (0.2's `pointed()`, kept).
+     - With n CHORD tracks that is n frames a block, so 30 frames take 30/n blocks: one track 30 blocks (20 ms),
+       six tracks 5 blocks (3 ms).
+     - At most about +1 150 instructions a CHORD track a block.
+  3. Once the slots hold the target, the resident list points into them and the target is resident.
+     - A slot still pointed at keeps its position in SDRAM until it frees. A sub-voice switched off for its pitch
+       keeps its +176/+180 (§19.1).
+  4. A new target during a change restarts it. Back to the stock table: the same steps from the stock frames'
+     copy, then the stock function.
+- **What the render hears.**
+  - At step 1 the frames change address and content at once. At step 3, the address alone.
+  - The render has its own handling of a frame change (§19.1). Whether it covers a change at the same index is
+    §26.3 step 4's question, `[HYP]`, settled by T2.
+  - If step 3 does not click, this is the clean way.
+  - At step 1 the timbre changes inside a note that sounds across the pattern change. That is the click the
+    maintainer accepts.
+- **Why not copy over the SRAM frames from the tick:**
+  - the tick runs about 30 times a second, so the pattern's first notes would play the old table for up to about
+    33 ms;
+  - a voice could read a frame half copied;
+  - one block of 30 copies is too dear (§27.2).
+
+**The pattern side:**
+- **The hooks.** `ct_load` at the loader's hook copies bytes 36 and 37 when the check holds; otherwise it writes 0
+  and the check. `ct_init` at the initializer's hook writes 0 and the check. Every write masks the interrupts, as the
+  effect slots' do.
+- **The gesture.** PATTERN + SWEEP on a CHORD track:
+  - steps byte 36 of the shown pattern (0..64, one detent a step) and writes the check;
+  - calls the header's notify (as `fx_step`) and shows the number in the popup;
+  - then the handler ends as it does after `fx_step`, without editing SWEEP.
+  - How the popup can show a number that is no parameter is `[À FAIRE]`: the handler's popup is at
+    `0x4001f708..0x4001f76e`; the track filter's display-only descriptor 5 is a model; which descriptor is free in a
+    build with the Track FX is still to read.
+- **PATTERN's release:** the package carries `fx_release`'s two instructions too, for a build without effects.
+- **Shown and playing:** the gesture edits the shown pattern, the audio plays the playing one. The same as the
+  effect slots, tested (notes/68 §14.8).
+
+**The loader** stays as it is:
+- files `/Wavetables/01`–`64`, k × 256 mono samples, spread over 32 frames;
+- 72 buffers in the RAM claim, one file a tick.
+- One addition: it waits to reuse a buffer while that buffer is the resident table or the source of a change.
+
+### 27.4 What stays and what goes
+
+| | 0.2 | the new way (0.3) |
+|---|---|---|
+| The choice | per sound, MACHINES + SWEEP, k 30, record slot 30 | per pattern, PATTERN + SWEEP, header bytes 36–37 |
+| The shortcut layer | needed | not needed |
+| With the Track FX | refused (R1, k 28–31) | possible: no k claimed |
+| SWEEP moving, an LFO | a copy for most new frames | nothing beyond the stock OS |
+| A change of table | at the next note, per track | at once, every CHORD track, copied over a few blocks |
+| The audio code | pool, tags, pins, map, remap, reclaim | the stock function's work, and a change in a few states |
+
+**What 0.3 keeps from 0.2:** the hook, the loader, the file format, the converter, the uploader's checks, the RAM
+claim, the stock frames' copy, `memory.sram`.
+
+**Sounds saved with 0.2** keep a value in k 30 and record slot 30 that 0.3 no longer reads. Only the maintainer's
+projects have such sounds. In a build with the Track FX, that value becomes the Track FX' third value on those CHORD
+sounds.
+
+### 27.5 The builder
+
+- **The claims.**
+  - `saved` "pattern, header +36", 2 bytes.
+  - The gesture PATTERN + SWEEP, with `replaces`: the stock disarm and edit.
+  - `claims.py` compares saved places as strings (notes/68 §13.4, §14.6). It needs a range check first, so that
+    "header +29" (3 bytes) and "header +36" (2 bytes) are compared as ranges.
+- **The manifest's points.** None of these is a package point today; they belong to `fxslot`, a part:
+  - the pattern header's bytes;
+  - the loader's and the initializer's hooks;
+  - the encoder handler's hook;
+  - PATTERN's release.
+- **Two holders at the same sites** (CHORD Tables and the effect slots), after the dispatchers' rule (notes/63 §4)
+  and the track filter's chain at `0x4001f886`:
+  - a site only one of them takes keeps that one's own entry, so every build that exists stays byte for byte;
+  - where both are in a build, CHORD Tables' entry does its part and then runs the next one (the effect slots', or
+    the replaced instructions);
+  - `compose.py` and `composer.js` do the same, and `webcompose_check` stays identical for every existing build.
+
+### 27.6 Proofs and done criteria
+
+In `tools/emu/test_chordtables.py` (its loader part P2 kept) and `probe_chord_lines.py`:
+- **P1 No pattern chooses a table:** every CHORD track plays as on the stock OS, sample for sample, and SRAM is never
+  written.
+- **P2 A pattern with a table, after the change:** CHORD plays as the stock function does on that table, sample for
+  sample, with SWEEP still and moving. The reference is 0.1's way on the same table, as in P1m.
+- **P3 The change:**
+  - the new table is heard from the new pattern's first block, a note started in that block included;
+  - no slot is written while a sub-voice points at it;
+  - the number of blocks the change takes;
+  - the jump in the output at steps 1 and 3, against the reference;
+  - back to the stock table, the same;
+  - a change during a change.
+- **P4 The pattern,** as `test_fxslot.py` §5 does it (the template of `probe_chord_storage.py`):
+  - load, save, init;
+  - a whole pattern saved, loaded and copied;
+  - an old pattern;
+  - with and without the effect slots in the build.
+- **P5 The gesture:**
+  - PATTERN + SWEEP on a CHORD track writes the shown pattern's bytes and calls its notify;
+  - on another track, and without PATTERN, everything as on the stock OS;
+  - PATTERN + Delay Time / Reverb Size as before;
+  - PATTERN's release.
+- **P6 The cost:**
+  - the steady state against stock CHORD (STANDARD.md §6), and the blocks of a change;
+  - the probe: six CHORD tracks on one table, SWEEP still and moving, lines and misses against the stock OS.
+- **On the device**, with the CPU page (`--cpu`, notes/78):
+  - the load with six CHORD tracks on a table and LFOs on SWEEP, against the same pattern on the stock table;
+  - the pattern change, by ear;
+  - a project saved and loaded; a pattern copied and pasted.
+
+### 27.7 Steps
+
+Each step: a diff shown, a commit on the maintainer's word.
+- **T1 Reading** `[À FAIRE]`:
+  - the popup for the number;
+  - a free descriptor next to the Track FX;
+  - CHORD's SWEEP descriptor at `0x4001f886`;
+  - the order, within a block, of the sequencer's pattern change and the voice loop.
+- **T2 Emulation first:** the render's frame change at the same index (§26.3 step 4), in two cases: the same
+  content at another address, and another table. It decides whether step 3 of §27.3 is silent.
+- **T3 The builder:**
+  - the claims' range check;
+  - the package points of §27.5, and the chain with `fxslot`;
+  - both composers;
+  - every existing build byte for byte.
+- **T4 CHORD Tables 0.3:** `chordtables.c` (§27.3), the manifest, `gen_chordtables.py`, `36-chordtables.json`.
+- **T5 The proofs** of §27.6, run by the maintainer (Unicorn stops with SIGILL in the agent's sandbox).
+- **T6 The device**, with a build that has the CPU page; then W7 (§26.4) with 0.3.
+
+### 27.8 Decisions for the maintainer
+
+1. **PATTERN + SWEEP on CHORD tracks only** (recommended):
+   - elsewhere PATTERN + SWEEP stays stock;
+   - the hook only needs CHORD's SWEEP descriptor.
+
+   Or on every track.
+2. **One detent per table**, 0 to 64 (recommended). The effects take four detents a step; here that would be 260.
+3. **Own entries, chained with the effect slots' where both are in a build** (recommended): no build that exists
+   changes, and the tested effect cards stay as they are. Or one shared pattern part for both, which changes every
+   effect build and needs them tested again.
+4. **SWEEP 0 stays the file's first frame** (the decision of 2026-10-24): positions 0 and 1 are read in SDRAM. Or
+   position 0 becomes the OS's sine, as in the stock table, with one frame in SDRAM.
+5. **The per-sound choice goes** (MACHINES + SWEEP, k 30) (recommended): it is what keeps CHORD Tables apart from the
+   Track FX.
+
+### 27.9 Status
+
+- **Plan only.** 0.2 stays as committed (`45f0163`, `67091a1`), `experimental`.
+- **0.2's device builds** in `build/chordtables-0.2/` still have RETRIG + SWEEP and the shortcut layer from before
+  the key map.
+- **A fresh build of 0.2** today composes with MACHINES + SWEEP (MAIN OS `8feec2e5…`).
+
+### 27.10 Decided (2026-11-05)
+
+The maintainer: « 2. verstehe ich nicht », « rest wie empfohlen », and on 4 the following.
+
+- **1, 3 and 5 as recommended:**
+  - PATTERN + SWEEP on CHORD tracks only;
+  - own entries, chained with the effect slots' where both are in a build;
+  - the per-sound choice goes.
+- **2: two steps per table, on a knob's 0–127.** The maintainer: drop as many tables as needed so that two steps
+  switch a table and the choice fills exactly 0–127.
+  - 128 values at two steps a table are 64 choices: the stock table and **63 tables, files `01` to `63`**. One fewer
+    than 64; `/Wavetables/64` is no longer read.
+  - Byte 36 holds the value 0–127, as a knob does. PATTERN + SWEEP adds the handler's step and clamps at 0 and 127,
+    and the table is the value ÷ 2. Two steps a table come out of the value itself, so no step counter is needed
+    (the effect slots keep one for their four steps).
+  - The popup shows the table, 0 (the stock table) to 63, the file's name.
+  - To follow in T4 and W7: the loader's `TABLES` 64 → 63 (71 buffers), and the texts that say 01–64 (the
+    uploader's checks, the converter's help, the guide).
+- **4: the first frame is always a sine.** The maintainer: the first waveform must always be a sine, since the
+  system uses it for something else too; the converter already sees to it; an internal check that puts a sine in
+  when in doubt would be good.
+  - The reason, from the CHORD Wave Bank (§16.1): the OS's sine at `0x8000eee4` is read by other code too. CHORD
+    Tables never writes it, so that use is safe either way. The rule keeps SWEEP 0 a sine on every table.
+  - **Position 0 is the OS's sine**, read where the OS has it, in SRAM. Position 1 is read in SDRAM, positions 2–31
+    in the 30 slots. This is the stock table's own layout (§19.1), and it replaces the "positions 0 and 1 in SDRAM"
+    of §27.3: one SDRAM frame, as on the stock OS.
+  - **The loader checks a file's first frame** once, when it reads the file (UI task, not the audio):
+    - a sine, as `tools/wavetable.py` writes it (`sine_frame`): the file's frames are spread as today, and position
+      0 is the OS's sine in place of the file's;
+    - anything else: the OS's sine goes in front of the file's k frames, and the k + 1 frames are spread over the 32
+      positions. Nothing of the file is lost.
+  - The test is `[À FAIRE]`: a comparison with a sine within a few steps, on the model of the uploader's
+    `startsWithSine` and the converter's `starts_with_sine`. The OS sine's level and phase against the converter's
+    are to read first.
+  - **Cost:** none in the audio. Once per file in the tick, about 256 comparisons.
+  - The uploader's warning about a table without a sine (§16.3) can become a note ("CHORD Tables puts a sine in
+    front"): W7.
 
