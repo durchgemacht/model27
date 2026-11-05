@@ -34,8 +34,15 @@
  *            without a held trig, and on every other MACHINES event. Since 0.4 (the key map of 2026-10-31: MACHINES
  *            held is the level of the track's machine), on a track whose machine declared a shortcut or a switch, a
  *            press that would open the list opens nothing yet and ends the handler as taken (0x4001c2a8); the release
- *            opens it when no shortcut or switch acted while MACHINES was held. A press while the list is open closes
+ *            opens it when no shortcut or switch acted while MACHINES was held (or the PRESET browser when sc_mtrig
+ *            took the press, since 0.5). A press while the list is open closes
  *            it at once, as on the stock OS. Elsewhere, the stock test's answer: the stock toggle on the press.
+ *   sc_mtrig jmp from 0x4001c274 over 6 bytes (jsr 0x400cf9a8, the UI's state) of MainScreenView's MACHINES case, where
+ *            the stock code asks, on a fresh press without FUNC, whether a trig is held, then goes to the PRESET browser
+ *            (0x4001c996) or on to 0x4001ca1e (sc_mach). Since the layer's 0.5 (notes/63 §26): a trig held on a track
+ *            whose machine declared a switch opens nothing yet and ends the handler as taken; the release opens the
+ *            browser, from the handler's own path, when no switch acted while MACHINES was held (sc_mach). Written with
+ *            the press and the LEDs, in the builds with a switch. Elsewhere the stock answer.
  *   sc_conv, sc_ptab
  *            the pattern's p-lock rows (notes/47 §4.3; the filter slot's fl_conv and fl_ptab up to its 0.10, here since
  *            the layer's 0.5, notes/63 §25), in every build with the layer. The pattern's file keeps a row per index
@@ -57,8 +64,9 @@
  * sc_data, filled by the composer (part.json, "data"):
  *   +0x00 next of save2, +0x04 next of save1, +0x08 next of load (0 = the stock body)
  *   +0x0c the descriptor table the OS uses (the build's moved copy)
- *   +0x10 first machine (byte), +0x11 number of machines (byte), +0x12 a MACHINES press waits for its release, +0x13
- *         a shortcut or a switch acted while it was held (both 0 at boot, written by sc_mach, sc_knob, sc_press)
+ *   +0x10 first machine (byte), +0x11 number of machines (byte), +0x12 a MACHINES press waits for its release (1 the
+ *         list, 2 the PRESET browser, since 0.5), +0x13 a shortcut or a switch acted while it was held (both 0 at boot,
+ *         written by sc_mach, sc_mtrig, sc_knob, sc_press)
  *   +0x14 per machine, one byte: the presses it declared, bit 0 PUNCH, bit 1 GATE (8 machines at most)
  *   +0x1c per machine, per knob COLOR, SHAPE, SWEEP, CONTOUR, 24 bytes: long name, short name, minimum, maximum,
  *         default (8.8), formatter; a long name of 0: no shortcut on that knob
@@ -93,6 +101,8 @@
 	.equ	USED, 0x13			/* sc_data: a shortcut or a switch acted while MACHINES was held */
 	.equ	KEY_RELEASED, 0x40072470	/* (event) -> 1 for a release */
 	.equ	KEY_TAKEN, 0x4001c2a8		/* MainScreenView's key handler: d2 = 1 (taken), its end */
+	.equ	BROWSER, 0x4001c996		/* its MACHINES case: the PRESET browser pushed, then its end */
+	.equ	MACH_SITE, 0x4001ca1e		/* its MACHINES case after the held-trig test: jsr sc_mach */
 	.equ	MACHINES_VT, 0x40117920	/* the MACHINES list's vtable */
 	.equ	CONTROLLER_AT, 44		/* MainScreenView: its controller, whose views are a list at +20 (node: +0 next, +8 view) */
 	.equ	VIEWS_AT, 20
@@ -431,15 +441,43 @@ sc_mach:
 	lea	sc_data, %a1
 	tst.b	%d0
 	beq.s	7f
-	tst.b	PENDING(%a1)
+	mvz.b	PENDING(%a1), %d1
 	beq.s	7f
 	clr.b	PENDING(%a1)
 	tst.b	USED(%a1)
 	bne.s	7f
+	subq.l	#2, %d1
+	beq.s	6f
 	moveq	#1, %d0				/* released, nothing acted: the toggle now */
 	rts
+6:	addq.l	#4, %sp				/* the PRESET browser (a trig was held on the press, sc_mtrig): the */
+	moveq	#1, %d2				/* handler's own path, the event taken, as on the stock press */
+	jmp	BROWSER
 7:	moveq	#0, %d0				/* as the stock test answered: no toggle */
 	rts
+
+/* jmp from 0x4001c274 in MainScreenView's MACHINES case (see the head of this file), on a fresh press without FUNC:
+ * the stock code's question, a trig held?, then the PRESET browser at once, unless the selected track's machine
+ * declared a switch: then the browser waits for the release (+0x12 = 2) and the press is taken. No trig held: on to
+ * 0x4001ca1e, as the stock code. a2 the view, d3 the event, d2 the press; keeps d2..d7, a2..a6. */
+	.globl	sc_mtrig
+sc_mtrig:
+	jsr	UI_STATE
+	move.l	%d0, -(%sp)
+	jsr	TRIG_HELD
+	addq.l	#4, %sp
+	tst.b	%d0
+	beq.s	8f
+	bsr.w	sc_selected
+	bsr.w	sc_track			/* d1 the presses its machine declared */
+	tst.l	%d1
+	beq.s	7f
+	lea	sc_data, %a1
+	move.b	#2, PENDING(%a1)		/* the browser waits for the release */
+	clr.b	USED(%a1)
+	jmp	KEY_TAKEN			/* the press taken, nothing opened */
+7:	jmp	BROWSER				/* the stock answer: the browser at once */
+8:	jmp	MACH_SITE			/* no trig held: on, as the stock code */
 
 /* -> d0 1 when the selected track's machine declared a switch or a shortcut on a knob, else 0. */
 sc_level:

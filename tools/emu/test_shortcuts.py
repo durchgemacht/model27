@@ -45,8 +45,10 @@ on the official OS 1.13:
   10. MACHINES as the level's key (the layer's 0.4): MainScreenView's key handler from its MACHINES case (0x4001c252),
      stock and with the layer, for every machine, the MACHINES list open or not, a shortcut or switch used in between or
      not: on a track of a machine with a shortcut or a switch a press that would open the list is taken and the release
-     opens it unless something acted; a press with the list open closes it at once; FUNC + MACHINES and a held trig go
-     to the PRESET browser; every other machine as the stock OS; registers and stack kept; a switch flipped and a
+     opens it unless something acted; a press with the list open closes it at once; FUNC + MACHINES goes to the PRESET
+     browser; a held trig too, but on a track of a machine with a switch (the layer's 0.5, jmp sc_mtrig at 0x4001c274)
+     the press is taken and the release opens the browser through the handler's own path unless a switch acted (then
+     the event passes on); every other machine as the stock OS; registers and stack kept; a switch flipped and a
      shortcut turned mark the hold, a knob turned without MACHINES does not.
   11. the pattern's p-lock rows (the layer's 0.5, notes/63 §25; the filter slot's fix up to its 0.10): 0x4005aa34 ->
      jmp sc_conv and the operands 0x4005b998, 0x4005baca -> sc_ptab in every build with the layer; 0x4005aa1a (track,
@@ -605,7 +607,7 @@ def mach(u, flags, machine, opened, trig=0):
     return (got[0] if got else None), ok
 
 
-def mach_tests(key, stock, img, runtime, data, machines, layer):
+def mach_tests(key, stock, img, runtime, data, machines, layer, switches=()):
     """MACHINES as the level's key (the layer's 0.4, the key map of 2026-10-31), on the OS's own key handler, stock
     and with the layer: on the tracks of a machine with a shortcut or a switch, a press that would open the MACHINES
     list opens nothing and is taken, the release opens it unless a shortcut or a switch acted in between; a press
@@ -631,14 +633,27 @@ def mach_tests(key, stock, img, runtime, data, machines, layer):
                 cases += 1
                 if [w for w, _ in seq_b] != want or not all(ok for _, ok in seq_a + seq_b):
                     bad.append((s32(m), opened, used, [w for w, _ in seq_b], want))
-            for flags, trig in ((func_f, 0), (press_f, 1)):
+            cases += 1
+            if mach(a, func_f, m, opened)[0] != "browser" or mach(b, func_f, m, opened)[0] != "browser":
+                bad.append((s32(m), opened, "FUNC"))
+            for used in (False, True):          # a held trig: the stock browser, or on a switch's track on the release
                 cases += 1
-                if mach(a, flags, m, opened, trig)[0] != "browser" or mach(b, flags, m, opened, trig)[0] != "browser":
-                    bad.append((s32(m), opened, flags, trig))
+                b.uc.mem_write(data + PENDING, bytes(2))
+                sa = mach(a, press_f, m, opened, 1)
+                pb = mach(b, press_f, m, opened, 1)
+                if used:
+                    b.uc.mem_write(data + USED, b"\x01")
+                rb = mach(b, release_f, m, opened, 1)
+                want = ["taken", "pass" if used else "browser"] if m in switches else ["browser"]
+                got = [pb[0], rb[0]] if m in switches else [pb[0]]
+                if sa[0] != "browser" or got != want or not (sa[1] and pb[1] and (rb[1] or m not in switches)):
+                    bad.append((s32(m), opened, "trig", used, got, want))
     check(not bad, f"{key}: MACHINES (0x4001c252): on machines {sorted(s32(m) for m in layer)} a press that would open "
                    "the list is taken, the release opens it unless a shortcut or a switch acted; a press with the list "
-                   "open closes it at once; FUNC + MACHINES and a held trig: the PRESET browser; the other machines as "
-                   f"the stock OS ({cases} cases; registers and stack kept)" + (f"; DIFFERENT {bad[:3]}" if bad else ""))
+                   "open closes it at once; FUNC + MACHINES: the PRESET browser; a held trig: the PRESET browser, on "
+                   f"machines {sorted(s32(m) for m in switches)} on the release unless a switch acted (else the event "
+                   f"passes on); the other machines as the stock OS ({cases} cases; registers and stack kept)"
+                   + (f"; DIFFERENT {bad[:3]}" if bad else ""))
     return b
 
 
@@ -716,7 +731,7 @@ def plock_tests(key, stock, img, runtime, syms):
     locks = [(0, 0, 1, 0x3000), (2, 5, 32, 0x0101), (2, 6, 32, 0x0e00), (5, 63, 32, 0x0200), (3, 4, 31, 0x0400),
              (1, 3, 23, 0x0800), (4, 9, 9, 0x0500), (4, 9, 32, 0x0301), (0, 15, 13, 0x4400)]
     rows, file = pl_save(b, locks)
-    want_rows = sorted({(18 if k == 32 else k + 1 if k >= 23 else k + 1 if k >= 18 else k, t) for t, _s, k, _v in locks})
+    want_rows = sorted({(18 if k == 32 else k + 1 if k >= 18 else k, t) for t, _s, k, _v in locks})
     back = pl_load(b, file)
     want = {}
     for t, s_, k, v in locks:
@@ -754,10 +769,12 @@ def no_switch_tests(stock):
     tweak, info, img, runtime = TC.built(stock, ["refchord"])
     u = UI(img, runtime)
     data = int(tweak["symbols"]["sc_data"], 16)
-    sites = [bytes(u.uc.mem_read(a, 6)) == bytes(stock[a - E.BASE:a - E.BASE + 6]) for a in (PRESS, LED_SITE)]
+    sites = [bytes(u.uc.mem_read(a, 6)) == bytes(stock[a - E.BASE:a - E.BASE + 6])
+             for a in (PRESS, LED_SITE, 0x4001c274)]
     n = u.uc.mem_read(data + 0x11, 1)[0]
     check(all(sites) and bytes(u.uc.mem_read(data + 0x14, 8)) == bytes(8) and n >= 1 and info["part"]["switches"] == 0,
-          f"refchord: no switch declared: 0x4001ac4a and 0x4001cc86 stock, the layer's {n} byte(s) of presses 0")
+          f"refchord: no switch declared: 0x4001ac4a, 0x4001cc86 and 0x4001c274 stock, the layer's {n} byte(s) of "
+          "presses 0")
     syms = {k: int(v, 16) for k, v in tweak["symbols"].items()}
     check(bytes(u.uc.mem_read(MACH_SITE, 6)).hex() == f"4eb9{syms['sc_mach']:08x}",
           "refchord: 0x4001ca1e -> jsr sc_mach: MACHINES is the level's key with a knob shortcut alone too")
@@ -826,7 +843,9 @@ def main():
         check(bytes(u.uc.mem_read(MACH_SITE, 6)).hex() == f"4eb9{syms['sc_mach']:08x}",
               f"{key}: 0x4001ca1e -> jsr sc_mach")
         layer = switchers | {ref2}
-        mb = mach_tests(key, stock, img, runtime, syms["sc_data"], machines, layer)
+        check(bytes(u.uc.mem_read(0x4001c274, 6)).hex() == f"4ef9{syms['sc_mtrig']:08x}",
+              f"{key}: 0x4001c274 -> jmp sc_mtrig (a held trig and MACHINES, the layer's 0.5)")
+        mb = mach_tests(key, stock, img, runtime, syms["sc_data"], machines, layer, switchers)
         mb.uc.mem_write(syms["sc_data"] + PENDING, bytes(2))
         press(mb, (LAYER,), 0, ref2, 0, PUNCH_P)
         flipped = mb.uc.mem_read(syms["sc_data"] + USED, 1)[0]

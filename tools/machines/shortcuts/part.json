@@ -3,7 +3,7 @@
  "id": "shortcuts",
  "version": "0.5",
  "name": "Machine shortcuts: MACHINES + COLOR, SHAPE, SWEEP or CONTOUR, and MACHINES + PUNCH or GATE as switches, on an added machine's tracks, saved with the sound",
- "description": "A part of model27's builder, not a machine (notes/63 §3, the switches §16): assembled once into shortcuts.o by tools/gen_parts.py, added by tools/compose.py to a build in which a machine declares a shortcut. The knob lookup's vtable entry and the three sound record functions jump into it, and when a machine declares a press, the function PUNCH's and GATE's presses call and MainScreenView's LED method too; the composer writes the data block (the machines' presses and shortcuts, the next of the record chain) right after its code, and a package's own wrapper on a record function (SAMPLE's) becomes the next of the chain instead of a hook of its own. Since 0.3 the key held is MACHINES (the key map of 2026-10-31: MACHINES is the level of the track's machine); up to 0.2 it was RETRIG, which the layer no longer reads. Since 0.4 MACHINES is a modifier on the tracks of a machine with a shortcut or a switch: MainScreenView's MACHINES case (0x4001ca1e, in every build with the layer) opens the MACHINES list on the release instead of the press, and only when no shortcut or switch acted while it was held; a press while the list is open closes it at once. Since 0.5 the pattern's p-lock rows, in every build with the layer (notes/63 §25; the filter slot's up to its 0.10): the two operands of the k -> index table (0x4005b998, 0x4005baca) point at sc_ptab, k 23..31 -> 24..32 and k 32, the switches, -> 18, and 0x4005aa34 jumps to sc_conv, which brings 18 and 24..32 back.",
+ "description": "A part of model27's builder, not a machine (notes/63 §3, the switches §16): assembled once into shortcuts.o by tools/gen_parts.py, added by tools/compose.py to a build in which a machine declares a shortcut. The knob lookup's vtable entry and the three sound record functions jump into it, and when a machine declares a press, the function PUNCH's and GATE's presses call and MainScreenView's LED method too; the composer writes the data block (the machines' presses and shortcuts, the next of the record chain) right after its code, and a package's own wrapper on a record function (SAMPLE's) becomes the next of the chain instead of a hook of its own. Since 0.3 the key held is MACHINES (the key map of 2026-10-31: MACHINES is the level of the track's machine); up to 0.2 it was RETRIG, which the layer no longer reads. Since 0.4 MACHINES is a modifier on the tracks of a machine with a shortcut or a switch: MainScreenView's MACHINES case (0x4001ca1e, in every build with the layer) opens the MACHINES list on the release instead of the press, and only when no shortcut or switch acted while it was held; a press while the list is open closes it at once. Since 0.5 the pattern's p-lock rows, in every build with the layer (notes/63 §25; the filter slot's up to its 0.10): the two operands of the k -> index table (0x4005b998, 0x4005baca) point at sc_ptab, k 23..31 -> 24..32 and k 32, the switches, -> 18, and 0x4005aa34 jumps to sc_conv, which brings 18 and 24..32 back. Also since 0.5, in the builds with a switch: with a trig held, MACHINES on the tracks of a machine with a switch opens the PRESET browser on the release instead of the press, and only when no switch acted (0x4001c274, sc_mtrig; notes/63 §26).",
  "license": "MIT",
  "build": {
   "sources": ["shortcuts.S"],
@@ -11,7 +11,7 @@
   "cflags": ["-mcpu=54418"],
   "defines": {},
   "objects": ["shortcuts.o"],
-  "roots": ["sc_knob", "sc_save2", "sc_save1", "sc_load", "sc_press", "sc_leds", "sc_mach", "sc_conv", "sc_ptab"],
+  "roots": ["sc_knob", "sc_save2", "sc_save1", "sc_load", "sc_press", "sc_leds", "sc_mach", "sc_conv", "sc_ptab", "sc_mtrig"],
   "patch_points": [{"symbol": "sc_data", "kind": "shortcut_data"}]
  },
  "shortcut": {
@@ -36,7 +36,8 @@
   ],
   "press": [
    {"at": "0x4001ac4a", "stock": "4feffff47201", "op": "jmp", "symbol": "sc_press"},
-   {"at": "0x4001cc86", "stock": "2a004a8257c0", "op": "jsr", "symbol": "sc_leds"}
+   {"at": "0x4001cc86", "stock": "2a004a8257c0", "op": "jsr", "symbol": "sc_leds"},
+   {"at": "0x4001c274", "stock": "4eb9400cf9a8", "op": "jmp", "symbol": "sc_mtrig"}
   ],
   "keys": [
    {
@@ -60,6 +61,8 @@
                 "meaning": "the shortcut of the track's machine"},
                {"combo": "MACHINES + PUNCH/GATE", "meaning": "the switch of the track's machine"},
                {"combo": "MACHINES", "meaning": "on the tracks of a machine with a shortcut or a switch, the MACHINES list opens on the release, unless a shortcut or a switch acted",
-                "replaces": "the toggle of the MACHINES list on the press (a press while it is open still closes it at once)"}]
+                "replaces": "the toggle of the MACHINES list on the press (a press while it is open still closes it at once)"},
+               {"combo": "TRIG 1-16 + MACHINES", "meaning": "on the tracks of a machine with a switch, the PRESET browser opens on the release of MACHINES, unless a switch acted",
+                "replaces": "the PRESET browser on the press"}]
  }
 }

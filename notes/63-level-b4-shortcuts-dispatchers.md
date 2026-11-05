@@ -1429,3 +1429,42 @@ plan's step P1.
   `test_refchord.py` (86 ok, REFC 13 writes) and `test_chordtables.py` (165 ok) ALL OK `[FAIT en émulation]`.
   CHORD Tables is not offered in the flasher; its proof ran because its tweak's bytes changed (the maintainer: keep
   it).
+
+## 26. MACHINES with a held trig on the switches' tracks (2026-11-05, the layer's 0.5, step P2)
+
+For a lock of a switch the player holds a trig, then MACHINES, then presses PUNCH or GATE (notes/80, step P3). On the
+stock OS MACHINES with a held trig opens the PRESET browser at once (a preset lock), before the layer's `sc_mach` is
+asked: the maintainer saw « wenn man einen trig und retrig hält, wird der tastendruck auf machines nicht abgefangen
+und sofort das machine menu geöffnet » (2026-11-05). The maintainer's choice (E4): on those tracks the browser opens on
+the release, as the MACHINES list since §24.
+
+- **The stock OS** `[FAIT]`: MainScreenView's MACHINES case (`0x4001c252`) asks a fresh press, FUNC
+  (`0x4001c264..0x4001c270`, then `0x4001c996`), then a held trig (`0x4001c274`: `jsr 0x400cf9a8 ; move.l d0,-(sp) ;
+  jsr 0x4006b736 ; addq.l #4,sp ; tst.b d0 ; bne 0x4001c996 ; bra 0x4001ca1e`). `0x4001c996` pushes the PRESET
+  browser (`0x400a68fc`, 0x2b8 bytes) on the view's controller and ends at `0x4001cbee` (`lea 24(sp)`, the handler
+  returns d2). The browser asks whether a trig is held when it acts on a preset (`0x400a6c44`, `0x400a7112`) and walks
+  the held steps then (`0x400a68a0`), so a browser opened later still locks while the trig is held.
+  `[FAIT en émulation]` (`probe_switch_locks.py` §5, the maintainer's run of 2026-11-05): the release reaches
+  `0x4001ca1e` with the press's stack and frame, and from both the browser's path with d2 = 1 runs to the handler's
+  end with the same calls.
+- **The change:** `jmp sc_mtrig` over `0x4001c274` (6 bytes, `4eb9400cf9a8`), with the press and the LEDs, in the
+  builds with a switch (`sites.press`, both composers unchanged). `sc_mtrig` asks the held trig as the stock code; none:
+  on to `0x4001ca1e` (`sc_mach`); a held trig on a track whose machine declared a switch: `+0x12` = 2 (the browser
+  waits), `+0x13` = 0, the press taken (`0x4001c2a8`); else the browser at once. `sc_mach`'s release: `+0x12` = 2 and
+  nothing used → its return address dropped, d2 = 1, `jmp 0x4001c996`; something used → the event passes on, as for
+  the list. Machines with a knob shortcut alone (REFC, CHORD Tables) keep the stock site: a held trig gives no
+  shortcut. `claims.py`'s stock list gains `TRIG 1-16 + MACHINES` (the PRESET browser); the layer claims it with
+  `replaces`.
+- **For a player** on SAMPLE's tracks: a trig held + MACHINES opens the PRESET browser when MACHINES is let go, a moment
+  later than before, and not at all when PUNCH or GATE was pressed in between (until P3 such a press still flips the
+  sound's switch; from P3 on it locks it). The browser opened on the release locks the preset while the trig is still
+  held, and loads it to the track otherwise, as FUNC + MACHINES does. Other tracks unchanged.
+- **Builds:** SAMPLE and REF2 write one site more (SAMPLE 132 writes, 43 240 bytes); every build with the layer moves
+  (its code 1 320 bytes); REF_MAINOS, REF_MODS, the smoke test's line and files (`eae30c12…`, `40904575…`) again.
+- **Proof:** `test_shortcuts.py` §10 (a held trig on every machine of the selection, the list open or not, a switch
+  used in between or not: on the switches' machines the press taken and the release to the browser or on; elsewhere
+  the browser at once; registers and stack kept), the site in every selection, REFC's build stock at `0x4001c274`.
+  Here: `gen_parts.py --check`, the generators' `--check`, `test_fltslot.py --dry`, claims, overlaps, registry,
+  flasher data, webcompose (identical), webbuild, webflash, the smoke test with both official files ALL PARTS OK.
+  **Run by the maintainer, 2026-11-05:** `test_shortcuts.py` ALL OK (150 ok) `[FAIT en émulation]`. `test_fltslot.py`
+  and `test_chordtables.py`, whose builds only moved, run once after step P3, which changes the layer again.
