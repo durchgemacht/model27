@@ -76,6 +76,11 @@ Confirmed under the MIT License:
   request; its source is copied unchanged into `tools/machines/control_all_config/` and relocated by
   `tools/gen_control_all_config.py`.
 
+- **Uploader** (`docs/uploader/`, its tests in `tools/uploader/`): by durchgemacht and Claude, the upload page of
+  [durchgemacht/cycles-one-shot](https://github.com/durchgemacht/cycles-one-shot) (MIT, text in
+  `tools/machines/sampler/LICENSE`, served as `docs/flasher/LICENSE-One-Shot.txt`), moved here by its author;
+  `elektron.js` is copied unchanged but for its header comment, the page is restyled for this site.
+
 ## Tools used but not included
 
 The emulation proofs import [Unicorn](https://www.unicorn-engine.org/) (GPL-2.0) and numpy (BSD-3-Clause); the

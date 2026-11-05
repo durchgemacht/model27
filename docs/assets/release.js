@@ -7,6 +7,11 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.49", date: "2026-11-05", changes: [
+    { en: "A new page, the Uploader, puts audio files on your Model:Cycles' +Drive over USB, for SAMPLE. Drop files and whole folders on the left, open a folder of the Cycles on the right, press Upload: each file becomes a 48 kHz mono sample, and the folders are made on the Cycles too. It works with the official OS too" },
+    { en: "On the left, make folders, drag rows into them and rename them; what is not audio is left out. Drag rows onto a folder on the right to upload them there. On the Cycles' side, a click opens a folder; Select puts a box on each row, to pick samples and folders and delete them in one go. A name already in a folder is skipped, not replaced" },
+    { en: "It is One-Shot's upload page, moved here in the site's look; the old address leads here. Checked against a stand-in Model:Cycles in the browser; a folder with a folder in it, uploaded from this page, arrived on a Model:Cycles (2026-11-05)" },
+  ] },
   { version: "0.48", date: "2026-11-04", changes: [
     { en: "A card's Details open in a window over the page, like the sections' How to use: the cards no longer move. The window ends with a link to the card's part of the guide" },
     { en: "The sections show only their title and the How to use button: the line under the title is gone, the window says it all" },

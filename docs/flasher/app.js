@@ -1765,7 +1765,7 @@ const FEAT = {
     "clash_track-filter": "both change the same sound record functions of the firmware",
     "clash_sample-preview": "both read sample files from the same PRESET browser, and sample preview needs Model-TG",
     desc: [
-      ["", "Put samples on the +Drive with Elektron Transfer first."],
+      ["", "Put samples on the +Drive first, with Elektron Transfer or this site's Uploader."],
       ["[FUNC] + [MACHINES]", "Opens the PRESET menu. Select a sample: the track plays it, and the preset takes its " +
         "name. Press and hold a [TRIG] key while you select one to give that step its own sample, as a preset lock."],
       ["COLOR", "Sets where a trig starts in the sample (STRT). Moving it keeps the length. On a loop that plays, it " +

@@ -17,6 +17,9 @@ manager/index.html     the manager (notes/77): one project per firmware, Switch 
 manager/app.js         its UI; flashes with ../flasher/flasher.js (window.MCFlasher), KNOWN names the official OS
 manager/sysex.js, backup.js, store.js, zip.js   no page code: SysEx framing, a project backup's checks, the library
                        in IndexedDB, the export ZIP; host tests in tools/manager/ (tools/webmanager_check.sh)
+uploader/index.html    the uploader: audio files onto the Cycles' +Drive (from Cycles One-Shot's upload page, MIT)
+uploader/app.js        its UI; uploader/elektron.js, no page code: the file protocol and the sample format; host tests
+                       in tools/uploader/ (tools/webuploader_check.sh)
 guide/index.html       the user guide, one numbered <section id="…"> per mod
 assets/release.js      MC_RELEASES: flasher versions, newest first
 assets/site.js, site.css, guide.css, cycles.js   shared behaviour and styles (language, theme)
@@ -49,6 +52,26 @@ flasher's 1-bit look, its own copy of the tokens, header, buttons and footer; cl
 Light only, as the flasher. Checks: `tools/webmanager_check.sh` (the scripts on the host); the page itself against
 the stand-in `tools/manager/fake-cycles.js` (serve the repository's root, load it by hand, `FakeCycles.install()`),
 and on a Model:Cycles by the maintainer.
+
+## The uploader
+
+`uploader/` (release 0.49) puts audio files on the Cycles' +Drive: the list to upload on the left, a tree of folders
+(`state.tree`: files and folders from the chooser, Add folder's `webkitRelativePath` or a drop's entries, audio only;
+New folder, drag to move, Enter or a double-click to rename), the Cycles' folder on the right (its path as links,
+`+Drive › …`; a click on a folder's row opens it, the second click of a double-click is dropped). Rows are selected as
+in a file manager (click, ⌘/Ctrl, Shift, ⌘A, Escape; on the right a folder only with ⌘/Ctrl or Shift, or with Select
+on, which shows a box on each row and makes a click pick instead of open); the selection is deleted on the Cycles, a folder with everything in it, after one `window.confirm` (as the manager asks), or taken off the list.
+Upload sends the whole list into the folder shown; rows dragged onto a folder on the right, or files dropped there from
+the computer, go into that folder. Folders are made on the Cycles before what is in them (`jobs()`); a name already in
+a folder is skipped, not replaced. Each file is converted in the browser to a 48 kHz mono sample and written with the
+OS's own file commands (Transfer protocol, `0x14`-`0x16`, `0x24`,
+`0x43`-`0x45`; how they were found: Cycles One-Shot's `TECHNICAL.md`). In `/Wavetables` it applies CHORD Tables'
+rules (notes/66). It came from Cycles One-Shot's upload page (MIT, same author), whose old address now leads here;
+this copy is the one kept up. `style.css` follows the manager's: the same tokens, header, buttons, connect chip,
+status line and footer, overridden on `site.css`'s classes as there. Light only. It is not tied to the other pages
+and loads only `release.js` and `site.js`. Checks: `tools/webuploader_check.sh` (the protocol, and the page against a
+stand-in, on the host); the page itself against `tools/uploader/fake-cycles.js` (serve the repository's root, open
+`/docs/uploader/`, load it by hand, `FakeDrive.install()`), and on a Model:Cycles by the maintainer.
 
 ## English only
 
@@ -132,7 +155,8 @@ mods, the guide, the rest.
    flasher only its version), so write it for musicians. Nothing posts it anywhere else: Modded-Cycles' Discord
    workflow went with `.github/` at the fork.
 7. Bump the version stamp: the same `YYYY-MM-DD-NN` string in `window.MC_BUILD` (`flasher/index.html`) and every
-   `?v=` of the four pages (`index.html`, `flasher/index.html`, `manager/index.html`, `guide/index.html`). A stale stamp
+   `?v=` of the five pages (`index.html`, `flasher/index.html`, `manager/index.html`, `uploader/index.html`,
+   `guide/index.html`). A stale stamp
    makes browsers mix a new page with cached old scripts.
 
 **An added machine** with a package (`tools/machines/<id>/manifest.json`, notes/59 to 61) is a machine card:
@@ -160,6 +184,7 @@ tools/webflash_smoke.sh [model-cycles_OS1.13.syx model-samples_OS1.13.syx]   # t
                                                                          # files, the REF_MAINOS sample, each mod checked,
                                                                          # and the Model:Samples flows
 tools/webmanager_check.sh      # the manager's scripts (tools/manager/*.test.js); BACKUP_SYX=, OS_SYX= add real files
+tools/webuploader_check.sh     # the uploader's scripts (tools/uploader/*.test.js), the page against a stand-in Cycles
 ```
 
 `builder.js` and `tools/build.py` must stay equivalent: a change to how one reads a tweak goes into the other in the

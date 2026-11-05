@@ -155,6 +155,15 @@ then **Switch** backs up the project the Cycles plays, flashes the other firmwar
 project back and checks it, and says which slot to save it in. You stop the sequencer and press YES on the Cycles.
 The files and backups stay in your browser; **Export** puts them in one file. How it works: [notes/77](notes/77-manager.md).
 
+## Samples onto the +Drive: the Uploader
+
+The **[Uploader](https://durchgemacht.github.io/model27/uploader/)** puts audio files on the Model:Cycles' +Drive over
+USB, for SAMPLE: drop audio files or whole folders on the left, open a folder of the Cycles on the right, press
+**Upload**. Each file becomes a 48 kHz mono sample, and the folders are made on the Cycles too; rows dragged onto a
+folder on the right go there. It also deletes several samples or folders in one go, and works with the official OS
+too. Close Elektron Transfer
+first. It is Cycles One-Shot's upload page, moved here.
+
 ## Building from the command line
 
 The build is Modded-Cycles' pure-Python toolchain: no compiler and no firmware in the repository.

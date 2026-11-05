@@ -1,0 +1,171 @@
+/* The uploader page, on top of ../assets/site.css. Class names are the ones app.js renders.
+ * 1-bit, as the flasher: two tones only, ink and a cool grey; the dark theme swaps them. States are borders, dashes and
+ * inversion, never colour. No rounded corners, one typeface (Space Mono).
+ * The tokens, the header, the buttons, the status line, the connect chip and the footer are the manager's
+ * (../manager/style.css), which are the flasher's: keep them alike.
+ * site.css also styles .wrap, .top, .brand, .btn and .foot: the rules here override all it sets on them.
+ * Plain CSS (no nesting, color-mix or :has). */
+
+:root{
+  color-scheme:light;
+  --ink:#0b0c0e;
+  --paper:#d7dbe0;
+  --card:#e6ebf1;          /* the two panes, a shade lighter than the page; the dark theme keeps them on the page's tone */
+  --casing:var(--paper);
+  --well:var(--paper);
+  --line:var(--ink);
+  --line-2:var(--ink);
+  --ink-2:var(--ink);
+  --muted:var(--ink);
+  --ctl:var(--ink);
+  --ctl-ink:var(--paper);
+  --ctl-edge:var(--ink);
+  --red:var(--ink);
+  --red-ink:var(--ink);
+  --accent-ink:var(--paper);
+  --accent-glow:transparent;
+  --accent-2:var(--ink);
+  --accent-2-bg:var(--paper);
+  --ok:var(--ink);
+  --warn:var(--ink);
+  --bad:var(--ink);
+  --f:"Space Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --f-code:var(--f);
+  --r:0;
+  --wrap:1120px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){color-scheme:dark;--ink:#d7dbe0;--paper:#0b0c0e;--card:var(--paper)}
+}
+:root[data-theme="dark"]{color-scheme:dark;--ink:#d7dbe0;--paper:#0b0c0e;--card:var(--paper)}
+
+body{font:400 15px/1.5 var(--f);-webkit-font-smoothing:auto}
+::selection{background:var(--ink);color:var(--paper)}
+:focus-visible{outline:3px solid currentColor;outline-offset:3px}
+a{text-decoration-thickness:2px;text-decoration-color:currentColor;text-underline-offset:.22em}
+a:hover{text-decoration-thickness:4px;text-decoration-color:currentColor}
+h1,h2,h3{font-family:var(--f);font-weight:700;letter-spacing:0;text-transform:uppercase;line-height:1}
+button,input,select{font:inherit;color:inherit}
+[hidden]{display:none !important}
+
+/* header */
+.top{align-items:center;gap:10px 20px;padding-top:24px}
+.brand{font:700 20px/1 var(--f);text-transform:uppercase;letter-spacing:0}
+.top nav{gap:6px 16px;align-items:center;font:700 14px/1 var(--f);text-transform:uppercase}
+.top nav a{text-decoration:none}
+.top nav a:hover,.top nav a[aria-current="page"]{text-decoration:underline;text-decoration-color:currentColor;text-decoration-thickness:3px;text-underline-offset:.3em}
+.theme-btn{width:36px;height:36px;margin:0;border:3px solid var(--ink);border-radius:0;color:var(--ink)}
+.theme-btn:hover{background:var(--ink);color:var(--paper)}
+
+/* the one filled button (Upload): a block of ink; disabled, an empty dashed frame */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 20px;border:3px solid var(--ink);border-radius:0;
+  background:var(--ink);color:var(--paper);box-shadow:none;font:700 14px/1 var(--f);text-transform:uppercase;text-decoration:none;cursor:pointer;
+  transition:transform .08s steps(2)}
+.btn:hover{background:var(--ink);color:var(--paper);transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--ink)}
+.btn:active{transform:translate(2px,2px);box-shadow:none}
+.btn:disabled,.btn:disabled:hover{background:transparent;color:var(--ink);border-style:dashed;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* the page */
+.up{display:flex;flex-direction:column;gap:28px;padding-top:32px;padding-bottom:16px}
+.up-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 24px}
+.up-head h1{font-size:28px;line-height:1.15}
+.chip{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border:3px solid var(--ink);
+  background:transparent;font:700 13px/1 var(--f);text-transform:uppercase;cursor:pointer}
+.chip:hover{background:var(--ink);color:var(--paper)}
+.chip:disabled{cursor:not-allowed}
+.chip:disabled:hover{background:transparent;color:var(--ink)}
+.dot{display:inline-block;width:10px;height:10px;background:currentColor}
+.chip.off .dot{background:transparent;border:2px dashed currentColor}
+.ports{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 14px;border:3px dashed var(--ink);font-size:13px}
+.ports select{min-height:40px;padding:0 8px;background:var(--paper);border:3px solid var(--ink);border-radius:0}
+
+/* the one status line: news plain, a warning dashed, a problem inverted */
+.status{margin:0;padding:10px 14px;border:3px solid var(--ink);font-weight:700}
+.status.bad{background:var(--ink);color:var(--paper)}
+.status.warn{border-style:dashed}
+
+/* the two panes: the files to upload on the left, the Cycles on the right. Quieter than the flasher's cards: the pane
+   has the 3 px frame, everything inside it 1 px lines and small tools; one filled button, Upload. */
+.panes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px;align-items:start}
+.pane{display:flex;flex-direction:column;gap:12px;min-width:0;padding:18px 20px 20px;background:var(--card);border:3px solid var(--ink)}
+.pane.drag{outline:3px dashed var(--ink);outline-offset:5px}
+.phead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px}
+.phead h2{font-size:18px;line-height:1}
+.tools{display:flex;flex-wrap:wrap;gap:6px}
+.tool{min-height:30px;padding:0 10px;background:transparent;border:2px solid var(--ink);border-radius:0;
+  font:700 12px/1 var(--f);text-transform:uppercase;cursor:pointer}
+.tool:hover:enabled{background:var(--ink);color:var(--paper)}
+.tool:disabled{border-style:dashed;cursor:not-allowed}
+.hint{margin:0;font-size:12px;line-height:1.5}
+.pane > .btn{width:100%;min-height:48px}
+.ports .tool{min-height:40px}
+
+/* the path on the Cycles: +Drive › My Samples › Drums, every part but the last one a button */
+.crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px;min-height:28px;font-size:14px}
+.crumb{padding:2px 0;background:none;border:0;font:inherit;cursor:pointer;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.25em}
+.crumb:hover:enabled{text-decoration-thickness:3px}
+.crumb:disabled{cursor:default;text-decoration:none}
+.crumb.here{font-weight:700;text-decoration:none}
+.crumbs .sep{user-select:none}
+.newdir{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.newdir input{flex:1 1 200px;min-width:0;height:32px;padding:0 8px;background:var(--paper);border:2px solid var(--ink);border-radius:0;font:14px var(--f)}
+
+/* the rows of both lists: a small pixel icon, the name, the size or how far it got; a selected row is inverted.
+   Own class names (nm, pix): site.css styles .name and .ico for the drawn Model:Cycles. */
+.rows{margin:0;padding:0;list-style:none;border-top:1px solid var(--ink);outline:none;user-select:none}
+.rows:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.rows li{display:flex;align-items:center;gap:10px;min-height:34px;padding:3px 6px;border-bottom:1px solid var(--ink);cursor:default}
+.rows li.sel{background:var(--ink);color:var(--paper)}
+.rows li.kept{cursor:default}
+.rows li.empty{min-height:34px;font-size:13px}
+.rows li.drop-here{justify-content:center;min-height:120px;margin:10px 0;border:2px dashed var(--ink);text-align:center}
+.nm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.nm > b{font-weight:400;overflow-wrap:anywhere}
+.rows li.folder .nm > b{font-weight:700}
+.why{font-size:12px;line-height:1.4}
+.pix{flex:none;width:16px;height:14px;background:currentColor;
+  -webkit-mask:var(--pix) center / var(--pix-size) no-repeat;mask:var(--pix) center / var(--pix-size) no-repeat}
+.pix.dir{--pix-size:16px 14px;--pix:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 7' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h3v1h-3zM0 1h8v1h-8zM0 2h1v4h-1zM7 2h1v4h-1zM0 6h8v1h-8z'/%3E%3C/svg%3E")}
+.pix.smp{--pix-size:14px 14px;--pix:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 7' shape-rendering='crispEdges'%3E%3Cpath d='M0 2h1v3h-1zM2 0h1v7h-1zM4 1h1v5h-1zM6 2h1v3h-1z'/%3E%3C/svg%3E")}
+.size{flex:none;font-size:12px;text-align:right;white-space:nowrap}
+.state{flex:0 1 auto;min-width:0;font-size:12px;text-align:right}
+.state.ok::before{content:"✓ "}
+.state.warn::before,.state.skip::before{content:"! "}
+.state.bad{font-weight:700}
+.state.bad::before{content:"× "}
+.open{flex:none;width:26px;text-align:center;font:700 18px/1 var(--f)}
+.dst .rows li.folder{cursor:pointer}
+.dst .rows li.folder:hover .nm > b{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:.25em}
+.tool[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+/* Select: a box in front of each row, ticked with the flasher's pixel check while the row is picked */
+.box{display:none;flex:none;position:relative;width:14px;height:14px;border:2px solid currentColor}
+.rows.selecting .box{display:block}
+.rows.selecting .box.off{visibility:hidden}
+.rows.selecting li{cursor:pointer}
+.dst .rows.selecting li.folder:hover .nm > b{text-decoration:none}
+.rows li.sel .box::after{content:"";position:absolute;inset:0;background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z'/%3E%3C/svg%3E") center / 8px 8px no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z'/%3E%3C/svg%3E") center / 8px 8px no-repeat}
+.rename{flex:1;min-width:0;height:26px;padding:0 6px;background:var(--paper);color:var(--ink);border:2px solid var(--ink);border-radius:0;font:14px var(--f)}
+/* the list's folders open and close by their triangle; a file keeps the place empty, so the icons stay in line */
+.twisty{flex:none;width:16px;height:22px;margin-right:-6px;padding:0;background:none;border:0;font:700 13px/1 var(--f);color:inherit;cursor:pointer}
+span.twisty{cursor:default}
+.rows li[draggable="true"]{cursor:grab}
+/* where a drag would land: a folder row, or the Cycles' list for the folder shown */
+.rows li.into{outline:3px solid var(--ink);outline-offset:-3px}
+.rows li.sel.into{outline-color:var(--paper)}
+.rows.into{outline:3px dashed var(--ink);outline-offset:3px}
+
+/* all files of an upload: a bar under the status line */
+.overall{height:8px;margin-top:-28px;border:2px solid var(--ink);border-top:0}
+.overall .fill{height:100%;width:0;background:var(--ink)}
+
+/* footer: as the flasher's */
+.foot{margin-top:56px;padding:24px 0 40px;border-top:3px solid var(--ink);font-size:13px;color:var(--ink)}
+.foot .wrap{flex-direction:column;gap:10px}
+.foot p{max-width:none}
+
+@media (prefers-reduced-motion:reduce){
+  .btn{transition:none}
+  .btn:hover{transform:none}
+}
