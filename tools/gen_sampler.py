@@ -5,7 +5,8 @@ added machine of the Model:Cycles.
   - 27-sampler.json: 7th machine, after the 6 stock ones.
 
 The code is Cycles One-Shot's (durchgemacht, MIT: tools/machines/sampler/LICENSE, copied next to the tweaks as
-LICENSE-One-Shot), taken as is from https://github.com/durchgemacht/cycles-one-shot at tag v0.14 (UPSTREAM_COMMIT below; 0.8 made the
+LICENSE-One-Shot), taken as is from https://github.com/durchgemacht/cycles-one-shot at its commit UPSTREAM_COMMIT below (0.15
+in progress, not tagged yet; tag v0.14 before it; 0.8 made the
 patch points SAMPLE_MACHINE and DESC_START symbols behind CM_SYMBOLS in pool.h and view.c, and gave each assembly
 file a section of its own, for builders like this one; 0.9 split the bar above the waveform into the pattern's
 number and the sample's name; 0.10 puts a column on the left with the pattern's number, the track's number and its
@@ -13,7 +14,9 @@ level; 0.11 loops and plays in reverse on two switches, MACHINES + PUNCH and MAC
 built with SMP_SWITCHES, as the manifest builds it here; 0.12 shows the whole view for a held trig while Start or
 Length turns, its locks marked, and so takes NoteVelocityView's draw too; 0.13 lets Start and Length act on the note
 that plays: once, Length moves its end; a loop takes its end at once and its start from the next seam; 0.14 shows
-the Model:Samples' own pictures for Cutoff and Reso in the knob view, the frames the OS builds at boot anyway), with
+the Model:Samples' own pictures for Cutoff and Reso in the knob view, the frames the OS builds at boot anyway; 0.15
+plays Loop and Reverse locked per step by the shortcut layer's 0.5, shows a held step's switches in the right half of
+the screen, the track's pan in the column, and moves a pan on an odd value onto the even one next to it), with
 the same paths as there: src/ the sound core
 (6-tap polyphase interpolation at 96 kHz, the Model:Samples' filter), machine/ the bridge to the voice loop, the
 sample memory (loaded from the +Drive, chosen in the PRESET browser, saved with the sound), the waveform view and
@@ -70,8 +73,8 @@ LICENSE_OUT = DEV / "LICENSE-One-Shot"
 SRC = HERE / "machines" / "sampler"
 
 UPSTREAM = "https://github.com/durchgemacht/cycles-one-shot"
-UPSTREAM_TAG, UPSTREAM_COMMIT = "v0.14", "e7df5849269800a95b1671ae1b08b349cb9aef5f"
-VERSION = "0.14"
+UPSTREAM_TAG, UPSTREAM_COMMIT = None, "1d24f7b931ff9d6dc1ef7124cb7c54e4a4db6332"   # 0.15 in progress, not tagged yet
+VERSION = "0.15-dev"   # notes/63 §28-§31; pinned to its tag at the release
 
 POOL = (0x43800000, 0x46700000)
 # The build recipe (sources, flags, defines, patch points, symbols to keep) is the manifest's,
@@ -129,8 +132,8 @@ def build_tweak(img, check=False):
             "0.67 ms. On a SAMPLE track the main screen shows a column with the pattern's number, the track's number",
             "and its level, the sample's name with L and R while the switches are on, and the waveform with the start",
             "and end marked.",
-            "Code of Cycles One-Shot %s (durchgemacht, MIT, %s, tag %s), copied as is into tools/machines/sampler/,"
-            % (VERSION, UPSTREAM, UPSTREAM_TAG),
+            "Code of Cycles One-Shot %s (durchgemacht, MIT, %s, %s), copied as is into tools/machines/sampler/,"
+            % (VERSION, UPSTREAM, "tag " + UPSTREAM_TAG if UPSTREAM_TAG else "commit " + UPSTREAM_COMMIT[:7]),
             "compiled once with CM_SYMBOLS and SMP_SWITCHES into sampler.o and placed by tools/relocate.py (notes/60).",
             "Samples live in %#x..%#x (%d MB); the payload runs at %#x. Conflicts computed by tools/compose.py:"
             % (POOL[0], POOL[1], (POOL[1] - POOL[0]) >> 20, pay),

@@ -1508,3 +1508,180 @@ back to the sound's value leaves the lock (E2), the LEDs show the held step and 
   `--check`, `test_fltslot.py --dry`, claims, overlaps, registry, flasher data, webcompose (identical), webbuild,
   webflash, the smoke test with both official files ALL PARTS OK. **Run by the maintainer, 2026-11-05:**
   `test_shortcuts.py` ALL OK (164 ok) `[FAIT en émulation]`; the long proofs after step P4.
+
+## 28. SAMPLE reads the locks (2026-11-05, One-Shot 0.15-dev, step P4)
+
+- **The OS** `[FAIT en émulation]` (`probe_switch_locks.py` §3): at the trig of a step that locks k 32, the audio
+  side writes the lock's word into the track's copy (`0x800015ae + 66 t + 64`) and sets bit 0 of the second long of
+  the track's mask (`0x423087f8 + 8 t + 4`); the next trig puts the sound's word back and clears the bit. The
+  sound object (`CUR_SNDS[t]` + 84), where SAMPLE reads its switches (§17.2), keeps the sound's.
+- **The change** (One-Shot's `machine/sampler.c`, `note_switches`): when the mask's bit is set, each switch the lock
+  holds (bit 10 Loop, 11 Reverse) takes the lock's value (bit 8, 9), the other the sound's, which a press without a
+  trig still changes on the note that plays (Loop every block, Reverse at the trig, as before). `os.h` `LOCKED_K32`,
+  `pool.h` `SW_LOOP_LOCKED`, `SW_REVERSE_LOCKED`; the comments say MACHINES, not RETRIG. The same version brings the
+  maintainer's pan in the waveform view's column (T1..T6 and the pan in small digits, `view.c`, One-Shot's
+  TECHNICAL §9). Copied unchanged into `tools/machines/sampler/machine/` (`sampler.c`, `view.c`, `pool.h`, `os.h`);
+  `gen_sampler.py` and the manifest say 0.15-dev until One-Shot's tag.
+- **Builds:** SAMPLE 132 writes, 44 048 bytes; REF_MAINOS, REF_MODS, the smoke test's line and files (`e5dfa12b…`,
+  `30ac6889…`).
+- **Proof:** One-Shot's host tests (`make machine-test`, with and without the switches): the lock of Loop off over a
+  looping sound, of Reverse on only, of both, of Loop on only over a reversing sound, a word that holds no switch, the
+  mask clear, another track's mask and k 31's bit; a switch the lock does not hold follows the sound at once; four
+  deliberate faults caught. The ColdFire build reads the mask's byte at `0x423087fc + 8 t` and the word at
+  `0x800015ee + 66 t`. No Unicorn proof plays SAMPLE with a sample: the chain is the OS's (§3 of the probe) and
+  SAMPLE's (the host tests); the device tests the whole. Here: the generators' `--check`, `test_fltslot.py --dry`,
+  claims, overlaps, registry, flasher data, webcompose (identical), webbuild, webflash, the smoke test with both
+  official files ALL PARTS OK. **Run by the maintainer, 2026-11-05**, every proof whose builds hold SAMPLE or the
+  layer, on this state: `test_shortcuts` (164 ok), `test_compose` (183), `test_views` (53), `test_refchord` (86),
+  `test_chordtables` (165), `test_fltslot` (638) ALL OK `[FAIT en émulation]`.
+
+## 29. PUNCH and GATE with a step held go to the step keys' handler (2026-11-05, the layer's 0.5, step P3b)
+
+The maintainer's first device test of P1-P4 (2026-11-05): a step held + MACHINES + GATE « kommt nicht an bei loop und
+reverse. man schaltet weiterhin punch und gate ». The proofs of §27 called `sc_press` (`0x4001ac4a`) directly, so they
+did not see that MainScreenView never gets the press.
+
+- **The stock OS** `[FAIT, read]`: the step keys' handler (`0x40022382`, a view that sees the keys before
+  MainScreenView; its table at `0x400223c2` indexed by the key's code − 4) sends PUNCH and GATE (codes 6, 7) to
+  `0x400224ae`: with `0x4006b978(state)` set (+357, then +358), `0x4006bb18` (+389) clear and a step held below the
+  pattern's length (`0x4006bdfe`), on to `0x40022eac`: not a fresh press (`0x400724a0`) ends the handler taken
+  (`0x40022ff2`); a fresh one takes k from `0x4005a4e8(44 or 45)` and toggles a p-lock of PUNCH or GATE on every held
+  step (`0x4006be48` with the invoker `0x4002131c`: `0x400158f2` locked → `0x400164b0`, else `0x4001646a` with
+  `0x100`), inside the stock bracket, and ends taken. A trig held + PUNCH or GATE is a stock p-lock of PUNCH or GATE;
+  `claims.py`'s stock list gains it.
+- **The change:** `jmp sc_steplock` over `0x40022eac` (6 bytes, `2f034eb94007`), with the press, the LEDs and
+  `sc_mtrig` in the builds with a switch. `sc_steplock`: the fresh-press test as the stock code (not fresh: the end,
+  taken); MACHINES held, TRACK not, the key's code PUNCH or GATE, the selected track's machine declared that press:
+  `sc_locks`, the hold marked, one LED frame (`0x400760ba` with the handler's view), the end taken; else on to
+  `0x40022ebc`, the stock lock of PUNCH or GATE. A step held + PUNCH or GATE without MACHINES stays the stock lock.
+  `sc_press`'s own lock path stays for a held trig that does not reach this handler's lock (`0x4006b978` clear).
+- **Builds:** SAMPLE and REF2 one site more (SAMPLE 133 writes, 44 176 bytes); every build with the layer moves
+  (REF_MAINOS, REF_MODS, the smoke test's line and files `c86f2838…`, `046d0032…`). Device files again:
+  `build/p6-device/sample` (MAIN OS `9f1ee37e…`) and `build/p6-device/all` (`dcce9a52…`), equal to REF_MAINOS.
+- **Proof:** `test_shortcuts.py` §8: the step keys' handler from its entry, stock and with the layer, steps 2 and 5
+  held, a machine with switches and a stock one, no key, MACHINES, MACHINES + TRACK, PUNCH and GATE: with MACHINES
+  alone on the switches' machines the switch locked (the OS's own lock functions, the expected words) and the press
+  taken; every other case on to the stock lock at `0x40022ebc`; not a fresh press: taken, nothing locked; no step
+  held: `0x40022eac` not reached, not taken. Here: `gen_parts.py --check`, the generators' `--check`,
+  `test_fltslot.py --dry`, claims, overlaps, registry, flasher data, webcompose (identical), webbuild, webflash, the
+  smoke test with both official files ALL PARTS OK. **Run by the maintainer, 2026-11-05:** `test_shortcuts` (172 ok),
+  `test_compose` (183), `test_views` (53), `test_refchord` (86), `test_chordtables` (165), `test_fltslot` (638) ALL OK
+  `[FAIT en émulation]`. The device next.
+
+## 30. The held step's switches on the screen and on PatternGridView's LEDs (2026-11-05, the layer's 0.5, SAMPLE 0.15-dev)
+
+The maintainer's device test of the P3b build: step 1 passes, but « es gibt keine indicator der anzeigt wenn loop oder
+reverse aktiv sind auf einem trig, wenn man ihn dann erneut hält. die buttons leuchten auch nicht wenn man dann erneut
+trig+machine hält ». The screen: while a trig is held, the right half shows a step panel, the maintainer's basic
+layout (text only, no icons, no lock mark, the step's state alone: « was der sound macht ist egal. hier geht es um den
+step »).
+
+- **The LEDs, the stock OS** `[FAIT, read]`: PatternGridView's LED method (`0x40021d22`, vtable `0x40100ae8`) runs its
+  held-trig part only with a trig held (`0x40021f92`): its lambda `0x400217d6`, over the held steps (`0x4006be48`), sets
+  bits of a byte of its frame, B + 63 (B its sp after the prologue): bit 1 when a held step has a p-lock of PUNCH
+  (`0x4005a4e8(0x2c)` through `0x400158f2`), bit 2 for GATE; the loop at `0x4002211c` then lights the LEDs of the list
+  `0x40100a94`..`0x40100aa8`, five of them (0x12, 0x13 PUNCH, 0x14 GATE, 0x15, 0x1b; plan §16 counted 0x1c, which
+  starts the next list), state 2 on, 1 off (`0x40005f86`). It runs after MainScreenView's LED method, so it lit PUNCH
+  and GATE over `sc_leds`.
+- **The change:** `jsr sc_gridleds` over `jsr 0x400cfc5e` at `0x40022112` (6 bytes, `4eb9400cfc5e`), the stock
+  `move.l d3,-(sp)` before it kept, with the press, in the builds with a switch. On entry the return address, the
+  argument, then B at sp + 28. MACHINES held, TRACK not, on a track whose machine declared that press: bit 1 / bit 2
+  set to the first held step's switch (`sc_shown`), the other bits kept; then a tail jump to `0x400cfc5e`, which
+  returns to the method. `sc_mtrig` also asks for an LED frame (`0x400760ba` with the view) when it takes trig +
+  MACHINES, so PUNCH and GATE show the held step's switches on the press.
+- **The screen** (SAMPLE 0.15-dev, One-Shot's `view.c`, TECHNICAL.md §5 there): while a trig is held and no value is
+  shown, `smp_note_draw` draws the stock box (columns 0..63), then the panel: columns 64..127 dark; a lit box (66..127,
+  rows 51..63) with `STEP n`, n the first held step, `+` when more are held; a row LOOP / PUNCH (rows 28..43) and a row
+  REV / GATE (rows 7..22), lit with dark letters while that step plays the switch: its lock of k 32 where the lock
+  holds it, else the track's sound's, as `sc_shown`. The lock is read with `0x4001591e(0x4000f23e(project), step, 32)`,
+  where the stock knob locks' read ends (`0x4000bb8e`; `0x4000da2a`: the word at 68 step + 2 k, −1 without a lock).
+  The writes' bracket end (`0x4006b954`) sets the UI state's +56 (`0x40069b84`), as the stock lock of PUNCH does, so a
+  redraw should follow a toggle; the device will tell.
+- **Builds:** SAMPLE one site more and the panel (134 writes, 46 188 bytes; `view.c` +1.9 KB with the switches);
+  every build with the layer moves (REF_MAINOS, REF_MODS; the smoke test's line and files `47815486…`, `4d9595bf…`).
+  Device files again: `build/p6-device/sample` (MAIN OS `e139042e…`), `build/p6-device/all` (`31d5ad7a…`), equal to
+  REF_MAINOS, checksums and HMAC ok (elektron-firmware-tool).
+- **Proof:** `test_shortcuts.py` §9: PatternGridView's LED method from `0x40022110` to after its loop
+  (`0x40022156`), stock and with the layer, the byte's bits 0x00, 0x1f, 0x06, 0x19, the first held step's locks and
+  the sound's switches, keys none, MACHINES, TRACK, MACHINES + TRACK, RETRIG, the switches' machines and a stock one:
+  with MACHINES alone on a switch's machine, LEDs 0x13 and 0x14 the step's switches, the other LEDs and bits as they
+  were; every other case the stock OS's; `0x400cfc5e` once with the method's object; registers, stack and frame kept.
+  §10: trig + MACHINES taken on a switch's machine asks for one LED frame. One-Shot's host test `test_view_panel`: the
+  panel against a picture drawn from the test's own letters (locks, sound, several steps, steps 10, 41, 64, no panel
+  with a value shown, without a trig, without a step, on another machine); ten mutations caught. Here:
+  `gen_parts.py --check`, the generators' `--check`, `test_fltslot.py --dry`, claims, overlaps, registry, flasher data,
+  webcompose (identical), webbuild, webflash, the smoke test with both official files ALL PARTS OK. **Run by the
+  maintainer, 2026-11-05:** `test_shortcuts` (180 ok; PatternGridView's LEDs 112 / 224 cases acted of 480 / 912 per
+  selection, the LED frame on trig + MACHINES), `test_compose` (183), `test_views` (53), `test_refchord` (86),
+  `test_chordtables` (165), `test_fltslot` (638) ALL OK `[FAIT en émulation]`. The device next.
+- **The device, the same evening** (the maintainer, build `e139042e…`): step 1 with the panel and the LEDs
+  « funktioniert », but « der kleine punch/gate text am ende der zeile kann raus. das irritiert irgendwie und man
+  könnte denken man schaltet beides gleichzeitig ». The rows now show LOOP and REV alone (One-Shot's `view.c`; its
+  host test's picture without the key names fails on the old drawing). SAMPLE 134 writes, 46 080 bytes; smoke files
+  `3fe5ff28…`, `018b7483…`, ALL PARTS OK; device files `build/p6-device/sample` (`d9859f0b…`) and `all`
+  (`c2b11d52…`), equal to REF_MAINOS, checksums and HMAC ok. The Unicorn proofs not run again for this (they do not
+  look at the screen); before the commit with the rest.
+
+## 31. SAMPLE's pan on even values (2026-11-05, SAMPLE 0.15-dev)
+
+The maintainer's device test of the pan in SAMPLE's column (§28): « man kann pan nur in 2er schritten regeln. nachdem
+man L oder R bei 63 angekommen ist, geht es auch nur in 2er schritten zurück und man [kann] nie wieder 0 erreichen ».
+The rest of the step (T1..T6, the number left, right, 0 centred) passed. Asked whether to limit L and R to 62, the
+maintainer chose instead: « Ja, einrasten ».
+
+- **The stock OS** `[FAIT, read]` (notes/44 §2): MainScreenView's encoder handler (`0x4001aa4e`) turns LEVEL/DATA's
+  steps into `0x4006f73a(event, 2, 16)`, 2 a step, 16 in the fast mode, shifted into 8.8; with FUNC held
+  (`0x4007faf4(1)`) it adds them to the track's pan (`vtable[28](0x400097f0(kit, t), 0x1c)`, 8.8 centred on 64) and
+  sets the sum with `0x4000b274(params, 0x1c, value, t, 0, 1)`, which clamps to −64..63: one track at
+  `0x4001ab02..0x4001ab2c`, every track with TRACK held at `0x4001ab36..0x4001ab76`. From 0 the pan goes 2, 4 … 62,
+  then 63 (clamped, odd), and from there 61, 59 … on odd values until the clamp at −64. The stock pan bar hid it;
+  SAMPLE's number shows it. Both device files of §30 left `0x4001aa4e..0x4001ac4a` stock.
+- **Why not ±62:** hard left and right would be gone from the knob, and odd values would still come from MIDI or older
+  projects; moving the descriptor's range would touch MIDI, Control All and saved projects.
+- **The change** (One-Shot `machine/hooks.S`, `machine/view.c`): `jsr smp_hook_pan` over `0x4001ab14`
+  (`move.l d3,-(sp) ; move.l d2,-(sp) ; add.l d0,d4`) and `jsr smp_hook_pan_all` over `0x4001ab52` (after the stock
+  `move.l d3,-(sp)`: `move.l d2,-(sp) ; move.l d0,d4 ; add.l d7,d4`); each leaves the stack as those bytes and d4 the
+  value of `smp_pan_step(track, pan, step)`: on a SAMPLE track (the machine byte of `os_sound(t)`) a pan on an odd
+  value with a step of 2 or more moves one less in the turning direction (63 → 62 → 60 … 0, the fast mode 63 → 48);
+  else pan + step, as the OS. Tweak 46 (level-pan-values, not offered) steps by 1 and is left alone by the guard; its
+  writes (`0x4001aa4e`, `0x4001aaba`) do not touch the two sites. SAMPLE's manifest: two `main.pan` hooks, the two
+  symbols kept, `stock_behaviour` noted. One-Shot's own build (`machine/build.py`) writes the same two hooks.
+- **Builds:** SAMPLE 136 writes, 46 292 bytes; REF_MAINOS, REF_MODS, the smoke test's line and files `44abb137…`,
+  `5dc14a91…`, ALL PARTS OK; device files `build/p6-device/sample` (`49ac6238…`) and `all` (`a503f081…`), equal to
+  REF_MAINOS, checksums and HMAC ok.
+- **Proof:** One-Shot's host test `test_pan_step` (the rule, the bounds, a fraction, a step of 1, the walk to 63 and back
+  with the OS's clamp: only even values and 0 with SAMPLE, the stock sum's odd ones without; six mutations caught).
+  `tools/emu/test_sample_pan.py` (new): the sites; MainScreenView's encoder handler from its entry, stock and with
+  SAMPLE (sampler, sampler + refmachine2), tracks 0, 2, 5 on SAMPLE and the others on machine 0, FUNC, TRACK, steps
+  −3..+3, the fast mode, pans −64..63 and a fraction, the setters stubbed: the same calls as the stock OS but on
+  SAMPLE's tracks an odd pan one less in the turning direction; the volume and the other encoders as the stock OS;
+  the walk with the setter clamping. Here: claims, overlaps, registry, flasher data, webcompose, webbuild, webflash,
+  the smoke test. **Run by the maintainer, 2026-11-05:** `test_sample_pan` ALL OK (14 checks; per selection 770 cases,
+  440 snapped calls) `[FAIT en émulation]`. **The device** (the maintainer, build `49ac6238…`): right to 63, back
+  62, 60 … 0 … −64, another machine's track as the stock OS: « passt ».
+
+## 32. The device test of §25–§31 (2026-11-05)
+
+The maintainer, step by step (plan of the work: `p6` list, each step answered on the machine), with the builds of §30
+and §31 (`sample`: `d9859f0b…`, then `49ac6238…` for the pan; `all`: `a503f081…`):
+
+1. a trig held + MACHINES + GATE locks Reverse on that step, no browser; the panel and PUNCH / GATE's LEDs follow:
+   « funktioniert, nice » (then the keys' names left the panel, §30);
+2. the same press again: the lock gone, the step plays as the sound: « 1-4 passiert wie beschrieben »;
+3. the LEDs with a trig held: in 1;
+4. a lock of Loop against the sound's changes (Loop on, then the sound's Loop on, then Loop off over it): « passt »;
+5. both switches on one step, then one back, then the other: « passt »;
+6. a trig + MACHINES alone: the PRESET browser on the release, a preset lock as on the stock OS, no browser after a
+   switch: « passt »;
+7. locks of k 32 through save, another project, load back: « passt »;
+8. the column's T1..T6 and pan; the pan on even values (§31): « passt »;
+9. the `all` build: a Track FX lock and a Loop lock on one SAMPLE step, saved and loaded back: « passt ». A project of
+   an older model27 build was not at hand; its Track FX locks load on the same k by construction (the release's
+   `fl_ptab` and `sc_ptab` are the same table for k 0..31, rows 24..32 for k 23..31; only k 32 moved, from row 0 to
+   18, and no older build could lock it: the Track FX type's descriptor 5 ends the knob handler before its p-lock);
+10. a stock machine's track: no panel, trig + MACHINES opens the browser on the press, trig + PUNCH the stock lock of
+   PUNCH: « passt ».
+
+`[FAIT sur la machine]` for these builds. Left: the proofs once more over the final code (Unicorn), the commits, the
+release (P7).
+

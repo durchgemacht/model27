@@ -27,10 +27,12 @@
    CONTOUR = resonance, as the Model:Samples' CUTOFF and RESONANCE. DECAY, GATE and PUNCH are the
    stock amp chain. The filter keeps running on silence while its resonance rings out.
 
-   Two switches, in builds with model27's shortcut layer (SMP_SWITCHES): RETRIG + PUNCH = Loop, the
+   Two switches, in builds with model27's shortcut layer (SMP_SWITCHES): MACHINES + PUNCH = Loop, the
    window again and again with a hard seam, asked every block, so it acts on a note that plays;
-   RETRIG + GATE = Reverse, the window from its end to its start, from the next trig on. A loop
-   plays until the amp envelope has closed. */
+   MACHINES + GATE = Reverse, the window from its end to its start, from the next trig on. A loop
+   plays until the amp envelope has closed. Either can be locked per step (trigs held + MACHINES +
+   PUNCH or GATE, the layer's 0.5): the note of a locked trig takes the lock's value for the switches
+   its lock holds, the sound's for the other. */
 #include <stdint.h>
 #include "smp_core.h"
 #include "smp_filter.h"
@@ -45,13 +47,24 @@
 
 /* The switches (SW_LOOP, SW_REVERSE in pool.h), read in the sound the note plays (CUR_SND(t), +20 +
    2 * 32), or in the copy of its 66 bytes when that is 0 (a preview note), not in p, which the OS
-   smooths block by block. */
+   smooths block by block. When the trig that plays locked k 32 (LOCKED_K32), the copy holds the lock:
+   each switch it holds (SW_LOOP_LOCKED, SW_REVERSE_LOCKED) takes the lock's value, the other stays the
+   sound's, which a press without a trig still changes at once. */
 #ifdef SMP_SWITCHES
 static uint32_t note_switches(int t)
 {
     const char *snd = (const char *)CUR_SND(t);
+    uint32_t sw = (uint16_t)(snd ? *(const volatile int16_t *)(snd + SOUND_K32) : *(const int16_t *)(TARGETS(t) + 64));
 
-    return (uint16_t)(snd ? *(const volatile int16_t *)(snd + SOUND_K32) : *(const int16_t *)(TARGETS(t) + 64));
+    if (LOCKED_K32(t)) {
+        uint32_t lock = *(const volatile uint16_t *)(TARGETS(t) + 64);
+
+        if (lock & SW_LOOP_LOCKED)
+            sw = (sw & ~(uint32_t)SW_LOOP) | (lock & SW_LOOP);
+        if (lock & SW_REVERSE_LOCKED)
+            sw = (sw & ~(uint32_t)SW_REVERSE) | (lock & SW_REVERSE);
+    }
+    return sw;
 }
 #else
 #define note_switches(t) ((void)(t), 0u)

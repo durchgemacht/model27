@@ -25,6 +25,35 @@ smp_hook_open:
 	rts
 1:	jmp	0x400a3052
 
+/* FUNC + LEVEL/DATA on the main screen, MainScreenView's encoder handler (0x4001aa4e): before the OS
+   sets a track's pan (0x4000b274), the new value comes from smp_pan_step(track, pan, step) (view.c)
+   instead of pan + step. On one track (0x4001ab14: move.l d3,-(sp) ; move.l d2,-(sp) ; add.l d0,d4
+   becomes jsr smp_hook_pan) d3 is the track, d2 the kit, d0 the pan, d4 the step; with TRACK held, for
+   each track (0x4001ab52, after its move.l d3,-(sp): move.l d2,-(sp) ; move.l d0,d4 ; add.l d7,d4
+   becomes jsr smp_hook_pan_all) the step is d7. Each leaves the stack as the bytes it replaces (d2 on
+   d3) and d4 the value; d0, d1, a0 and a1 are free there (the OS calls 0x400097f0 next). */
+	.globl	smp_hook_pan
+smp_hook_pan:
+	move.l	(%sp), %a1		/* the return */
+	move.l	%d3, (%sp)		/* move.l d3,-(sp) */
+	move.l	%d2, -(%sp)		/* move.l d2,-(sp) */
+	move.l	%a1, -(%sp)
+	move.l	%d4, -(%sp)		/* the step */
+	bra.s	1f
+
+	.globl	smp_hook_pan_all
+smp_hook_pan_all:
+	move.l	(%sp), %a1		/* the return, over the d3 the OS pushed */
+	move.l	%d2, (%sp)		/* move.l d2,-(sp) */
+	move.l	%a1, -(%sp)
+	move.l	%d7, -(%sp)		/* the step */
+1:	move.l	%d0, -(%sp)		/* the pan */
+	move.l	%d3, -(%sp)		/* the track */
+	jsr	smp_pan_step
+	lea	12(%sp), %sp
+	move.l	%d0, %d4
+	rts
+
 /* The sound record functions: save version 2 (0x4005afa0) and 1 (0x4005b054), arguments (record,
    sound), and load (0x4005aecc), arguments (sound, record). Their first 8 bytes (lea -12(sp),sp ;
    movem.l a2-a4,(sp)) become a jmp here. The hook runs the function's body with a copy of its two

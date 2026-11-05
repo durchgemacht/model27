@@ -1,8 +1,8 @@
 {
  "schema": "cycles-mod/0.1",
  "id": "sampler",
- "version": "0.14",
- "name": "SAMPLE machine: sampler for samples on the +Drive, one shot or loop, forward or reverse (Cycles One-Shot 0.14)",
+ "version": "0.15-dev",
+ "name": "SAMPLE machine: sampler for samples on the +Drive, one shot or loop, forward or reverse (Cycles One-Shot 0.15-dev)",
  "description": "Plays a sample from the +Drive once per trig, or in a loop (MACHINES + PUNCH), forward or reverse (MACHINES + GATE): 6-tap polyphase at 96 kHz, the stock decimator, the amp chain set up like TONE, then the Model:Samples' filter. A loop goes round what Start and Length select with a hard seam, as on the Model:Samples, so a single cycle loops without a step; a trig that cuts a sounding note brings the new one in over 0.67 ms. The sample is chosen in the PRESET browser and saved with the sound, the switches too; the main screen shows the pattern's number, the track's number and level, the sample's name with L and R while the switches are on, and its waveform; with a trig held, turning Start or Length shows the whole view for that trig, its sample (a sample lock's own) and its locks on the waveform. Start and Length act on the note that plays: once, Length moves its end (its fade-out stays whole) and Start waits for the next trig; a loop takes its end at once and its start from the next seam, as the Model:Samples does. Cutoff and Reso show the Model:Samples' own pictures in the knob view, the frames the Cycles OS builds at boot.",
  "license": "MIT",
  "credit": {"kind": "own", "who": "durchgemacht and Claude", "repo": "durchgemacht/cycles-one-shot"},
@@ -26,7 +26,7 @@
   ],
   "symbols": {"update": "sampler_update", "render": "sampler_render"},
   "keep": ["smp_hook_open", "smp_hook_save2", "smp_hook_save1", "smp_hook_load", "smp_hook_tick", "smp_main_draw", "smp_knob_draw",
-           "smp_note_draw"]
+           "smp_note_draw", "smp_hook_pan", "smp_hook_pan_all"]
  },
  "uses": [
   {"point": "machine", "name": "SAMPLE", "image": 4, "decay_default": 127,
@@ -49,6 +49,10 @@
    "why": "record to sound: the key back"},
   {"point": "screen.tick", "hook": {"at": "0x400075f0", "stock": "4eb940076be4", "op": "jsr", "symbol": "smp_hook_tick"},
    "why": "the screen's redraw, about 30 Hz: loads and frees samples"},
+  {"point": "main.pan", "hook": {"at": "0x4001ab14", "stock": "2f032f02d880", "op": "jsr", "symbol": "smp_hook_pan"},
+   "why": "FUNC + LEVEL/DATA on the main screen, one track: the pan + step the OS sets comes from smp_pan_step; on a SAMPLE track a pan on an odd value lands on the even value next to it (the OS steps by 2 and clamps at 63)"},
+  {"point": "main.pan", "hook": {"at": "0x4001ab52", "stock": "2f022800d887", "op": "jsr", "symbol": "smp_hook_pan_all"},
+   "why": "the same with TRACK held, for each track"},
   {"point": "view.main", "vtable": {"at": "0x400ffe30", "stock_ptr": "0x4001b22a", "symbol": "smp_main_draw"},
    "why": "MainScreenView's draw method: the waveform on a SAMPLE track"},
   {"point": "view.knob", "vtable": {"at": "0x4010053c", "stock_ptr": "0x4001e40a", "symbol": "smp_knob_draw"},
@@ -76,10 +80,12 @@
  },
  "stock_behaviour": {
   "changes": ["the filter runs inside the machine, before Volume + Dist; the Model:Samples has it after",
-             "on its tracks, MACHINES held + PUNCH or GATE flips Loop or Reverse instead of PUNCH or GATE, and their LEDs show those switches while MACHINES is held"],
+             "on its tracks, MACHINES held + PUNCH or GATE flips Loop or Reverse instead of PUNCH or GATE, and their LEDs show those switches while MACHINES is held",
+             "on its tracks, FUNC + LEVEL/DATA's pan on an odd value (63 at the right end) moves one less, onto the even value next to it, so the column's number reaches 0 again; 2 a step as before"],
   "fixes": [],
   "unchanged": ["at Cutoff 0 the track is untouched bit for bit", "presets on other machines load as before",
-               "TRACK + PUNCH or GATE (Control All), with or without MACHINES"]
+               "TRACK + PUNCH or GATE (Control All), with or without MACHINES",
+               "FUNC + LEVEL/DATA's pan on other machines' tracks, and the volume"]
  },
  "compat": {
   "built_against": ["modded-cycles 6a9742a", "modded-cycles 95b63b7", "model27"],

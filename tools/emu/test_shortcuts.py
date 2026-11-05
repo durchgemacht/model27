@@ -42,20 +42,31 @@ on the official OS 1.13:
      stays, each held step below the pattern's length gets its switch flipped as a lock of k 32 (bits 8/9 the values,
      10/11 the switches it holds), a switch flipped back to the sound's value leaves the lock, a lock that holds none is
      cleared, other steps and other k untouched; the stock knob lock's bracket around the writes (0x4006b740 sets +356,
-     0x4006b954 clears the step words), one LED frame, the hold marked;
+     0x4006b954 clears the step words), one LED frame, the hold marked. With a step held, the step keys' handler
+     (0x40022382) takes PUNCH and GATE before MainScreenView (the stock p-lock of PUNCH or GATE, 0x40022eac): run from
+     its entry, stock and with the layer (jmp sc_steplock, notes/63 §29), for a machine with switches and a stock one,
+     no key, MACHINES, MACHINES + TRACK, PUNCH and GATE: with MACHINES alone on the switches' machine the switch locked
+     on the held steps and the press taken; every other case on to the stock lock (0x40022ebc); not a fresh press:
+     taken, nothing locked; no step held: the press not taken, 0x40022eac not reached;
   9. the LEDs: MainScreenView's LED method from 0x4001cc80 to its second LED (0x4001ccc2), with PUNCH and GATE of the
      selected track in d2 and d0: MACHINES held, TRACK not, on a REF2 or SAMPLE track, LED 19 and 20 show the switches
      (state 2 on, 1 off); every other case lights them as the stock OS; d5 leaves as the stock code leaves it there, the
      other registers kept; with a trig held (0.5), the first held step's switches: a locked switch the lock's value, the
-     other the sound's.
+     other the sound's. With a trig held, PatternGridView's LED method (0x40021d22) lights PUNCH's and GATE's LEDs after
+     MainScreenView's, from bits 1 and 2 of a byte of its frame (a held step with a p-lock of PUNCH or GATE): from
+     0x40022110 to after its loop over the LEDs 0x12, 0x13, 0x14, 0x15, 0x1b (0x40022156), stock and with the layer
+     (jsr sc_gridleds at 0x40022112, notes/63 §30): MACHINES held, TRACK not, on a track of a machine with switches,
+     bits 1 and 2 the first held step's switches, the other bits and LEDs as they were; every other case as the stock
+     OS; 0x400cfc5e called once with the method's object, registers and the frame kept.
   10. MACHINES as the level's key (the layer's 0.4): MainScreenView's key handler from its MACHINES case (0x4001c252),
      stock and with the layer, for every machine, the MACHINES list open or not, a shortcut or switch used in between or
      not: on a track of a machine with a shortcut or a switch a press that would open the list is taken and the release
      opens it unless something acted; a press with the list open closes it at once; FUNC + MACHINES goes to the PRESET
      browser; a held trig too, but on a track of a machine with a switch (the layer's 0.5, jmp sc_mtrig at 0x4001c274)
      the press is taken and the release opens the browser through the handler's own path unless a switch acted (then
-     the event passes on); every other machine as the stock OS; registers and stack kept; a switch flipped and a
-     shortcut turned mark the hold, a knob turned without MACHINES does not.
+     the event passes on), and asks once for a new LED frame (0x400760ba with the view), so that PUNCH's and GATE's
+     LEDs show the held step's switches at once; every other machine as the stock OS; registers and stack kept; a
+     switch flipped and a shortcut turned mark the hold, a knob turned without MACHINES does not.
   11. the pattern's p-lock rows (the layer's 0.5, notes/63 §25; the filter slot's fix up to its 0.10): 0x4005aa34 ->
      jmp sc_conv and the operands 0x4005b998, 0x4005baca -> sc_ptab in every build with the layer; 0x4005aa1a (track,
      index -> k) for tracks 0..6 and indices 0..40: index 18 -> k 32 and 24..32 -> k 23..31 on tracks 0..5, every other
@@ -532,10 +543,88 @@ def lock_tests(key, img, runtime, machine, data):
         if not good:
             bad.append((why, {s_: hex(v) for s_, v in mine.items()}, hex(after), names, cleared, used, ok))
     check(not bad, f"{key}: MACHINES + PUNCH / GATE with a trig held on machine {s32(machine)}: the switch of each "
-                   "held step flipped as a lock of k 32 (bits 8/9 the values, 10/11 what it holds), back to the sound's "
-                   "value it leaves the lock, a lock that holds none cleared, a step past the length, a step not held "
-                   "and another k untouched; the sound stays; one LED frame, the hold marked, the step words cleared; "
+                   "held step flipped as a lock of k 32 (bits 8/9 the values, 10/11 what it holds), back to the "
+                   "sound's value it leaves the lock, a lock that holds none cleared, a step past the length, a step "
+                   "not held and another k untouched; the sound stays; one LED frame, the hold marked, the step words cleared; "
                    f"{len(seq)} presses in a row" + (f"; DIFFERENT {bad[:2]}" if bad else ""))
+
+
+STEP_KEYS, STEP_SITE, STEP_STOCK = 0x40022382, 0x40022eac, 0x40022ebc
+EVENT2 = 0x93d30000
+
+
+def step_press(u, layer_data, t, machine, k32, held, code, flags, steps, length=16):
+    """The step keys' handler (0x40022382) from its entry with this key's event: (whether 0x40022eac was reached,
+    whether it went on to the stock lock at 0x40022ebc, d0's byte when it returned, the k 32 locks, the other locks,
+    the hold mark, the calls by name, registers kept when it returned)."""
+    u.keys(held)
+    u.hooks = project(u, t, machine, k32)
+    u.hooks.update(seq_hooks(u, t, length))
+    u.uc.mem_write(STATE + 357, b"\x01\x01")              # 0x4006b978: the held steps' mode
+    u.uc.mem_write(STATE + 389, b"\x00")                   # 0x4006bb18
+    held_mask(u, steps)
+    u.uc.mem_write(STATE + 92, b"\x01" * 256)
+    u.uc.mem_write(EVENT2, bytes(32))
+    u.uc.mem_write(EVENT2 + 12, struct.pack(">II", code, flags))
+    if layer_data:
+        u.uc.mem_write(layer_data + PENDING, bytes(2))
+    pl_init(u)
+    seen = []
+
+    def stop(uc, addr, size, ud):
+        if addr in (STEP_SITE, STEP_STOCK):
+            seen.append(addr)
+            if addr == STEP_STOCK:
+                uc.emu_stop()
+    h = u.uc.hook_add(UC_HOOK_CODE, stop)
+    u.calls.clear()
+    vals = sentinels(u)
+    d0 = u.call(STEP_KEYS, VIEW, EVENT2)
+    u.uc.hook_del(h)
+    stock = STEP_STOCK in seen
+    kept = stock or ([u.uc.reg_read(r) & 0xffffffff for r in KEPT] == vals and u.sp_ok)
+    w = pl_words(u)
+    mine = w.pop((t, 32), {})
+    used = u.uc.mem_read(layer_data + USED, 1)[0] if layer_data else 0
+    names = [n for n, _a in u.calls if n in ("leds", "switch", "seq")]
+    return STEP_SITE in seen, stock, d0 & 0xff, mine, w, used, names, kept and not u.bad
+
+
+def step_tests(key, stock, img, runtime, data, switchers):
+    """PUNCH and GATE with a step held, through the step keys' handler (0x40022382), stock and with the layer."""
+    a, b = UI(stock), UI(img, runtime)
+    t, steps, bad, n, ours = 3, (2, 5), [], 0, 0
+    machines = sorted(switchers) + [0]
+    for m in machines:
+        for held in ((), (LAYER,), (LAYER, TRACK)):
+            for code in (6, 7):
+                ra = step_press(a, 0, t, m, 0, held, code, 1, steps)
+                rb = step_press(b, data, t, m, 0, held, code, 1, steps)
+                n += 1
+                if held == (LAYER,) and m in switchers:
+                    ours += 1
+                    want = {s_: (0x0500 if code == 6 else 0x0a00) for s_ in steps}
+                    good = (rb[0] and not rb[1] and rb[2] == 1 and rb[3] == want and rb[4] == {} and rb[5] == 1
+                            and rb[6].count("leds") == 1 and "switch" not in rb[6] and rb[7])
+                else:
+                    good = rb[0] and rb[1] and rb[3] == {} and rb[7]
+                good &= ra[0] and ra[1] and ra[3] == {} and ra[7]
+                if not good:
+                    bad.append((s32(m), held, code, ra[:3], rb[:3], {s_: hex(v) for s_, v in rb[3].items()}, rb[5:]))
+    for im, d_ in ((a, 0), (b, data)):              # not a fresh press; no step held
+        r1 = step_press(im, d_, t, machines[0], 0, (LAYER,), 6, 9, steps)
+        r2 = step_press(im, d_, t, machines[0], 0, (LAYER,), 6, 1, ())
+        n += 2
+        if not (r1[0] and not r1[1] and r1[2] == 1 and r1[3] == {} and r1[7]):
+            bad.append(("not fresh", r1[:3]))
+        if not (not r2[0] and not r2[1] and r2[2] == 0 and r2[3] == {} and r2[7]):
+            bad.append(("no step held", r2[:3]))
+    msg = (f"{key}: the step keys' handler (0x40022382), PUNCH and GATE with steps held: MACHINES held, TRACK not, on "
+           f"machines {sorted(s32(m) for m in switchers)}: the switch locked on the held steps, the press taken, one "
+           "LED frame, the hold marked; every other case (no key, MACHINES + TRACK, a stock machine, the stock OS) on "
+           "to the stock lock of PUNCH or GATE (0x40022ebc); not a fresh press: taken, nothing locked; no step held: "
+           f"not taken ({n} cases)")
+    check(not bad and ours, msg + (f"; DIFFERENT {bad[:2]}" if bad else ""))
 
 
 def led_lock_tests(key, img, runtime, machine):
@@ -616,6 +705,88 @@ def led_tests(key, stock, img, runtime, ref2, machines, switchers):
           f"({cases} cases in all); the other registers kept" + (f"; DIFFERENT {bad[:3]}" if bad else ""))
 
 
+# PatternGridView's LED method with a trig held (the layer's 0.5, notes/63 §30)
+GRID_FROM, GRID_SITE, GRID_UNTIL, GRID_STOCK = 0x40022110, 0x40022112, 0x40022156, 0x400cfc5e
+GRID_VEC, GRID_LIST, GRID_LEDS = 0x404dd980, 0x40100a94, (0x12, 0x13, 0x14, 0x15, 0x1b)
+GRID_OBJ = 0x93e60000                                # what d3 holds there: the object 0x400cfc5e gets
+
+
+def grid(u, held, t, machine, k32, bits, extra=None):
+    """PatternGridView's LED method from 0x40022110 to 0x40022156, after its loop over the LEDs of 0x40100a94: its frame
+    B at sp + 20, the byte B + 63 = bits, d3 the object, d2 the LEDs, a4 the LED setter and d7 0 as the method has them
+    there, the list's vector at 0x404dd980 as its first run builds it. Returns its LED calls [(led, state)], the
+    arguments 0x400cfc5e got, the byte after, the registers d2..d7, a2..a6 after, and whether it got there with sp at B
+    and memory in bounds."""
+    u.keys(held)
+    u.hooks = project(u, t, machine, k32)
+    u.hooks.update(extra or {})
+    u.hooks[LED_SET] = ("led", 0)
+    u.hooks[GRID_STOCK] = ("grid", 0)
+    end = GRID_LIST + 4 * len(GRID_LEDS)
+    u.uc.mem_write(GRID_VEC, struct.pack(">III", GRID_LIST, end, end))
+    frame = t7.STACK - 0x400
+    u.uc.mem_write(frame + 60, b"\xa5\xa5\xa5" + bytes([bits]) + b"\xa5\xa5\xa5\xa5")
+    u.calls.clear()
+    sentinels(u)
+    for r, v in ((mk.UC_M68K_REG_D2, LEDS), (mk.UC_M68K_REG_D3, GRID_OBJ), (mk.UC_M68K_REG_D7, 0),
+                 (mk.UC_M68K_REG_A4, LED_SET), (mk.UC_M68K_REG_A7, frame - 20)):
+        u.uc.reg_write(r, v)
+    u.bad.clear()
+    u.uc.emu_start(GRID_FROM, GRID_UNTIL, count=1_000_000)
+    regs = [u.uc.reg_read(r) & 0xffffffff for r in KEPT]
+    got = [(a_[1], a_[2]) for n, a_ in u.calls if n == "led" and a_[0] == LEDS and a_[3] == LED_COLOUR]
+    objs = [a_[0] for n, a_ in u.calls if n == "grid"]
+    around = bytes(u.uc.mem_read(frame + 60, 8))
+    ok = (not u.bad and u.uc.reg_read(mk.UC_M68K_REG_PC) == GRID_UNTIL and u.uc.reg_read(mk.UC_M68K_REG_A7) == frame
+          and around[:3] + around[4:] == b"\xa5" * 7)
+    return got, objs, around[3], regs, ok
+
+
+def grid_tests(key, stock, img, runtime, switchers):
+    """PUNCH's and GATE's LEDs from PatternGridView's LED method with a trig held, stock and with the layer."""
+    a, b = UI(stock), UI(img, runtime)
+    t, bad, cases, acted = 3, [], 0, 0
+    for held in ((), (LAYER,), (TRACK,), (LAYER, TRACK), (RETRIG,)):
+        words = (None, 0x0500, 0x0400, 0x0a00, 0x0800, 0x0e00, 0x0c00) if held == (LAYER,) else (None, 0x0e00)
+        for m in sorted(switchers) + [0]:
+            for k32 in (0, 0x100, 0x200, 0x300):
+                for word in words:
+                    for bits in (0x00, 0x1f, 0x06, 0x19):
+                        pl_init(b)
+                        if word is not None:
+                            pl_lock(b, t, 6, 32, word)
+                        pl_lock(b, t, 9, 32, 0x0f00)        # a later held step: not shown
+                        extra = seq_hooks(b, t, 64)
+                        held_mask(b, (6, 9))
+                        ga, oa, ba, ra, oka = grid(a, held, t, m, k32, bits)
+                        gb, ob, bb, rb, okb = grid(b, held, t, m, k32, bits, extra)
+                        cases += 1
+                        want = bits
+                        if LAYER in held and TRACK not in held and m in switchers:
+                            acted += 1
+                            show = k32
+                            for i in (0, 1):
+                                if word is not None and word >> (10 + i) & 1:
+                                    show = show & ~(1 << (8 + i)) | (word >> (8 + i) & 1) << (8 + i)
+                            want = bits & ~0x06 | (0x02 if show & 0x100 else 0) | (0x04 if show & 0x200 else 0)
+                        leds_want = [(led, 2 if want >> i & 1 else 1) for i, led in enumerate(GRID_LEDS)]
+                        stock_want = [(led, 2 if bits >> i & 1 else 1) for i, led in enumerate(GRID_LEDS)]
+                        good = (ga == stock_want and gb == leds_want and ba == bits and bb == want and oa == ob == [GRID_OBJ]
+                                and ra == rb and oka and okb)
+                        if not good:
+                            bad.append((held, s32(m), hex(k32), word and hex(word), hex(bits), gb, ga, hex(bb), oa, ob,
+                                        oka, okb))
+    a.keys(())
+    b.keys(())
+    check(not bad and acted, f"{key}: PatternGridView's LEDs with a trig held (0x40022110 to 0x40022156): MACHINES held, "
+                             f"TRACK not, on a track of a machine with switches (machines {sorted(switchers)}), LED 0x13 "
+                             "(PUNCH) and 0x14 (GATE) show the first held step's switches, a locked switch the lock's "
+                             f"value, the other the sound's ({acted} cases), the other LEDs and bits as they were; every "
+                             f"other case as the stock OS, which shows the held steps' p-locks of PUNCH and GATE ({cases} "
+                             "cases in all); 0x400cfc5e once with the method's object; registers, stack and frame kept"
+          + (f"; DIFFERENT {bad[:2]}" if bad else ""))
+
+
 # --- 7. the voice loop ----------------------------------------------------------------------------------------------
 def voice_tests(key, tweak, img, runtime, added, blocks):
     def play(m, note, k28):
@@ -688,6 +859,7 @@ def mach(u, flags, machine, opened, trig=0):
     or not: where it goes (MACH_STOPS), the registers d2..d7, a2..a6 and the stack as they came, memory in bounds."""
     u.hooks = project(u, 0, machine, 0)
     u.hooks[TRIG_HELD] = ("trig", trig)
+    u.calls.clear()
     u.uc.mem_write(VIEW + 44, struct.pack(">I", CONTROLLER))
     head, other, node, view_o, view_m = CONTROLLER + 20, CONTROLLER + 0x100, CONTROLLER + 0x200, CONTROLLER + 0x300, \
         CONTROLLER + 0x400
@@ -755,6 +927,9 @@ def mach_tests(key, stock, img, runtime, data, machines, layer, switches=()):
                 b.uc.mem_write(data + PENDING, bytes(2))
                 sa = mach(a, press_f, m, opened, 1)
                 pb = mach(b, press_f, m, opened, 1)
+                frames = [c[1][0] for c in b.calls if c[0] == "leds"]
+                if frames != ([VIEW] if m in switches else []):
+                    bad.append((s32(m), opened, "trig", used, "LED frames", frames))
                 if used:
                     b.uc.mem_write(data + USED, b"\x01")
                 rb = mach(b, release_f, m, opened, 1)
@@ -766,7 +941,8 @@ def mach_tests(key, stock, img, runtime, data, machines, layer, switches=()):
                    "the list is taken, the release opens it unless a shortcut or a switch acted; a press with the list "
                    "open closes it at once; FUNC + MACHINES: the PRESET browser; a held trig: the PRESET browser, on "
                    f"machines {sorted(s32(m) for m in switches)} on the release unless a switch acted (else the event "
-                   f"passes on); the other machines as the stock OS ({cases} cases; registers and stack kept)"
+                   f"passes on), the press asking once for a new LED frame; the other machines as the stock OS ({cases} "
+                   "cases; registers and stack kept)"
                    + (f"; DIFFERENT {bad[:3]}" if bad else ""))
     return b
 
@@ -841,7 +1017,8 @@ def plock_tests(key, stock, img, runtime, syms):
             if got != want or b.bad:
                 bad.append((t, i, got, want))
     check(not bad, f"{key}: 0x4005aa1a (track, index -> k), tracks 0..7, indices 0..40: 18 -> k 32 and 24..32 -> k "
-                   "23..31 on tracks 0..5, every other answer the stock OS's" + (f"; DIFFERENT {bad[:4]}" if bad else ""))
+                   "23..31 on tracks 0..5, every other answer the stock OS's"
+                   + (f"; DIFFERENT {bad[:4]}" if bad else ""))
     locks = [(0, 0, 1, 0x3000), (2, 5, 32, 0x0101), (2, 6, 32, 0x0e00), (5, 63, 32, 0x0200), (3, 4, 31, 0x0400),
              (1, 3, 23, 0x0800), (4, 9, 9, 0x0500), (4, 9, 32, 0x0301), (0, 15, 13, 0x4400)]
     rows, file = pl_save(b, locks)
@@ -884,11 +1061,11 @@ def no_switch_tests(stock):
     u = UI(img, runtime)
     data = int(tweak["symbols"]["sc_data"], 16)
     sites = [bytes(u.uc.mem_read(a, 6)) == bytes(stock[a - E.BASE:a - E.BASE + 6])
-             for a in (PRESS, LED_SITE, 0x4001c274)]
+             for a in (PRESS, LED_SITE, 0x4001c274, 0x40022eac, GRID_SITE)]
     n = u.uc.mem_read(data + 0x11, 1)[0]
     check(all(sites) and bytes(u.uc.mem_read(data + 0x14, 8)) == bytes(8) and n >= 1 and info["part"]["switches"] == 0,
-          f"refchord: no switch declared: 0x4001ac4a, 0x4001cc86 and 0x4001c274 stock, the layer's {n} byte(s) of "
-          "presses 0")
+          f"refchord: no switch declared: 0x4001ac4a, 0x4001cc86, 0x4001c274, 0x40022eac and 0x40022112 stock, the layer's {n} "
+          "byte(s) of presses 0")
     syms = {k: int(v, 16) for k, v in tweak["symbols"].items()}
     check(bytes(u.uc.mem_read(MACH_SITE, 6)).hex() == f"4eb9{syms['sc_mach']:08x}",
           "refchord: 0x4001ca1e -> jsr sc_mach: MACHINES is the level's key with a knob shortcut alone too")
@@ -954,10 +1131,16 @@ def main():
         print("the press with a trig held: the switches as p-locks")
         for m in sorted(switchers):
             lock_tests(key, img, runtime, m, syms["sc_data"])
+        check(bytes(u.uc.mem_read(STEP_SITE, 6)).hex() == f"4ef9{syms['sc_steplock']:08x}",
+              f"{key}: 0x40022eac -> jmp sc_steplock (the step keys' handler, the layer's 0.5)")
+        step_tests(key, stock, img, runtime, syms["sc_data"], switchers)
         print("the LEDs")
         led_tests(key, stock, img, runtime, ref2, machines, switchers)
         for m in sorted(switchers):
             led_lock_tests(key, img, runtime, m)
+        check(bytes(u.uc.mem_read(GRID_SITE, 6)).hex() == f"4eb9{syms['sc_gridleds']:08x}",
+              f"{key}: 0x40022112 -> jsr sc_gridleds (PatternGridView's LEDs, the layer's 0.5)")
+        grid_tests(key, stock, img, runtime, switchers)
         print("MACHINES, the level's key")
         check(bytes(u.uc.mem_read(MACH_SITE, 6)).hex() == f"4eb9{syms['sc_mach']:08x}",
               f"{key}: 0x4001ca1e -> jsr sc_mach")

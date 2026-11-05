@@ -45,6 +45,19 @@
  *            whose machine declared a switch opens nothing yet and ends the handler as taken; the release opens the
  *            browser, from the handler's own path, when no switch acted while MACHINES was held (sc_mach). Written with
  *            the press and the LEDs, in the builds with a switch. Elsewhere the stock answer.
+ *   sc_steplock jmp from 0x40022eac over move.l d3,-(sp) and the first 4 bytes of jsr 0x400724a0, in the step keys'
+ *            handler (0x40022382), which sees the keys before MainScreenView: with a step held, PUNCH or GATE lands
+ *            there and the stock code toggles a p-lock of PUNCH or GATE on the held steps (notes/63 §29). Since the
+ *            layer's 0.5, MACHINES held, TRACK not, on a track whose machine declared that press: the switch locked
+ *            instead (sc_locks), the hold marked, the LEDs asked, the press taken. Written with the press and the
+ *            LEDs, in the builds with a switch. Elsewhere the stock lock of PUNCH or GATE.
+ *   sc_gridleds jsr from 0x40022112 over jsr 0x400cfc5e in PatternGridView's LED method (0x40021d22), reached only
+ *            with a trig held, after its lambda (0x400217d6) set the bits of a byte of the method's frame for the LEDs
+ *            of the list 0x40100a94: bit 1 LED 19 (PUNCH) when a held step has a p-lock of PUNCH, bit 2 LED 20 (GATE);
+ *            the loop at 0x4002211c lights them next, over MainScreenView's (notes/63 §30). Since the layer's 0.5,
+ *            MACHINES held, TRACK not, on a track whose machine declared a press: that key's bit shows the first held
+ *            step's switch (sc_shown), as sc_leds does. Then the stock call. Written with the press, in the builds with
+ *            a switch.
  *   sc_conv, sc_ptab
  *            the pattern's p-lock rows (notes/47 §4.3; the filter slot's fl_conv and fl_ptab up to its 0.10, here since
  *            the layer's 0.5, notes/63 §25), in every build with the layer. The pattern's file keeps a row per index
@@ -114,10 +127,16 @@
 	.equ	HELD_HI, 348			/* the UI's state: the held steps, 32..63 */
 	.equ	HELD_LO, 352			/* 0..31 */
 	.equ	LOCK_K, 32			/* the switches' k */
+	.equ	KEY_CODE, 0x4007240c		/* (event) -> its key's code: 6 PUNCH, 7 GATE */
+	.equ	FRESH, 0x400724a0		/* (event) -> 1 for a fresh press */
+	.equ	STEP_TAKEN, 0x40022ff2		/* the step keys' handler: d2 = 1 (taken), its end */
+	.equ	STEP_STOCK, 0x40022ebc		/* the same: its lock of PUNCH or GATE on the held steps */
 	.equ	MACHINES_VT, 0x40117920	/* the MACHINES list's vtable */
 	.equ	CONTROLLER_AT, 44		/* MainScreenView: its controller, whose views are a list at +20 (node: +0 next, +8 view) */
 	.equ	VIEWS_AT, 20
 	.equ	VIEW_LEDS, 0x400760ba		/* (view): its LEDs changed, redo the LED frame (notes/58 §3) */
+	.equ	GRID_STOCK, 0x400cfc5e		/* what PatternGridView's LED method calls at 0x40022112, (d3) */
+	.equ	GRID_BITS, 91			/* sc_gridleds' sp on entry: the method's frame at + 28, its LEDs' byte at + 63 */
 
 	.globl	sc_knob, sc_save2, sc_save1, sc_load, sc_press, sc_leds, sc_conv, sc_ptab
 
@@ -560,6 +579,92 @@ sc_shown:
 	lea	16(%sp), %sp
 	rts
 
+/* jmp from 0x40022eac in the step keys' handler (0x40022382): PUNCH or GATE with a step held, where the stock code
+ * asks for a fresh press, then toggles a p-lock of PUNCH or GATE on every held step. d3 the event, a2 the handler's
+ * view, the stack balanced; keeps d2..d7, a2..a6 for the stock code. */
+	.globl	sc_steplock
+sc_steplock:
+	move.l	%d3, -(%sp)
+	jsr	FRESH
+	addq.l	#4, %sp
+	tst.b	%d0
+	beq.w	9f				/* not a fresh press: taken, as the stock code */
+	pea	K_LEVEL
+	jsr	KEY_HELD
+	addq.l	#4, %sp
+	tst.l	%d0
+	beq.w	8f
+	pea	K_TRACK
+	jsr	KEY_HELD
+	addq.l	#4, %sp
+	tst.l	%d0
+	bne.w	8f
+	move.l	%d3, -(%sp)
+	jsr	KEY_CODE
+	addq.l	#4, %sp
+	subq.l	#6, %d0				/* PUNCH 0, GATE 1 */
+	moveq	#1, %d1
+	cmp.l	%d0, %d1
+	bcs.w	8f
+	move.l	%d2, -(%sp)
+	move.l	%d0, %d2
+	bsr.w	sc_selected
+	bsr.w	sc_track			/* a0 the sound, d1 the presses its machine declared */
+	btst	%d2, %d1
+	beq.s	7f
+	bsr.w	sc_locks			/* the switch locked on the held steps */
+	lea	sc_data, %a1
+	move.b	#1, USED(%a1)			/* MACHINES acted as a modifier */
+	move.l	%a2, -(%sp)
+	jsr	VIEW_LEDS
+	addq.l	#4, %sp
+	move.l	(%sp)+, %d2
+9:	jmp	STEP_TAKEN
+7:	move.l	(%sp)+, %d2
+8:	jmp	STEP_STOCK			/* the stock lock of PUNCH or GATE */
+
+/* jsr from 0x40022112 in PatternGridView's LED method (see the head of this file), over jsr 0x400cfc5e, its argument
+ * d3 already pushed: on entry the return address, then that argument, then the method's frame B (its sp after its
+ * prologue, 0x40022110 having it at sp + 20), whose byte B + 63 holds the bits of the LEDs 0x12, 0x13 (PUNCH), 0x14
+ * (GATE), 0x15, 0x1b (the list 0x40100a94) that the loop at 0x4002211c lights. MACHINES held, TRACK not, on a track whose machine
+ * declared a press: that key's bit set to the first held step's switch. Then 0x400cfc5e(d3), a tail call that returns
+ * to the method. Keeps d2..d7, a2..a6. */
+	.globl	sc_gridleds
+sc_gridleds:
+	move.l	%d3, -(%sp)
+	pea	K_LEVEL
+	jsr	KEY_HELD
+	addq.l	#4, %sp
+	tst.l	%d0
+	beq.s	9f
+	pea	K_TRACK
+	jsr	KEY_HELD
+	addq.l	#4, %sp
+	tst.l	%d0
+	bne.s	9f
+	bsr.w	sc_selected
+	bsr.w	sc_track			/* a0 the sound, d1 the presses its machine declared */
+	move.l	%d1, %d3
+	beq.s	9f
+	mvz.w	SWITCHES_AT(%a0), %d1
+	bsr.w	sc_shown			/* the first held step's */
+	mvz.b	GRID_BITS + 4(%sp), %d0
+	btst	#0, %d3
+	beq.s	1f
+	bclr	#1, %d0				/* PUNCH's LED: the switch */
+	btst	#8, %d1
+	beq.s	1f
+	bset	#1, %d0
+1:	btst	#1, %d3
+	beq.s	2f
+	bclr	#2, %d0				/* GATE's LED: the switch */
+	btst	#9, %d1
+	beq.s	2f
+	bset	#2, %d0
+2:	move.b	%d0, GRID_BITS + 4(%sp)
+9:	move.l	(%sp)+, %d3
+	jmp	GRID_STOCK
+
 /* -> d0 the selected track, 0..5, or -1 without a project. */
 sc_selected:
 	jsr	PROJECT
@@ -682,6 +787,9 @@ sc_mtrig:
 	lea	sc_data, %a1
 	move.b	#2, PENDING(%a1)		/* the browser waits for the release */
 	clr.b	USED(%a1)
+	move.l	%a2, -(%sp)			/* a new LED frame: PUNCH and GATE show the held step's switches */
+	jsr	VIEW_LEDS
+	addq.l	#4, %sp
 	jmp	KEY_TAKEN			/* the press taken, nothing opened */
 7:	jmp	BROWSER				/* the stock answer: the browser at once */
 8:	jmp	MACH_SITE			/* no trig held: on, as the stock code */

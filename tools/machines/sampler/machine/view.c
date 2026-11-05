@@ -1,5 +1,5 @@
 /* SAMPLE's view on the main screen: on the left a column with the current pattern's number, the
-   track's number and its level; to its right the selected track's sample as a waveform, the start
+   track's number and pan, and its level; to its right the selected track's sample as a waveform, the start
    and end of what a trig plays marked on it, and above it the sound's name (the browser names the
    sound after the sample it opens).
 
@@ -11,7 +11,8 @@
    takes the whole screen as without a held trig, its markers on the held trig's locks and its sample
    and name a sound lock's, and NoteVelocityView stays away until the value is gone. Tracks on other
    machines keep the stock views. In builds with the switches (SMP_SWITCHES), the name's box ends with
-   L while Loop is on and R while Reverse is. */
+   L while Loop is on and R while Reverse is, and while a trig is held and no value is shown, the right
+   half shows whether the first held step plays Loop and Reverse (the step panel). */
 #include "view.h"
 #include "pool.h"
 #include "os.h"
@@ -39,8 +40,8 @@ extern char cm_descriptor_base[];
 
 /* The screen, y counted from the bottom (a set pixel is lit). On the left a column 21 pixels wide
    and as high as the screen, its marks lit: at the top the current pattern's number, dark in a lit
-   box; below it a box with TRAK and the track's number; at the bottom the track's level as a bar in
-   a frame with ticks. To its right, 2 dark columns on, the name's box along the top in the
+   box; below it a box with the track's number (T1 .. T6) and its pan under it, both in small
+   letters; at the bottom the track's level as a bar in a frame with ticks. To its right, 2 dark columns on, the name's box along the top in the
    look of the OS's own browser title (0x400a539c: its title in the small font at 2, 53, then
    0x40070efc turns rows 51..63 over): lit, 13 rows high, its corners rounded off, the name in dark
    letters 2 pixels in, 101 pixels for a name of 15 characters, 89 at most. The OS's text is 9 rows
@@ -53,6 +54,10 @@ extern char cm_descriptor_base[];
 #define COL_MID     ((COL_X0 + COL_X1) / 2)
 #define TRACK_Y0    29                  /* the track's box, rows 29..48 */
 #define TRACK_Y1    48
+#define TRACK_TOP   (TRACK_Y1 - 3)      /* T1 .. T6: rows 41..45 */
+#define PAN_TOP     (TRACK_Y0 + 8)      /* the pan: rows 33..37, 3 free rows above and below */
+#define PAN_X0      (COL_X0 + 2)        /* left of the centre from here, right of it up to PAN_X1 */
+#define PAN_X1      (COL_X1 - 2)
 #define METER_X0    6                   /* the level's frame, rows 0..26 */
 #define METER_X1    14
 #define METER_Y1    26
@@ -68,6 +73,20 @@ extern char cm_descriptor_base[];
 #define SWITCH_X    119                 /* the switches' letters at the box's right end, 3 x 5 each: L at
                                            119..121, R at 123..125, past the longest name (25..113) */
 #define SWITCH_TOP  (BAR_TOP - 4)       /* rows 55..59, the box's middle */
+/* The step panel (builds with the switches), while a trig is held and no value is shown: the right of
+   NoteVelocityView's box (columns 0..63) dark from column 64, the panel from 66 to the edge. At the top a
+   box like the name's (rows 51..63, its corners dark) with STEP and the first held step's number in dark 3 x 5
+   letters (rows 55..59), centred, + after the number when more steps are held. Under it a row for each
+   switch, LOOP above REV (the maintainer's layout, 2026-11-05): the switch's name in 5 x 7 letters 3 pixels
+   in, without the key that toggles it (the maintainer: PUNCH and GATE there read as if one press switched
+   both). A row is lit (its corners dark) with dark letters while the step plays that switch, dark with lit
+   letters otherwise. */
+#define PANEL_X0    66
+#define PANEL_X1    127
+#define LOOP_Y0     28                  /* rows 28..43: LOOP on rows 33..39 */
+#define LOOP_Y1     43
+#define REV_Y0      7                   /* rows 7..22: REV on rows 12..18 */
+#define REV_Y1      22
 
 static void pixel(smp_bitmap *b, int x, int y)
 {
@@ -109,8 +128,10 @@ static void frame(smp_bitmap *b, int x0, int y0, int x1, int y1)
     fill(b, x1, y0 + 1, x1, y1 - 1, 1);
 }
 
-/* The column's own letters, not the OS's: digits and A to F of 5 x 7 pixels in the shapes of the
-   classic character LCD, a row per byte from the top, bit 4 the leftmost column; and TRAK of 3 x 5. */
+/* The view's own letters, not the OS's: digits and A to F of 5 x 7 pixels in the shapes of the
+   classic character LCD, a row per byte from the top, bit 4 the leftmost column; and the digits
+   and T of 3 x 5, bit 2 the leftmost column. Builds with the switches add the step panel's: L, O, P,
+   R and V of 5 x 7 (E is among the digits'), S, E, P and + of 3 x 5. */
 static const unsigned char DIGITS[16][7] = {
     {0x0e, 0x11, 0x13, 0x15, 0x19, 0x11, 0x0e}, {0x04, 0x0c, 0x04, 0x04, 0x04, 0x04, 0x0e},
     {0x0e, 0x11, 0x01, 0x02, 0x04, 0x08, 0x1f}, {0x1f, 0x02, 0x04, 0x02, 0x01, 0x11, 0x0e},
@@ -121,9 +142,56 @@ static const unsigned char DIGITS[16][7] = {
     {0x0e, 0x11, 0x10, 0x10, 0x10, 0x11, 0x0e}, {0x1c, 0x12, 0x11, 0x11, 0x11, 0x12, 0x1c},
     {0x1f, 0x10, 0x10, 0x1e, 0x10, 0x10, 0x1f}, {0x1f, 0x10, 0x10, 0x1e, 0x10, 0x10, 0x10},
 };
-static const unsigned char TRAK[4][5] = {
-    {7, 2, 2, 2, 2}, {6, 5, 6, 5, 5}, {2, 5, 7, 5, 5}, {5, 5, 6, 5, 5},
+#ifdef SMP_SWITCHES
+static const char BIG_CHARS[] = "LOPRV";
+static const unsigned char BIG_LETTERS[5][7] = {
+    {0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x1f}, {0x0e, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0e},
+    {0x1e, 0x11, 0x11, 0x1e, 0x10, 0x10, 0x10}, {0x1e, 0x11, 0x11, 0x1e, 0x14, 0x12, 0x11},
+    {0x11, 0x11, 0x11, 0x11, 0x11, 0x0a, 0x04},
 };
+#define SMALL_MORE  "SEP+"
+#else
+#define SMALL_MORE  ""
+#endif
+static const char SMALL_CHARS[] = "0123456789T" SMALL_MORE;
+static const unsigned char SMALL[][5] = {
+    {7, 5, 5, 5, 7}, {2, 6, 2, 2, 7}, {7, 1, 7, 4, 7}, {7, 1, 3, 1, 7}, {5, 5, 7, 1, 1},
+    {7, 4, 7, 1, 7}, {7, 4, 7, 5, 7}, {7, 1, 1, 2, 2}, {7, 5, 7, 5, 7}, {7, 5, 7, 1, 7},
+    {7, 2, 2, 2, 2},                    /* T */
+#ifdef SMP_SWITCHES
+    {7, 4, 7, 1, 7}, {7, 4, 6, 4, 7}, {7, 5, 7, 4, 4}, {0, 2, 7, 2, 0},                     /* S E P + */
+#endif
+};
+
+static const unsigned char *big_glyph(char c)
+{
+#ifdef SMP_SWITCHES
+    int i;
+
+    for (i = 0; BIG_CHARS[i]; i++)
+        if (BIG_CHARS[i] == c)
+            return BIG_LETTERS[i];
+#endif
+    return DIGITS[c <= '9' ? c - '0' : c - 'A' + 10];
+}
+
+static const unsigned char *small_glyph(char c)       /* 0 for a space */
+{
+    int i;
+
+    for (i = 0; SMALL_CHARS[i]; i++)
+        if (SMALL_CHARS[i] == c)
+            return SMALL[i];
+    return 0;
+}
+
+static void dot(smp_bitmap *b, int x, int y, int lit)
+{
+    if (lit)
+        pixel(b, x, y);
+    else
+        dark(b, x, y);
+}
 
 /* The columns a glyph uses: from bit 4 - first to bit 4 - last; blank columns at its sides are left
    out, so 1 is 3 pixels wide. */
@@ -141,28 +209,46 @@ static int glyph_span(const unsigned char *g, int *first)
     return hi - lo + 1;
 }
 
-/* A text of digits and A to F centred on column mid, 1 pixel between characters, top row at top. */
-static void digits(smp_bitmap *b, int mid, int top, const char *s, int lit)
+/* The width of a text of 5 x 7 letters, 1 pixel between them. */
+static int big_width(const char *s)
+{
+    int width = -1, first;
+
+    for (; *s; s++)
+        width += glyph_span(big_glyph(*s), &first) + 1;
+    return width;
+}
+
+/* A text of 5 x 7 letters from column x on, 1 pixel between them, top row at top, lit or dark. */
+static void big_text(smp_bitmap *b, int x, int top, const char *s, int lit)
 {
     const unsigned char *g;
-    int width = -1, x, first, w, r, c, i;
+    int first, w, r, c;
 
-    for (i = 0; s[i]; i++)
-        width += glyph_span(DIGITS[s[i] <= '9' ? s[i] - '0' : s[i] - 'A' + 10], &first) + 1;
-    x = mid - (width - 1) / 2;
-    for (i = 0; s[i]; i++) {
-        g = DIGITS[s[i] <= '9' ? s[i] - '0' : s[i] - 'A' + 10];
+    for (; *s; s++) {
+        g = big_glyph(*s);
         w = glyph_span(g, &first);
         for (r = 0; r < 7; r++)
             for (c = 0; c < w; c++)
-                if (g[r] & (0x10 >> (first + c))) {
-                    if (lit)
-                        pixel(b, x + c, top - r);
-                    else
-                        dark(b, x + c, top - r);
-                }
+                if (g[r] & (0x10 >> (first + c)))
+                    dot(b, x + c, top - r, lit);
         x += w + 1;
     }
+}
+
+/* A text of 3 x 5 letters from column x on, 1 pixel between them, top row at top, lit or dark: 4 n - 1
+   pixels wide for n letters, a space as wide as a letter. */
+static void small_text(smp_bitmap *b, int x, int top, const char *s, int lit)
+{
+    const unsigned char *g;
+    int r, c;
+
+    for (; *s; s++, x += 4)
+        if ((g = small_glyph(*s)))
+            for (r = 0; r < 5; r++)
+                for (c = 0; c < 3; c++)
+                    if (g[r] & (4 >> c))
+                        dot(b, x + c, top - r, lit);
 }
 
 static void blank(smp_bitmap *b)
@@ -204,7 +290,7 @@ static void box(smp_bitmap *b, int left, int right, const char *text)
 static void switch_letters(smp_bitmap *b, const char *sound)
 {
 #ifdef SMP_SWITCHES
-    static const unsigned char LETTERS[2][5] = { {4, 4, 4, 4, 7}, {6, 5, 6, 5, 5} };   /* L, R, as TRAK */
+    static const unsigned char LETTERS[2][5] = { {4, 4, 4, 4, 7}, {6, 5, 6, 5, 5} };   /* L, R, as SMALL */
     uint32_t sw = *(const uint16_t *)(sound + SOUND_K32);
     int i, r, c;
 
@@ -234,14 +320,16 @@ static void pattern_number(char *s)
 
 /* The column for track t (0..5), lit marks on the dark screen. The pattern's box fills rows 51..63
    but its corners, as the name's box does, its number dark in it (rows 54..60). The track's box is
-   an outline with TRAK (rows 41..45) and the track's number (rows 32..38). The level's frame has 4
-   ticks on each side (rows 1, 9, 17, 25), and its bar grows from row 2 with the track's level as
+   an outline with T and the track's number centred in it (rows 41..45) and the track's pan under them
+   (rows 33..37), both in the small letters: the pan's size without a sign, from column 2 on when it
+   is left of the centre, up to column 18 when right of it, 0 centred. The level's frame has 4 ticks
+   on each side (rows 1, 9, 17, 25), and its bar grows from row 2 with the track's level as
    MainScreenView reads it: 0 empty, any other value at least a row, 127 all 23. */
 static void column(smp_bitmap *b, int32_t t)
 {
     char s[4];
-    int32_t level = t >= 0 && t <= 5 ? track_level(t) : 0, rows;
-    int i, r, c;
+    int32_t level = t >= 0 && t <= 5 ? track_level(t) : 0, rows, pan, n;
+    int i, w;
 
     fill(b, COL_X0, BAR_Y, COL_X1, BAR_TOP, 1);
     dark(b, COL_X0, BAR_Y);
@@ -249,18 +337,24 @@ static void column(smp_bitmap *b, int32_t t)
     dark(b, COL_X0, BAR_TOP);
     dark(b, COL_X1, BAR_TOP);
     pattern_number(s);
-    digits(b, COL_MID, BAR_TOP - 3, s, 0);
+    big_text(b, COL_MID - (big_width(s) - 1) / 2, BAR_TOP - 3, s, 0);
 
     frame(b, COL_X0, TRACK_Y0, COL_X1, TRACK_Y1);
-    for (i = 0; i < 4; i++)
-        for (r = 0; r < 5; r++)
-            for (c = 0; c < 3; c++)
-                if (TRAK[i][r] & (4 >> c))
-                    pixel(b, COL_MID - 7 + 4 * i + c, TRACK_Y1 - 3 - r);
     if (t >= 0 && t <= 5) {
-        s[0] = (char)('1' + t);
-        s[1] = 0;
-        digits(b, COL_MID, TRACK_Y0 + 9, s, 1);
+        s[0] = 'T';
+        s[1] = (char)('1' + t);
+        s[2] = 0;
+        small_text(b, COL_MID - 3, TRACK_TOP, s, 1);
+        pan = track_pan(t);
+        n = pan < 0 ? -pan : pan;
+        n = n > 99 ? 99 : n;
+        i = 0;
+        if (n >= 10)
+            s[i++] = (char)('0' + n / 10);
+        s[i++] = (char)('0' + n % 10);
+        s[i] = 0;
+        w = 4 * i - 1;
+        small_text(b, pan < 0 ? PAN_X0 : pan > 0 ? PAN_X1 - w + 1 : COL_MID - w / 2, PAN_TOP, s, 1);
     }
 
     frame(b, METER_X0, 0, METER_X1, METER_Y1);
@@ -446,10 +540,112 @@ void smp_knob_draw(void *view, smp_bitmap *b)
     held_shown = 1;
 }
 
+#ifdef SMP_SWITCHES
+/* A lit box from (x0, y0) to (x1, y1), its corner pixels dark. */
+static void lit_box(smp_bitmap *b, int x0, int y0, int x1, int y1)
+{
+    fill(b, x0, y0, x1, y1, 1);
+    dark(b, x0, y0);
+    dark(b, x1, y0);
+    dark(b, x0, y1);
+    dark(b, x1, y1);
+}
+
+/* A switch's row from y0 to y1: its name, the row lit while on. */
+static void panel_row(smp_bitmap *b, int y0, int y1, const char *name, int on)
+{
+    if (on)
+        lit_box(b, PANEL_X0, y0, PANEL_X1, y1);
+    big_text(b, PANEL_X0 + 3, y1 - 4, name, !on);
+}
+
+/* Step n's switches as it plays them, and as model27's shortcut layer shows and toggles them (sc_shown): a
+   switch its lock of k 32 holds (SW_LOOP_LOCKED, SW_REVERSE_LOCKED) as the lock has it, the other as the
+   track's sound has it. */
+static uint32_t step_switches(const char *sound, int32_t n)
+{
+    uint32_t sw = *(const uint16_t *)(sound + SOUND_K32);
+    int32_t lock = step_k_lock(n, 32);
+
+    if (lock >= 0) {
+        if (lock & SW_LOOP_LOCKED)
+            sw = (sw & ~(uint32_t)SW_LOOP) | ((uint32_t)lock & SW_LOOP);
+        if (lock & SW_REVERSE_LOCKED)
+            sw = (sw & ~(uint32_t)SW_REVERSE) | ((uint32_t)lock & SW_REVERSE);
+    }
+    return sw;
+}
+
+/* The panel for the first held step (the lowest, as sc_shown takes it); nothing without one. */
+static void step_panel(smp_bitmap *b, const char *sound)
+{
+    char s[9];
+    int32_t n, first = -1, held = 0;
+    uint32_t sw;
+    int i;
+
+    for (n = 0; n < 64; n++)
+        if (step_held(n)) {
+            if (first < 0)
+                first = n;
+            held++;
+        }
+    if (first < 0)
+        return;
+    sw = step_switches(sound, first);
+    fill(b, PANEL_X0 - 2, 0, PANEL_X1, BAR_TOP, 0);
+    s[0] = 'S', s[1] = 'T', s[2] = 'E', s[3] = 'P', s[4] = ' ';
+    i = 5;
+    if (first + 1 >= 10)
+        s[i++] = (char)('0' + (first + 1) / 10);
+    s[i++] = (char)('0' + (first + 1) % 10);
+    if (held > 1)
+        s[i++] = '+';
+    s[i] = 0;
+    lit_box(b, PANEL_X0, BAR_Y, PANEL_X1, BAR_TOP);
+    small_text(b, PANEL_X0 + (PANEL_X1 - PANEL_X0 + 1 - (4 * i - 1)) / 2, SWITCH_TOP, s, 0);
+    panel_row(b, LOOP_Y0, LOOP_Y1, "LOOP", (sw & SW_LOOP) != 0);
+    panel_row(b, REV_Y0, REV_Y1, "REV", (sw & SW_REVERSE) != 0);
+}
+#endif
+
+/* NoteVelocityView's draw: the stock one but while the knob view shows SAMPLE's view for a held trig; then, in
+   builds with the switches, the step panel right of it while a trig is held and no value is shown. */
 void smp_note_draw(void *view, smp_bitmap *b)
 {
     if (!held_shown || !TRIG_HELD() || !VALUE_SHOWN())
         NOTE_DRAW(view, b);
+#ifdef SMP_SWITCHES
+    {
+        const char *s = sample_sound();
+
+        if (s && TRIG_HELD() && !VALUE_SHOWN())
+            step_panel(b, s);
+    }
+#endif
+}
+
+/* --- the pan --------------------------------------------------------------------------------- */
+
+/* FUNC + LEVEL/DATA on the main screen turns the track's pan, TRACK held every track's
+   (MainScreenView's encoder handler 0x4001aa4e): the OS adds the encoder's steps, 2 each
+   (0x4006f73a(event, 2, 16), 16 in its fast mode), to the pan, 8.8 centred on 64, and its setter
+   (0x4000b274) clamps it to -64..63. 63 is odd: from the right end the pan moved on odd values, and
+   the column's number could not show 0 again before the left end. hooks.S hands this function each
+   track's pan and the step before the OS adds them. On a SAMPLE track a pan on an odd value moves one
+   less, onto the even value next to it in the direction it turns (63 -> 62 -> 60 ... 0); an even pan,
+   another machine's track, or a step under 2 (model27's level-pan-values steps by 1) as before. */
+int32_t smp_pan_step(int32_t t, int32_t pan, int32_t step)
+{
+    const char *s = t >= 0 && t <= 5 ? os_sound(t) : 0;
+
+    if (s && (unsigned char)s[MACHINE_AT] == SAMPLE_MACHINE && (pan >> 8 & 1)) {
+        if (step >= 0x200)
+            return pan + step - 0x100;
+        if (step <= -0x200)
+            return pan + step + 0x100;
+    }
+    return pan + step;
 }
 
 /* --- Cutoff's value ------------------------------------------------------------------------- */

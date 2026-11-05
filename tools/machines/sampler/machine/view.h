@@ -31,4 +31,8 @@ void smp_pic_cutoff(void *self, void *b, int32_t x, int32_t y, int32_t value);
 void smp_pic_reso(void *self, void *b, int32_t x, int32_t y, int32_t value);
 void smp_view_install(void);
 
+/* FUNC + LEVEL/DATA's pan on the main screen: track t's pan (8.8) plus the step, the OS's sum, but on a SAMPLE
+   track a pan on an odd value lands on the even value next to it (view.c, hooks.S). */
+int32_t smp_pan_step(int32_t t, int32_t pan, int32_t step);
+
 #endif

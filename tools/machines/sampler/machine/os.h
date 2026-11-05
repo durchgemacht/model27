@@ -20,6 +20,10 @@
 /* The 66 bytes of parameters (k 0..32) of the sound a track plays, as the audio side copies them
    when a note's sound changes (0x40058a0a), before any smoothing. */
 #define TARGETS(t)          ((const char *)0x800015ae + 66 * (t))
+/* The k the trig that plays on track t locked: two longs per track from 0x423087f8, bit k (k 32: bit 0 of the
+   second), set with the locked values in TARGETS(t) at the trig (0x400583da) and cleared at the next one, which
+   puts the sound's back (0x40058308); model27's probe_switch_locks.py and notes/63 §25, §27. */
+#define LOCKED_K32(t)       ((((const volatile uint32_t *)0x423087f8)[2 * (t) + 1]) & 1u)
 /* The sound whose parameters a track holds (0x800015a0 + (147 + t) * 4); 0 makes the next note
    copy its sound again (the OS does that itself after a preview note, 0x4005910e). */
 #define CUR_SND(t)          (((void *volatile *)0x800017ec)[t])
@@ -120,6 +124,18 @@ static inline int32_t step_lock(int32_t n, int32_t p)
     return ((int32_t (*)(const void *, int32_t, int32_t))0x4001d784)(&knob_view, n, p);
 }
 #define step_sound_lock(n)  ((int32_t (*)(void *, int32_t))0x4001e246)(0, n)
+/* Step n's lock of k (0..32) on the selected track, its word as stored, -1 for none: 0x4001591e(seq, n, k), where
+   the stock knob locks' read ends (0x4000bb8e), seq the track's pattern data (0x4000f23e) as for step_count; it
+   reads the word at n * 68 + 2 k of the track's locks (0x4000da2a). model27's shortcut layer reads Loop's and
+   Reverse's lock (k 32) the same way (sc_lockword). */
+static inline int32_t step_k_lock(int32_t n, int32_t k)
+{
+    char *project = ((char *(*)(void))0x400cf866)();
+
+    if (!project)
+        return -1;
+    return ((int32_t (*)(void *, int32_t, int32_t))0x4001591e)(((void *(*)(void *))0x4000f23e)(project), n, k);
+}
 /* Sound i of the project's pool: 0x40009c4a(project + 116, i) gives its holder, project + 774 + 68 * i,
    a holder like a track's; the sound through entry +40 of its vtable, as for os_sound. */
 static inline char *os_pool_sound(int32_t i)
@@ -158,6 +174,19 @@ static inline int32_t track_level(int32_t t)
     if (!project)
         return 0;
     return (int8_t)((int32_t (*)(void *, int32_t))0x40009c5a)(project + 116, t);
+}
+/* A track's pan, -64..63, the way model27's level-pan-values reads it (its notes/44, tested on the
+   machine): the track's parameters 0x400097f0(project + 116, t), the method at +28 of their vtable
+   with parameter 0x1c, 8.8 centred on 64. */
+static inline int32_t track_pan(int32_t t)
+{
+    char *project = ((char *(*)(void))0x400cf866)();
+    void *params;
+
+    if (!project)
+        return 0;
+    params = ((void *(*)(void *, int32_t))0x400097f0)(project + 116, t);
+    return (((int32_t (*)(void *, int32_t))(*(void *const *const *)params)[7])(params, 0x1c) >> 8) - 64;
 }
 /* A Bitmap (constructor 0x40070172): +4 width, +8 height, +12 32-bit words per column, +16 the
    words; pixel (x, y) is bit 31 - (y & 31) of word x * pitch + y / 32, y = 0 at the bottom. Text:

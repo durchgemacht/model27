@@ -100,6 +100,8 @@ STOCK = (
     {"combo": "FUNC + MACHINES", "meaning": "the PRESET browser", "source": "STANDARD.md §5.4"},
     {"combo": "TRIG 1-16 + MACHINES", "meaning": "the PRESET browser, on the press; a preset chosen while the trig is "
      "held locks it to the trig", "source": "0x4001c27c, 0x400a6c44, 0x400a7112; notes/63 §24"},
+    {"combo": "TRIG 1-16 + PUNCH/GATE", "meaning": "toggles a p-lock of PUNCH or GATE on the held steps",
+     "source": "0x400224ae, 0x40022eac; notes/63 §29"},
     {"combo": "FUNC + RETRIG", "meaning": "the retrig menu", "source": "notes/63 §1.2"},
     {"combo": "TRACK + RECORD/PLAY/STOP", "meaning": "copy, clear, paste", "source": "notes/58 §2"},
     {"combo": "RETRIG + NOTES", "meaning": "the retrig", "source": "notes/63 §1.2, notes/32"},
