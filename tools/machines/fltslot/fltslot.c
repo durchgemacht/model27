@@ -43,7 +43,8 @@
  * first filter that had one. The values' names in the descriptor tables are those of the selected track's filter
  * after each RETRIG + knob, LFO + RETRIG + knob and step of the type; Control All's lookups of the other tracks no
  * longer rename them. The pattern's p-locks of k 23 and above
- * (the OS saves them onto other parameters or loses them, notes/47 §4.3): fl_ptab and entries.S's fl_conv.
+ * (the OS saves them onto other parameters or loses them, notes/47 §4.3): since 0.11 the shortcut layer's sc_ptab
+ * and sc_conv, which every filter build carries (notes/63 §25); here fl_ptab and entries.S's fl_conv up to 0.10.
  *
  * The record (since 0.3): entries.S's wrappers of the three sound record functions run in front of the shortcut
  * layer's, which copies k 28..31 into record slots 28..31 and k 32 into slot 18 for every sound (notes/63 §3, §16).

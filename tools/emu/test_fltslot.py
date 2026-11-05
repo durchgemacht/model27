@@ -13,9 +13,10 @@ for the test in a folder of packages of its own), on the official OS 1.13:
      the BSS;
   2. the sites: the audio block's call of Volume + Dist (0x40059852) -> jsr fl_post, the boot's call of the parameter
      tables' builder (0x4004486c) -> jsr fl_boot, the encoder handler's question for TRACK (0x4001f886) -> jsr fl_keys,
-     the knob lookup's vtable entry (0x401005a8) -> fl_knob, the pattern's p-lock tables (0x4005b998, 0x4005baca ->
-     fl_ptab, 0x4005aa34 -> jmp fl_conv), the sound record functions (0x4005afa0, 0x4005b054, 0x4005aecc -> jmp
-     fl_save2, fl_save1, fl_load, in front of the layer's); the shortcut layer's MACHINES case, in every filter build;
+     the knob lookup's vtable entry (0x401005a8) -> fl_knob, the sound record functions (0x4005afa0, 0x4005b054,
+     0x4005aecc -> jmp fl_save2, fl_save1, fl_load, in front of the layer's); the shortcut layer's MACHINES case and,
+     since fltslot 0.11 (the layer's 0.5, notes/63 §25), the pattern's p-lock tables (0x4005b998, 0x4005baca ->
+     sc_ptab, 0x4005aa34 -> jmp sc_conv), in every filter build;
      every other write as in the build without the filters; the data block: the table (entry 0 none, then the build's
      filters by id, with their process, reset, the type's name and the values' names and formatters), the build's
      values, the lookup, the gesture and the record wrappers behind the part's (the layer's sc_knob, sc_save2, sc_save1,
@@ -80,9 +81,10 @@ for the test in a folder of packages of its own), on the official OS 1.13:
      words (fltslot 0.8): a step from none gives the sound those that differ from the neutral ones, a step from a
      filter all of them, a step to none none, in the sound and in the targets of the tracks whose note plays it; on a
      knob without a value (fltslot 0.10) the handler's end and no step;
-  8. the pattern's p-locks (T2, notes/47 §4.3): a pattern saved (0x4005b95c) and loaded (0x4005b766) brings back the
-     p-locks of k 23 to 31 on their parameter, an update of one p-lock (0x4005ba90) too, a file without them the
-     stock OS's byte for byte;
+  8. the pattern's p-locks (T2, notes/47 §4.3; the shortcut layer's fix since fltslot 0.11): a pattern saved
+     (0x4005b95c) and loaded (0x4005b766) brings back the p-locks of k 23 to 31 and 32 on their parameter, an update of
+     one p-lock (0x4005ba90) too, against the stock OS, which loses them or moves them; a file without them the stock
+     OS's byte for byte;
   9. a machine change (0x40014072, through the wheel 0x400a2712) after the boot's tables keeps k 28..31;
  12. the load (fltslot 0.5): fl_measure over a window of 750 blocks (the average and the peak share of a block, in
      tenths of a percent, the window cleared after); in a measuring build (compose.py --diag-filters) Filter Cutoff's
@@ -147,11 +149,12 @@ SOUND_K32 = 84
 SNDS = 0x40740000                                           # the test's sound objects, 0x100 apart
 CTX = 0x40760000                                            # the block's message (+16: the triggered tracks)
 BOOT_SITES = {0x400004b2, 0x400b1106, 0x4016cae8}           # the payload's boot: the hook, the stub's mask and its sprite
-LAYER_SITES = {0x4005aecc, 0x4005afa0, 0x4005b054, 0x4001ca1e}   # the shortcut layer's records and MACHINES case
-JSRS = {0x40059852: "fl_post", 0x4004486c: "fl_boot", 0x4001f886: "fl_keys", 0x4001ead8: "fl_lfo"}
 CONV, KNOB, PTAB = 0x4005aa34, 0x401005a8, (0x4005b998, 0x4005baca)
+# the shortcut layer's records, MACHINES case and, since its 0.5, the pattern's p-lock tables
+LAYER_SITES = {0x4005aecc, 0x4005afa0, 0x4005b054, 0x4001ca1e, CONV, *PTAB}
+JSRS = {0x40059852: "fl_post", 0x4004486c: "fl_boot", 0x4001f886: "fl_keys", 0x4001ead8: "fl_lfo"}
 RECORD_JMPS = {0x4005afa0: "fl_save2", 0x4005b054: "fl_save1", 0x4005aecc: "fl_load"}
-OURS = set(JSRS) | {CONV, KNOB, *PTAB} | set(RECORD_JMPS)
+OURS = set(JSRS) | {KNOB} | set(RECORD_JMPS)
 BUILDER, DESC_OP, NEW_SOUND, HANDLER_END = 0x4005a274, 0x4005a2de, 0x400618f2, 0x4001f96a
 FORMATS = {"int": 0x400456c8, "centre": 0x40045bd6}
 UI_OBJ, TIMER, STEP_AT = 0x40a71754, 0xfc07000c, -38
@@ -270,13 +273,14 @@ def want_names(mans, fid, p):
 def site_tests(key, stock, tweak, info, img, runtime, mans):
     syms = {k: int(v, 16) for k, v in tweak["symbols"].items()}
     ok = all(img[va - compose.BASE:va - compose.BASE + 6] == jsr(syms[sym]) for va, sym in JSRS.items())
-    ok &= img[CONV - compose.BASE:CONV - compose.BASE + 6] == bytes.fromhex("4ef9") + struct.pack(">I", syms["fl_conv"])
+    ok &= img[CONV - compose.BASE:CONV - compose.BASE + 6] == bytes.fromhex("4ef9") + struct.pack(">I", syms["sc_conv"])
     ok &= struct.unpack_from(">I", img, KNOB - compose.BASE)[0] == syms["fl_knob"]
-    ok &= all(struct.unpack_from(">I", img, a - compose.BASE)[0] == syms["fl_ptab"] for a in PTAB)
+    ok &= all(struct.unpack_from(">I", img, a - compose.BASE)[0] == syms["sc_ptab"] for a in PTAB)
     ok &= all(img[va - compose.BASE:va - compose.BASE + 8] == bytes.fromhex("4ef9") + struct.pack(">I", syms[sym])
               + bytes.fromhex("4e71") for va, sym in RECORD_JMPS.items())
     check(ok, f"{key}: " + ", ".join(f"{va:#x} -> jsr {sym}" for va, sym in JSRS.items())
-          + f", {CONV:#x} -> jmp fl_conv, {KNOB:#x} -> fl_knob, " + " and ".join(f"{a:#x}" for a in PTAB) + " -> fl_ptab, "
+          + f", {CONV:#x} -> jmp sc_conv (the layer's), {KNOB:#x} -> fl_knob, " + " and ".join(f"{a:#x}" for a in PTAB)
+          + " -> sc_ptab (the layer's), "
           + ", ".join(f"{va:#x} -> jmp {sym}" for va, sym in RECORD_JMPS.items()))
     sites = {compose.BASE + w["off"] for w in tweak["writes"]}
     without = [i for i, m in mans.items() if not m["_filter"]]
@@ -1238,7 +1242,7 @@ def plock_tests(key, base, img, runtime):
         return out
 
     locks = [(2, 5, 28, 0x1234), (2, 7, 29, 0x2000), (2, 9, 23, 0x0800), (2, 1, 1, 0x3000), (3, 4, 31, 0x0400),
-             (3, 6, 30, 0x0500), (1, 3, 13, 0x4400), (0, 0, 24, 0x7f00), (5, 63, 27, 0x0100)]
+             (3, 6, 30, 0x0500), (1, 3, 13, 0x4400), (0, 0, 24, 0x7f00), (5, 63, 27, 0x0100), (4, 11, 32, 0x0e01)]
     res = {}
     for name, (img_, pay) in (("without", base), ("with", (img, runtime))):
         u = SH.UI(img_, pay)
@@ -1262,10 +1266,10 @@ def plock_tests(key, base, img, runtime):
         res[name] = (before, after, dump(u), not u.bad)
     before, after, inc, nobad = res["with"]
     check(after == before and nobad, f"{key}: a pattern saved and loaded: every p-lock back on its parameter (k 1, 13, "
-                                     "23, 24, 27, 28..31)")
+                                     "23, 24, 27, 28..31, and k 32 through the shortcut layer's row 18)")
     sb, sa, _inc, _ = res["without"]
     lost = sorted(k for k in sb if sa.get(k) != sb[k])
-    check(bool(lost), f"{key}: (without the filters these were lost or landed on other parameters: {lost})")
+    check(bool(lost), f"{key}: (on the stock OS these were lost or landed on other parameters: {lost})")
     check(inc == {(2, 1): {1: 0x3000}, (2, 28): {5: 0x1234}},
           f"{key}: one p-lock updated (0x4005ba90, k 28): back on k 28, LFO Speed's alone")
     files = []
@@ -1278,8 +1282,8 @@ def plock_tests(key, base, img, runtime):
         u.uc.mem_write(FILE, b"\x00" * 10400)
         u.call(0x4005b95c, FILE, RAM, 0)
         files.append(bytes(u.uc.mem_read(FILE, 80 * 130)))
-    check(files[0] == files[1], f"{key}: p-locks of the stock parameters only: the file byte for byte as without the "
-                                "filters")
+    check(files[0] == files[1], f"{key}: p-locks of the stock parameters only: the file byte for byte as on the stock "
+                                "OS")
 
 
 # --- 9. a machine change (T2) -----------------------------------------------------------------------------------------
@@ -1535,7 +1539,7 @@ def main():
         print("the type")
         type_tests(key, img, runtime, syms, mans)
         print("the pattern's p-locks")
-        plock_tests(key, base, img, runtime)
+        plock_tests(key, (stock, b""), img, runtime)
         print("a machine change")
         change_tests(key, img, runtime, syms)
         print("the record")

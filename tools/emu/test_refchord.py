@@ -56,9 +56,9 @@ CHORD, SWEEP_KNOB, DESC = 5, 6, 3            # machine 5; knob 6 = SWEEP; MACHIN
 K30, MAX = 30, 64
 SETUP, CALL_AT, TICK_AT, GETTER = 0x400a8080, 0x400ab15e, 0x400075f0, 0x40076be4   # CHORD's setup, its call, the tick
 ALONE_SITES = {0x400004b2, 0x400075f0, 0x4005aecc, 0x4005afa0, 0x4005b054, 0x400ab15e, 0x400b1106, 0x401005a8,
-               0x4016cae8, 0x4001ca1e}   # the boot hook, the tick, the records, CHORD's call, the stub's mask and room,
-                                          # the knob lookup's entry, MACHINES' case (the layer's 0.4): REFC alone,
-                                          # nothing of the registrar's
+               0x4016cae8, 0x4001ca1e, 0x4005aa34, 0x4005b998, 0x4005baca}
+# the boot hook, the tick, the records, CHORD's call, the stub's mask and room, the knob lookup's entry, MACHINES' case
+# (the layer's 0.4), the pattern's p-lock tables (the layer's 0.5): REFC alone, nothing of the registrar's
 VIEW = S.VIEW
 
 

@@ -36,6 +36,16 @@
  *            press that would open the list opens nothing yet and ends the handler as taken (0x4001c2a8); the release
  *            opens it when no shortcut or switch acted while MACHINES was held. A press while the list is open closes
  *            it at once, as on the stock OS. Elsewhere, the stock test's answer: the stock toggle on the press.
+ *   sc_conv, sc_ptab
+ *            the pattern's p-lock rows (notes/47 §4.3; the filter slot's fl_conv and fl_ptab up to its 0.10, here since
+ *            the layer's 0.5, notes/63 §25), in every build with the layer. The pattern's file keeps a row per index
+ *            and track, the index of k from 0x4010ee4c (23 entries, read without a bound by the full save 0x4005b95c
+ *            and the update of one p-lock 0x4005ba90: a p-lock of k >= 23 landed on LFO Speed, Multiplier...; k 32's,
+ *            on index 9, which loads on k 9, the machine). The two leas' operands (0x4005b998, 0x4005baca) point at
+ *            sc_ptab: k 0..22 as the OS, 23..31 -> 24..32 and 32 -> 18, indices the OS never writes. sc_conv, a jmp
+ *            from 0x4005aa34 over moveq #23,d2 ; cmp.l d0,d2 ; bcc.s 0x4005aa46 in 0x4005aa1a (track, index -> k),
+ *            tracks 0..5: index 18 -> k 32, 24..32 -> k = index - 1, 0..23 through the stock table, beyond 32 none.
+ *            The official OS loads index 18 on k 0, which nothing reads, and 24..32 on nothing.
  *
  * The four values live in k 28..31 of the sound (+76..+83) and record slots 28..31 (+84..+91), for every sound: they
  * mean what the track's machine says (notes/63 §3.2). The descriptors 1 to 4 keep the machine -1 of the stock ones,
@@ -88,7 +98,7 @@
 	.equ	VIEWS_AT, 20
 	.equ	VIEW_LEDS, 0x400760ba		/* (view): its LEDs changed, redo the LED frame (notes/58 §3) */
 
-	.globl	sc_knob, sc_save2, sc_save1, sc_load, sc_press, sc_leds
+	.globl	sc_knob, sc_save2, sc_save1, sc_load, sc_press, sc_leds, sc_conv, sc_ptab
 
 	.section .text.sc_knob, "ax"
 	.p2align 2
@@ -477,3 +487,33 @@ sc_open:
 	rts
 4:	moveq	#1, %d0
 	rts
+
+/* The pattern's p-lock rows (see the head of this file). The composer writes jmp sc_conv over 0x4005aa34; on entry
+ * d0 is the index, d1 the track (0..5), d2 the function's own, pushed at its start; its end (0x4005aa50) pops d2 and
+ * returns d0, the k. */
+	.section .text.sc_conv, "ax"
+	.p2align 2
+sc_conv:
+	moveq	#18, %d2
+	cmp.l	%d0, %d2
+	beq.s	3f
+	moveq	#23, %d2
+	cmp.l	%d0, %d2
+	bcc.s	1f
+	moveq	#32, %d2
+	cmp.l	%d0, %d2
+	bcs.s	2f
+	subq.l	#1, %d0				/* 24..32: k 23..31 */
+	jmp	0x4005aa50
+1:	jmp	0x4005aa46			/* 0..23: the stock table */
+2:	jmp	0x4005aa3a			/* beyond: 0, as before */
+3:	moveq	#32, %d0			/* 18: k 32, the switches */
+	jmp	0x4005aa50
+
+/* k -> the index of its p-lock row, in place of 0x4010ee4c: k 0..22 as the OS (index 18 unused), 23..31 -> 24..32,
+ * 32 -> 18. */
+	.section .rodata.sc_ptab, "a"
+	.p2align 2
+sc_ptab:
+	.long	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 22, 23
+	.long	24, 25, 26, 27, 28, 29, 30, 31, 32, 18

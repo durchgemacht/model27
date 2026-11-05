@@ -24,10 +24,8 @@
  *              p-lock at 0x4001f962, Control All at 0x4001f912) all come after this site. Anything else: the effect
  *              slots' fx_keys when the build has them (keys_next, entered as from the site), else isKeyHeld(2) as the
  *              handler asked, with the stack it expects. Since 0.2.
- *   fl_conv    jmp from 0x4005aa34 over moveq #23,d2 ; cmp.l d0,d2 ; bcc.s 0x4005aa46, in 0x4005aa1a (track, the index
- *              of a p-lock in the pattern's file -> k), tracks 0..5: the indices 24..32, which fl_ptab gives k 23..31,
- *              back on k = index - 1; 0..23 through the stock table, beyond 32 none, as before (notes/47 §4.3, the
- *              track filter's tf_conv). d2 is the function's, pushed at its start. Since 0.2.
+ *   (fl_conv and fl_ptab, the pattern's p-lock rows of k 23 and above, since 0.2: the shortcut layer's sc_conv and
+ *              sc_ptab since 0.11, the layer's 0.5, which every filter build carries; notes/63 §25.)
  *   fl_lfo     jsr from 0x4001ead8 in place of move.l (a0,d2.l*4),d2 ; tst.l a0, in ParameterPageView's LFO + a knob
  *              (0x4001eaa2, which sets the LFO's destination from the knob turned with LFO held): a0 the knob list the
  *              OS has just built (0x4000bf42, the machine record's descriptors, 12 of them), d2 the knob (0 PITCH, 1
@@ -124,25 +122,6 @@ fl_lfo:
 	addq.l	#4, %sp
 2:	jmp	0x4001eccc			/* its end: restores its registers from the stack and returns */
 
-	.section .text.fl_conv, "ax"
-	.p2align 2
-	.globl	fl_conv
-fl_conv:
-	moveq	#23, %d2
-	cmp.l	%d0, %d2
-	bcc.s	1f
-	moveq	#32, %d2
-	cmp.l	%d0, %d2
-	bcs.s	2f
-	subq.l	#1, %d0
-	jmp	0x4005aa50			/* the function's end, d0 the k */
-1:	jmp	0x4005aa46			/* 0..23: the stock table */
-2:	jmp	0x4005aa3a			/* beyond: 0, as before */
-
-/* k -> the index of its p-lock row in the pattern's file, in place of 0x4010ee4c (23 entries, read without a bound
- * by 0x4005b95c and 0x4005ba90: a p-lock of k >= 23 landed on LFO Speed, Multiplier...). 0..22 as the OS; 23..31:
- * 24..32, indices the OS never writes; 32: 0 (no parameter). The two leas' operands (0x4005b998, 0x4005baca) point
- * here. Since 0.2. */
 	.section .text.fl_record, "ax"
 	.p2align 2
 	.globl	fl_save2, fl_save1, fl_load
@@ -185,10 +164,3 @@ fl_post_load:
 	move.l	(%sp)+, %d0
 1:	addq.l	#8, %sp
 	rts
-
-	.section .rodata.fl_ptab, "a"
-	.p2align 2
-	.globl	fl_ptab
-fl_ptab:
-	.long	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 22, 23
-	.long	24, 25, 26, 27, 28, 29, 30, 31, 32, 0

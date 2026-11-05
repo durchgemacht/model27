@@ -869,7 +869,9 @@ def shortcut_layer(img, part, mans, syms_of, uses, at, code_end, first, descn=No
     """The shortcut layer of this build (notes/63 §3, B4b): the part's committed object placed at at, its data block
     right after its code, the knob lookup's vtable entry and the three sound record functions jumping into it, and
     when a machine declares a press (§16), the function PUNCH's and GATE's presses call and MainScreenView's LED
-    method. A package's own hook on a record function, a wrapper over the same 8 bytes (SAMPLE's), becomes the next of
+    method; since the layer's 0.5 the pattern's p-lock rows too (the two operands of the k -> index table, 0x4005b998
+    and 0x4005baca, and the index -> k step 0x4005aa34; the filter slot's up to its 0.10, notes/63 §25), in every build
+    with the layer. A package's own hook on a record function, a wrapper over the same 8 bytes (SAMPLE's), becomes the next of
     the chain and its write is left out. descn: the descriptor table the OS uses, the registrar's moved copy by
     default, the stock table in a build without an added machine (notes/66 §3). Returns (blob, symbols, writes, the
     sites left out, info)."""
@@ -952,6 +954,23 @@ def shortcut_layer(img, part, mans, syms_of, uses, at, code_end, first, descn=No
         op = {"jmp": "4ef9", "jsr": "4eb9"}[s["op"]]
         writes.append({"off": va - BASE, "old": s["stock"],
                        "new": (bytes.fromhex(op) + g7.be32(syms[s["symbol"]])).hex()})
+    # the pattern's p-lock rows (the layer's 0.5, notes/63 §25), in every build with the layer: k 23..31 on rows 24..32
+    # (the filter slot's fix up to its 0.10) and k 32, the switches, on row 18
+    s, pt = sites["conv"], sites["ptab"]
+    va, tab = int(s["jmp"], 16), int(pt["stock"], 16)
+    if img[va - BASE:va - BASE + 6] != bytes.fromhex(s["stock"]):
+        sys.exit(f"!! {va:#x}: {s['stock']} expected, {img[va - BASE:va - BASE + 6].hex()} found")
+    for a in [s["jmp"]] + pt["operands"]:
+        for m in mans:
+            if any("hook" in u and int(u["hook"]["at"], 16) == int(a, 16) for u in m["uses"]):
+                sys.exit(f"!! {m['id']}: hooks {a}, which the shortcut layer takes")
+    writes.append({"off": va - BASE, "old": s["stock"],
+                   "new": (bytes.fromhex("4ef9") + g7.be32(syms[s["symbol"]])).hex()})
+    for a in pt["operands"]:
+        va = int(a, 16)
+        if img[va - BASE:va - BASE + 4] != g7.be32(tab):
+            sys.exit(f"!! {va:#x}: {tab:#010x} expected, {img[va - BASE:va - BASE + 4].hex()} found")
+        writes.append({"off": va - BASE, "old": g7.be32(tab).hex(), "new": g7.be32(syms[pt["symbol"]]).hex()})
     out = {r: syms[r] for r in roots}
     out.update({pp["symbol"]: values[pp["kind"]] for pp in b["patch_points"]})
     info = dict(id=part["id"], code_at=at, code=len(code), data_at=data_at, data=len(data), shortcuts=len(uses),
@@ -1111,7 +1130,8 @@ def fl_layer(img, part, filters, syms_of, at, code_end, desc_used, layer_syms, k
     Dist (0x40059852) goes to the part, which runs it and then each track's filter; since 0.2 the boot's call of the
     parameter tables' builder (0x4004486c), the knob lookup's vtable entry (0x401005a8, in front of the shortcut
     layer's sc_knob), the encoder handler's question for TRACK (0x4001f886, in front of keys_next, the effect slots'
-    fx_keys, or 0) and the pattern's p-lock tables (0x4005b998, 0x4005baca, 0x4005aa34) too; since 0.3 the three sound
+    fx_keys, or 0) and, up to 0.10, the pattern's p-lock tables (0x4005b998, 0x4005baca, 0x4005aa34; the shortcut
+    layer's since its 0.5, which every filter build carries, notes/63 §25); since 0.3 the three sound
     record functions (in front of the layer's wrappers, layer_syms its symbols); since 0.4 LFO + a knob's own knob
     list (0x4001ead8). The data block
     after the part's code: the table of the build's filters by id (entry 0 none, then each filter's id, process, reset,
@@ -1210,8 +1230,6 @@ def fl_layer(img, part, filters, syms_of, at, code_end, desc_used, layer_syms, k
     for name in ("post", "boot", "keys", "lfo"):
         s = part[name]
         w(int(s["hook"], 16), bytes.fromhex(s["stock"]), bytes.fromhex("4eb9") + g7.be32(syms[s["symbol"]]))
-    s = part["conv"]
-    w(int(s["jmp"], 16), bytes.fromhex(s["stock"]), bytes.fromhex("4ef9") + g7.be32(syms[s["symbol"]]))
     for s in part["record"]:                 # jmp and a nop over each record function's first 8 bytes, as the layer
         w(int(s["at"], 16), bytes.fromhex(s["stock"]),
           bytes.fromhex("4ef9") + g7.be32(syms[s["symbol"]]) + bytes.fromhex("4e71"))
@@ -1220,10 +1238,6 @@ def fl_layer(img, part, filters, syms_of, at, code_end, desc_used, layer_syms, k
     if g7.refs32(img, method) != [va]:
         sys.exit(f"!! references to {method:#x}: {[hex(r) for r in g7.refs32(img, method)]}")
     w(va, g7.be32(method), g7.be32(syms[s["symbol"]]))
-    s = part["ptab"]
-    stock_tab = int(s["stock"], 16)
-    for a in s["operands"]:                  # the pattern's two; the sound record's own (0x4005aff4, 0x4005b0a8) stay
-        w(int(a, 16), g7.be32(stock_tab), g7.be32(syms[s["symbol"]]))
     out = {r: syms[r] for r in roots}
     out.update({pp["symbol"]: values[pp["kind"]] for pp in pps})
     info = dict(id=part["id"], code_at=at, code=len(code), data_at=data_at, data=len(blob_data), values=n,

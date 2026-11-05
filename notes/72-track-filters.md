@@ -97,7 +97,8 @@ never offered), the card's tweak `72-smpfilter.json` (`tools/gen_smpfilter.py`),
 - **P-locks of k ≥ 23** `[FAIT, notes/47 §4.3]`: the stock OS saves them onto LFO Speed or loses them. The part carries
   the track filter's fix: the pattern's p-lock table k → index at `0x4005b998` and `0x4005baca` (operand `0x4010ee4c`)
   points at a table of 33 entries (k 23..31 → index 24..32, k 32 → 0), and the index → k step at `0x4005aa34` jumps to
-  `fl_conv` for 24..32. Claimed as `plock_rows`.
+  `fl_conv` for 24..32. Claimed as `plock_rows`. Since fltslot 0.11 the shortcut layer's (its 0.5, notes/63 §25),
+  with k 32 on row 18, in every build with the layer, which every filter build carries.
 
 ## 4. The record
 

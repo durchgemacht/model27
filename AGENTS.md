@@ -110,8 +110,10 @@ tools/gen_parts.py            Level B, steps B4b and B4c: builds the builder's p
                               their committed objects, --check compares (notes/63 §3 to §5)
 tools/machines/shortcuts/     the shortcut layer, a part (notes/63 §3): MACHINES + COLOR / SHAPE / SWEEP / CONTOUR on an
                               added machine's tracks, saved with the sound, and since 0.2 MACHINES + PUNCH / GATE as two
-                              switches in k 32 (§16, §17); compose.py adds it only to the builds whose machines declare
-                              a shortcut, and chains a package's record wrapper (SAMPLE's) behind it
+                              switches in k 32 (§16, §17), since 0.5 the pattern's p-lock rows (k 23..31 and k 32, §25,
+                              the filter slot's up to its 0.10); compose.py adds it only to the builds whose machines
+                              declare a shortcut or whose packages are filters, and chains a package's record wrapper
+                              (SAMPLE's) behind it
 tools/machines/dispatch/      the dispatchers, a part (notes/63 §4): a vtable entry or hook two packages take (the main
                               screen's and the knob view's draws, the screen's tick, the browser's open) goes to a
                               dispatcher that calls the right machine's method, or every machine's tick; compose.py adds

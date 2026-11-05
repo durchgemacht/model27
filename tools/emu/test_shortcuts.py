@@ -48,6 +48,14 @@ on the official OS 1.13:
      opens it unless something acted; a press with the list open closes it at once; FUNC + MACHINES and a held trig go
      to the PRESET browser; every other machine as the stock OS; registers and stack kept; a switch flipped and a
      shortcut turned mark the hold, a knob turned without MACHINES does not.
+  11. the pattern's p-lock rows (the layer's 0.5, notes/63 §25; the filter slot's fix up to its 0.10): 0x4005aa34 ->
+     jmp sc_conv and the operands 0x4005b998, 0x4005baca -> sc_ptab in every build with the layer; 0x4005aa1a (track,
+     index -> k) for tracks 0..6 and indices 0..40: index 18 -> k 32 and 24..32 -> k 23..31 on tracks 0..5, every other
+     answer the stock OS's; a pattern with locks of stock parameters, of k 23..31 and of k 32 (the switches) saved
+     whole (0x4005b95c) has k 32's row at index 18 and k 23..31's at 24..32, and loads (0x4005b766) every lock back on
+     its k; one lock of k 32 updated (0x4005ba90) too; with locks of stock parameters only, the file byte for byte the
+     stock OS's; the official OS loading the layer's file puts the rows of k 32 and of k 23..31 on k 0, which nothing
+     reads (0x4005aa1a: index 18 through the table, 24..32 past it), and keeps every stock lock.
 Not covered here: that the sound found through the project's track is the one in CUR_SNDS[t], that a MACHINES press and
 release redraw the LEDs, and whether the project keeps a switch alone (notes/63 §17.2, §17.5: the device).
 
@@ -634,6 +642,112 @@ def mach_tests(key, stock, img, runtime, data, machines, layer):
     return b
 
 
+# --- 11. the pattern's p-lock rows (the layer's 0.5) ----------------------------------------------------------------
+PL_RAM, PL_FILE = 0x91300000, 0x91400000          # the pattern's locks (6 x 4385 bytes) and its file (80 x 130 bytes)
+CONV, PTAB, IDX_TO_K = 0x4005aa34, (0x4005b998, 0x4005baca), 0x4005aa1a
+
+
+def pl_init(u):
+    u.uc.mem_write(PL_RAM, (b"\xff\xff" * (34 * 64) + b"\x00" * 33) * 6)
+
+
+def pl_lock(u, t, step, k, v):
+    u.uc.mem_write(PL_RAM + t * 4385 + step * 68 + 2 * k, struct.pack(">h", v))
+    u.uc.mem_write(PL_RAM + t * 4385 + 4352 + k, b"\x01")
+
+
+def pl_words(u):
+    """{(track, k): {step: value}} of every word of k 0..32 that is not -1."""
+    out = {}
+    for t in range(6):
+        blk = bytes(u.uc.mem_read(PL_RAM + t * 4385, 4385))
+        for k in range(33):
+            got = {}
+            for s_ in range(64):
+                v = struct.unpack_from(">h", blk, s_ * 68 + 2 * k)[0]
+                if v != -1:
+                    got[s_] = v
+            if got:
+                out[t, k] = got
+    return out
+
+
+def pl_rows(u):
+    f = bytes(u.uc.mem_read(PL_FILE, 80 * 130))
+    return sorted((f[130 * r], f[130 * r + 1]) for r in range(80) if f[130 * r] != 0xff and f[130 * r + 1] != 0xff)
+
+
+def pl_save(u, locks):
+    pl_init(u)
+    for lk in locks:
+        pl_lock(u, *lk)
+    u.uc.mem_write(PL_FILE, bytes(80 * 130))
+    u.call(0x4005b95c, PL_FILE, PL_RAM, 0)
+    return pl_rows(u), bytes(u.uc.mem_read(PL_FILE, 80 * 130))
+
+
+def pl_load(u, file):
+    pl_init(u)
+    u.uc.mem_write(PL_FILE, file)
+    u.call(0x4005b766, PL_RAM, PL_FILE)
+    return pl_words(u)
+
+
+def plock_tests(key, stock, img, runtime, syms):
+    """The pattern's p-lock rows (the layer's 0.5): the sites, the index -> k step, a pattern saved and loaded, one
+    lock updated, the stock OS's file for stock locks, the official OS reading the layer's file."""
+    check(bytes(img[CONV - E.BASE:CONV - E.BASE + 6]) == bytes.fromhex("4ef9") + struct.pack(">I", syms["sc_conv"])
+          and all(struct.unpack_from(">I", img, a - E.BASE)[0] == syms["sc_ptab"] for a in PTAB),
+          f"{key}: 0x4005aa34 -> jmp sc_conv, 0x4005b998 and 0x4005baca -> sc_ptab")
+    a, b = UI(stock), UI(img, runtime)
+    bad = []
+    for t in range(8):
+        for i in range(41):
+            want = s32(a.call(IDX_TO_K, t, i))
+            if t <= 5 and i == 18:
+                want = 32
+            elif t <= 5 and 24 <= i <= 32:
+                want = i - 1
+            got = s32(b.call(IDX_TO_K, t, i))
+            if got != want or b.bad:
+                bad.append((t, i, got, want))
+    check(not bad, f"{key}: 0x4005aa1a (track, index -> k), tracks 0..7, indices 0..40: 18 -> k 32 and 24..32 -> k 23..31 "
+                   "on tracks 0..5, every other answer the stock OS's" + (f"; DIFFERENT {bad[:4]}" if bad else ""))
+    locks = [(0, 0, 1, 0x3000), (2, 5, 32, 0x0101), (2, 6, 32, 0x0e00), (5, 63, 32, 0x0200), (3, 4, 31, 0x0400),
+             (1, 3, 23, 0x0800), (4, 9, 9, 0x0500), (4, 9, 32, 0x0301), (0, 15, 13, 0x4400)]
+    rows, file = pl_save(b, locks)
+    want_rows = sorted({(18 if k == 32 else k + 1 if k >= 23 else k + 1 if k >= 18 else k, t) for t, _s, k, _v in locks})
+    back = pl_load(b, file)
+    want = {}
+    for t, s_, k, v in locks:
+        want.setdefault((t, k), {})[s_] = v
+    check(rows == want_rows and back == want and not b.bad,
+          f"{key}: a pattern saved whole (0x4005b95c): rows (index, track) {rows}, k 32's at 18; loaded (0x4005b766): "
+          "every lock back on its k, k 32 next to k 9 on track 4" + ("" if back == want else f"; DIFFERENT {back}"))
+    _, file = pl_save(b, [(0, 0, 1, 0x3000)])
+    pl_init(b)
+    pl_lock(b, 0, 0, 1, 0x3000)
+    pl_lock(b, 2, 7, 32, 0x0100)
+    b.uc.mem_write(PL_FILE, file)
+    b.call(0x4005ba90, PL_FILE, PL_RAM, 0, 32, 2)
+    upd = pl_rows(b)
+    back = pl_load(b, bytes(b.uc.mem_read(PL_FILE, 80 * 130)))
+    check(upd == [(1, 0), (18, 2)] and back == {(0, 1): {0: 0x3000}, (2, 32): {7: 0x0100}} and not b.bad,
+          f"{key}: one lock of k 32 updated (0x4005ba90): its row at 18 ({upd}), loaded back on k 32")
+    plain = [lk for lk in locks if lk[2] < 23]
+    _, fa = pl_save(a, plain)
+    _, fb = pl_save(b, plain)
+    check(fa == fb, f"{key}: locks of stock parameters only: the file byte for byte the stock OS's")
+    _, file = pl_save(b, locks)
+    off = pl_load(a, file)
+    want_off = {}
+    for t, s_, k, v in locks:                  # no two of these rows of one track share a step
+        want_off.setdefault((t, k if k < 23 else 0), {})[s_] = v
+    check(off == want_off and not a.bad,
+          f"{key}: the official OS loading the layer's file: the rows of k 32 and k 23..31 on k 0, which nothing "
+          "reads, every stock lock kept" + ("" if off == want_off else f"; DIFFERENT {off}"))
+
+
 def no_switch_tests(stock):
     """A build whose machines declare no switch (REFC, the reference extension of CHORD: one knob shortcut): the
     layer is there, the press and the LEDs stay stock, every byte of presses is 0."""
@@ -727,6 +841,8 @@ def main():
         check(flipped == 1 and turned == 1 and other == 0,
               f"{key}: a switch flipped (MACHINES + PUNCH on REF2) and a shortcut turned (MACHINES + COLOR) mark the hold; "
               "SWEEP turned without MACHINES does not")
+        print("the pattern's p-lock rows")
+        plock_tests(key, stock, img, runtime, syms)
     print("\na build with no switch")
     no_switch_tests(stock)
     print("\nALL OK" if not t7.FAIL else f"\n{len(t7.FAIL)} FAILED: " + "; ".join(t7.FAIL[:6]))

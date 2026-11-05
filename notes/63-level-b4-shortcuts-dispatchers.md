@@ -1391,3 +1391,41 @@ the modifier (« A: Modifier »).
 - **What changes for a player:** on SAMPLE's (and REF2's) tracks the list opens when MACHINES is let go, a moment later
   than before; holding MACHINES and turning LEVEL to pick a machine needs a tap first there (LEVEL turned while MACHINES
   waits changes the track's level, as with the list closed). Stock tracks unchanged.
+
+## 25. The pattern's p-lock rows move into the layer (2026-11-05, the layer's 0.5)
+
+The maintainer's request of 2026-11-05: Loop and Reverse as p-locks (a trig held + MACHINES + PUNCH / GATE), planned
+in steps P0 to P7 (the note to come: notes/80). A p-lock of k 32, the switches, needs a row of its own in the pattern's file; this section is the
+plan's step P1.
+
+- **The stock OS** `[FAIT en émulation, the maintainer's run of 2026-11-05]` (`tools/emu/probe_switch_locks.py`, the
+  official OS only): the pattern's RAM holds a lock for every (track, step, k 0..32) and the sequencer sends k 32's
+  to the audio side as any other k, but the file's k -> index table `0x4010ee4c` has 23 entries and is read without a
+  bound (notes/47 §4.3): k 32 reads `0x4010eea8[9]` = **index 9, which loads on k 9, the machine**; with a k-9 lock on
+  the same track the load merges both rows. Index 18 is no k's (`0x4010eea8[18]` = k 0, which nothing reads).
+- **The change:** the filter slot's fix of the k -> index table and of the index -> k step (`fl_ptab`, `fl_conv`,
+  fltslot 0.2 to 0.10, notes/72 §3) moves into the layer as `sc_ptab` and `sc_conv`, with **k 32 -> 18 and 18 -> k
+  32** besides k 23..31 -> 24..32 and back. The layer writes the three sites (the operands `0x4005b998` and
+  `0x4005baca`, the `jmp` over `0x4005aa34`) in **every build with the layer**, so every build that can set a lock of
+  k 32 has the fix, with or without a Track FX; every filter build carries the layer, so nothing changes for the
+  filters' locks. fltslot 0.11 drops `fl_conv`, `fl_ptab`, its `conv` and `ptab` sites and its `plock_rows` claim,
+  which is the layer's now. Both composers (`compose.shortcut_layer`, `shortcutLayer`); `part.json` 0.5 (roots,
+  `sites.conv`, `sites.ptab`, the claim).
+- **Old files:** the indices 24..32 mean what they meant (fltslot's rows of k 23..31); index 18 was never written
+  before, by the official OS or by model27. The official OS loads the layer's rows 18 and 24..32 on k 0 (the stock step
+  takes 18 through its table and gives 0 past 23), which nothing reads.
+- **What changes in the builds:** SAMPLE, REF2, REFC and CHORD Tables write 3 sites more (SAMPLE 131 writes, 43 160
+  bytes); the Track FX the same sites as before, now the layer's; every composed MAIN OS with one of them is new
+  (REF_MAINOS, REF_MODS, the smoke test's SAMPLE line and its two files for a Model:Samples, `3b4a7d36…` and
+  `741eccf2…`). Until step P3 nothing writes a lock of k 32: a player sees no difference.
+- **Proof:** `test_shortcuts.py` §11 (the sites in every selection; `0x4005aa1a` for tracks 0..7 and indices 0..40
+  against the stock OS; a pattern saved whole and loaded back with locks of stock parameters, of k 23..31 and of k
+  32, k 32 next to k 9 on one track; one lock of k 32 updated; the file of stock locks byte for byte the stock OS's;
+  the official OS loading the layer's file); `test_fltslot.py` §2 (the sites are the layer's) and §8 (k 32 among the
+  locks, the losses against the stock OS); `test_refchord.py` (REFC's writes alone). Here: `gen_parts.py --check`,
+  the nine tweaks' `--check`, `test_fltslot.py --dry` ALL OK, claims, overlaps, registry, flasher data, webcompose
+  (identical), webbuild, webflash, the manager's and uploader's checks, the smoke test with both official files ALL
+  PARTS OK. **Run by the maintainer, 2026-11-05:** `test_shortcuts.py` (146 ok), `test_fltslot.py` (638 ok),
+  `test_refchord.py` (86 ok, REFC 13 writes) and `test_chordtables.py` (165 ok) ALL OK `[FAIT en émulation]`.
+  CHORD Tables is not offered in the flasher; its proof ran because its tweak's bytes changed (the maintainer: keep
+  it).

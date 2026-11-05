@@ -378,8 +378,9 @@ function shortcutPresses(packages, part) {
 // compose.shortcut_layer(): the part placed at at, its data block after its code (the next of each record function's
 // chain, the descriptor table, the machines, their presses, their shortcuts per knob, the strings), the knob lookup's
 // vtable entry and the three sound record functions jumping into it, and with a switch the function PUNCH's and
-// GATE's presses call and MainScreenView's LED method; a package's wrapper over a record function becomes the next
-// of the chain and its write is left out. Returns { blob, symbols, writes, skip, info }.
+// GATE's presses call and MainScreenView's LED method; since the layer's 0.5 the pattern's p-lock rows in every build
+// with the layer (0x4005b998, 0x4005baca, 0x4005aa34; the filter slot's up to its 0.10); a package's wrapper over a
+// record function becomes the next of the chain and its write is left out. Returns { blob, symbols, writes, skip, info }.
 function shortcutLayer(mainOs, part, packages, symsOf, uses, at, codeEnd, first, descn) {
   const d = part.data, sc = part.shortcut, sites = part.sites;
   if (packages.length > d.max_machines)
@@ -446,6 +447,20 @@ function shortcutLayer(mainOs, part, packages, symsOf, uses, at, codeEnd, first,
         throw new Error(`${p.id}: hooks ${hx(va)}, which the shortcut layer takes`);
     const op = { jmp: bytesOf(0x4e, 0xf9), jsr: bytesOf(0x4e, 0xb9) }[s.op];
     writes.push({ off: va - BASE, old: s.stock, new: hex(concat(op, be32(symbols[s.symbol]))) });
+  }
+  // the pattern's p-lock rows (the layer's 0.5): k 23..31 on rows 24..32, k 32, the switches, on row 18
+  const cv = sites.conv, pt = sites.ptab, cva = parseInt(cv.jmp, 16), tab = parseInt(pt.stock, 16);
+  const cvHere = hex(mainOs.subarray(cva - BASE, cva - BASE + 6));
+  if (cvHere !== cv.stock) throw new Error(`${hx(cva)}: ${cv.stock} expected, ${cvHere} found`);
+  for (const a of [cv.jmp].concat(pt.operands))
+    for (const p of packages)
+      if (p.uses.some((u) => "hook" in u && parseInt(u.hook.at, 16) === parseInt(a, 16)))
+        throw new Error(`${p.id}: hooks ${a}, which the shortcut layer takes`);
+  writes.push({ off: cva - BASE, old: cv.stock, new: hex(concat(bytesOf(0x4e, 0xf9), be32(symbols[cv.symbol]))) });
+  for (const a of pt.operands) {
+    const va = parseInt(a, 16);
+    if (u32(mainOs, va - BASE) !== tab) throw new Error(`${hx(va)}: not the stock table ${hx(tab)}`);
+    writes.push({ off: va - BASE, old: hex(be32(tab)), new: hex(be32(symbols[pt.symbol])) });
   }
   const switches = presses.reduce((n, v) => n + (v & 1) + ((v >> 1) & 1), 0);
   return { blob: concat(code, new Uint8Array(dataAt - at - code.length), data), symbols, writes, skip,
@@ -569,7 +584,8 @@ function fxLayer(mainOs, part, effects, symsOf, at, codeEnd, descStock, descUsed
 // compose.fl_layer(): the filter slot of this build (notes/72): the audio block's call of Volume + Dist,
 // the boot's call of the parameter tables' builder, the knob lookup's vtable entry (in front of the shortcut layer's
 // sc_knob), the encoder handler's question for TRACK (in front of the effect slots' fx_keys, or none), LFO + a knob's
-// own list, the pattern's p-lock tables and the three sound record functions (in front of the layer's wrappers). The
+// own list and the three sound record functions (in front of the layer's wrappers; the pattern's p-lock tables are
+// the layer's since fltslot 0.11). The
 // data block after the part's code: the table of the build's filters by id (entry 0 none) with their type names and
 // their values' names and formatters, the rows of descriptors 1 to n and 5 that fl_boot writes, the neutral words and
 // the layer's wrappers, the state zero, each entry's start words and count of values (fltslot 0.8 and 0.10), then the
@@ -657,12 +673,9 @@ function flLayer(mainOs, part, filters, symsOf, at, codeEnd, descStock, descUsed
     const s = part[name];
     w(parseInt(s.hook, 16), fromHex(s.stock), concat(bytesOf(0x4e, 0xb9), be32(symbols[s.symbol])));
   }
-  w(parseInt(part.conv.jmp, 16), fromHex(part.conv.stock), concat(bytesOf(0x4e, 0xf9), be32(symbols[part.conv.symbol])));
   for (const s of part.record)
     w(parseInt(s.at, 16), fromHex(s.stock), concat(bytesOf(0x4e, 0xf9), be32(symbols[s.symbol]), bytesOf(0x4e, 0x71)));
   w(parseInt(part.knob.vtable, 16), be32(parseInt(part.knob.stock_ptr, 16)), be32(symbols[part.knob.symbol]));
-  for (const a of part.ptab.operands)
-    w(parseInt(a, 16), be32(parseInt(part.ptab.stock, 16)), be32(symbols[part.ptab.symbol]));
   return { blob: concat(code, new Uint8Array(dataAt - at - code.length), data), symbols: { ...symbols, fl_data: dataAt },
            writes, skip, info: { id: part.id, code_at: at, code: code.length, data_at: dataAt, data: data.length,
                                  values: n, filters: byId.map((p) => [flEntry(p).id, p.id]) } };
