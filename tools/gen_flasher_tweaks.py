@@ -508,7 +508,8 @@ ALL_FEATURES = [
                 "mid or full show it; the MACHINES menu opens on the release of MACHINES.",
         # model27's own (notes/80): the keys, the keyboard's octave on KBT, the jump after the smoother, the LEDs and
         # their dimming in the panel interrupt (the idea of djd_oz's dimmed trigless trigs, notes/45 §6, written anew)
-        # proven in emulation; the device test is P4 of the plan
+        # proven in emulation; tried on the Model:Cycles from the command line on 2026-11-06 (notes/80 §6.1: SAMPLE
+        # alone, all fourteen cards, the reload's clearing of 0.3); experimental until flashed from the page
         "status": "experimental",
         "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
         # a part composed in the page with the machines, effects, Track FX, the CPU page and RESAMPLE ticked, always

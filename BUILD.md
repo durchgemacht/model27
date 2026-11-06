@@ -521,10 +521,12 @@ python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler --t
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --transpose --transpose-n 3         # essai : 333 Hz
 ```
 MAIN OS patché, `transpose` seul : `637d945544ae0fcc3b0242382bc02752d310ed4b0836d00cfa25c7ab04dbb4ff` ; avec SAMPLE :
-`96cb4ba03b637beeafbfe27fe66a9991ac926b3e88ecda77fdcc6cb510cb31d7` ; avec toutes les cartes de la page (quatorze, release
-0.51) : `398b05d1e35e04d071ccda408a7f17bf1967e14888a185858d48fe7bf8471ee9`. La période d'atténuation de 3 ms (essai, jamais
-proposé) seule : `614643c26793f343227adc404819a2e147ff8cd849f6744c5bd161f4d870cf3d`. Transpose 0.3, le rechargement du
-pattern remet les sauts à 0 (note 80 §5.5) ; avec la 0.2 : `ad9e4492…`, `ab74cbf2…`, `cd89791b…`, `1a29b016…`.
+`96cb4ba03b637beeafbfe27fe66a9991ac926b3e88ecda77fdcc6cb510cb31d7` ; avec toutes les cartes de la page (quatorze,
+release 0.51) : `398b05d1e35e04d071ccda408a7f17bf1967e14888a185858d48fe7bf8471ee9`. La période d'atténuation de 3 ms
+(essai, jamais proposé) seule : `614643c26793f343227adc404819a2e147ff8cd849f6744c5bd161f4d870cf3d`. Transpose 0.3, le
+rechargement du pattern remet les sauts à 0 (note 80 §5.5) ; avec la 0.2 : `ad9e4492…`, `ab74cbf2…`, `cd89791b…`,
+`1a29b016…`. Essayé depuis la ligne de commande sur un Model:Cycles le 06/11/2026 (note 80 §6.1 : avec SAMPLE, la 0.2
+avec les quatorze cartes, la 0.3 avec les quatorze cartes et les deux rechargements) ; pas encore flashé depuis la page.
 
 ### Trig Cond dans un autre ordre
 

@@ -10,7 +10,8 @@ with the shortcut layer (its 0.6), its tweak alone `81-transpose.json` (`tools/g
 `tools/emu/probe_transpose.py` and its proof `tools/emu/test_transpose.py`; the flasher's card Transpose (experimental).
 Addresses: VAs of the Model:Cycles OS 1.13 MAIN OS (base `0x40000400`); `[FAIT]` read in the code or proven in
 emulation, `[HYP]` to read or prove. The steps P0 to P3 are done (§5.1 to §5.4), and the part's 0.3 clears the jumps
-when the pattern is reloaded (§5.5); P4, the device test, is under way (§6, §6.1).
+when the pattern is reloaded (§5.5); P4, the device test from the command line, passed (§6.1); next the flash from the
+page, then the card's status tested.
 
 ## 1. What the player gets
 
@@ -247,7 +248,7 @@ and one flag in the shortcut layer.
 - Guide section 16, release 0.51, stamp `2026-11-06-02`, README, PROVENANCE, BUILD.md (the Transpose section, and the
   hashes the layer's 0.6 changed, each with its layer-0.5 value kept).
 
-## 5.5 0.3: a reload clears the jumps (2026-11-06)
+## 5.5 0.3: a reload clears the jumps (2026-11-06), committed `e8a60fb` on `transpose`
 
 The maintainer after step 6 of the device test (« ja, nach spurwechsel noch da »): the jumps should also go when the
 pattern is reloaded, FUNC + PATTERN held (from the project) or tapped (from the temp area), the octaves not.
@@ -291,7 +292,11 @@ track and gone after a pattern change; 7: « a ist perfekt, werde b gar nicht te
 pending.
 File D (all fourteen cards, the part's 0.3, MAIN OS `398b05d1…`), step 9: a jump (+7) and an octave (+1) set, FUNC +
 PATTERN tapped: « Ja, passt » (the jump gone, the octave kept); then a jump (−5), FUNC + PATTERN held, YES:
-« Ja, passt » (the jump gone, the octave kept).
+« Ja, passt » (the jump gone, the octave kept). Step 8 (file C, all fourteen cards, the part's 0.2): « hatte mit all
+cards funktioniert ». Not repeated with file D: 0.3 changes only the reload's three calls, and the Unicorn run proved
+sections 2 to 8 again on 0.3.
+**Next (the maintainer's choice, 2026-11-06): as for the other cards, the status tested only after a flash from the
+page**: main brought up to `transpose`, pushed by the maintainer, the card flashed from the live page, then the flip.
 
 ## 7. Risks and limits
 

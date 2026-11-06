@@ -2728,18 +2728,21 @@ const FEAT = {
         "recording gets the distortion twice."],
     ] },
   transpose: { label: "Transpose",
-    short: "Moves the keys you play by octaves and makes a track jump in pitch.",
+    short: "Plays the TRIG keys in other octaves and makes a track jump a fourth or a fifth.",
     desc: [
-      ["", "Works on the active track when GRID RECORDING mode is off. Press and hold [MACHINES]: [TRIG 8], [TRIG 9], " +
-        "[TRIG 11], [TRIG 12], [TRIG 15] and [TRIG 16] light up."],
-      ["[MACHINES] + [TRIG 15] / [TRIG 16]", "Moves the notes of the [TRIG] keys one octave down or up, two at most. " +
-        "The key lights brighter for two octaves than for one. KBT in TRACK SETUP stays as you set it."],
-      ["[MACHINES] + [TRIG 8] / [TRIG 9] / [TRIG 11] / [TRIG 12]", "Makes the track jump 7 or 5 semitones down, or 5 " +
-        "or 7 up, at once, also while the pattern plays. The key of the jump lights fully. Press it again to go back."],
-      ["[MACHINES]", "Opens the MACHINES menu when you let go of it, unless you pressed one of these keys."],
-      ["Patterns", "A new pattern brings the keys and the pitch back. Reloading the pattern with [FUNC] + [PATTERN] " +
-        "brings the pitch back and keeps the keys' octave. Nothing is saved, nothing is recorded: the preset's PITCH " +
-        "stays as you set it."],
+      ["", "Press and hold [MACHINES] while you play the active track chromatically, outside GRID RECORDING mode. " +
+        "[TRIG 8], [TRIG 9], [TRIG 11], [TRIG 12], [TRIG 15] and [TRIG 16] light up."],
+      ["[MACHINES] + [TRIG 15] / [TRIG 16]", "Press and hold [MACHINES] and press [TRIG 16]. The [TRIG] keys play an " +
+        "octave higher, and two octaves higher after a second press. [TRIG 15] takes them down the same way. The key " +
+        "lights half for one octave and fully for two. KBT in the TRACK SETUP menu stays as you set it."],
+      ["[MACHINES] + [TRIG 8] / [TRIG 9] / [TRIG 11] / [TRIG 12]", "Press and hold [MACHINES] and press one of these " +
+        "keys. The track jumps at once, also while the pattern plays: [TRIG 8] a fifth down (7 semitones), [TRIG 9] a " +
+        "fourth down (5), [TRIG 11] a fourth up (5), [TRIG 12] a fifth up (7). The key of the jump lights fully, the " +
+        "others dim. Press it again to go back."],
+      ["[MACHINES]", "Let go of [MACHINES]. The MACHINES menu opens, unless you pressed one of these keys."],
+      ["Patterns", "When you change patterns, the keys and the pitch go back. A temporary reload with [FUNC] + " +
+        "[PATTERN], or a reload from the project with [FUNC] + [PATTERN] held, brings the pitch back; the keys keep " +
+        "their octave. Nothing is saved, and the preset's PITCH stays as you set it."],
     ] },
   "trig-cond-order": { label: "Trig Condition Order",
     short: "On CHANCE, the A:B conditions come before the percentages.",

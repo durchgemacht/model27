@@ -356,22 +356,23 @@
       <section id="transpose">
         <h2><span class="n">16</span>Transpose</h2>
         <p class="by">model27's own · MIT license</p>
-        <p class="lede">Moves the keys you play by octaves and makes a track jump in pitch while it plays, with MACHINES and the TRIG keys.</p>
+        <p class="lede">Plays the TRIG keys in other octaves and makes a track jump a fourth or a fifth while it plays, with MACHINES held.</p>
         <ol>
-          <li>Turn GRID RECORDING mode off and select a track with <b>TRACK</b> + <b>T1</b>–<b>T6</b>. Transpose works on that track.</li>
-          <li>Hold <b>MACHINES</b>: <b>TRIG 8</b>, <b>9</b>, <b>11</b>, <b>12</b>, <b>15</b> and <b>16</b> light up.</li>
-          <li>Hold <b>MACHINES</b> and press <b>TRIG 16</b> to move the notes of the TRIG keys one octave up, or <b>TRIG 15</b> one octave down; two octaves at most either way. The key lights dim with no octave, half for one, full for two.</li>
-          <li>Hold <b>MACHINES</b> and press <b>TRIG 9</b> or <b>TRIG 8</b> to make the track jump 5 or 7 semitones down, or <b>TRIG 11</b> or <b>TRIG 12</b> to make it jump 5 or 7 up. The jump is at once, also on a note that is playing. The key of the jump lights fully, the others dim. Press it again to go back.</li>
-          <li>Let go of <b>MACHINES</b>. If you pressed none of these keys, the MACHINES menu opens now.</li>
+          <li>Make sure you are not in GRID RECORDING mode.</li>
+          <li>Press <b>TRACK</b> + <b>T1</b>–<b>T6</b> to select the track you want to play chromatically. Transpose works on that track.</li>
+          <li>Press and hold <b>MACHINES</b>. <b>TRIG 8</b>, <b>9</b>, <b>11</b>, <b>12</b>, <b>15</b> and <b>16</b> light up.</li>
+          <li>Press and hold <b>MACHINES</b> and press <b>TRIG 16</b>. The TRIG keys play an octave higher, and two octaves higher after a second press. <b>TRIG 15</b> takes them down the same way. The key lights dim with no octave, half for one and fully for two.</li>
+          <li>Press and hold <b>MACHINES</b> and press <b>TRIG 8</b>, <b>9</b>, <b>11</b> or <b>12</b>. The track jumps at once, also on a note that is playing: <b>TRIG 8</b> a fifth down (7 semitones), <b>TRIG 9</b> a fourth down (5), <b>TRIG 11</b> a fourth up (5), <b>TRIG 12</b> a fifth up (7). The key of the jump lights fully, the others dim. Press it again to go back.</li>
+          <li>Let go of <b>MACHINES</b>. The MACHINES menu opens, unless you pressed one of these keys.</li>
         </ol>
         <dl class="facts">
-          <div><dt>Keys and pitch</dt><dd>TRIG 15 and 16 change only the notes you play on the TRIG keys, as KBT in TRACK SETUP does; KBT itself stays as you set it, and the octave comes on top. TRIG 8 to 12 change the sound of the track, the sequence included, as if you turned PITCH, up to PITCH's own ±24 semitones; the preset's PITCH stays as you set it.</dd></div>
-          <div><dt>Not saved</dt><dd>each track keeps its octave and its jump until you change the pattern; then all of them go back. Reloading the pattern with <b>FUNC</b> + <b>PATTERN</b>, tapped or held, brings every jump back and keeps the octaves; if the reload cannot be done, the jumps stay too. Nothing is saved with the project. A jump is not recorded and not sent over MIDI; LIVE RECORDING keeps the notes you play, octave included.</dd></div>
+          <div><dt>Keys and pitch</dt><dd>TRIG 15 and 16 change only the notes you play on the TRIG keys, as KBT in the TRACK SETUP menu does; KBT itself stays as you set it, and the octave comes on top. TRIG 8 to 12 change the sound of the track, the sequence included, as if you turned PITCH, up to PITCH's own ±24 semitones; the preset's PITCH stays as you set it.</dd></div>
+          <div><dt>Not saved</dt><dd>each track keeps its octave and its jump until you change the pattern; then all of them go back. A temporary reload (<b>FUNC</b> + <b>PATTERN</b>) or a reload from the project (<b>FUNC</b> + <b>PATTERN</b> held, then YES) brings every jump back and keeps the octaves; if the reload cannot be done, the jumps stay too. Nothing is saved with the project. A jump is not recorded and not sent over MIDI; LIVE RECORDING keeps the notes you play, octave included.</dd></div>
           <div><dt>MACHINES</dt><dd>with this card, MACHINES opens the MACHINES menu when you let go of it, on every track, not when you press it. A press while the menu is open closes it at once, as before.</dd></div>
           <div><dt>Lights</dt><dd>the dim and half lights are the LEDs switched on and off 250 times a second, at the brightness set by LED in SETTINGS.</dd></div>
           <div><dt>Other mods</dt><dd>goes with SAMPLE, the effects, the Track FX, the CPU Page, RESAMPLE, Trig conditions, Trig Preview and Control All Config.</dd></div>
           <div><dt>Credit</dt><dd>the dimmed lights follow the idea of djd_oz's dimmed trigless trigs in Modded-Cycles, written anew.</dd></div>
-          <div><dt>Experimental</dt><dd>checked in an emulator on the OS's own code: every key as on the stock OS but these six, the notes of the TRIG keys, the jumps sample for sample like turning PITCH on every stock machine, the lights and their dimming in the panel's own interrupt. Not yet tried on a Model:Cycles.</dd></div>
+          <div><dt>Experimental</dt><dd>checked in an emulator on the OS's own code: every key as on the stock OS but these six, the notes of the TRIG keys, the jumps sample for sample like turning PITCH on every stock machine, the lights and their dimming in the panel's own interrupt. Tried on a Model:Cycles from the command line (2026-11-06), with SAMPLE and with all fourteen cards; experimental until flashed from this page.</dd></div>
         </dl>
       </section>
 
