@@ -15,6 +15,13 @@
  *            after its reset of the states (0x4000602a, its argument, the LED object, still on the stack): 4(sp) the
  *            views' argument, 8(sp) the LED object. Sets the six keys' states first (tr_leds), then jumps to the
  *            views with the stack as the call replaced left it, so they return to the frame.
+ *   tr_led   jmp from 0x40059dea in place of moveq #-1,d3 ; moveq #21,d4 ; move.w d3,0x8c000000 (10 bytes, then two
+ *            nops), the panel interrupt's LED step 0 (0x40059db8, level 6): d0's byte the copy's byte of the row
+ *            whose turn it is (0x40140aa8[d2]), d2 that row, d1 the step (0), a0 the copy. tr_led_c(byte, row) writes
+ *            DIR (0xffff) as the stock step, loads the dimmed rows out of their turn and returns the turn row's byte;
+ *            back at 0x40059df4 with d0 that byte, d2 the row, d1 0 and d4 21, as the three instructions replaced
+ *            leave them (d3 is set again there). The interrupt saved d0-d4/a0; tr_led keeps a1, the C call
+ *            d2-d7/a2-a6. Nothing jumps into 0x40059dec..0x40059df3 (notes/45 §8).
  *
  * License: MIT (LICENSE next to this file). */
 
@@ -36,3 +43,19 @@ tr_frame:
 	jsr	tr_leds
 	addq.l	#4, %sp
 	jmp	0x40076ca2			/* the views, as from the call replaced */
+
+	.section .text.tr_led, "ax"
+	.p2align 2
+	.globl	tr_led
+tr_led:
+	move.l	%a1, -(%sp)
+	move.l	%d2, -(%sp)			/* the row */
+	moveq	#0, %d1
+	move.b	%d0, %d1
+	move.l	%d1, -(%sp)			/* its byte */
+	jsr	tr_led_c
+	addq.l	#8, %sp
+	move.l	(%sp)+, %a1
+	moveq	#0, %d1				/* the step, as the stock code has it */
+	moveq	#21, %d4
+	jmp	0x40059df4			/* the stock step 0 goes on: DATA with d0's byte and d2's row */

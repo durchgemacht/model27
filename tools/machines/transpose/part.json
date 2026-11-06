@@ -1,10 +1,10 @@
 {
  "schema": "model27-part/0.1",
  "id": "transpose",
- "version": "0.1",
+ "version": "0.2",
  "order": 81,
  "name": "Transpose: MACHINES + TRIG 15 / 16 move the TRIG keyboard an octave, MACHINES + TRIG 8 / 9 / 11 / 12 make the active track's pitch jump -7 / -5 / +5 / +7 semitones",
- "description": "A part of model27's builder, not a machine (the plan of 2026-11-05, _scratch/machines-transpose/plan.md): built once into transpose.o by tools/gen_parts.py, added by tools/compose.py to a build when its card is ticked (compose.py --transpose), with or without packages, always with the shortcut layer (since its 0.6 MACHINES is then a held key on every track; the composer sets the layer's flag and writes the layer's data block's address into this part's). In keyboard mode, MACHINES held, FUNC and TRACK not: KeyboardView's key handler (its vtable +8, 0x400ff9cc) goes to tr_keys, which takes TRIG 8, 9, 11, 12, 15 and 16 and their releases, marks the layer's +0x13 and asks for a new LED frame; the keyboard's read of KBT (0x4001a164) goes to tr_kbt, which adds 12 semitones per octave of the active track (two at most either way, KBT never written, clamped to -60..+60); the audio function's call of the smoother (0x400597a8) goes to tr_pitch, which adds the track's jump to the PITCH word of its output (0x100 a semitone, clamped to 0x2800..0x5800), so that the jump is at once, on the note that plays, and clears every value when the playing pattern changes; the LED frame's call of the views (0x40006a76) goes to tr_frame, which sets the six keys' states before every view (dim 0x102, mid 0x202, full 2; the dimming itself is step P2). Everything else goes to the stock code unchanged. The values live in the data block, per track, in RAM only.",
+ "description": "A part of model27's builder, not a machine (the plan of 2026-11-05, _scratch/machines-transpose/plan.md): built once into transpose.o by tools/gen_parts.py, added by tools/compose.py to a build when its card is ticked (compose.py --transpose), with or without packages, always with the shortcut layer (since its 0.6 MACHINES is then a held key on every track; the composer sets the layer's flag and writes the layer's data block's address into this part's). In keyboard mode, MACHINES held, FUNC and TRACK not: KeyboardView's key handler (its vtable +8, 0x400ff9cc) goes to tr_keys, which takes TRIG 8, 9, 11, 12, 15 and 16 and their releases, marks the layer's +0x13 and asks for a new LED frame; the keyboard's read of KBT (0x4001a164) goes to tr_kbt, which adds 12 semitones per octave of the active track (two at most either way, KBT never written, clamped to -60..+60); the audio function's call of the smoother (0x400597a8) goes to tr_pitch, which adds the track's jump to the PITCH word of its output (0x100 a semitone, clamped to 0x2800..0x5800), so that the jump is at once, on the note that plays, and clears every value when the playing pattern changes; the LED frame's call of the views (0x40006a76) goes to tr_frame, which sets the six keys' states before every view (dim 0x102, mid 0x202, full 2) and their bits in two masks per latch row; since 0.2 the panel interrupt's LED step 0 (0x40059dea) goes to tr_led, which loads the rows with a masked LED out of their turn, a dim LED lit 1 cycle of n, a mid one 2 of n (n from the data block, 4 by default: 1/4 and 1/2 at 250 Hz), each write 2 us apart by PIT3's counter, notes/45 §6's principle written anew. Everything else goes to the stock code unchanged. The values live in the data block, per track, in RAM only.",
  "license": "MIT",
  "build": {
   "sources": [
@@ -36,7 +36,8 @@
    "tr_keys",
    "tr_kbt",
    "tr_pitch",
-   "tr_frame"
+   "tr_frame",
+   "tr_led"
   ],
   "patch_points": [
    {
@@ -46,18 +47,53 @@
   ]
  },
  "sites": {
-  "keys": {"vtable": "0x400ff9cc", "stock_ptr": "0x4001a0d2", "symbol": "tr_keys"},
-  "kbt": {"at": "0x4001a164", "stock": "4eb940016da6", "op": "jsr", "symbol": "tr_kbt"},
-  "pitch": {"at": "0x400597a8", "stock": "4eb940058474", "op": "jsr", "symbol": "tr_pitch"},
-  "frame": {"at": "0x40006a76", "stock": "4eb940076ca2", "op": "jsr", "symbol": "tr_frame"}
+  "keys": {
+   "vtable": "0x400ff9cc",
+   "stock_ptr": "0x4001a0d2",
+   "symbol": "tr_keys"
+  },
+  "kbt": {
+   "at": "0x4001a164",
+   "stock": "4eb940016da6",
+   "op": "jsr",
+   "symbol": "tr_kbt"
+  },
+  "pitch": {
+   "at": "0x400597a8",
+   "stock": "4eb940058474",
+   "op": "jsr",
+   "symbol": "tr_pitch"
+  },
+  "frame": {
+   "at": "0x40006a76",
+   "stock": "4eb940076ca2",
+   "op": "jsr",
+   "symbol": "tr_frame"
+  },
+  "led": {
+   "at": "0x40059dea",
+   "stock": "76ff781533c38c000000",
+   "op": "jmp",
+   "symbol": "tr_led"
+  }
  },
  "data": {
-  "size": 24,
+  "size": 60,
   "sc": 0,
   "last": 4,
   "oct": 8,
   "jump": 14,
-  "held": 20
+  "held": 20,
+  "any": 21,
+  "m1": 24,
+  "m2": 32,
+  "latched": 40,
+  "cur": 48,
+  "ph": 56,
+  "known": 57,
+  "n": 58,
+  "dirty": 59,
+  "n_value": 4
  },
  "claims": {
   "gestures": [

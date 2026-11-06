@@ -14,7 +14,13 @@
  *   - The six keys' LEDs show it (tr_leds): TRIG 15 / 16 dim at 0, mid at one octave, full at two; the jump in force
  *     full, the three others dim. The states are set at the start of the LED frame, before every view, so they win
  *     (0x40005f86 keeps the first state). Dim and mid are states 0x102 and 0x202, which the OS treats as on (the base
- *     bit) and which its blink leaves alone; the dimming itself comes with step P2 (the panel interrupt).
+ *     bit) and which its blink leaves alone; tr_leds also puts their bits in two masks per latch row.
+ *   - The dimming (step P2), notes/45 §6's principle written anew: the panel interrupt's LED step 0 (0x40059dea,
+ *     once a cycle of 1 ms) goes to tr_led (entries.S) -> tr_led_c, which loads the latch rows with a masked LED out
+ *     of their turn, a dim LED lit 1 cycle of n, a mid one 2 of n (n = 4: 1/4 and 1/2 at 250 Hz; 3: 1/3 and 2/3 at
+ *     333 Hz), the rows' phases staggered, each write 2 us apart by PIT3's counter. Every other LED of the row keeps
+ *     what the stock turn latched last, at the same instants. Without a mask, and once every row holds its stock byte
+ *     again, the step does what the stock one does.
  *   - tr_keys takes those presses and their releases, sets the shortcut layer's +0x13 (a shortcut acted while MACHINES
  *     was held), so that MACHINES' release does not open the MACHINES list, and asks for a new LED frame. Every other
  *     key, mode or held combination goes to the stock key handler (0x4001a0d2) unchanged.
@@ -27,6 +33,9 @@
  *   +8  oct    per track the octave, -2..+2 (signed bytes)
  *   +14 jump   per track the jump in force: 0 none, 1..4 the keys TRIG 8, 9, 11, 12
  *   +20 held   the keys whose press this part took (bit 0..3 TRIG 8, 9, 11, 12, bit 4 TRIG 15, bit 5 TRIG 16)
+ *   +21 any    a mask is set; +24 m1, +32 m2 the masks per latch row (dim, mid), written by tr_leds every frame
+ *   +40 latched, +48 cur  per row the byte the stock turn latched last and the byte the latch holds (tr_led_c)
+ *   +56 ph, +57 known (rows latched once), +58 n (the period, written by the composer), +59 dirty (a row dimmed)
  *
  * License: MIT (LICENSE next to this file). */
 #include <stdint.h>
@@ -45,6 +54,7 @@
 #define VIEW_LEDS ((void (*)(void *))0x400760ba)              /* a new LED frame */
 #define PLAYING (*(uint8_t *volatile *)0x40a7887c)            /* the playing pattern, its number at +30706 */
 #define LED_COLOUR 0x404a8c68u                                 /* what TrackSelectionView passes along */
+#define LED_BITS 0x4010abf8u                                   /* logical LED -> bit of the 7 latch bytes, or -1 */
 
 #define K_FUNC 1
 #define K_TRACK 2
@@ -63,8 +73,17 @@ struct data {
 	int8_t oct[6];                              /* +8 */
 	uint8_t jump[6];                            /* +14 */
 	uint8_t held;                               /* +20 */
-	uint8_t pad[3];
-};                                                  /* 24 bytes */
+	uint8_t any;                                /* +21 a dim or mid LED in m1 / m2 */
+	uint8_t pad[2];
+	uint8_t m1[8];                              /* +24 per latch row, the LEDs lit 1 cycle of n (dim) */
+	uint8_t m2[8];                              /* +32 per latch row, the LEDs lit 2 cycles of n (mid) */
+	uint8_t latched[8];                         /* +40 per row, the byte the stock turn latched last (1 = off) */
+	uint8_t cur[8];                             /* +48 per row, the byte the latch holds now */
+	uint8_t ph;                                 /* +56 the phase, 0..n-1 */
+	uint8_t known;                              /* +57 the rows latched once since boot (bits) */
+	uint8_t n;                                  /* +58 cycles of 1 ms a period: 4 (250 Hz) or 3 (333 Hz) */
+	uint8_t dirty;                              /* +59 a row holds a dimmed byte */
+};                                                  /* 60 bytes */
 
 extern char tr_data[];
 #define D ((volatile struct data *)tr_data)
@@ -186,16 +205,132 @@ int16_t *tr_pitch(void *targets)
 	return w;
 }
 
-/* entries.S's tr_frame, at the start of the LED frame, before the views: the six keys' states. */
+/* One LED's state, and its bit in the dimming masks: dim in m1, mid in m2, full in neither. */
+static void led(void *leds, uint32_t n, uint32_t state, uint8_t *m1, uint8_t *m2)
+{
+	int32_t bit = *(const int32_t *)(LED_BITS + 4 * n);
+	LED_SET(leds, n, state, LED_COLOUR);
+	if (bit < 0 || bit >= 56)
+		return;
+	if (state == DIM)
+		m1[bit >> 3] |= (uint8_t)(1u << (bit & 7));
+	else if (state == MID)
+		m2[bit >> 3] |= (uint8_t)(1u << (bit & 7));
+}
+
+/* entries.S's tr_frame, at the start of the LED frame, before the views: the six keys' states, and the masks the
+ * panel interrupt dims them with (tr_led_c); none when MACHINES is not held in keyboard mode. */
 void tr_leds(void *leds)
 {
+	uint8_t m1[8] = {0}, m2[8] = {0}, any = 0;
 	uint32_t t, i;
 	int o;
-	if (!leds || !active() || (t = track()) > 5)
-		return;
-	o = D->oct[t];
-	LED_SET(leds, 15, o < 0 ? (o == -1 ? MID : FULL) : DIM, LED_COLOUR);
-	LED_SET(leds, 16, o > 0 ? (o == 1 ? MID : FULL) : DIM, LED_COLOUR);
-	for (i = 0; i < 4; i++)                     /* jump i + 1 on TRIG 8, 9, 11, 12 */
-		LED_SET(leds, i < 2 ? 8 + i : 9 + i, D->jump[t] == i + 1 ? FULL : DIM, LED_COLOUR);
+	if (leds && active() && (t = track()) <= 5) {
+		o = D->oct[t];
+		led(leds, 15, o < 0 ? (o == -1 ? MID : FULL) : DIM, m1, m2);
+		led(leds, 16, o > 0 ? (o == 1 ? MID : FULL) : DIM, m1, m2);
+		for (i = 0; i < 4; i++)             /* jump i + 1 on TRIG 8, 9, 11, 12 */
+			led(leds, i < 2 ? 8 + i : 9 + i, D->jump[t] == i + 1 ? FULL : DIM, m1, m2);
+	}
+	for (i = 0; i < 8; i++) {
+		D->m1[i] = m1[i];
+		D->m2[i] = m2[i];
+		any |= m1[i] | m2[i];
+	}
+	D->any = any ? 1 : 0;
+}
+
+/* The panel's port (Rapid GPIO) and PIT3's counter (notes/45 §3). */
+#define PORT_DIR (*(volatile uint16_t *)0x8c000000)
+#define PORT_DATA (*(volatile uint16_t *)0x8c000002)
+#define PORT_CLR (*(volatile uint16_t *)0x8c000006)
+#define PORT_SET (*(volatile uint16_t *)0x8c00000a)
+#define PCNTR (*(volatile uint16_t *)0xfc08c004)
+#define P3 11265                                    /* PIT3's period in counts: PMR 0x2c00 + 1 */
+#define WAIT 272                                    /* 2 us at 135.168 MHz, what notes/45 tried on the device */
+
+/* At least WAIT counts of PIT3 from now, 64 reads at most (a counter that stood still cannot hang the interrupt). */
+static void wait(void)
+{
+	int32_t t0, d;
+	uint32_t i;
+	__asm__ volatile ("nop");                   /* the writes before it finished */
+	t0 = PCNTR;
+	for (i = 1; i < 64; i++) {                  /* with the first, 64 reads */
+		d = t0 - (int32_t)PCNTR;            /* the counter counts down and reloads */
+		if (d < 0)
+			d += P3;
+		if (d >= WAIT)
+			return;
+	}
+}
+
+/* A latch row loaded out of its turn, as the stock steps 0, 1 and 2 load it: the byte and the row, the strobe up,
+ * the strobe down. */
+static void latch(uint32_t row, uint32_t byte)
+{
+	PORT_DATA = (uint16_t)(byte << 8 | row << 5);
+	wait();
+	PORT_SET = 8;
+	wait();
+	PORT_CLR = 0xfff7;
+	wait();
+}
+
+/* The LEDs of row r off in phase ph of a period of n: the masks' (dim off from the 2nd cycle, mid from the 3rd), the
+ * rows' phases staggered by their number. */
+static uint32_t off_bits(uint32_t r, uint32_t ph, uint32_t n)
+{
+	uint32_t p = ph + r, off = 0;
+	while (p >= n)
+		p -= n;
+	if (p >= 1)
+		off |= D->m1[r];
+	if (p >= 2)
+		off |= D->m2[r];
+	return off;
+}
+
+/* entries.S's tr_led, the panel interrupt's LED step 0 (0x40059dea), once a cycle of 1 ms: byte the copy's byte of
+ * the row whose turn it is (r0, 0..6; 1 = off). DIR first, as the stock step; then, when a mask is set or a row still
+ * holds a dimmed byte, the phase steps on and every row whose byte must change is loaded at once, from what the stock
+ * turn latched last (latched[]) with the masks' LEDs off; the turn row too, from its last byte, so that its masked
+ * LEDs change now as on the other rows and its other LEDs when the stock steps 1 and 2 latch the byte returned (the
+ * new one with the masks' LEDs off), at the stock instant (notes/45 §6). */
+uint32_t tr_led_c(uint32_t byte, uint32_t r0)
+{
+	uint32_t n, ph, r, s, dirty = 0;
+	PORT_DIR = 0xffff;
+	if (!D->any && !D->dirty) {
+		D->latched[r0] = (uint8_t)byte;
+		D->cur[r0] = (uint8_t)byte;
+		D->known |= (uint8_t)(1u << r0);
+		return byte;
+	}
+	n = D->n;
+	if (n < 2 || n > 8)
+		n = 4;
+	ph = D->ph + 1u;
+	if (ph >= n)
+		ph = 0;
+	D->ph = (uint8_t)ph;
+	for (r = 0; r < 7; r++) {
+		uint32_t v;
+		if (!(D->known >> r & 1))
+			continue;
+		v = (D->latched[r] | off_bits(r, ph, n)) & 0xff;
+		if (v != D->cur[r]) {
+			latch(r, v);
+			D->cur[r] = (uint8_t)v;
+		}
+	}
+	s = (byte | off_bits(r0, ph, n)) & 0xff;    /* the turn row's new byte, latched by the stock steps 1 and 2 */
+	D->latched[r0] = (uint8_t)byte;
+	D->cur[r0] = (uint8_t)s;
+	D->known |= (uint8_t)(1u << r0);
+	for (r = 0; r < 7; r++)
+		if ((D->known >> r & 1) && D->cur[r] != D->latched[r])
+			dirty = 1;
+	D->dirty = (uint8_t)dirty;
+	return s;
 }

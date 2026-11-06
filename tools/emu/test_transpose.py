@@ -37,10 +37,20 @@ P0 (probe_transpose.py) read the stock sites; this compares the stock OS and the
   7. MACHINES on every track (the layer's 0.6, MainScreenView's MACHINES case 0x4001c252): on every stock machine and
      SAMPLE's, a press that would open the list is taken, the release opens it unless +0x13 was marked; with the list
      open the press closes it; FUNC + MACHINES the PRESET browser; the same build without Transpose: the stock
-     machines toggle on the press as before.
+     machines toggle on the press as before;
+  8. the dimming (0.2), the real panel interrupt (start, key columns, LED steps; test_trigless_dim.py's rig: the port,
+     PIT3's counter and the latches modelled, the OS's own start-up copying the payload) on the stock OS and the build:
+     without a mask every write and every latched byte as the stock OS, start-up included; with masks (TRIG 8, 11, 15
+     dim, 9, 16 mid, 12 full), a period of 4 ms and of 3 ms: no hazard on the latches, registers back at every rte,
+     every other write as the stock OS, step 0 [DIR, (DATA, SET 8, CLR 0xfff7) x k, DATA] with k <= 3 on rows 3..5,
+     at least 272 counts (2 us) between writes, every other LED bit the stock one at the same instants, a dim key lit
+     1 cycle of n and a mid one 2 of n in steady state, never lit when the stock OS has it dark, the running light and
+     a blink dark at least as long; 20 us of latency: the light over every 100 ms within 1.5 % of 1/4 and 1/2; step 0
+     late (PIT3 reloading): the gaps kept; PIT3 standing still: every step ends; the masks cleared: every LED back to
+     the stock OS within 2 cycles.
 
 Needs Unicorn and numpy (pip install unicorn numpy); Unicorn's JIT does not run inside a sandbox that forbids it:
-run it in a normal terminal. About two minutes, most of them section 5.
+run it in a normal terminal. Some minutes, most of them sections 5 and 8.
 
     python3 tools/emu/test_transpose.py --cycles model-cycles_OS1.13.syx
     python3 tools/emu/test_transpose.py --cycles model-cycles_OS1.13.syx --dry      # section 1 only, without Unicorn
@@ -71,7 +81,8 @@ SELECTIONS = [[], ["sampler"], ["pots", "crush"], ["sampler", "digidelay", "pots
 KB_SLOT, KB_KEYS = 0x400ff9cc, 0x4001a0d2
 SITES = {0x4001a164: ("4eb940016da6", "4eb9", "tr_kbt"), 0x400597a8: ("4eb940058474", "4eb9", "tr_pitch"),
          0x40006a76: ("4eb940076ca2", "4eb9", "tr_frame")}
-ALL_SITES = set(SITES) | {KB_SLOT}
+LED_SITE = (0x40059dea, "76ff781533c38c000000", "tr_led")    # jmp tr_led ; nop ; nop (0.2)
+ALL_SITES = set(SITES) | {KB_SLOT, LED_SITE[0]}
 BOOT_SITES = {0x400004b2, 0x400b1106, 0x4016cae8}   # the payload's boot: the hook, the stub's mask and its sprite
 OURS = {23: 0, 24: 1, 26: 2, 27: 3, 30: 4, 31: 5}   # key code -> bit: TRIG 8, 9, 11, 12, 15, 16
 JUMP_WORD = {1: -0x700, 2: -0x500, 3: 0x500, 4: 0x700}
@@ -105,11 +116,19 @@ def build_tests(key, stock, w, wo):
         x = by.get(va)
         check(x is not None and x["old"] == old and x["new"] == op + f"{syms[name]:08x}",
               f"{key}: {va:#x} {old} -> {op} {name} ({syms[name]:#x})")
+    va, old, name = LED_SITE
+    x = by.get(va)
+    check(x is not None and x["old"] == old and x["new"] == f"4ef9{syms[name]:08x}4e714e71",
+          f"{key}: {va:#x} {old} -> jmp {name} ({syms[name]:#x}) ; nop ; nop")
     pay = compose.gs.PAY_ALONE
     block = runtime[ti["data_at"] - pay:ti["data_at"] - pay + DATA["size"]]
     sc = struct.unpack_from(">I", block, DATA["sc"])[0]
-    check(li is not None and sc == li["data_at"] and not any(block[4:]) and syms["tr_data"] == ti["data_at"],
-          f"{key}: the data block at {ti['data_at']:#x}: the shortcut layer's data block ({sc:#x}), the rest zero")
+    rest = bytearray(block[4:])
+    period, rest[DATA["n"] - 4] = rest[DATA["n"] - 4], 0
+    check(li is not None and sc == li["data_at"] and period == DATA["n_value"] and not any(rest)
+          and syms["tr_data"] == ti["data_at"],
+          f"{key}: the data block at {ti['data_at']:#x}: the shortcut layer's data block ({sc:#x}), the period "
+          f"{period} ms, the rest zero")
     check(li is not None and runtime[li["data_at"] - pay + EVERY] == 1,
           f"{key}: the shortcut layer there, its every byte (+{EVERY:#x}) 1")
     if wo is None:
@@ -409,7 +428,13 @@ def frame(u, held=(), mode=None, t=2, project=True, octs=None, jumps=None, da=No
     return states, order, u.sp_ok and not u.bad
 
 
+def masks(u, da):
+    return (list(u.uc.mem_read(da + DATA["m1"], 8)), list(u.uc.mem_read(da + DATA["m2"], 8)),
+            u.uc.mem_read(da + DATA["any"], 1)[0])
+
+
 def led_tests(key, a, b, da):
+    table = struct.unpack(">54l", bytes(a.uc.mem_read(0x4010abf8, 216)))
     ref, ref_order, ok_a = frame(a)
     bad, n = [], 0
     for o in (-2, -1, 0, 1, 2):
@@ -423,23 +448,34 @@ def led_tests(key, a, b, da):
             want[16] = (MID if o == 1 else FULL) if o > 0 else DIM
             for i, led in enumerate((8, 9, 11, 12)):
                 want[led] = FULL if j == i + 1 else DIM
+            m1, m2 = [0] * 8, [0] * 8
+            for led in (8, 9, 11, 12, 15, 16):
+                bit = table[led]
+                if want[led] == DIM:
+                    m1[bit >> 3] |= 1 << (bit & 7)
+                elif want[led] == MID:
+                    m2[bit >> 3] |= 1 << (bit & 7)
             n += 1
-            if st != want or order != ref_order or not ok:
-                bad.append((o, j, [hex(st[x]) for x in (8, 9, 11, 12, 15, 16)]))
+            if st != want or order != ref_order or not ok or masks(b, da) != (m1, m2, 1):
+                bad.append((o, j, [hex(st[x]) for x in (8, 9, 11, 12, 15, 16)], masks(b, da)))
     check(not bad and ok_a, f"{key}: the LED frame with MACHINES in keyboard mode, {n} octaves and jumps: TRIG 15 / 16 "
-                            "dim, mid or full, TRIG 8 / 9 / 11 / 12 full for the jump in force, else dim; every other "
-                            "LED as the stock frame; the views once, then the end" + (f"; DIFFERENT {bad[:3]}" if bad else ""))
+                            "dim, mid or full, TRIG 8 / 9 / 11 / 12 full for the jump in force, else dim, and their bits "
+                            "in the masks (dim in m1, mid in m2, by the LED table 0x4010abf8); every other LED as the "
+                            "stock frame; the views once, then the end" + (f"; DIFFERENT {bad[:3]}" if bad else ""))
     import test_shortcuts as SH
     off = []
     for held, mode, project in (((), None, True), ((5, SH.FUNC), None, True), ((5, SH.TRACK), None, True),
                                 ((5,), "grid", True), ((5,), "select", True), ((5,), None, False)):
         sa = frame(a, held, mode, project=project)
+        b.uc.mem_write(da + DATA["any"], b"\x01")
+        b.uc.mem_write(da + DATA["m1"], b"\x5a" * 16)          # masks of an earlier frame: cleared
         sb = frame(b, held, mode, project=project, octs=[2] * 6, jumps=[4] * 6, da=da)
-        if sa != sb:
+        if sa != sb or masks(b, da) != ([0] * 8, [0] * 8, 0):
             off.append((held, mode, project))
     reset(b, da)
     check(not off, "{}: without MACHINES, with FUNC or TRACK, in grid mode, with the selection armed, without a "
-                   "project: the same states and calls as the stock frame".format(key) + (f"; DIFFERENT {off}" if off else ""))
+                   "project: the same states and calls as the stock frame, the masks cleared".format(key)
+          + (f"; DIFFERENT {off}" if off else ""))
 
 
 # --- 7. MACHINES on every track ---------------------------------------------------------------------------------------
@@ -476,6 +512,181 @@ def machines_tests(key, stock, w, wo):
                                          f"list on the press ({stock_m})")
 
 
+# --- 8. the dimming: the panel interrupt -------------------------------------------------------------------------------
+DIM_LEDS, MID_LEDS, FULL_LEDS = (8, 11, 15), (9, 16), (12,)
+PANEL_STATES = {8: 2, 9: 2, 11: 2, 12: 2, 15: 2, 16: 2, 1: 2, 2: 3, 5: 4, 13: 2, 14: 2}
+
+
+def panel_rig(img, runtime=None, frozen=False):
+    """test_trigless_dim.py's rig (the real panel interrupt, the port, PIT3's counter and the latches modelled; its
+    start-up runs 0x4000045c, the copy of .data into the SRAM), the payload's memory mapped and the payload written
+    there as the boot hook 0x400004b2, a routine of its own after it, leaves it (as mcengine.Engine does)."""
+    import test_trigless_dim as TD
+
+    class PRig(TD.Rig):
+        def call(self, fn, *args, regs=None):
+            if not getattr(self, "_pay", False):
+                self._pay = True
+                self.uc.mem_map(0x43000000, 0x00400000)
+            return super().call(fn, *args, regs=regs)
+    r = PRig(img, frozen)
+    if runtime:
+        r.uc.mem_write(0x43000000, bytes(runtime))
+    return r
+
+
+def set_masks(rig, da, n, on=True):
+    table = rig.table
+    m1, m2 = bytearray(8), bytearray(8)
+    for leds, m in ((DIM_LEDS, m1), (MID_LEDS, m2)):
+        for led in leds:
+            m[table[led] >> 3] |= 1 << (table[led] & 7)
+    rig.uc.mem_write(da + DATA["n"], bytes([n]))
+    rig.uc.mem_write(da + DATA["m1"], bytes(m1) if on else bytes(8))
+    rig.uc.mem_write(da + DATA["m2"], bytes(m2) if on else bytes(8))
+    rig.uc.mem_write(da + DATA["any"], b"\x01" if on else b"\x00")
+
+
+def panel_tests(key, stock, w):
+    import collections
+    import test_trigless_dim as TD
+    tweak, info, img, runtime = w
+    da, sc = info["transpose"]["data_at"], info["part"]["data_at"]
+    probe = panel_rig(img, runtime)
+    tr_led = int(tweak["symbols"]["tr_led"], 16)
+    site = bytes(probe.uc.mem_read(LED_SITE[0], 10))
+    check(probe.r32(da + DATA["sc"]) == sc and probe.uc.mem_read(da + DATA["n"], 1)[0] == DATA["n_value"]
+          and site == bytes.fromhex(f"4ef9{tr_led:08x}4e714e71") and probe.r32(tr_led) != 0,
+          f"{key}: the rig: the payload in memory (its data block at {da:#x} as composed, tr_led's code at "
+          f"{tr_led:#x}), the LED step's jmp to it at {LED_SITE[0]:#x}")
+    res = {}
+    for name, im in (("stock", stock), ("build", img)):
+        r = panel_rig(im, runtime if im is img else None)
+        r.w32(TD.LED_OBJ, 0)                           # start-up: no LED object yet, no frame
+        TD.timeline(r, 0.25, 3, {}, frames=False)
+        nb = len(r.wlog)
+        r.w32(TD.LED_OBJ, TD.OBJ)
+        flips = [(0.40, lambda q: q.call(TD.FLIP, 8, 6)), (0.45, lambda q: q.call(TD.FLIP, 2, 42))]
+        TD.timeline(r, 0.6, 7, PANEL_STATES, events=flips)
+        res[name] = (r, nb)
+    (a, na), (b, nb) = res["stock"], res["build"]
+    check([x[1:] for x in a.wlog] == [x[1:] for x in b.wlog] and a.qlog == b.qlog and na == nb and len(a.wlog) > 10000
+          and not (a.hazards or b.hazards or a.regfail or b.regfail or a.bad or b.bad),
+          f"{key}: no mask: every write on the panel's port and every latched byte as the stock OS, start-up included "
+          f"({len(a.wlog)} writes, {len(a.qlog)} changes); registers and stack back at every rte")
+    for n in (4, 3):
+        events = [(0.40, lambda q: q.call(TD.FLIP, 8, 6)),     # the running light on a dim key
+                  (0.40, lambda q: q.call(TD.FLIP, 12, 6)),    # ... on a full one
+                  (0.90, lambda q: q.call(TD.FLIP, 16, 42))]   # the stock blink's timer on a mid one
+        out = {}
+        for name, im in (("stock", stock), ("build", img)):
+            r = panel_rig(im, runtime if im is img else None)
+            if im is img:
+                set_masks(r, da, n)
+            end = TD.timeline(r, 1.5, 11, PANEL_STATES, events=events)
+            out[name] = r
+        a, b = out["stock"], out["build"]
+        tag = f"{key}, a period of {n} ms"
+        check(not (a.hazards or b.hazards or a.regfail or b.regfail or a.bad or b.bad) and a.isr_mem == b.isr_mem,
+              f"{tag}: no hazard on the latches, registers and stack back at every rte, the interrupt writes the "
+              "stock OS's memory as the stock OS (its own state lives in the payload)")
+        other = lambda q: [(x[1], x[2], x[3]) for x in q.wlog if x[1] != 9]          # noqa: E731
+        check(other(a) == other(b) and len(other(a)) > 15000,
+              f"{tag}: the start, the key columns, LED steps 1 and 2: the stock writes, write for write")
+        la, lb = TD.led0_writes(a), TD.led0_writes(b)
+        ok, ks = len(la) == len(lb), collections.Counter()
+        for x, y in zip(la, lb):
+            k = (len(y) - 2) // 3
+            ks[k] += 1
+            ok &= len(x) == 2 and x[0][1:] == y[0][1:] == (0, 0xffff) and len(y) == 2 + 3 * k and k <= 3
+            ok &= y[-1][1] == 2 and (x[1][2] & 0xff) == (y[-1][2] & 0xff)
+            for i in range(k):
+                d_, s_, c_ = y[1 + 3 * i:4 + 3 * i]
+                ok &= d_[1] == 2 and not d_[2] & 9 and (d_[2] >> 5) & 7 in (3, 4, 5) and s_[1:] == (0xa, 8) \
+                    and c_[1:] == (6, 0xfff7)
+        check(ok, f"{tag}: LED step 0: stock [DIR, DATA]; the build [DIR, (DATA, SET 8, CLR 0xfff7) x k, DATA], k <= 3, "
+                  f"only rows 3, 4, 5 out of their turn ({len(la)} steps, k: {dict(sorted(ks.items()))})")
+        g = TD.gaps(b)
+        check(g and min(g) >= TD.WAIT, f"{tag}: at least {TD.WAIT} counts of PIT3 between two writes of step 0 "
+                                       f"(the least {min(g)})")
+        table = a.table
+        masked = {table[x] for x in DIM_LEDS + MID_LEDS}
+        others = [bit for bit in range(56) if bit not in masked]
+        check(all(TD.wave(a.qlog, x, end) == TD.wave(b.qlog, x, end) for x in others),
+              f"{tag}: the {len(others)} other LED bits (TRIG 12 at full among them): the same values at the same "
+              "instants as the stock OS")
+        for leds, on_ in ((DIM_LEDS, 1), (MID_LEDS, 2)):
+            allon, alloff, bad, dark = collections.Counter(), collections.Counter(), 0, []
+            for led in leds:
+                wa, wb = TD.wave(a.qlog, table[led], end), TD.wave(b.qlog, table[led], end)
+                bad += sum(1 for t0, t1, lit in wb if lit and TD.lit_time(wa, t0, t1) != t1 - t0)
+                for t0, t1, lit in wb[1:-1]:
+                    if TD.lit_time(wa, t0 - 3 * TD.CYCLE, t1 + 3 * TD.CYCLE) == t1 - t0 + 6 * TD.CYCLE:
+                        (allon if lit else alloff)[round((t1 - t0) / TD.CYCLE, 1)] += 1
+                for t0, t1, lit in wa[1:-1]:
+                    if not lit:
+                        run = [(u0, u1) for u0, u1, l_ in wb if not l_ and u0 <= t0 and u1 >= t1]
+                        dark.append(((t1 - t0) / TD.CYCLE, (run[0][1] - run[0][0]) / TD.CYCLE if run else None))
+            what = "dim" if on_ == 1 else "mid"
+            check(set(allon) == {float(on_)} and set(alloff) == {float(n - on_)} and sum(allon.values()) > 300
+                  and bad == 0 and all(m is not None and o <= m <= o + 2 * n for o, m in dark),
+                  f"{tag}: the {what} keys {leds}: lit {on_} cycle(s) of 1 ms, dark {n - on_} ({1000 / n:.0f} Hz, "
+                  f"{on_}/{n}) in steady state ({dict(allon)}, {dict(alloff)}); never lit when the stock OS has them "
+                  f"dark; the running light and the blink dark at least as long as on the stock OS "
+                  f"({[(round(o, 1), round(m, 1)) for o, m in dark if m is not None]} cycles)")
+        cost = [x for x in b.led0 if x[0]]
+        print(f"     finding: {tag}: a step 0 with k rows loaded costs at most {max(x[2] for x in cost) / TD.F_BUS * 1e6:.1f} "
+              f"us; {sum(x[2] for x in b.led0) / len(b.led0) / TD.F_BUS * 1e6:.1f} us a cycle on average while dimming")
+    r = panel_rig(img, runtime)                         # the interrupts' latency
+    set_masks(r, da, 4)
+    end = TD.timeline(r, 1.0, 23, PANEL_STATES, lat_us=20.0, blinks=False)
+    duty = {1: [], 2: []}
+    table = r.table
+    for leds, on_ in ((DIM_LEDS, 1), (MID_LEDS, 2)):
+        for led in leds:
+            w_ = TD.wave(r.qlog, table[led], end)
+            duty[on_] += [TD.lit_time(w_, t, t + TD.F_BUS // 10) / (TD.F_BUS // 10)
+                          for t in range(TD.F_BUS // 10, end - TD.F_BUS // 10, TD.F_BUS // 20)]
+    g = TD.gaps(r)
+    check(0.235 < min(duty[1]) and max(duty[1]) < 0.265 and 0.485 < min(duty[2]) and max(duty[2]) < 0.515
+          and min(g) >= TD.WAIT and not r.hazards,
+          f"{key}: interrupts 0 to 20 us late: dim {min(duty[1]):.3f}..{max(duty[1]):.3f}, mid {min(duty[2]):.3f}.."
+          f"{max(duty[2]):.3f} of the light over every 100 ms; writes at least {min(g)} counts apart")
+    r = panel_rig(img, runtime)                         # step 0 late: the counter reloads during the writes
+    set_masks(r, da, 4)
+    TD.timeline(r, 0.3, 29, PANEL_STATES, led0_lat=(80.0, 83.0), blinks=False)
+    g, wrapped = TD.gaps(r), sum(1 for ws in TD.led0_writes(r) if len(ws) > 2 and
+                                 (ws[-1][0] - r.phi3) // TD.P3 != (ws[0][0] - r.phi3) // TD.P3)
+    check(min(g) >= TD.WAIT and wrapped > 20 and not r.hazards,
+          f"{key}: step 0 80 to 83 us late: the counter reloaded during {wrapped} steps, the writes still at least "
+          f"{min(g)} counts apart")
+    r = panel_rig(img, runtime, frozen=True)            # a counter that stands still
+    set_masks(r, da, 4)
+    TD.timeline(r, 0.05, 31, PANEL_STATES)
+    with_k = [x for x in r.led0 if x[0]]
+    check(with_k and not r.regfail and all(x[3] == 3 * 64 * x[0] for x in with_k),
+          f"{key}: PIT3's counter standing still: every step 0 ends, 64 reads a wait "
+          f"({max(x[2] for x in with_k) / TD.F_BUS * 1e6:.0f} us modelled at most)")
+    out = {}
+    for name, im in (("stock", stock), ("build", img)):  # MACHINES let go: the masks cleared, the rows back
+        r = panel_rig(im, runtime if im is img else None)
+        if im is img:
+            set_masks(r, da, 4)
+        clear = [(0.3, lambda q: set_masks(q, da, 4, on=False))] if im is img else []
+        end = TD.timeline(r, 0.6, 37, PANEL_STATES, events=clear, blinks=False)
+        out[name] = (r, end)
+    (a, end), (b, _) = out["stock"], out["build"]
+    t_back = int(0.3 * TD.F_BUS) + 2 * TD.CYCLE      # the same timeline on both: the clear at 0.3 s, then 2 cycles
+
+    def after(w_):
+        return [(max(t0, t_back), t1, lit) for t0, t1, lit in w_ if t1 > t_back]
+    back = all(after(TD.wave(a.qlog, bit, end)) == after(TD.wave(b.qlog, bit, end)) for bit in range(56))
+    late = TD.led0_writes(b)[-50:]
+    check(back and all(len(ws) == 2 for ws in late) and b.uc.mem_read(da + DATA["dirty"], 1)[0] == 0,
+          f"{key}: the masks cleared (MACHINES let go): within 2 cycles every LED as on the stock OS, step 0 back to "
+          "[DIR, DATA], no row left dimmed")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cycles", required=True, help="official model-cycles_OS1.13.syx")
@@ -506,6 +717,8 @@ def main():
         print("7. MACHINES on every track")
         machines_tests("transpose", stock, alone, None)
         machines_tests("sampler+transpose", stock, *with_sample)
+        print("8. the dimming: the panel interrupt")
+        panel_tests("transpose", stock, alone)
     print("\nALL OK" if not t7.FAIL else f"\n{len(t7.FAIL)} FAILED: " + "; ".join(t7.FAIL[:6]))
     return 1 if t7.FAIL else 0
 

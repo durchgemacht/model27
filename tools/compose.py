@@ -1336,13 +1336,15 @@ def resample_layer(img, part, at, code_end, sample=0xff):
     return blob, out, writes, taken, info
 
 
-def transpose_layer(img, part, at, code_end, sc_data):
+def transpose_layer(img, part, at, code_end, sc_data, n=None):
     """Transpose of this build (tools/machines/transpose/, the plan of 2026-11-05): KeyboardView's key handler (its
     vtable +8, 0x400ff9cc) to the part's tr_keys, the keyboard's read of KBT (0x4001a164) to tr_kbt, the audio
     function's call of the smoother (0x400597a8) to tr_pitch and the LED frame's call of the views (0x40006a76) to
-    tr_frame. The data block after the part's code starts with the shortcut layer's data block's address (sc_data),
-    whose +0x13 the part marks when it acts; the rest, the values per track, is zero. Returns (blob, symbols, writes,
-    the sites taken, info)."""
+    tr_frame, and since its 0.2 the panel interrupt's LED step 0 (0x40059dea, 10 bytes) to tr_led. The data block after
+    the part's code starts with the shortcut layer's data block's address (sc_data), whose +0x13 the part marks when it
+    acts, and holds the dimming's period (n: 4 by default, part.json data n_value; another for a test build, never
+    offered); the rest, the values per track and the dimming's state, is zero. Returns (blob, symbols, writes, the
+    sites taken, info)."""
     d, sites = part["data"], part["sites"]
     path = object_path(part)
     if not path.is_file():
@@ -1357,6 +1359,10 @@ def transpose_layer(img, part, at, code_end, sc_data):
     code, syms, _ = relocate.apply(lay, at, at, code_end, {pp["symbol"]: values[pp["kind"]] for pp in pps})
     block = bytearray(d["size"])
     struct.pack_into(">I", block, d["sc"], sc_data)
+    period = d["n_value"] if n is None else n
+    if not 2 <= period <= 8:
+        sys.exit(f"!! Transpose's period: 2 to 8 cycles, not {period}")
+    block[d["n"]] = period
     blob = code + bytes(data_at - at - len(code)) + bytes(block)
     kv = sites["keys"]
     va, method = int(kv["vtable"], 16), int(kv["stock_ptr"], 16)
@@ -1364,17 +1370,20 @@ def transpose_layer(img, part, at, code_end, sc_data):
         sys.exit(f"!! references to {method:#x}: {[hex(r) for r in g7.refs32(img, method)]}")
     writes = [{"off": va - BASE, "old": g7.be32(method).hex(), "new": g7.be32(syms[kv["symbol"]]).hex()}]
     taken = {va}
-    for key in ("kbt", "pitch", "frame"):                 # jsr tr_kbt, jsr tr_pitch, jsr tr_frame
+    for key in ("kbt", "pitch", "frame", "led"):          # jsr tr_kbt, tr_pitch, tr_frame; jmp tr_led and two nops
         s = sites[key]
         va, old = int(s["at"], 16), bytes.fromhex(s["stock"])
         if img[va - BASE:va - BASE + len(old)] != old:
             sys.exit(f"!! {va:#x}: {old.hex()} expected, {img[va - BASE:va - BASE + len(old)].hex()} found")
-        op = {"jmp": "4ef9", "jsr": "4eb9"}[s["op"]]
-        writes.append({"off": va - BASE, "old": old.hex(), "new": (bytes.fromhex(op) + g7.be32(syms[s["symbol"]])).hex()})
+        new = bytes.fromhex({"jmp": "4ef9", "jsr": "4eb9"}[s["op"]]) + g7.be32(syms[s["symbol"]])
+        if (len(old) - len(new)) % 2 or len(old) < len(new):
+            sys.exit(f"!! {va:#x}: {len(old)} bytes for {len(new)}")
+        new += bytes.fromhex("4e71") * ((len(old) - len(new)) // 2)
+        writes.append({"off": va - BASE, "old": old.hex(), "new": new.hex()})
         taken.add(va)
     out = {r: syms[r] for r in roots}
     out.update({pp["symbol"]: values[pp["kind"]] for pp in pps})
-    info = dict(id=part["id"], code_at=at, code=len(code), data_at=data_at, data=d["size"], sc_data=sc_data)
+    info = dict(id=part["id"], code_at=at, code=len(code), data_at=data_at, data=d["size"], sc_data=sc_data, n=period)
     return blob, out, writes, taken, info
 
 
@@ -1497,7 +1506,7 @@ def computed_conflicts(writes, ram, declared, tweaks=None):
 
 
 def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime", compare_b1=False, against=None,
-            against_claims=None, diag_filters=False, cpu=False, resample=False, transpose=False):
+            against_claims=None, diag_filters=False, cpu=False, resample=False, transpose=False, transpose_n=None):
     """Builds the tweak for the machines named in ids, in that order. relocator: "python" places each
     package's committed object with tools/relocate.py (no toolchain), "ld" compiles and links it as B1 did;
     compare_ld does both and compares them byte for byte (the proof of the relocator). registrar: "runtime" writes
@@ -1509,7 +1518,8 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     notes/78), also without any package; the tweak's id then ends with "+cpu" (or is "cpu"). resample: with the RESAMPLE
     recorder (tools/machines/resample/), also without any package; the id then ends with "+resample". transpose: with
     Transpose (tools/machines/transpose/), also without any package, always with the shortcut layer, MACHINES a held
-    key on every track; the id then ends with "+transpose". Returns (tweak, info)."""
+    key on every track; the id then ends with "+transpose"; transpose_n: its dimming's period in cycles of 1 ms, a test
+    build's (default: the part's, 4). Returns (tweak, info)."""
     if not ids and not cpu and not resample and not transpose:
         sys.exit("!! name at least one package")
     if len(ids) != len(set(ids)):
@@ -1632,7 +1642,7 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
         trs = None                           # Transpose, with the shortcut layer's data block for its "used" byte
         if transpose:
             at = align4(code_cursor)
-            trs = transpose_layer(img, load_part("transpose"), at, gs.STUBS, layer[1]["sc_data"])
+            trs = transpose_layer(img, load_part("transpose"), at, gs.STUBS, layer[1]["sc_data"], transpose_n)
             blobs.append((at, trs[0]))
             code_cursor = at + len(trs[0])
         for m in mans:                       # a package's RAM claim must lie outside the payload
@@ -1789,7 +1799,8 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
         ti = trs[4]
         tweak["description"].insert(6, f"With Transpose (tools/machines/transpose/) at {ti['code_at']:#x}, its data at "
                                        f"{ti['data_at']:#x}: KeyboardView's keys (0x400ff9cc), its read of KBT "
-                                       f"(0x4001a164), the smoother's call (0x400597a8), the LED frame (0x40006a76); "
+                                       f"(0x4001a164), the smoother's call (0x400597a8), the LED frame (0x40006a76), "
+                                       f"the panel interrupt's LED step 0 (0x40059dea, a period of {ti['n']} ms); "
                                        f"the shortcut layer's data at {ti['sc_data']:#x}, MACHINES a held key on every track.")
         tweak["symbols"].update({k: f"{v:#x}" for k, v in trs[1].items()})
     info = dict(pay=pay, end=bss_cursor, image=sum(n for _, n in append["pack"]), packages=info_pkgs,
@@ -1889,6 +1900,8 @@ def main():
     ap.add_argument("--cpu", action="store_true", help="with the CPU page (notes/78), also without --machines")
     ap.add_argument("--resample", action="store_true", help="with the RESAMPLE recorder, also without --machines")
     ap.add_argument("--transpose", action="store_true", help="with Transpose (MACHINES + TRIG keys), also without --machines")
+    ap.add_argument("--transpose-n", type=int, default=None,
+                    help="Transpose's dimming period in ms (a test build; default the part's, 4), never offered")
     args = ap.parse_args()
     raw = pathlib.Path(args.cycles).read_bytes()
     img = g7.cycles_main(args.cycles)
@@ -1896,7 +1909,8 @@ def main():
         sys.exit("!! not the official MAIN OS 1.13")
     ids = [i.strip() for i in args.machines.split(",") if i.strip()]
     tweak, info = compose(img, ids, args.relocator, args.compare_ld, args.registrar, args.compare_b1,
-                          diag_filters=args.diag_filters, cpu=args.cpu, resample=args.resample, transpose=args.transpose)
+                          diag_filters=args.diag_filters, cpu=args.cpu, resample=args.resample, transpose=args.transpose,
+                          transpose_n=args.transpose_n)
     for p in info["packages"]:
         what = (f"effect {p['fx_id']} of the {p['slot']} slot" if p.get("slot")
                 else f"filter {p['filter_id']}" if p.get("filter_id")
@@ -1947,7 +1961,7 @@ def main():
     if info["transpose"]:
         p = info["transpose"]
         print(f"  {p['id']:12s} code {p['code']} bytes at {p['code_at']:#x}, data {p['data']} bytes at {p['data_at']:#x}, "
-              f"the shortcut layer's data at {p['sc_data']:#x}")
+              f"the shortcut layer's data at {p['sc_data']:#x}, a dimming period of {p['n']} ms")
     print(f"  tweak {tweak['id']}: {len(tweak['writes'])} writes, payload {info['pay']:#x}..{info['end']:#x}, "
           f"{info['image']} bytes added to the image, {len(tweak['conflicts'])} conflicts computed")
     ci = info["claims"]
