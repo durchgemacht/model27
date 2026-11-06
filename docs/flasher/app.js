@@ -2730,16 +2730,14 @@ const FEAT = {
   transpose: { label: "Transpose",
     short: "Plays the TRIG keys in other octaves and makes a track jump a fourth or a fifth.",
     desc: [
-      ["", "Press and hold [MACHINES] while you play the active track chromatically, outside GRID RECORDING mode. " +
-        "[TRIG 8], [TRIG 9], [TRIG 11], [TRIG 12], [TRIG 15] and [TRIG 16] light up."],
+      ["", "Press and hold [MACHINES] while you play the active track chromatically, outside GRID RECORDING mode."],
       ["Keyboard Transpose", "Press and hold [MACHINES] and press [TRIG 16]. The [TRIG] keys play an octave higher, " +
         "and two octaves higher after a second press. [TRIG 15] takes them down the same way. The key lights half for " +
         "one octave and fully for two. KBT in the TRACK SETUP menu stays as you set it."],
-      ["Transpose", "Press and hold [MACHINES] and press [TRIG 8], [TRIG 9], [TRIG 11] or [TRIG 12]. The track jumps " +
-        "at once, also while the pattern plays: [TRIG 8] a fifth down (7 semitones), [TRIG 9] a fourth down (5), " +
-        "[TRIG 11] a fourth up (5), [TRIG 12] a fifth up (7). The key of the jump lights fully, the others dim. Press " +
-        "it again to go back."],
-      ["[MACHINES]", "Let go of [MACHINES]. The MACHINES menu opens, unless you pressed one of the six keys."],
+      ["Transpose", "Press and hold [MACHINES] and press [TRIG 8/9/11/12]. The track jumps at once, also while " +
+        "the pattern plays: a fifth down, a fourth down, a fourth up or a fifth up, in that order (7, 5, 5 and 7 " +
+        "semitones). The key of the jump lights fully, the others dim. Press it again to go back."],
+      ["[MACHINES]", "Let go of [MACHINES]. The MACHINES menu opens, unless you used Keyboard Transpose or Transpose."],
       ["Patterns", "When you change patterns, the keys and the pitch go back. A temporary reload with [FUNC] + " +
         "[PATTERN], or a reload from the project with [FUNC] + [PATTERN] held, brings the pitch back; the keys keep " +
         "their octave. Nothing is saved, and the preset's PITCH stays as you set it."],
@@ -3084,7 +3082,7 @@ const KNOBS = ["LEVEL/DATA", "VOLUME + DIST", "DELAY TIME", "REVERB SIZE", "DELA
   "MAIN VOLUME", "PITCH", "DECAY", "COLOR", "SHAPE", "SWEEP", "CONTOUR", "SWING", "CHANCE"];
 const KNOB_RE = new RegExp("(^|[^A-Z/])(" + KNOBS.map((n) => esc(n).replace(/[+/]/g, "\\$&")).join("|") + ")(?![A-Z])", "g");
 function rich(s) {
-  return esc(s).split(/(\[[A-Z0-9][A-Z0-9 –-]*\])/).map((part, i) => i % 2
+  return esc(s).split(/(\[[A-Z0-9][A-Z0-9 /–-]*\])/).map((part, i) => i % 2
     ? `<kbd class="key">${part.slice(1, -1)}</kbd>`
     : part.replace(KNOB_RE, (m, pre, n) => `${pre}<span class="knob">${n}</span>`)).join("");
 }

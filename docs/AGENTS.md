@@ -94,10 +94,11 @@ mods, the guide, the rest.
 - **Where a thing lives, as the player sees it, not as the code stores it.** A Track FX is on a track (an insert
   effect), an effect on a pattern, a machine on a track. "preset" only where something is saved or loaded: the
   code keeps the Track FX in the sound record, but "each preset can have one Track FX" is wrong for the reader.
-- **Keys and knobs.** A key in brackets in the source: `[RETRIG]`, `[TRIG] key`, `[FUNC] + [MACHINES]`; the page
-  shows it as an inverted box, without the brackets. A knob or parameter in capitals: PITCH, SWEEP, LEVEL/DATA, DELAY
-  TIME, VOLUME + DIST; the page underlines the names in `KNOBS` with dashes. Both by `rich()` in `flasher/app.js`
-  (classes `key` and `knob`). Settings and machine names in capitals, unmarked: OFF, CHORD.
+- **Keys and knobs.** A key in brackets in the source: `[RETRIG]`, `[TRIG] key`, `[FUNC] + [MACHINES]`; the page shows
+  it as an inverted box, without the brackets. Keys to choose from share a box, with slashes: "press
+  `[TRIG 8/9/11/12]`", then what each does in that order. A knob or parameter in capitals: PITCH, SWEEP, LEVEL/DATA,
+  DELAY TIME, VOLUME + DIST; the page underlines the names in `KNOBS` with dashes. Both by `rich()` in
+  `flasher/app.js` (classes `key` and `knob`). Settings and machine names in capitals, unmarked: OFF, CHORD.
 - **One action per sentence.** It starts with the verb and names every key, the held keys first, in the order the
   hands move: "In GRID RECORDING mode, press and hold a [TRIG] key and [RETRIG], then turn the knob." Never leave a
   key for the reader to fill in ("…, LFO to make them …").
