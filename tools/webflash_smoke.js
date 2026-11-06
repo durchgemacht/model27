@@ -490,7 +490,7 @@ async function main() {
     // English only: no language switch; the cards by their names, their credits and guide links
     const names = [...doc.querySelectorAll("#features .nm")].map((e) => e.textContent);
     check(!doc.querySelector(".lang") && doc.documentElement.lang === "en" && /new tricks/.test(text(doc, "h1s"))
-      && names.join() === "SAMPLE,Digital Delay,POTS,Samples filter,Crush,Ring,Reso,EQ,RESAMPLE,Trig Preview,Trig Condition Order,Control All Config,Transpose,CPU Page"
+      && names.join() === "SAMPLE,Digital Delay,POTS,LP/HP Filter,Crush,Ring,Reso,EQ,RESAMPLE,Trig Preview,Trig Condition Order,Control All Config,Transpose,CPU Page"
       && /by drumkilla/.test(text(doc, "features")) && /by durchgemacht/.test(text(doc, "features"))
       && doc.querySelector('#features a[href$="#control-all"]') && doc.querySelector('#features a[href$="#sampler"]'),
       "English only, no language switch; the cards by their names: " + names.join());

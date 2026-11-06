@@ -252,7 +252,7 @@ window.MC_TWEAKS = {
   {
    "id": "sampler",
    "label": "SAMPLE machine (Cycles One-Shot)",
-   "desc": "One extra machine after Chord: a one-shot sampler for samples on the +Drive. Pick the sample in the PRESET browser (FUNC + MACHINE); it is saved with the sound. COLOR = Start, SHAPE = Length, SWEEP = the Model:Samples' filter (lowpass / off / highpass), CONTOUR = Reso; the main screen shows the waveform with the start and end marked.",
+   "desc": "One extra machine after Chord: a one-shot sampler for samples on the +Drive. Pick the sample in the PRESET browser (FUNC + MACHINE); it is saved with the sound. COLOR = Start, SHAPE = Length, SWEEP = a DJ-style filter (lowpass / off / highpass), CONTOUR = Reso; the main screen shows the waveform with the start and end marked.",
    "status": "tested",
    "credit": {
     "kind": "by",
@@ -292,8 +292,8 @@ window.MC_TWEAKS = {
   },
   {
    "id": "smpfilter",
-   "label": "Samples (filter)",
-   "desc": "The Model:Samples' filter on any track, after Volume + Dist: lowpass below the centre of Cutoff, highpass above, off in the middle, with resonance. Hold RETRIG and turn PITCH to give a sound the filter; RETRIG + SWEEP is Cutoff, RETRIG + CONTOUR is Reso, with p-locks, LFO and CC 74 / 71.",
+   "label": "LP/HP Filter",
+   "desc": "A DJ-style filter on any track, modelled on the filter of the Model:Samples, after Volume + Dist: lowpass below the centre of Cutoff, highpass above, off in the middle, with resonance. Hold RETRIG and turn PITCH to give a sound the filter; RETRIG + SWEEP is Cutoff, RETRIG + CONTOUR is Reso, with p-locks, LFO and CC 74 / 71.",
    "status": "tested",
    "credit": {
     "kind": "by",

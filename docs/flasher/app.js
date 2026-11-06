@@ -2641,8 +2641,8 @@ const FEAT = {
     ] },
   // The Track FX cards, as in Writing for users (docs/AGENTS.md): what the Track FX window says stays out; screen, the
   // name the screen shows, at the start of the card's short text (shortOf; none where it is the label)
-  smpfilter: { label: "Samples filter", screen: "SMP",
-    short: "The Model:Samples' filter: lowpass, off or highpass on one knob, with resonance.",
+  smpfilter: { label: "LP/HP Filter", screen: "SMP",
+    short: "A DJ-style filter: lowpass, off or highpass on one knob, with resonance.",
     desc: [
       ["SWEEP", "Sets the cutoff (CUTO). 0 is off. Turn left for a lowpass: the further, the darker, down to about 5 Hz " +
         "at -64. Turn right for a highpass: the further, the thinner, up to about 19 kHz at 63. (-64–63)"],
@@ -2815,7 +2815,7 @@ const FEAT = {
     desc: "An extra machine after Chord, always the last one (after the Sampler with Model-TG, then the Syntakt engines and MACRO if you tick them too): an acid bass in the style of the TB-303, from the open-source Open303 model by Robin Schmidt. COLOR is the cutoff, SHAPE the resonance, SWEEP the env mod, CONTOUR the drive (from clean to fuzz, at about the same volume) and DECAY the decay; PUNCH switches the wave from saw to square. A trig whose length (LEN) runs past the next trig slides into the next note instead of playing it again; a pad played while another is held slides too.",
     note: "About as heavy on the processor as Tone. Turn GATE on for notes that hold their whole length, as on the original. With the Syntakt engines, their load governor looks after ACID tracks too: a track it stopped plays its next note afresh, without sliding. A project using ACID needs a firmware with ACID at the same place: it is the last machine, so its number depends on Model-TG, the ticked Syntakt engines and MACRO." },
   sampler: { label: "SAMPLE",
-    short: "Plays samples from the +Drive, once or in a loop, forwards or backwards, through the Model:Samples' filter.",
+    short: "Plays samples from the +Drive, once or in a loop, forwards or backwards, through a DJ-style filter.",
     clash: "both add machines at the same place of the firmware, and there is no combined build with SAMPLE yet",
     "clash_model-tg": "both change the same sound record functions of the firmware",
     "clash_track-filter": "both change the same sound record functions of the firmware",
@@ -2828,8 +2828,8 @@ const FEAT = {
         "moves where the next time round starts. (0–120)"],
       ["SHAPE", "Sets how far a trig plays (LEN): to the start plus the length, at most to the sample's end. 120, the " +
         "default, plays to the end. The note that plays follows at once. (0–120)"],
-      ["SWEEP", "Sets the cutoff of the Model:Samples' filter (FREQ). 0, the default, is off. Turn left for a lowpass, " +
-        "right for a highpass. (-64–63)"],
+      ["SWEEP", "Sets the cutoff (FREQ) of a DJ-style filter, modelled on the filter of the Model:Samples. 0, the " +
+        "default, is off. Turn left for a lowpass, right for a highpass. (-64–63)"],
       ["CONTOUR", "Sets the filter's resonance (RESO), up to a peak of about +27 dB at the cutoff."],
       ["[MACHINES] + [PUNCH]", "Switches Loop on or off. The sample plays from its start point to the end, again and " +
         "again. The screen shows L after the sample's name."],

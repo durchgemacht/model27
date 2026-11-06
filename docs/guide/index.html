@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-11-06-03">
-<link rel="stylesheet" href="../assets/guide.css?v=2026-11-06-03">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-06-04">
+<link rel="stylesheet" href="../assets/guide.css?v=2026-11-06-04">
 <script>try{var t=localStorage.getItem("mc-theme")}catch(e){}if(t)document.documentElement.setAttribute("data-theme",t)</script>
 </head>
 <body data-page="guide">
@@ -43,7 +43,7 @@
         <li><a href="#sampler">SAMPLE</a></li>
         <li><a href="#digital-delay">Digital Delay</a></li>
         <li><a href="#pots">POTS</a></li>
-        <li><a href="#samples-filter">Samples filter</a></li>
+        <li><a href="#samples-filter">LP/HP Filter</a></li>
         <li><a href="#crush">Crush</a></li>
         <li><a href="#ring">Ring</a></li>
         <li><a href="#reso">Reso</a></li>
@@ -91,7 +91,7 @@
       <section id="sampler">
         <h2><span class="n">3</span>SAMPLE</h2>
         <p class="by">By <a href="https://github.com/durchgemacht/cycles-one-shot" target="_blank" rel="noopener">durchgemacht</a> · MIT license</p>
-        <p class="lede">One extra machine, SAMPLE, plays a sample from the +Drive once per trig or in a loop, forward or reverse, the way the Model:Samples does: 6-tap interpolation at 96 kHz, then the Model:Cycles' own decimator and amp chain, and the Model:Samples' filter. The sample is chosen in the PRESET browser and saved with the sound, so projects, kits, presets and sound locks keep it. It is the Cycles One-Shot machine, built here from its own code at version 0.15.</p>
+        <p class="lede">One extra machine, SAMPLE, plays a sample from the +Drive once per trig or in a loop, forward or reverse, the way the Model:Samples does: 6-tap interpolation at 96 kHz, then the Model:Cycles' own decimator and amp chain, and a DJ-style filter modelled on the filter of the Model:Samples. The sample is chosen in the PRESET browser and saved with the sound, so projects, kits, presets and sound locks keep it. It is the Cycles One-Shot machine, built here from its own code at version 0.15.</p>
         <ol>
           <li>Put samples on the +Drive first: with Elektron Transfer, or with the <a href="../uploader/">Uploader</a> in Chrome, Edge or Opera, which works with the official OS too. Samples left there by the Model:Samples OS work as they are.</li>
           <li>Press <b>MACHINES</b> and pick <b>SAMPLE</b>, the 7th machine, after Chord. Its icon is Tone's.</li>
@@ -109,7 +109,7 @@
             <tbody>
               <tr><th>COLOR</th><td>Start (STRT)</td><td>where the trig starts, 0 to 120 across the sample; moving it keeps the length. On a loop that plays, where the next time round starts</td></tr>
               <tr><th>SHAPE</th><td>Length (LEN)</td><td>how far it plays, 0 to 120: the trig ends at Start + Length, at most at the sample's end (120 plays to the end). The note that plays follows at once</td></tr>
-              <tr><th>SWEEP</th><td>Cutoff (FREQ)</td><td>the Model:Samples' filter: lowpass to the left (-64 closes it at 5 Hz), off at 0, highpass to the right (63 closes it at 19 kHz). The screen shows the Model:Samples' own picture of it</td></tr>
+              <tr><th>SWEEP</th><td>Cutoff (FREQ)</td><td>a DJ-style filter, modelled on the filter of the Model:Samples: lowpass to the left (-64 closes it at 5 Hz), off at 0, highpass to the right (63 closes it at 19 kHz). The screen shows the Model:Samples' own picture of it</td></tr>
               <tr><th>CONTOUR</th><td>Reso (RESO)</td><td>the filter's resonance, 0 to 127, up to a +27 dB peak at the cutoff, with the Model:Samples' picture</td></tr>
               <tr><th>MACHINES + PUNCH</th><td>L</td><td>Loop, on or off, at once</td></tr>
               <tr><th>MACHINES + GATE</th><td>R</td><td>Reverse, on or off, from the next trig</td></tr>
@@ -162,9 +162,9 @@
       </section>
 
       <section id="samples-filter">
-        <h2><span class="n">6</span>Samples filter</h2>
+        <h2><span class="n">6</span>LP/HP Filter</h2>
         <p class="by">model27's own, SAMPLE's filter from Cycles One-Shot · MIT license</p>
-        <p class="lede">The Model:Samples' filter on any track, after Volume + Dist: one knob from lowpass through off to highpass, with resonance. It is a Track FX: each sound chooses one, or none.</p>
+        <p class="lede">A DJ-style filter on any track, modelled on the filter of the Model:Samples, after Volume + Dist: one knob from lowpass through off to highpass, with resonance. It is a Track FX: each sound chooses one, or none.</p>
         <ol>
           <li>Hold <b>RETRIG</b> and turn <b>PITCH</b> to the right: after four detents the track's sound reads <b>SMP</b> instead of OFF (the popup is called Track FX). Four detents to the left switch it off again. With other Track FX ticked too, every four more detents to the right give the next one, in the order of the cards: <a href="#crush">CRU</a>, <a href="#ring">RNG</a>, <a href="#reso">RES</a>, <a href="#eq">EQ</a>; coming back from one of them, Samples starts with Cutoff and Reso at 0.</li>
           <li>Hold <b>RETRIG</b> and turn <b>SWEEP</b> for <b>Filter Cutoff</b>: from -64 to -1 a lowpass (-64 is the most closed), at 0 off, from 1 to 63 a highpass, as on SAMPLE. <b>RETRIG</b> + <b>CONTOUR</b> is <b>Filter Reso</b>.</li>
@@ -184,7 +184,7 @@
         <p class="by">model27's own · MIT license</p>
         <p class="lede">A lower sample rate and fewer bits on any track, after Volume + Dist: from a little grit down to a single bit. It is a Track FX: each sound chooses one, or none.</p>
         <ol>
-          <li>Hold <b>RETRIG</b> and turn <b>PITCH</b> to the right: every four detents the track's sound steps to the next Track FX: OFF, then the ones you ticked, in the order of the cards: <b>SMP</b> (the <a href="#samples-filter">Samples filter</a>), <b>CRU</b>, <b>RNG</b>, <b>RES</b>, <b>EQ</b>. To the left it steps back. Crush starts with Rate at 0 and Bits at 127, so nothing changes until you turn. Switching between two Track FX starts the new one at its start values; switching to OFF and back keeps them.</li>
+          <li>Hold <b>RETRIG</b> and turn <b>PITCH</b> to the right: every four detents the track's sound steps to the next Track FX: OFF, then the ones you ticked, in the order of the cards: <b>SMP</b> (the <a href="#samples-filter">LP/HP Filter</a>), <b>CRU</b>, <b>RNG</b>, <b>RES</b>, <b>EQ</b>. To the left it steps back. Crush starts with Rate at 0 and Bits at 127, so nothing changes until you turn. Switching between two Track FX starts the new one at its start values; switching to OFF and back keeps them.</li>
           <li>Hold <b>RETRIG</b> and turn <b>SWEEP</b> for <b>Crush Rate</b>: at 0 off. From 1 to 63 the sample rate drops with a hard hold, each sample held until the next: bright, metallic aliasing. From -1 to -64 it drops softer, the held samples joined by lines. At the ends about one sample in 60 is kept, around 800 Hz.</li>
           <li>Hold <b>RETRIG</b> and turn <b>CONTOUR</b> for <b>Crush Bits</b>: at 127 off, then to the left fewer and fewer bits, from 8 down to a single one at 0; quiet sounds fall silent first. Rate and Bits work together.</li>
           <li>Both are parameters like any other: hold a trig as well to lock them on that step, hold <b>LFO</b> as well to make them the LFO's destination (it reads RATE or BITS), hold <b>TRACK</b> as well to set them on all six tracks, or send CC 74 (Rate) and CC 71 (Bits).</li>
@@ -521,8 +521,8 @@
   </div>
 </footer>
 
-<script src="../assets/release.js?v=2026-11-06-03"></script>
-<script src="../assets/cycles.js?v=2026-11-06-03"></script>
-<script src="../assets/site.js?v=2026-11-06-03"></script>
+<script src="../assets/release.js?v=2026-11-06-04"></script>
+<script src="../assets/cycles.js?v=2026-11-06-04"></script>
+<script src="../assets/site.js?v=2026-11-06-04"></script>
 </body>
 </html>
