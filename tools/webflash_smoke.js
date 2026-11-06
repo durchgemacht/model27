@@ -434,10 +434,10 @@ async function main() {
     check(trAlone === "transpose" && trSmp === "sampler+transpose" && trAll === "sampler+cpu+resample+transpose"
       && trTp === "control-all-config,trig-preview,transpose" && trOn && !chosen().length
       && doc.querySelector('#grp-mod #feat-transpose') && doc.querySelector('#features a[href$="#transpose"]')
-      && doc.querySelectorAll('input[name="var-transpose"]').length === 0 && doc.querySelector("#mod-transpose .tag"),
+      && doc.querySelectorAll('input[name="var-transpose"]').length === 0 && !doc.querySelector("#mod-transpose .tag"),
       `Transpose alone ${trAlone}; with SAMPLE ${trSmp}, with the CPU page and RESAMPLE ${trAll}, one composed tweak; ` +
       `with Control All Config and Trig Preview ${trTp}, no clash; in Mods; no sub-choice; its guide link; ` +
-      `experimental, so tagged`);
+      `tested, so no tag`);
     const every = ["sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample", "transpose", "control-all-config", "trig-cond-order", "trig-preview"];
     for (const i of every) { box("feat-" + i).click(); await wait(5); }
     const fxAll = chosen();

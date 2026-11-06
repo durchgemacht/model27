@@ -24,7 +24,7 @@ together, so that a new machine fits next to the others. The rules a mod follows
 **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.5), written alongside.
 
 **Status: beta, release 0.51.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers fourteen
-cards, thirteen of them tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
+cards, all of them tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
 [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples on the +Drive,
 [Control All Config](https://github.com/durchgemacht/cycles-control-all-config), **Digital Delay**, the first
 effect: a second delay for the delay slot, chosen per pattern with PATTERN + Delay Time, based on the digital delay of
@@ -43,7 +43,7 @@ sweep and Low and High shelves. The twelfth, the **CPU page**, model27's own, it
 [Model-TG](https://github.com/TinyGregAudio/Model-TG)'s System page, shows in SETTINGS how much of the Model:Cycles'
 time the sound takes, with the Track FX' and the effects' shares. The thirteenth, **RESAMPLE**, model27's own, its page and its save built as Model-TG builds its own, records a track, the main mix or USB on a page
 opened with SETTINGS + RECORD and saves the take as a sample in /recordings, named in the stock name editor, ready for
-SAMPLE. The fourteenth, **Transpose** (experimental), model27's own: with MACHINES held, TRIG 15 and 16 move the notes
+SAMPLE. The fourteenth, **Transpose**, model27's own: with MACHINES held, TRIG 15 and 16 move the notes
 of the TRIG keys by octaves and TRIG 8, 9, 11 and 12 make the active track jump in pitch at once, the keys' lights
 dimmed to show it. The
 [guide](https://durchgemacht.github.io/model27/guide/) explains them. Combining machines is proven with two internal

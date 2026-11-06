@@ -388,7 +388,7 @@ window.MC_TWEAKS = {
    "id": "transpose",
    "label": "Transpose",
    "desc": "MACHINES + TRIG 15 / 16 move the TRIG keyboard an octave down / up, two at most; MACHINES + TRIG 8 / 9 / 11 / 12 make the active track's pitch jump -7 / -5 / +5 / +7 semitones, at once; the keys' LEDs dim, mid or full show it; the MACHINES menu opens on the release of MACHINES.",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "by",
     "who": "durchgemacht",

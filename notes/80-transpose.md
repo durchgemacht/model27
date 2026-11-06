@@ -10,8 +10,8 @@ with the shortcut layer (its 0.6), its tweak alone `81-transpose.json` (`tools/g
 `tools/emu/probe_transpose.py` and its proof `tools/emu/test_transpose.py`; the flasher's card Transpose (experimental).
 Addresses: VAs of the Model:Cycles OS 1.13 MAIN OS (base `0x40000400`); `[FAIT]` read in the code or proven in
 emulation, `[HYP]` to read or prove. The steps P0 to P3 are done (§5.1 to §5.4), and the part's 0.3 clears the jumps
-when the pattern is reloaded (§5.5); P4, the device test from the command line, passed (§6.1); next the flash from the
-page, then the card's status tested.
+when the pattern is reloaded (§5.5); P4, the device test from the command line, passed, and the card flashed from the
+live page: tested (§6.1, 2026-11-06).
 
 ## 1. What the player gets
 
@@ -295,8 +295,11 @@ PATTERN tapped: « Ja, passt » (the jump gone, the octave kept); then a jump (�
 « Ja, passt » (the jump gone, the octave kept). Step 8 (file C, all fourteen cards, the part's 0.2): « hatte mit all
 cards funktioniert ». Not repeated with file D: 0.3 changes only the reload's three calls, and the Unicorn run proved
 sections 2 to 8 again on 0.3.
-**Next (the maintainer's choice, 2026-11-06): as for the other cards, the status tested only after a flash from the
-page**: main brought up to `transpose`, pushed by the maintainer, the card flashed from the live page, then the flip.
+**As for the other cards, the status tested only after a flash from the page** (the maintainer's choice,
+2026-11-06): the texts as in Writing for users (`228922a`), main brought up to `transpose` and pushed by the
+maintainer (release 0.51 live), the card flashed from the live page: « ich habe es auch schon geflasht. passt ».
+**Tested on the Model:Cycles (2026-11-06).** The Details' two blocks then named after the features, Keyboard
+Transpose (TRIG 15 / 16) and Transpose (TRIG 8 / 9 / 11 / 12), at the maintainer's word.
 
 ## 7. Risks and limits
 

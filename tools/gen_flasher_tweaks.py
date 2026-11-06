@@ -509,8 +509,8 @@ ALL_FEATURES = [
         # model27's own (notes/80): the keys, the keyboard's octave on KBT, the jump after the smoother, the LEDs and
         # their dimming in the panel interrupt (the idea of djd_oz's dimmed trigless trigs, notes/45 §6, written anew)
         # proven in emulation; tried on the Model:Cycles from the command line on 2026-11-06 (notes/80 §6.1: SAMPLE
-        # alone, all fourteen cards, the reload's clearing of 0.3); experimental until flashed from the page
-        "status": "experimental",
+        # alone, all fourteen cards, the reload's clearing of 0.3), then tested the same day as this page builds it
+        "status": "tested",
         "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
         # a part composed in the page with the machines, effects, Track FX, the CPU page and RESAMPLE ticked, always
         # with the shortcut layer (MACHINES a held key on every track, its 0.6): alone it gives 81-transpose.json byte
