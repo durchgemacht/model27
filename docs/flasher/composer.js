@@ -381,7 +381,7 @@ function shortcutPresses(packages, part) {
 // GATE's presses call and MainScreenView's LED method; since the layer's 0.5 the pattern's p-lock rows in every build
 // with the layer (0x4005b998, 0x4005baca, 0x4005aa34; the filter slot's up to its 0.10); a package's wrapper over a
 // record function becomes the next of the chain and its write is left out. Returns { blob, symbols, writes, skip, info }.
-function shortcutLayer(mainOs, part, packages, symsOf, uses, at, codeEnd, first, descn) {
+function shortcutLayer(mainOs, part, packages, symsOf, uses, at, codeEnd, first, descn, every = false) {
   const d = part.data, sc = part.shortcut, sites = part.sites;
   if (packages.length > d.max_machines)
     throw new Error(`${packages.length} machines: the shortcut layer's tables hold ${d.max_machines}`);
@@ -425,6 +425,7 @@ function shortcutLayer(mainOs, part, packages, symsOf, uses, at, codeEnd, first,
   head[d.first] = first;
   head[d.count] = packages.length;
   presses.forEach((v, j) => { head[d.presses + j] = v; });
+  head[d.every] = every ? 1 : 0;                  // the layer's 0.6: MACHINES a held key on every track (Transpose)
   const data = concat(head, entries, ...[...addr.keys()].map(asciiz));
   if (dataAt + data.length > codeEnd) throw new Error(`the shortcut layer ends at ${hx(dataAt + data.length)}, past ${hx(codeEnd)}`);
   const { code, symbols } = placePart(part, at, codeEnd, { shortcut_data: dataAt });
@@ -465,7 +466,7 @@ function shortcutLayer(mainOs, part, packages, symsOf, uses, at, codeEnd, first,
   const switches = presses.reduce((n, v) => n + (v & 1) + ((v >> 1) & 1), 0);
   return { blob: concat(code, new Uint8Array(dataAt - at - code.length), data), symbols, writes, skip,
            info: { id: part.id, code_at: at, code: code.length, data_at: dataAt, data: data.length, shortcuts: uses.length,
-                   switches } };
+                   switches, every } };
 }
 
 // compose.dispatch_layer(): each point of the part that two or more packages take (their vtable entries, or their
@@ -744,6 +745,31 @@ function resampleLayer(mainOs, part, at, codeEnd, sample = 0xff) {
                    ring, conv, sample } };
 }
 
+// compose.transpose_layer(): Transpose, KeyboardView's key handler (its vtable +8, 0x400ff9cc) to tr_keys, the
+// keyboard's read of KBT (0x4001a164) to tr_kbt, the smoother's call (0x400597a8) to tr_pitch and the LED frame's call
+// of the views (0x40006a76) to tr_frame; its data block starts with the shortcut layer's data block's address.
+function transposeLayer(mainOs, part, at, codeEnd, scData) {
+  const d = part.data, sites = part.sites;
+  const dataAt = align4(at + part.bundle.code.length / 2);
+  if (dataAt + d.size > codeEnd) throw new Error(`Transpose ends at ${hx(dataAt + d.size)}, past ${hx(codeEnd)}`);
+  const { code, symbols } = placePart(part, at, codeEnd, { transpose_data: dataAt });
+  const block = new Uint8Array(d.size);
+  put32(block, d.sc, scData);
+  const kv = sites.keys, va = parseInt(kv.vtable, 16), method = parseInt(kv.stock_ptr, 16);
+  if (u32(mainOs, va - BASE) !== method) throw new Error(`${hx(va)}: not the stock entry ${hx(method)}`);
+  const writes = [{ off: va - BASE, old: hex(be32(method)), new: hex(be32(symbols[kv.symbol])) }], skip = new Set([va]);
+  for (const key of ["kbt", "pitch", "frame"]) {     // jsr tr_kbt, jsr tr_pitch, jsr tr_frame
+    const s = sites[key], at_ = parseInt(s.at, 16), old = fromHex(s.stock);
+    const here = hex(mainOs.subarray(at_ - BASE, at_ - BASE + old.length));
+    if (here !== hex(old)) throw new Error(`${hx(at_)}: ${hex(old)} expected, ${here} found`);
+    const op = { jmp: bytesOf(0x4e, 0xf9), jsr: bytesOf(0x4e, 0xb9) }[s.op];
+    writes.push({ off: at_ - BASE, old: hex(old), new: hex(concat(op, be32(symbols[s.symbol]))) });
+    skip.add(at_);
+  }
+  return { blob: concat(code, new Uint8Array(dataAt - at - code.length), block), symbols, writes, skip,
+           info: { id: part.id, code_at: at, code: code.length, data_at: dataAt, data: d.size, sc_data: scData } };
+}
+
 // compose.fl_cost(): six tracks on the dearest state of the dearest filter, from the filters' declared cost.emulation
 function flCost(filters) {
   const costs = Object.fromEntries(filters.map((p) => [p.id, Object.fromEntries(Object.entries(
@@ -938,8 +964,8 @@ function computedConflicts(writes, ram, declared, tweaks) {
 // tweak_claims), opts.cpu: with the CPU page (notes/78), opts.resample: with the RESAMPLE recorder (notes/79), each
 // also without any machine. Returns { tweak, info }.
 function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {}, opts = {}) {
-  const cpu = !!opts.cpu, resample = !!opts.resample;
-  if (!packages.length && !cpu && !resample) throw new Error("name at least one machine");
+  const cpu = !!opts.cpu, resample = !!opts.resample, transpose = !!opts.transpose;
+  if (!packages.length && !cpu && !resample && !transpose) throw new Error("name at least one machine");
   const ids = packages.map((p) => p.id);
   if (new Set(ids).size !== ids.length) throw new Error("a machine is named twice");
   const lay = frames.layout, pay = lay.pay, first = lay.first;
@@ -1006,13 +1032,14 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {},
     bssCursor = bssEnd;
   });
   let layer = null, dispatch = null;              // the shortcut layer, the dispatchers: in the builds that need them
-  if (packages.some((p) => p.uses.some((u) => u.point === "shortcut")) || filters.length) {   // and every filter build
+  if (packages.some((p) => p.uses.some((u) => u.point === "shortcut")) || filters.length || transpose) {   // and every
+    // filter build, and with Transpose
     if (!parts.shortcuts) throw new Error("a machine declares a shortcut, and the page lacks the shortcut layer");
     if (filters.length && shortcutUses(table, parts.shortcuts).length)    // the key map's rule R1
       throw new Error(`${filters.map((p) => p.id).join(", ")} and a machine's value on MACHINES + a knob: a build has either filters or a machine's knob values, both live in k 28..31`);
     const at = align4(codeCursor);
     layer = shortcutLayer(mainOs, parts.shortcuts, table, symsOf, shortcutUses(table, parts.shortcuts), at,
-                          lay.stubs, tabFirst, added.length ? lay.descn : frames.stock.desc);
+                          lay.stubs, tabFirst, added.length ? lay.descn : frames.stock.desc, transpose);
     blobs.push([at, layer.blob]);
     codeCursor = at + layer.blob.length;
   }
@@ -1067,6 +1094,14 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {},
     blobs.push([at, rss.blob]);
     codeCursor = at + rss.blob.length;
   }
+  let trs = null;                                 // Transpose, with the shortcut layer's data block for its "used" byte
+  if (transpose) {
+    if (!parts.transpose) throw new Error("Transpose is ticked, and the page lacks its part");
+    const at = align4(codeCursor);
+    trs = transposeLayer(mainOs, parts.transpose, at, lay.stubs, layer.symbols.sc_data);
+    blobs.push([at, trs.blob]);
+    codeCursor = at + trs.blob.length;
+  }
   for (const p of packages)                       // a package's RAM claim must lie outside the payload
     for (const [lo, hi] of ramClaims(p))
       if (lo < bssCursor && pay < hi)
@@ -1083,13 +1118,14 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {},
   const { writes, append } = machines.length ? fill(frameOf(frames, machines.length), mainOs, machines, blobs, bssCursor)
     : fillAlone(frameOf(frames, 0), mainOs, blobs, bssCursor);
   const skip = new Set([...(layer ? layer.skip : []), ...(dispatch ? dispatch.skip : []), ...(fxs ? fxs.skip : []),
-                        ...(fl ? fl.skip : []), ...(cpus ? cpus.skip : []), ...(rss ? rss.skip : [])]);
+                        ...(fl ? fl.skip : []), ...(cpus ? cpus.skip : []), ...(rss ? rss.skip : []),
+                        ...(trs ? trs.skip : [])]);
   for (const p of packages) writes.push(...packageWrites(p, mainOs, symsOf[p.id], skip));
-  for (const x of [layer, dispatch, fxs, fl, cpus, rss]) if (x) writes.push(...x.writes);
+  for (const x of [layer, dispatch, fxs, fl, cpus, rss, trs]) if (x) writes.push(...x.writes);
   writes.sort((a, b) => a.off - b.off);
   checkOverlaps(writes);
   const ram = [[pay, bssCursor]].concat(...packages.map(ramClaims), rss ? [rss.info.ram] : []);
-  const tid = ids.concat(cpu ? ["cpu"] : [], resample ? ["resample"] : []).join("+");
+  const tid = ids.concat(cpu ? ["cpu"] : [], resample ? ["resample"] : [], transpose ? ["transpose"] : []).join("+");
   const declared = packages.flatMap((p) => p.conflicts_declared || [])
     .concat(layer ? parts.shortcuts.conflicts_declared || [] : []);   // none since notes/65 C2: computed
   const holders = buildHolders(packages, layer ? parts.shortcuts : null);       // notes/65: the claims
@@ -1100,6 +1136,7 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {},
     holders.push([parts.fltslot.id, flc, flc, true]);
   }
   if (rss) holders.push([parts.resample.id, parts.resample.claims || {}, parts.resample.claims || {}, true]);
+  if (trs) holders.push([parts.transpose.id, parts.transpose.claims || {}, parts.transpose.claims || {}, true]);
   const flLoad = fl ? flCost(filters) : {};
   if ((flLoad.steady || 0) > FX_REFUSE)            // the effects' rule (notes/68 §17), for six tracks on the dearest filter
     throw new Error(`the filters: ${flLoad.dearest} on six tracks costs ${flLoad.steady} instructions a block `
@@ -1119,26 +1156,29 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {},
   const symbols = {};
   for (const p of packages)
     for (const k of [p.symbols.update, p.symbols.render, ...(p.keep || [])]) symbols[k] = hx(symsOf[p.id][k]);
-  for (const x of [layer, dispatch, fxs, fl, cpus, rss])
+  for (const x of [layer, dispatch, fxs, fl, cpus, rss, trs])
     if (x) for (const [k, v] of Object.entries(x.symbols)) symbols[k] = hx(v);
   for (const [point, [a]] of Object.entries(lines)) symbols[`fx_line_${point.slice(3)}`] = hx(a);
   const tweak = {
     id: tid,
     order: Math.min(...packages.map((p) => p.order), ...(cpu ? [parts.cpu.order] : []),
-                    ...(resample ? [parts.resample.order] : [])),
-    name: packages.map((p) => p.name).concat(cpu ? ["CPU page"] : [], resample ? ["RESAMPLE"] : []).join(" + "),
+                    ...(resample ? [parts.resample.order] : []), ...(transpose ? [parts.transpose.order] : [])),
+    name: packages.map((p) => p.name).concat(cpu ? ["CPU page"] : [], resample ? ["RESAMPLE"] : [],
+                                             transpose ? ["Transpose"] : []).join(" + "),
     description: [`Composed in the browser by composer.js (notes/61): ${info.map((x) => (x.extends
       ? `${x.id} extending ${x.extends} (machine ${x.index})` : x.slot ? `${x.id} in the ${x.slot} slot (effect ${x.fx_id})`
         : x.filter_id ? `${x.id} as filter ${x.filter_id}`
         : `${x.id} as machine ${x.index}`)).join(", ")}, `
       + (machines.length ? "registered together through the registrar runtime"
         : "nothing registered (no added machine, notes/66 §3)") + (cpu ? ", with the CPU page (notes/78)" : "")
-      + (resample ? ", with the RESAMPLE recorder (notes/79)" : "") + ", as tools/compose.py composes them."],
+      + (resample ? ", with the RESAMPLE recorder (notes/79)" : "") + (transpose ? ", with Transpose" : "")
+      + ", as tools/compose.py composes them."],
     device: "Model:Cycles",
     os: "1.13",
     section: 3,
     version: packages.map((p) => p.version).concat(cpu ? [parts.cpu.version] : [],
-                                                    resample ? [parts.resample.version] : []).join("+"),
+                                                    resample ? [parts.resample.version] : [],
+                                                    transpose ? [parts.transpose.version] : []).join("+"),
     conflicts,
     writes,
     append,
@@ -1147,11 +1187,12 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {},
   return { tweak, info: { pay, end: bssCursor, image: append.pack.reduce((s, [, k]) => s + k, 0), packages: info,
                           part: layer && layer.info, dispatch: dispatch && dispatch.info, fx: fxs && fxs.info,
                           fx_lines: lines, fx_load: load, filters: fl && fl.info, fl_load: flLoad, cpu: cpus && cpus.info,
-                          resample: rss && rss.info, byClaims } };
+                          resample: rss && rss.info, transpose: trs && trs.info, byClaims } };
 }
 
 const API = { place, frameOf, fill, fillAlone, segments, bootStub, parameterBlock, packageWrites, shortcutUses,
-              shortcutPresses, shortcutLayer, dispatchLayer, fxLayer, fxCost, flLayer, flCost, cpuLayer, resampleLayer, narrowed, computedConflicts, resolveClaims,
+              shortcutPresses, shortcutLayer, dispatchLayer, fxLayer, fxCost, flLayer, flCost, cpuLayer, resampleLayer,
+              transposeLayer, narrowed, computedConflicts, resolveClaims,
               claimClashes, buildHolders, checkBuildClaims, claimConflicts, compose, fromHex, FX_WARN, FX_PEAK_WARN };
 if (typeof module !== "undefined" && module.exports) module.exports = API;
 if (typeof window !== "undefined") window.MCComposer = API;

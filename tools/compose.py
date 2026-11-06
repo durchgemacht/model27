@@ -865,7 +865,7 @@ def shortcut_presses(mans, part):
     return out
 
 
-def shortcut_layer(img, part, mans, syms_of, uses, at, code_end, first, descn=None):
+def shortcut_layer(img, part, mans, syms_of, uses, at, code_end, first, descn=None, every=False):
     """The shortcut layer of this build (notes/63 §3, B4b): the part's committed object placed at at, its data block
     right after its code, the knob lookup's vtable entry and the three sound record functions jumping into it, and
     when a machine declares a press (§16), the function PUNCH's and GATE's presses call and MainScreenView's LED
@@ -873,8 +873,9 @@ def shortcut_layer(img, part, mans, syms_of, uses, at, code_end, first, descn=No
     and 0x4005baca, and the index -> k step 0x4005aa34; the filter slot's up to its 0.10, notes/63 §25), in every build
     with the layer. A package's own hook on a record function, a wrapper over the same 8 bytes (SAMPLE's), becomes the next of
     the chain and its write is left out. descn: the descriptor table the OS uses, the registrar's moved copy by
-    default, the stock table in a build without an added machine (notes/66 §3). Returns (blob, symbols, writes, the
-    sites left out, info)."""
+    default, the stock table in a build without an added machine (notes/66 §3). every: MACHINES a held key on every
+    track (the layer's 0.6, a build with Transpose: bit 0 of the data block's every byte). Returns (blob, symbols,
+    writes, the sites left out, info)."""
     b, d, sc, sites = part["build"], part["data"], part["shortcut"], part["sites"]
     if len(mans) > d["max_machines"]:
         sys.exit(f"!! {len(mans)} machines: the shortcut layer's tables hold {d['max_machines']}")
@@ -924,6 +925,7 @@ def shortcut_layer(img, part, mans, syms_of, uses, at, code_end, first, descn=No
     struct.pack_into(">I", head, d["descn"], gs.DESCN if descn is None else descn)
     head[d["first"]], head[d["count"]] = first, len(mans)
     head[d["presses"]:d["presses"] + len(presses)] = bytes(presses)
+    head[d["every"]] = 1 if every else 0
     data = bytes(head + entries + strings)
     if data_at + len(data) > code_end:
         sys.exit(f"!! the shortcut layer ends at {data_at + len(data):#x}, past {code_end:#x}")
@@ -974,7 +976,7 @@ def shortcut_layer(img, part, mans, syms_of, uses, at, code_end, first, descn=No
     out = {r: syms[r] for r in roots}
     out.update({pp["symbol"]: values[pp["kind"]] for pp in b["patch_points"]})
     info = dict(id=part["id"], code_at=at, code=len(code), data_at=data_at, data=len(data), shortcuts=len(uses),
-                switches=sum(bin(x).count("1") for x in presses), chained=[f"{n:#x}" for n in nexts])
+                switches=sum(bin(x).count("1") for x in presses), chained=[f"{n:#x}" for n in nexts], every=every)
     return blob, out, writes, skip, info
 
 
@@ -1334,6 +1336,48 @@ def resample_layer(img, part, at, code_end, sample=0xff):
     return blob, out, writes, taken, info
 
 
+def transpose_layer(img, part, at, code_end, sc_data):
+    """Transpose of this build (tools/machines/transpose/, the plan of 2026-11-05): KeyboardView's key handler (its
+    vtable +8, 0x400ff9cc) to the part's tr_keys, the keyboard's read of KBT (0x4001a164) to tr_kbt, the audio
+    function's call of the smoother (0x400597a8) to tr_pitch and the LED frame's call of the views (0x40006a76) to
+    tr_frame. The data block after the part's code starts with the shortcut layer's data block's address (sc_data),
+    whose +0x13 the part marks when it acts; the rest, the values per track, is zero. Returns (blob, symbols, writes,
+    the sites taken, info)."""
+    d, sites = part["data"], part["sites"]
+    path = object_path(part)
+    if not path.is_file():
+        sys.exit(f"!! {path} is missing: run tools/gen_parts.py")
+    roots = part["build"]["roots"]
+    lay = relocate.layout(path.read_bytes(), roots[0], roots[1], roots[2:], part["id"])
+    data_at = align4(at + len(lay["code"]))
+    if data_at + d["size"] > code_end:
+        sys.exit(f"!! Transpose ends at {data_at + d['size']:#x}, past {code_end:#x}")
+    values = {"transpose_data": data_at}
+    pps = part["build"]["patch_points"]
+    code, syms, _ = relocate.apply(lay, at, at, code_end, {pp["symbol"]: values[pp["kind"]] for pp in pps})
+    block = bytearray(d["size"])
+    struct.pack_into(">I", block, d["sc"], sc_data)
+    blob = code + bytes(data_at - at - len(code)) + bytes(block)
+    kv = sites["keys"]
+    va, method = int(kv["vtable"], 16), int(kv["stock_ptr"], 16)
+    if g7.refs32(img, method) != [va]:
+        sys.exit(f"!! references to {method:#x}: {[hex(r) for r in g7.refs32(img, method)]}")
+    writes = [{"off": va - BASE, "old": g7.be32(method).hex(), "new": g7.be32(syms[kv["symbol"]]).hex()}]
+    taken = {va}
+    for key in ("kbt", "pitch", "frame"):                 # jsr tr_kbt, jsr tr_pitch, jsr tr_frame
+        s = sites[key]
+        va, old = int(s["at"], 16), bytes.fromhex(s["stock"])
+        if img[va - BASE:va - BASE + len(old)] != old:
+            sys.exit(f"!! {va:#x}: {old.hex()} expected, {img[va - BASE:va - BASE + len(old)].hex()} found")
+        op = {"jmp": "4ef9", "jsr": "4eb9"}[s["op"]]
+        writes.append({"off": va - BASE, "old": old.hex(), "new": (bytes.fromhex(op) + g7.be32(syms[s["symbol"]])).hex()})
+        taken.add(va)
+    out = {r: syms[r] for r in roots}
+    out.update({pp["symbol"]: values[pp["kind"]] for pp in pps})
+    info = dict(id=part["id"], code_at=at, code=len(code), data_at=data_at, data=d["size"], sc_data=sc_data)
+    return blob, out, writes, taken, info
+
+
 def fl_cost(filters):
     """The filter slot's load, from the filters' declared cost.emulation (instructions per track and block): six
     tracks on the dearest state of the dearest filter, {dearest, steady, share}, or {missing: [ids]} when a filter
@@ -1453,7 +1497,7 @@ def computed_conflicts(writes, ram, declared, tweaks=None):
 
 
 def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime", compare_b1=False, against=None,
-            against_claims=None, diag_filters=False, cpu=False, resample=False):
+            against_claims=None, diag_filters=False, cpu=False, resample=False, transpose=False):
     """Builds the tweak for the machines named in ids, in that order. relocator: "python" places each
     package's committed object with tools/relocate.py (no toolchain), "ld" compiles and links it as B1 did;
     compare_ld does both and compares them byte for byte (the proof of the relocator). registrar: "runtime" writes
@@ -1463,9 +1507,10 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     {id: claims} (default: the folder's, tools/claims.py.tweak_claims). diag_filters: a measuring build of the filter
     slot (its popups show the filters' load, fltslot 0.5), never offered. cpu: with the CPU page (tools/machines/cpu/,
     notes/78), also without any package; the tweak's id then ends with "+cpu" (or is "cpu"). resample: with the RESAMPLE
-    recorder (tools/machines/resample/), also without any package; the id then ends with "+resample". Returns (tweak,
-    info)."""
-    if not ids and not cpu and not resample:
+    recorder (tools/machines/resample/), also without any package; the id then ends with "+resample". transpose: with
+    Transpose (tools/machines/transpose/), also without any package, always with the shortcut layer, MACHINES a held
+    key on every track; the id then ends with "+transpose". Returns (tweak, info)."""
+    if not ids and not cpu and not resample and not transpose:
         sys.exit("!! name at least one package")
     if len(ids) != len(set(ids)):
         sys.exit("!! a package is named twice")
@@ -1534,7 +1579,8 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                                   code_at=code_at, code=len(blob), bss_at=bss_at, bss=bss_end - bss_at))
             code_cursor, bss_cursor = code_at + len(blob), bss_end
         layer, part = None, None             # the shortcut layer, in the builds whose machines declare a shortcut
-        if any(u["point"] == "shortcut" for m in mans for u in m["uses"]) or filters:   # and in every filter build
+        if any(u["point"] == "shortcut" for m in mans for u in m["uses"]) or filters or transpose:   # and in every
+            # filter build, and with Transpose
             part = load_part("shortcuts")
             if filters and shortcut_uses(table, part):   # the key map's rule R1: k 28..31 hold one meaning
                 sys.exit(f"!! {', '.join(m['id'] for m in filters)} and a machine's value on MACHINES + a knob "
@@ -1542,7 +1588,7 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                          "a build has either filters or a machine's knob values, both live in k 28..31")
             at = align4(code_cursor)
             layer = shortcut_layer(img, part, table, syms_of, shortcut_uses(table, part), at, gs.STUBS, tab_first,
-                                   gs.DESCN if added else g7.DESC)
+                                   gs.DESCN if added else g7.DESC, every=transpose)
             blobs.append((at, layer[0]))
             code_cursor = at + len(layer[0])
         dispatch = None                      # the dispatchers, in the builds where two packages take one point
@@ -1583,6 +1629,12 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             rss = resample_layer(img, load_part("resample"), at, gs.STUBS, sample)
             blobs.append((at, rss[0]))
             code_cursor = at + len(rss[0])
+        trs = None                           # Transpose, with the shortcut layer's data block for its "used" byte
+        if transpose:
+            at = align4(code_cursor)
+            trs = transpose_layer(img, load_part("transpose"), at, gs.STUBS, layer[1]["sc_data"])
+            blobs.append((at, trs[0]))
+            code_cursor = at + len(trs[0])
         for m in mans:                       # a package's RAM claim must lie outside the payload
             for lo, hi in ram_claims(m):
                 if lo < bss_cursor and pay < hi:
@@ -1612,10 +1664,11 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             else:
                 writes, append = writes1, append1
     skip = ((layer[3] if layer else set()) | (dispatch[3] if dispatch else set()) | (fxs[3] if fxs else set())
-            | (fls[3] if fls else set()) | (cpus[3] if cpus else set()) | (rss[3] if rss else set()))
+            | (fls[3] if fls else set()) | (cpus[3] if cpus else set()) | (rss[3] if rss else set())
+            | (trs[3] if trs else set()))
     for m in mans:
         writes += package_writes(m, img, syms_of[m["id"]], skip)
-    for extra in (layer, dispatch, fxs, fls, cpus, rss):
+    for extra in (layer, dispatch, fxs, fls, cpus, rss, trs):
         if extra:
             writes += extra[2]
     writes.sort(key=lambda x: x["off"])
@@ -1626,7 +1679,7 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     declared = {c["with"] for m in mans for c in m.get("compat", {}).get("conflicts_declared", [])}
     if layer:                                # what the shortcut layer declares (none since notes/65 C2: computed)
         declared |= {c["with"] for c in part.get("conflicts_declared", [])}
-    tid = "+".join(ids + (["cpu"] if cpu else []) + (["resample"] if resample else []))
+    tid = "+".join(ids + (["cpu"] if cpu else []) + (["resample"] if resample else []) + (["transpose"] if transpose else []))
     holders = cl.build_holders(mans, part if layer else None)    # notes/65: the claims, rules 2 and 3
     if fxs:                                  # the effect slots' claims (the pattern header's bytes, notes/68 §14)
         fxc = cl.part_claims(load_part("fxslot"))
@@ -1639,6 +1692,9 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     if rss:                                  # the recorder's claims (its RAM)
         rsc = cl.part_claims(load_part("resample"))
         holders.append(("resample", rsc, rsc, True))
+    if trs:                                  # Transpose's claims (MACHINES + TRIG keys in keyboard mode)
+        trc = cl.part_claims(load_part("transpose"))
+        holders.append(("transpose", trc, trc, True))
     load = fx_cost(effects, load_part("fxslot")) if fxs else {}
     for point, c in load.items():             # notes/68 §17: a slot's dearest effect past FX_REFUSE is refused
         if c.get("steady", 0) > FX_REFUSE:
@@ -1659,9 +1715,10 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     conflicts = (by_bytes | declared | set(by_claims)) - {tid}
     tweak = {
         "id": tid,
-        "order": min([m["order"] for m in mans] + [load_part(p)["order"] for p, on in (("cpu", cpu), ("resample", resample))
-                                                    if on]),
-        "name": " + ".join([m["name"] for m in mans] + (["CPU page"] if cpu else []) + (["RESAMPLE"] if resample else [])),
+        "order": min([m["order"] for m in mans] + [load_part(p)["order"] for p, on in (("cpu", cpu), ("resample", resample),
+                                                                                       ("transpose", transpose)) if on]),
+        "name": " + ".join([m["name"] for m in mans] + (["CPU page"] if cpu else []) + (["RESAMPLE"] if resample else [])
+                           + (["Transpose"] if transpose else [])),
         "description": [
             f"Composed by tools/compose.py (notes/59): {', '.join(placed(p) for p in info_pkgs) or 'no package'},",
         ] + ([
@@ -1675,12 +1732,14 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             "Conflicts computed from the other tweaks: other bytes at the same address, a payload in this build's",
             "payload or in a claimed RAM range, or declared claims that clash (tools/claims.py, notes/65).",
         ] + [f"{m['id']}: {m['name']}" for m in mans] + ([f"cpu: {load_part('cpu')['name']}"] if cpu else [])
-          + ([f"resample: {load_part('resample')['name']}"] if resample else []),
+          + ([f"resample: {load_part('resample')['name']}"] if resample else [])
+          + ([f"transpose: {load_part('transpose')['name']}"] if transpose else []),
         "device": "Model:Cycles",
         "os": "1.13",
         "section": 3,
         "version": "+".join([m["version"] for m in mans] + ([load_part("cpu")["version"]] if cpu else [])
-                            + ([load_part("resample")["version"]] if resample else [])),
+                            + ([load_part("resample")["version"]] if resample else [])
+                            + ([load_part("transpose")["version"]] if transpose else [])),
         "conflicts": sorted(conflicts),
         "writes": writes,
         "append": append,
@@ -1726,10 +1785,18 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                                        f"{ri['buf']:#x}..{ri['conv']:#x} ({ri['cap']} words), the save's 32 KiB at "
                                        f"{ri['conv']:#x}, the ring at {ri['ring']:#x}.")
         tweak["symbols"].update({k: f"{v:#x}" for k, v in rss[1].items()})
+    if trs:
+        ti = trs[4]
+        tweak["description"].insert(6, f"With Transpose (tools/machines/transpose/) at {ti['code_at']:#x}, its data at "
+                                       f"{ti['data_at']:#x}: KeyboardView's keys (0x400ff9cc), its read of KBT "
+                                       f"(0x4001a164), the smoother's call (0x400597a8), the LED frame (0x40006a76); "
+                                       f"the shortcut layer's data at {ti['sc_data']:#x}, MACHINES a held key on every track.")
+        tweak["symbols"].update({k: f"{v:#x}" for k, v in trs[1].items()})
     info = dict(pay=pay, end=bss_cursor, image=sum(n for _, n in append["pack"]), packages=info_pkgs,
                 part=layer[4] if layer else None, dispatch=dispatch[4] if dispatch else None,
                 fx=fxs[4] if fxs else None, fx_lines=lines, fx_load=load, filters=fls[4] if fls else None,
                 fl_load=fl_load, cpu=cpus[4] if cpus else None, resample=rss[4] if rss else None,
+                transpose=trs[4] if trs else None,
                 claims=dict(by_claims={i: w for i, w in sorted(by_claims.items()) if i != tid},
                             declared_only=sorted(declared - by_bytes - set(by_claims) - {tid}),
                             views=cl.claim_views(holders, others)))
@@ -1821,6 +1888,7 @@ def main():
                     help="a measuring build: Filter Cutoff's popup shows the filters' average load, the type's the peak")
     ap.add_argument("--cpu", action="store_true", help="with the CPU page (notes/78), also without --machines")
     ap.add_argument("--resample", action="store_true", help="with the RESAMPLE recorder, also without --machines")
+    ap.add_argument("--transpose", action="store_true", help="with Transpose (MACHINES + TRIG keys), also without --machines")
     args = ap.parse_args()
     raw = pathlib.Path(args.cycles).read_bytes()
     img = g7.cycles_main(args.cycles)
@@ -1828,7 +1896,7 @@ def main():
         sys.exit("!! not the official MAIN OS 1.13")
     ids = [i.strip() for i in args.machines.split(",") if i.strip()]
     tweak, info = compose(img, ids, args.relocator, args.compare_ld, args.registrar, args.compare_b1,
-                          diag_filters=args.diag_filters, cpu=args.cpu, resample=args.resample)
+                          diag_filters=args.diag_filters, cpu=args.cpu, resample=args.resample, transpose=args.transpose)
     for p in info["packages"]:
         what = (f"effect {p['fx_id']} of the {p['slot']} slot" if p.get("slot")
                 else f"filter {p['filter_id']}" if p.get("filter_id")
@@ -1876,6 +1944,10 @@ def main():
         print(f"  {p['id']:12s} code {p['code']} bytes at {p['code_at']:#x}, data {p['data']} bytes at {p['data_at']:#x}, "
               f"the take in {p['buf']:#x}..{p['conv']:#x} ({p['cap']} words), the save's 32 KiB after it, the ring at "
               f"{p['ring']:#x}")
+    if info["transpose"]:
+        p = info["transpose"]
+        print(f"  {p['id']:12s} code {p['code']} bytes at {p['code_at']:#x}, data {p['data']} bytes at {p['data_at']:#x}, "
+              f"the shortcut layer's data at {p['sc_data']:#x}")
     print(f"  tweak {tweak['id']}: {len(tweak['writes'])} writes, payload {info['pay']:#x}..{info['end']:#x}, "
           f"{info['image']} bytes added to the image, {len(tweak['conflicts'])} conflicts computed")
     ci = info["claims"]

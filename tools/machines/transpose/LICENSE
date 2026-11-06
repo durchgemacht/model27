@@ -1,0 +1,30 @@
+MIT License
+
+Copyright (c) 2026 durchgemacht and Claude
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+The device configuration row (cpu_cfg, cpu_add_row, cpu_lab, cpu_nop in
+entries.S) and the page's mechanics (cpu_open, cpu_key and the page's
+destructors and encoder handler: the stock machine-select page with a private
+copy of its vtables, presented as the stock opener presents a page) follow
+Model-TG's System page (https://github.com/TinyGregAudio/Model-TG,
+src/model_tg.s: cfg_hook, lm_add_row, gm_lab, sys_nop, mm_open, mm_key,
+mm_enc): Copyright (c) 2026 TinyGregAudio, MIT License, its text in
+tweaks/model-cycles_OS1.13/LICENSE-Model-TG.

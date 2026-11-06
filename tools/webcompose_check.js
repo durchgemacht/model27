@@ -36,11 +36,11 @@ if (process.argv[3]) {
   const mainOs = B.mainOsOf(raw, ref2.device);
   ok = ok && ref2.cases.length > 0;
   for (const c of ref2.cases) {
-    const label = c.ids.concat(c.cpu ? ["cpu"] : [], c.resample ? ["resample"] : []).join("+")
+    const label = c.ids.concat(c.cpu ? ["cpu"] : [], c.resample ? ["resample"] : [], c.transpose ? ["transpose"] : []).join("+")
       + c.with.map((w) => ` + ${w}`).join("");
     try {
       const { tweak } = C.compose(mainOs, ref2.frames, c.ids.map((id) => ref2.packages[id]), ref2.tweaks, ref2.parts,
-                                  ref2.claims, { cpu: c.cpu, resample: c.resample });
+                                  ref2.claims, { cpu: c.cpu, resample: c.resample, transpose: c.transpose });
       const differ = Object.keys(c.tweak).filter((k) => canon(tweak[k]) !== canon(c.tweak[k]));
       const built = B.build(raw, ref2.device, [tweak, ...c.with.map((w) => ref2.with[w])]);
       if (built.mainOsSha !== c.main_os) differ.push("MAIN OS");

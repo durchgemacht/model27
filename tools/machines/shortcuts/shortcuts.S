@@ -38,7 +38,8 @@
  *            press that would open the list opens nothing yet and ends the handler as taken (0x4001c2a8); the release
  *            opens it when no shortcut or switch acted while MACHINES was held (or the PRESET browser when sc_mtrig
  *            took the press, since 0.5). A press while the list is open closes
- *            it at once, as on the stock OS. Elsewhere, the stock test's answer: the stock toggle on the press.
+ *            it at once, as on the stock OS. Elsewhere, the stock test's answer: the stock toggle on the press. Since
+ *            0.6, in a build with Transpose, every track is such a track (sc_level, sc_data +0x1c).
  *   sc_mtrig jmp from 0x4001c274 over 6 bytes (jsr 0x400cf9a8, the UI's state) of MainScreenView's MACHINES case, where
  *            the stock code asks, on a fresh press without FUNC, whether a trig is held, then goes to the PRESET browser
  *            (0x4001c996) or on to 0x4001ca1e (sc_mach). Since the layer's 0.5 (notes/63 §26): a trig held on a track
@@ -83,7 +84,9 @@
  *         list, 2 the PRESET browser, since 0.5), +0x13 a shortcut or a switch acted while it was held (both 0 at boot,
  *         written by sc_mach, sc_mtrig, sc_knob, sc_press)
  *   +0x14 per machine, one byte: the presses it declared, bit 0 PUNCH, bit 1 GATE (8 machines at most)
- *   +0x1c per machine, per knob COLOR, SHAPE, SWEEP, CONTOUR, 24 bytes: long name, short name, minimum, maximum,
+ *   +0x1c since 0.6, bit 0: MACHINES is a held key on every track, not only on the machines' (a build with
+ *         Transpose, whose part marks +0x13 when it acts); three bytes 0
+ *   +0x20 per machine, per knob COLOR, SHAPE, SWEEP, CONTOUR, 24 bytes: long name, short name, minimum, maximum,
  *         default (8.8), formatter; a long name of 0: no shortcut on that knob
  *
  * License: MIT (LICENSE next to this file). */
@@ -103,7 +106,8 @@
 	.equ	FIRST, 0x10			/* sc_data: first machine, number of machines, presses, shortcuts */
 	.equ	COUNT, 0x11
 	.equ	PRESSES, 0x14
-	.equ	ENTRIES, 0x1c
+	.equ	EVERY, 0x1c			/* since 0.6: bit 0, MACHINES a held key on every track (Transpose) */
+	.equ	ENTRIES, 0x20
 	.equ	PROJECT, 0x400cf866		/* the project singleton */
 	.equ	PROJECT_TRACKS, 0x4000eb90	/* project -> its track selection */
 	.equ	ACTIVE_TRACK, 0x40012412	/* track selection -> the selected track, 0..5 */
@@ -794,8 +798,12 @@ sc_mtrig:
 7:	jmp	BROWSER				/* the stock answer: the browser at once */
 8:	jmp	MACH_SITE			/* no trig held: on, as the stock code */
 
-/* -> d0 1 when the selected track's machine declared a switch or a shortcut on a knob, else 0. */
+/* -> d0 1 when the selected track's machine declared a switch or a shortcut on a knob, else 0; since 0.6, 1 on every
+ * track in a build with Transpose (sc_data +0x1c, bit 0). */
 sc_level:
+	lea	sc_data, %a0
+	btst	#0, EVERY(%a0)
+	bne.s	2f
 	bsr.w	sc_selected
 	bsr.w	sc_track			/* d1 its presses, d0 its index in the table or -1 */
 	tst.l	%d1

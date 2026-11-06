@@ -27,7 +27,7 @@ sys.path.insert(0, str(HERE))
 import compose                     # noqa: E402
 import relocate                    # noqa: E402
 
-PARTS = ("shortcuts", "dispatch", "fxslot", "fltslot", "cpu", "resample")
+PARTS = ("shortcuts", "dispatch", "fxslot", "fltslot", "cpu", "resample", "transpose")
 
 
 def main():

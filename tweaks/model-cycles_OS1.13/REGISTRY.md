@@ -395,9 +395,9 @@ Code trop gros pour un masque, ajouté à la fin de l'image (`at`) et copié au 
 | macro | 25 | `0x401aa140` | 105 152 | `0x401c3c00` | `0x43000000` | 324 576 |  |
 | macro-acid | 25 | `0x401aa140` | 111 760 | `0x401c55d0` | `0x43000000` | 492 288 |  |
 | acid | 26 | `0x401aa140` | 11 380 | `0x401acdb4` | `0x43000000` | 221 928 |  |
-| sampler | 27 | `0x401aa140` | 46 292 | `0x401b5614` | `0x43000000` | 283 432 |  |
+| sampler | 27 | `0x401aa140` | 46 312 | `0x401b5628` | `0x43000000` | 283 432 |  |
 | refmachine | 28 | `0x401aa140` | 6 868 | `0x401abc14` | `0x43000000` | 221 376 |  |
-| refmachine2 | 29 | `0x401aa140` | 11 476 | `0x401ace14` | `0x43000000` | 221 428 |  |
+| refmachine2 | 29 | `0x401aa140` | 11 496 | `0x401ace28` | `0x43000000` | 221 428 |  |
 | model-tg | 30 | `0x401aa140` | 87 936 | `0x401bf8c0` | `0x401aa140` | 87 936 |  |
 | model-tg-st | 30 | `0x401aa140` | 87 936 | `0x401bf8c0` | `0x401aa140` | 87 936 |  |
 | syntakt-tg-bits | 31 | `0x401bf8c0` | 234 548 | `0x401f8cf4` | `0x46700000` | 264 448 | model-tg-st |
@@ -526,16 +526,16 @@ Code trop gros pour un masque, ajouté à la fin de l'image (`at`) et copié au 
 | syntakt-tg-toy-swarm-macro-acid | 31 | `0x401bf8c0` | 246 774 | `0x401fbcb6` | `0x46700000` | 492 288 | model-tg-st |
 | macro-acid-tg | 32 | `0x401bf8c0` | 112 092 | `0x401dae9c` | `0x46700000` | 492 288 | model-tg-st |
 | macro-tg | 32 | `0x401bf8c0` | 105 564 | `0x401d951c` | `0x46700000` | 324 576 | model-tg-st |
-| refchord | 34 | `0x401aa140` | 2 236 | `0x401aa9fc` | `0x43000000` | 221 192 |  |
+| refchord | 34 | `0x401aa140` | 2 256 | `0x401aaa10` | `0x43000000` | 221 192 |  |
 | acid-tg | 35 | `0x401bf8c0` | 11 792 | `0x401c26d0` | `0x46700000` | 221 928 | model-tg-st |
-| chordtables | 36 | `0x401aa140` | 7 100 | `0x401abcfc` | `0x43000000` | 222 292 |  |
+| chordtables | 36 | `0x401aa140` | 7 120 | `0x401abd10` | `0x43000000` | 222 292 |  |
 | digidelay | 39 | `0x401aa140` | 3 884 | `0x401ab06c` | `0x43000000` | 1 269 784 |  |
 | pots | 70 | `0x401aa140` | 7 632 | `0x401abf10` | `0x43000000` | 352 504 |  |
-| smpfilter | 72 | `0x401aa140` | 26 828 | `0x401b0a0c` | `0x43000000` | 221 628 |  |
-| crush | 73 | `0x401aa140` | 9 320 | `0x401ac5a8` | `0x43000000` | 221 256 |  |
-| ring | 74 | `0x401aa140` | 12 340 | `0x401ad174` | `0x43000000` | 221 236 |  |
-| reso | 75 | `0x401aa140` | 14 708 | `0x401adab4` | `0x43000000` | 364 608 |  |
-| eq | 76 | `0x401aa140` | 21 376 | `0x401af4c0` | `0x43000000` | 221 952 |  |
+| smpfilter | 72 | `0x401aa140` | 26 848 | `0x401b0a20` | `0x43000000` | 221 628 |  |
+| crush | 73 | `0x401aa140` | 9 340 | `0x401ac5bc` | `0x43000000` | 221 256 |  |
+| ring | 74 | `0x401aa140` | 12 360 | `0x401ad188` | `0x43000000` | 221 236 |  |
+| reso | 75 | `0x401aa140` | 14 728 | `0x401adac8` | `0x43000000` | 364 608 |  |
+| eq | 76 | `0x401aa140` | 21 396 | `0x401af4d4` | `0x43000000` | 221 952 |  |
 | cpu | 78 | `0x401aa140` | 2 756 | `0x401aac04` | `0x43000000` | 221 184 |  |
 | resample | 79 | `0x401aa140` | 17 164 | `0x401ae44c` | `0x43000000` | 221 184 |  |
 | syntakt-meter | 90 | `0x401aa140` | 269 056 | `0x401ebc40` | `0x43000000` | 269 056 |  |
@@ -845,9 +845,9 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | macro | 122 | 56 | 14 | 48 | 2 | 2 | 0 | 105 152 o | notes/36 |
 | macro-acid | 122 | 55 | 15 | 48 | 2 | 2 | 0 | 111 760 o | notes/36 |
 | acid | 122 | 56 | 14 | 48 | 2 | 2 | 0 | 11 380 o | notes/36 |
-| sampler | 136 | 55 | 25 | 54 | 1 | 1 | 0 | 46 292 o | notes/60 |
+| sampler | 136 | 55 | 25 | 54 | 1 | 1 | 0 | 46 312 o | notes/60 |
 | refmachine | 116 | 55 | 11 | 48 | 1 | 1 | 0 | 6 868 o | notes/65 |
-| refmachine2 | 134 | 55 | 23 | 54 | 1 | 1 | 0 | 11 476 o | notes/63 |
+| refmachine2 | 134 | 55 | 23 | 54 | 1 | 1 | 0 | 11 496 o | notes/63 |
 | model-tg | 142 | 94 | 32 | 0 | 1 | 1 | 14 | 87 936 o | notes/36 |
 | model-tg-st | 142 | 94 | 32 | 0 | 1 | 1 | 14 | 87 936 o | notes/31 |
 | syntakt-tg-* (33 tweaks) | 117–119 | 51 | 17–19 | 47 | 1 | 1 | 0 | 227 760–243 904 o | notes/31, notes/36 |
@@ -858,9 +858,9 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | macro-tg | 114 | 50 | 15 | 47 | 1 | 1 | 0 | 105 564 o | notes/43 |
 | sample-preview | 11 | 0 | 3 | 0 | 4 | 4 | 0 |  | notes/46 |
 | sample-preview-st | 11 | 0 | 3 | 0 | 4 | 4 | 0 |  | notes/46 |
-| refchord | 13 | 0 | 8 | 3 | 1 | 1 | 0 | 2 236 o | notes/66 |
+| refchord | 13 | 0 | 8 | 3 | 1 | 1 | 0 | 2 256 o | notes/66 |
 | acid-tg | 114 | 50 | 15 | 47 | 1 | 1 | 0 | 11 792 o | notes/54 |
-| chordtables | 13 | 0 | 8 | 3 | 1 | 1 | 0 | 7 100 o | notes/66 |
+| chordtables | 13 | 0 | 8 | 3 | 1 | 1 | 0 | 7 120 o | notes/66 |
 | digidelay | 10 | 0 | 8 | 0 | 1 | 1 | 0 | 3 884 o | notes/68 |
 | arp | 14 | 0 | 6 | 0 | 4 | 4 | 0 |  | notes/32 |
 | trig-hold | 5 | 0 | 3 | 0 | 1 | 1 | 0 |  | notes/33 |
@@ -876,11 +876,11 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | midi-live-both | 6 | 0 | 4 | 0 | 1 | 1 | 0 |  | notes/53 |
 | lfo-plus | 30 | 0 | 12 | 4 | 7 | 7 | 0 |  | notes/56 |
 | pots | 10 | 0 | 8 | 0 | 1 | 1 | 0 | 7 632 o | notes/69 |
-| smpfilter | 15 | 0 | 10 | 3 | 1 | 1 | 0 | 26 828 o | notes/72 |
-| crush | 15 | 0 | 10 | 3 | 1 | 1 | 0 | 9 320 o | notes/73 |
-| ring | 15 | 0 | 10 | 3 | 1 | 1 | 0 | 12 340 o | notes/74 |
-| reso | 15 | 0 | 10 | 3 | 1 | 1 | 0 | 14 708 o | notes/75 |
-| eq | 15 | 0 | 10 | 3 | 1 | 1 | 0 | 21 376 o | notes/76 |
+| smpfilter | 15 | 0 | 10 | 3 | 1 | 1 | 0 | 26 848 o | notes/72 |
+| crush | 15 | 0 | 10 | 3 | 1 | 1 | 0 | 9 340 o | notes/73 |
+| ring | 15 | 0 | 10 | 3 | 1 | 1 | 0 | 12 360 o | notes/74 |
+| reso | 15 | 0 | 10 | 3 | 1 | 1 | 0 | 14 728 o | notes/75 |
+| eq | 15 | 0 | 10 | 3 | 1 | 1 | 0 | 21 396 o | notes/76 |
 | cpu | 5 | 0 | 3 | 0 | 1 | 1 | 0 | 2 756 o | notes/78 |
 | resample | 6 | 1 | 3 | 0 | 1 | 1 | 0 | 17 164 o | notes/79 |
 | trig-cond-order | 4 | 0 | 1 | 1 | 1 | 1 | 0 |  | notes/70 |
@@ -894,7 +894,7 @@ The combinations each mod answers: the held keys, then one action, in the words 
 | FUNC + DATA-PRESS | menu:MIDI-PORTS | midi-live-both | adds the Cycles' own MIDI to THRU, or takes it away |  |
 | FUNC + PITCH | params | macro, macro-acid, macro-acid-tg, macro-tg, syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31), syntakt-tg-*-macro (31/31), syntakt-tg-*-macro-acid (31/31) (MACRO's tracks) | FINE as lo-fi RATE / BITS | FINE, the fine adjust of PITCH |
 | LFO | page:LFO | lfo-plus | LFO 2, 3 and 4, then the page closes | closes the LFO page |
-| MACHINES | any | shortcuts (part) | on the tracks of a machine with a shortcut or a switch, the MACHINES list opens on the release, unless a shortcut or a switch acted | the toggle of the MACHINES list on the press (a press while it is open still closes it at once) |
+| MACHINES | any | shortcuts (part) | on the tracks of a machine with a shortcut or a switch (on every track in a build with Transpose, since 0.6), the MACHINES list opens on the release, unless a shortcut or a switch acted | the toggle of the MACHINES list on the press (a press while it is open still closes it at once) |
 | MACHINES + COLOR | params | refmachine2 (REF2's tracks) | Octave |  |
 | MACHINES + COLOR/SHAPE/SWEEP/CONTOUR | params | shortcuts (part) | the shortcut of the track's machine |  |
 | MACHINES + COLOR/SHAPE/SWEEP/CONTOUR | params | track-filter | Filter Env / Env Decay / Filter Cutoff / Filter Reso |  |

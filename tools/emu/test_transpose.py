@@ -1,0 +1,514 @@
+#!/usr/bin/env python3
+"""Proof of Transpose (the plan of 2026-11-05, _scratch/machines-transpose/plan.md, step P1) on the OS's own code,
+through the builder's part tools/machines/transpose/ and the shortcut layer's 0.6 (MACHINES a held key on every track).
+P0 (probe_transpose.py) read the stock sites; this compares the stock OS and the builds with Transpose.
+
+  1. the build (no Unicorn, also with --dry), for Transpose alone, with SAMPLE, with POTS and Crush, and with the full
+     offered set: KeyboardView's key slot (0x400ff9cc) -> tr_keys, jsr tr_kbt at 0x4001a164, jsr tr_pitch at
+     0x400597a8, jsr tr_frame at 0x40006a76; the part's data block: the shortcut layer's data block's address, the
+     rest zero; the layer always there, its +0x1c (every) 1, and 0 in the same build without Transpose; every other
+     write as in that build (alone: only the layer's and the payload's boot); the payload as in that build up to
+     Transpose's code but for the every byte; the tweaks that write other bytes at the four sites among the computed
+     conflicts;
+  2. the keys, KeyboardView's key handler through its vtable entry, the stock OS and the build with Transpose side by
+     side, the project's chain stubbed as in P0: every key code 15..32, held keys none / MACHINES / MACHINES + FUNC /
+     MACHINES + TRACK, keyboard mode / grid mode / an armed pattern selection, a press, a release, a repeat and a long
+     press: TRIG 8, 9, 11, 12, 15, 16 pressed with MACHINES alone in keyboard mode are taken (d0 1, nothing played,
+     one new LED frame asked for the view), everything else does what the stock OS does (the same d0 and the same
+     calls); then the values: TRIG 16 three times -> +1, +2, +2; TRIG 15 five times -> +1, 0, -1, -2, -2; TRIG 12 ->
+     +7, again -> 0, TRIG 9 -> -5, TRIG 11 -> +5; another track keeps its own; a taken press marks the layer's +0x13;
+     its release and repeats are taken too, a release whose press went to the keyboard reaches the stock release;
+     d2-d7/a2-a6 and the stack kept;
+  3. the keyboard's octave: with MACHINES not held, a key plays note = key index + 52 + KBT + 12 x the track's octave,
+     clamped to KBT's -60..+60 (KBT 0, +-12, +-55, +-60, octaves -2..+2); another track's octave changes nothing; at
+     octave 0 the same note as the stock OS;
+  4. the jumps on tr_pitch itself (the smoother stubbed): the PITCH words of the tracks with a jump moved by -7 / -5 /
+     +5 / +7 semitones and clamped to 0x2800..0x5800, the others untouched, the smoother's buffer returned; a new
+     playing pattern number (or none) clears every octave and jump and is kept; the same number changes nothing;
+  5. the jumps on the audio path (seqrig: the real interrupt, smoother and voices; the stock OS and the build side by
+     side): for each stock machine, a jump of -7 and of +7 plays as PITCH set to that sum on the stock OS, sample for
+     sample; no jump plays as the stock OS; a jump on another track changes nothing on this one; the clamp at +24 and
+     -24;
+  6. the LEDs, the LED frame 0x40006a4a with the views and the hardware stubbed: with MACHINES alone in keyboard mode,
+     TRIG 15 / 16 dim, mid or full for the octave and TRIG 8 / 9 / 11 / 12 full for the jump in force and dim
+     otherwise (every octave and jump), the views called once after, every other LED as the stock frame leaves it;
+     without MACHINES, with FUNC or TRACK, in grid mode, with the selection armed or without a project: the same
+     states as the stock frame;
+  7. MACHINES on every track (the layer's 0.6, MainScreenView's MACHINES case 0x4001c252): on every stock machine and
+     SAMPLE's, a press that would open the list is taken, the release opens it unless +0x13 was marked; with the list
+     open the press closes it; FUNC + MACHINES the PRESET browser; the same build without Transpose: the stock
+     machines toggle on the press as before.
+
+Needs Unicorn and numpy (pip install unicorn numpy); Unicorn's JIT does not run inside a sandbox that forbids it:
+run it in a normal terminal. About two minutes, most of them section 5.
+
+    python3 tools/emu/test_transpose.py --cycles model-cycles_OS1.13.syx
+    python3 tools/emu/test_transpose.py --cycles model-cycles_OS1.13.syx --dry      # section 1 only, without Unicorn
+"""
+import argparse
+import gc
+import json
+import pathlib
+import struct
+import sys
+
+HERE = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parent))
+
+import build                        # noqa: E402
+import compose                      # noqa: E402
+import test_sdvintage as T          # noqa: E402
+import test_sdvintage_7th as t7     # noqa: E402
+from test_sdvintage_7th import check  # noqa: E402
+
+PART = compose.load_part("transpose")
+DATA = PART["data"]
+LAYER = compose.load_part("shortcuts")
+EVERY, USED, PENDING = LAYER["data"]["every"], LAYER["data"]["used"], LAYER["data"]["pending"]
+SELECTIONS = [[], ["sampler"], ["pots", "crush"], ["sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso",
+                                                   "eq"]]
+KB_SLOT, KB_KEYS = 0x400ff9cc, 0x4001a0d2
+SITES = {0x4001a164: ("4eb940016da6", "4eb9", "tr_kbt"), 0x400597a8: ("4eb940058474", "4eb9", "tr_pitch"),
+         0x40006a76: ("4eb940076ca2", "4eb9", "tr_frame")}
+ALL_SITES = set(SITES) | {KB_SLOT}
+BOOT_SITES = {0x400004b2, 0x400b1106, 0x4016cae8}   # the payload's boot: the hook, the stub's mask and its sprite
+OURS = {23: 0, 24: 1, 26: 2, 27: 3, 30: 4, 31: 5}   # key code -> bit: TRIG 8, 9, 11, 12, 15, 16
+JUMP_WORD = {1: -0x700, 2: -0x500, 3: 0x500, 4: 0x700}
+FULL, MID, DIM = 2, 0x202, 0x102
+
+
+def composed(stock, sel, transpose):
+    tweak, info = compose.compose(stock, sel, transpose=transpose)
+    patched, _ = build.apply_writes(stock, [tweak])
+    runtime = build.payload_runtime(tweak, stock, None)
+    return tweak, info, bytes(patched) + build.payload_image(tweak, runtime), runtime
+
+
+def layer_sites():
+    s = LAYER["sites"]
+    out = {int(s["knob"]["vtable"], 16), int(s["conv"]["jmp"], 16)} | {int(r["at"], 16) for r in s["record"]}
+    out |= {int(k["at"], 16) for k in s["keys"]} | {int(a, 16) for a in s["ptab"]["operands"]}
+    return out
+
+
+# --- 1. the build -----------------------------------------------------------------------------------------------------
+def build_tests(key, stock, w, wo):
+    tweak, info, _img, runtime = w
+    ti, li = info["transpose"], info["part"]
+    by = {x["off"] + compose.BASE: x for x in tweak["writes"]}
+    syms = {k: int(v, 16) for k, v in tweak["symbols"].items()}
+    kw = by.get(KB_SLOT)
+    check(kw is not None and kw["old"] == f"{KB_KEYS:08x}" and kw["new"] == f"{syms['tr_keys']:08x}",
+          f"{key}: KeyboardView's key slot {KB_SLOT:#x}: {KB_KEYS:#x} -> tr_keys ({syms['tr_keys']:#x})")
+    for va, (old, op, name) in SITES.items():
+        x = by.get(va)
+        check(x is not None and x["old"] == old and x["new"] == op + f"{syms[name]:08x}",
+              f"{key}: {va:#x} {old} -> {op} {name} ({syms[name]:#x})")
+    pay = compose.gs.PAY_ALONE
+    block = runtime[ti["data_at"] - pay:ti["data_at"] - pay + DATA["size"]]
+    sc = struct.unpack_from(">I", block, DATA["sc"])[0]
+    check(li is not None and sc == li["data_at"] and not any(block[4:]) and syms["tr_data"] == ti["data_at"],
+          f"{key}: the data block at {ti['data_at']:#x}: the shortcut layer's data block ({sc:#x}), the rest zero")
+    check(li is not None and runtime[li["data_at"] - pay + EVERY] == 1,
+          f"{key}: the shortcut layer there, its every byte (+{EVERY:#x}) 1")
+    if wo is None:
+        others = set(by) - ALL_SITES
+        check(others == layer_sites() | BOOT_SITES,
+              f"{key}: nothing else written but the shortcut layer's sites and the payload's boot "
+              f"({len(by)} writes; {sorted(map(hex, others - layer_sites() - BOOT_SITES))})")
+    else:
+        bw = {x["off"] + compose.BASE: x for x in wo[0]["writes"]}
+        diff = sorted(a for a in set(by) | set(bw) if by.get(a) != bw.get(a))
+        check(set(diff) <= ALL_SITES | BOOT_SITES and not ALL_SITES & set(bw),
+              f"{key}: every other write as in the build without Transpose ({len(by)} writes; differing "
+              f"{', '.join(map(hex, diff))})")
+        lw = wo[1]["part"]
+        rwo = wo[3]
+        n = ti["code_at"] - pay
+        a, b = bytearray(runtime[:n]), bytearray(rwo[:n])
+        ok = lw is not None and lw["data_at"] == li["data_at"] and b[li["data_at"] - pay + EVERY] == 0
+        if ok:
+            b[li["data_at"] - pay + EVERY] = 1
+        check(ok and a == b, f"{key}: the payload as in the build without Transpose up to Transpose's code "
+                             f"({ti['code_at']:#x}) but for the layer's every byte (0 there)")
+    ours = {va: len(by[va]["new"]) // 2 for va in ALL_SITES}
+    takers = set()
+    for f in compose.DEV.glob("*.json"):
+        if f.name == "device.json":
+            continue
+        t = json.loads(f.read_text(encoding="utf-8"))
+        if not isinstance(t, dict):
+            continue
+        for x in t.get("writes", []):
+            va, n = x["off"] + compose.BASE, len(x["new"]) // 2
+            if any(va < s_ + k and s_ < va + n for s_, k in ours.items()) and (va not in by or by[va]["new"] != x["new"]):
+                takers.add(t["id"])
+    check(takers <= set(tweak["conflicts"]),
+          f"{key}: the tweaks that write other bytes at the four sites ({', '.join(sorted(takers)) or 'none'}) among the "
+          "computed conflicts")
+
+
+# --- the interface: KeyboardView's keys ---------------------------------------------------------------------------
+def ui(img, runtime=None):
+    import test_shortcuts as SH
+    return SH.UI(img, runtime or b"")
+
+
+def reset(u, data_at, keep_sc=True):
+    if data_at:
+        sc = u.u32(data_at) if keep_sc else 0
+        u.uc.mem_write(data_at, struct.pack(">I", sc) + bytes(DATA["size"] - 4))
+
+
+def kb(u, code, flags, held=(), mode=None, t=2, kbt=0, oct_=None, data_at=None, project=True):
+    """KeyboardView's key handler as the OS calls it, through its vtable entry (view, event): (d0, the calls, kept)."""
+    import probe_transpose as P
+    import test_shortcuts as SH
+    u.keys(held)
+    st = bytearray(0x200)
+    if mode == "grid":
+        st[P.GRID_A] = st[P.GRID_B] = 1
+    elif mode == "select":
+        st[P.SELECT] = 1
+    u.uc.mem_write(P.STATE, bytes(st))
+    u.uc.mem_write(P.HOLDER, struct.pack(">I", P.HVT))
+    u.uc.mem_write(P.HVT + 40, struct.pack(">I", P.H_PAT))
+    pat = bytearray(722)
+    pat[721] = kbt & 0xff
+    pat[708] = 0x11
+    u.uc.mem_write(P.PATTRK, bytes(pat))
+    if oct_ is not None and data_at:
+        u.uc.mem_write(data_at + DATA["oct"], bytes(o & 0xff for o in oct_))
+    ev = bytearray(32)
+    struct.pack_into(">II", ev, 12, code, flags)
+    u.uc.mem_write(SH.EVENT, bytes(ev))
+    u.hooks = {SH.UI_STATE: ("ui", P.STATE), SH.PROJECT: ("project", SH.PROJ if project else 0),
+               SH.PROJECT_TRACKS: ("tracks", SH.SEL), P.TRACK_OF: ("track", t), P.HOLDER_OF: ("holder", P.HOLDER),
+               P.H_PAT: ("pattern", P.PATTRK), P.PSLOT_OF: ("pslot", P.PSLOT), P.SEQ_OF: ("seq", P.HOLDER),
+               P.F_D0DC: ("d0dc", 0), P.F_CCC0: ("ccc0", 0), P.VEL_WORD: ("velword", 0x64), P.PLAY: ("play", 0),
+               P.RELEASE: ("release", 0), P.KEY_BASE: ("base", 0), SH.VIEW_LEDS: ("leds", 0)}
+    u.calls.clear()
+    vals = SH.sentinels(u)
+    d0 = u.call(u.u32(KB_SLOT), SH.VIEW, SH.EVENT)
+    kept = [u.uc.reg_read(r) & 0xffffffff for r in SH.KEPT] == vals
+    calls = [(n, a[:4]) for n, a in u.calls if n in ("play", "release", "base", "leds")]
+    return d0 & 0xff, calls, u.sp_ok and kept and not u.bad
+
+
+def key_tests(key, stock, w):
+    import test_shortcuts as SH
+    tweak, info, img, runtime = w
+    da, sc = info["transpose"]["data_at"], info["part"]["data_at"]
+    a, b = ui(stock), ui(img, runtime)
+    M, F, Tk = SH.MACHINES, SH.FUNC, SH.TRACK
+    bad, taken, cases = [], 0, 0
+    for code in range(15, 33):
+        for held in ((), (M,), (M, F), (M, Tk)):
+            for mode in (None, "grid", "select"):
+                for flags in (1, 0, 1 | 8, 1 | 0x20):
+                    reset(b, da)
+                    ra = kb(a, code, flags, held, mode)
+                    rb = kb(b, code, flags, held, mode, data_at=da)
+                    ours = code in OURS and held == (M,) and mode is None and flags == 1
+                    cases += 1
+                    if ours:
+                        taken += 1
+                        if rb[0] != 1 or [(n_, x[0]) for n_, x in rb[1]] != [("leds", SH.VIEW)] or not rb[2]:
+                            bad.append((code, held, mode, flags, rb))
+                    elif ra[0] != rb[0] or ra[1] != rb[1] or not (ra[2] and rb[2]):
+                        bad.append((code, held, mode, flags, ra, rb))
+    check(not bad, f"{key}: {cases} key events on the stock OS and on the build: the {taken} presses of TRIG 8, 9, 11, "
+                   "12, 15, 16 with MACHINES alone in keyboard mode taken (nothing played, one LED frame asked), every "
+                   "other as the stock OS (the same d0 and calls; releases and repeats without a press of ours too); "
+                   "registers and stack kept" + (f"; DIFFERENT {bad[:3]}" if bad else ""))
+
+    def press(code, t=2):
+        r = kb(b, code, 1, (M,), t=t, data_at=da)
+        kb(b, code, 0, (M,), t=t, data_at=da)
+        return r
+
+    def vals(t):
+        return struct.unpack(">b", b.uc.mem_read(da + DATA["oct"] + t, 1))[0], b.uc.mem_read(da + DATA["jump"] + t, 1)[0]
+    reset(b, da)
+    octs = []
+    for code in (31, 31, 31, 30, 30, 30, 30, 30):
+        press(code)
+        octs.append(vals(2)[0])
+    jumps = []
+    for code in (27, 27, 24, 26):
+        press(code)
+        jumps.append(vals(2)[1])
+    press(23, t=4)
+    other = vals(4), vals(2)
+    check(octs == [1, 2, 2, 1, 0, -1, -2, -2] and jumps == [4, 0, 2, 3] and other == ((0, 1), (-2, 3)),
+          f"{key}: TRIG 16 x3, TRIG 15 x5: octaves {octs}; TRIG 12, 12, 9, 11: jumps {jumps} (+7, 0, -5, +5); TRIG 8 on "
+          f"track 4: {other[0]}, track 2 keeps {other[1]}")
+    b.uc.mem_write(sc + USED, b"\x00")
+    reset(b, da)
+    r_press = kb(b, 26, 1, (M,), data_at=da)
+    used = b.uc.mem_read(sc + USED, 1)[0]
+    r_rep = kb(b, 26, 1 | 8, (M,), data_at=da)
+    r_rel = kb(b, 26, 0, (), data_at=da)              # MACHINES let go first: the release is still ours
+    held_after = b.uc.mem_read(da + DATA["held"], 1)[0]
+    kb(b, 26, 1, (), data_at=da)                      # a press that goes to the keyboard
+    r_rel2 = kb(b, 26, 0, (M,), data_at=da)           # its release with MACHINES held: the stock release
+    ra = kb(a, 26, 0, (M,))
+    check(r_press[0] == 1 and used == 1 and r_rep == (1, [], True) and r_rel == (1, [], True) and held_after == 0
+          and r_rel2 == ra and ra[1] and ra[1][0][0] == "release",
+          f"{key}: a taken press marks the layer's +0x13 ({used}); its repeat and its release (MACHINES let go first) "
+          f"taken, nothing else; a release whose press went to the keyboard reaches the stock release ({r_rel2[1]})")
+    return a, b
+
+
+# --- 3. the keyboard's octave -----------------------------------------------------------------------------------------
+def kbt_tests(key, a, b, da):
+    bad, n = [], 0
+    for kbt in (0, 12, -12, 55, -55, 60, -60):
+        for o in (-2, -1, 0, 1, 2):
+            for idx in (0, 8, 15):
+                octs = [0] * 6
+                octs[2] = o
+                octs[3] = 2 if o != 2 else -2            # another track's octave: no effect
+                rb = kb(b, 16 + idx, 1, (), kbt=kbt, oct_=octs, data_at=da)
+                ra = kb(a, 16 + idx, 1, (), kbt=kbt)
+                want = idx + 52 + max(-60, min(60, kbt + 12 * o))
+                got = struct.unpack(">i", struct.pack(">I", rb[1][0][1][3]))[0] if rb[1] and rb[1][0][0] == "play" else None
+                stock = struct.unpack(">i", struct.pack(">I", ra[1][0][1][3]))[0] if ra[1] else None
+                n += 1
+                if got != want or (o == 0 and rb != ra) or stock != idx + 52 + kbt or not rb[2]:
+                    bad.append((kbt, o, idx, got, want, stock))
+    reset(b, da)
+    check(not bad, f"{key}: {n} keys: note = key index + 52 + clamp(KBT + 12 x octave, -60, 60), another track's octave "
+                   "ignored, at octave 0 the stock note and calls" + (f"; DIFFERENT {bad[:3]}" if bad else ""))
+
+
+# --- 4. tr_pitch itself -----------------------------------------------------------------------------------------------
+def pitch_unit_tests(key, b, syms, da):
+    buf, pat = 0x93f20000, 0x93f40000
+    words = [0x4000, 0x5600, 0x2a00, 0x4321, 0x3000, 0x5800]
+    u = b
+
+    def run(jumps, octs, number, last):
+        u.uc.mem_write(buf, bytes(0x200))
+        for t, wv in enumerate(words):
+            u.uc.mem_write(buf + 34 + 66 * t, struct.pack(">H", wv))
+            u.uc.mem_write(buf + 32 + 66 * t, b"\x12\x34")             # k 9, next to it: untouched
+        u.uc.mem_write(da + DATA["oct"], bytes(o & 0xff for o in octs))
+        u.uc.mem_write(da + DATA["jump"], bytes(jumps))
+        u.uc.mem_write(da + DATA["last"], struct.pack(">I", last))
+        if number is None:
+            u.uc.mem_write(0x40a7887c, bytes(4))
+        else:
+            u.uc.mem_write(0x40a7887c, struct.pack(">I", pat))
+            u.uc.mem_write(pat + 30706, struct.pack(">I", number))
+        u.hooks = {0x40058474: ("smoother", buf)}
+        u.calls.clear()
+        d0 = u.call(syms["tr_pitch"], 0x800015a0)
+        got = [struct.unpack(">H", u.uc.mem_read(buf + 34 + 66 * t, 2))[0] for t in range(6)]
+        side = all(bytes(u.uc.mem_read(buf + 32 + 66 * t, 2)) == b"\x12\x34" for t in range(6))
+        st = (list(struct.unpack(">6b", u.uc.mem_read(da + DATA["oct"], 6))), list(u.uc.mem_read(da + DATA["jump"], 6)),
+              u.u32(da + DATA["last"]))
+        args = [a[0] for n, a in u.calls if n == "smoother"]
+        return d0 & 0xffffffff, got, side and u.sp_ok and not u.bad and args == [0x800015a0], st
+    jumps, octs = [0, 4, 1, 3, 2, 4], [1, 0, -2, 0, 2, 0]
+    d0, got, ok, st = run(jumps, octs, 7, 7)
+    want = [max(0x2800, min(0x5800, wv + (JUMP_WORD[j] if j else 0))) for wv, j in zip(words, jumps)]
+    check(d0 == buf and got == want and ok and st == (octs, jumps, 7),
+          f"{key}: tr_pitch: the smoother's buffer back, PITCH words {[f'{x:#06x}' for x in got]} (jumps {jumps}, "
+          "clamped to 0x2800..0x5800), k 9 next to them untouched, the values kept on the same pattern")
+    d0, got, ok, st = run(jumps, octs, 8, 7)
+    check(got == words and ok and st == ([0] * 6, [0] * 6, 8),
+          f"{key}: another playing pattern (7 -> 8): every octave and jump cleared before the words, the number kept")
+    d0, got, ok, st = run(jumps, octs, None, 8)
+    check(got == words and ok and st == ([0] * 6, [0] * 6, 0xffffffff),
+          f"{key}: no playing pattern: cleared too, 0xffffffff kept")
+    reset(b, da)
+
+
+# --- 5. the jumps on the audio path -----------------------------------------------------------------------------------
+def play(img, m, base, runtime=None, tweak=None, jump=None, blocks=20, t=2):
+    import mcengine as E
+    import seqrig as S
+    import test_compose as TC
+    if runtime is None:
+        e = E.Engine(img)
+    else:
+        e = E.Engine(img, payload=(E.PAYLOAD_DST, runtime), payload_code=TC.code_ranges(tweak))
+    rig = S.Rig(e, bpm=120)
+    c, s, w_, ct, d = E.DEFAULTS[m]
+    for k, v in dict(machine=m, color=c, shape=s, sweep=w_, contour=ct, decay=d, finetune=64).items():
+        rig.param(t, E.SLOT[k], int(round(v * 256)))
+    rig.param(t, 0x0a, base)
+    if jump:
+        da, track, j = jump
+        e.uc.mem_write(da + DATA["last"], struct.pack(">I", 0xffffffff))     # no playing pattern in the rig
+        e.uc.mem_write(da + DATA["jump"] + track, bytes([j]))
+    rig.set_step(t, 0)
+    rig.schedule_step(t, 0, rig.now + 2 * rig.blk + rig.blk // 3)
+    import numpy as np
+    out = np.concatenate([rig.block()["out"][t] for _ in range(blocks)])
+    res = out, list(e.unmapped)
+    del rig, e
+    gc.collect()
+    return res
+
+
+def audio_tests(key, stock, w):
+    import numpy as np
+    import mcengine as E
+    tweak, info, img, runtime = w
+    da = info["transpose"]["data_at"]
+    bad = []
+    for m, name in enumerate(E.MACH):
+        ref0, u0 = play(stock, m, 0x4000)
+        none, u1 = play(img, m, 0x4000, runtime, tweak)
+        for j in (1, 4):
+            ref, u2 = play(stock, m, 0x4000 + JUMP_WORD[j])
+            got, u3 = play(img, m, 0x4000, runtime, tweak, (da, 2, j))
+            if not np.array_equal(ref, got) or np.max(np.abs(ref)) < 1e6 or u2 or u3:
+                bad.append((name, j))
+        if not np.array_equal(ref0, none) or u0 or u1:
+            bad.append((name, "no jump"))
+    check(not bad, f"{key}: every stock machine: a jump of -7 and of +7 plays as PITCH 0x3900 and 0x4700 on the stock "
+                   "OS, sample for sample; no jump as the stock OS" + (f"; DIFFERENT {bad}" if bad else ""))
+    tone = E.MACH["TONE"]
+    ref, _ = play(stock, tone, 0x4000)
+    got, u4 = play(img, tone, 0x4000, runtime, tweak, (da, 4, 4))
+    hi_ref, _ = play(stock, tone, 0x5800)
+    hi, u5 = play(img, tone, 0x5600, runtime, tweak, (da, 2, 4))
+    lo_ref, _ = play(stock, tone, 0x2800)
+    lo, u6 = play(img, tone, 0x2a00, runtime, tweak, (da, 2, 1))
+    check(np.array_equal(ref, got) and np.array_equal(hi_ref, hi) and np.array_equal(lo_ref, lo) and not (u4 or u5 or u6),
+          f"{key}: TONE: a jump on track 4 changes nothing on track 2; PITCH +22 with +7 plays as +24, -22 with -7 as -24")
+
+
+# --- 6. the LEDs ------------------------------------------------------------------------------------------------------
+def frame(u, held=(), mode=None, t=2, project=True, octs=None, jumps=None, da=None):
+    import probe_transpose as P
+    import test_shortcuts as SH
+    u.keys(held)
+    st = bytearray(0x200)
+    if mode == "grid":
+        st[P.GRID_A] = st[P.GRID_B] = 1
+    elif mode == "select":
+        st[P.SELECT] = 1
+    u.uc.mem_write(P.STATE, bytes(st))
+    if da:
+        u.uc.mem_write(da + DATA["oct"], bytes(o & 0xff for o in octs))
+        u.uc.mem_write(da + DATA["jump"], bytes(jumps))
+    u.uc.mem_write(P.LEDOBJ, bytes(0x200))
+    u.hooks = {P.FRAME_DUE: ("due", 1), P.LED_OBJ_OF: ("ledobj", P.LEDOBJ), P.VIEWS: ("views", 0),
+               P.LED_CHECK: ("check", 0), P.LED_ON: ("on", 0), P.LED_OFF: ("off", 0), P.LED_SEND: ("send", 0),
+               SH.UI_STATE: ("ui", P.STATE), SH.PROJECT: ("project", SH.PROJ if project else 0),
+               SH.PROJECT_TRACKS: ("tracks", SH.SEL), P.TRACK_OF: ("track", t)}
+    u.calls.clear()
+    u.call(P.FRAME, P.FRAME_ARG)
+    states = [u.u32(P.LEDOBJ + 40 + 4 * i) for i in range(54)]
+    order = [n for n, _ in u.calls if n in ("due", "views", "send")]
+    return states, order, u.sp_ok and not u.bad
+
+
+def led_tests(key, a, b, da):
+    ref, ref_order, ok_a = frame(a)
+    bad, n = [], 0
+    for o in (-2, -1, 0, 1, 2):
+        for j in range(5):
+            octs, jumps = [0] * 6, [0] * 6
+            octs[2], jumps[2] = o, j
+            octs[1], jumps[1] = 2, 4                     # another track's values: not shown
+            st, order, ok = frame(b, (5,), octs=octs, jumps=jumps, da=da)
+            want = list(ref)
+            want[15] = (MID if o == -1 else FULL) if o < 0 else DIM
+            want[16] = (MID if o == 1 else FULL) if o > 0 else DIM
+            for i, led in enumerate((8, 9, 11, 12)):
+                want[led] = FULL if j == i + 1 else DIM
+            n += 1
+            if st != want or order != ref_order or not ok:
+                bad.append((o, j, [hex(st[x]) for x in (8, 9, 11, 12, 15, 16)]))
+    check(not bad and ok_a, f"{key}: the LED frame with MACHINES in keyboard mode, {n} octaves and jumps: TRIG 15 / 16 "
+                            "dim, mid or full, TRIG 8 / 9 / 11 / 12 full for the jump in force, else dim; every other "
+                            "LED as the stock frame; the views once, then the end" + (f"; DIFFERENT {bad[:3]}" if bad else ""))
+    import test_shortcuts as SH
+    off = []
+    for held, mode, project in (((), None, True), ((5, SH.FUNC), None, True), ((5, SH.TRACK), None, True),
+                                ((5,), "grid", True), ((5,), "select", True), ((5,), None, False)):
+        sa = frame(a, held, mode, project=project)
+        sb = frame(b, held, mode, project=project, octs=[2] * 6, jumps=[4] * 6, da=da)
+        if sa != sb:
+            off.append((held, mode, project))
+    reset(b, da)
+    check(not off, "{}: without MACHINES, with FUNC or TRACK, in grid mode, with the selection armed, without a "
+                   "project: the same states and calls as the stock frame".format(key) + (f"; DIFFERENT {off}" if off else ""))
+
+
+# --- 7. MACHINES on every track ---------------------------------------------------------------------------------------
+def machines_tests(key, stock, w, wo):
+    import test_shortcuts as SH
+    tweak, info, img, runtime = w
+    b = ui(img, runtime)
+    sc = info["part"]["data_at"]
+    sample = next((p["index"] for p in info["packages"] if p["id"] == "sampler"), None)
+    machines = list(range(6)) + ([sample] if sample is not None else [])
+    bad, n = [], 0
+    for m in machines:
+        for opened in (False, True):
+            for used in (False, True):
+                b.uc.mem_write(sc + PENDING, bytes(2))
+                p = SH.mach(b, 1, m, opened)
+                if used:
+                    b.uc.mem_write(sc + USED, b"\x01")
+                r = SH.mach(b, 0, m, opened)
+                want = ["toggle"] if opened else ["taken", "pass" if used else "toggle"]
+                got = [p[0]] if opened else [p[0], r[0]]
+                n += 1
+                if got != want or not (p[1] and (r[1] or opened)):
+                    bad.append((m, opened, used, got))
+        if SH.mach(b, 3, m, False)[0] != "browser":
+            bad.append((m, "FUNC"))
+    check(not bad, f"{key}: MACHINES on machines {machines}: a press that would open the list taken, the release opens "
+                   "it unless +0x13 was marked; with the list open the press closes it; FUNC + MACHINES the PRESET "
+                   f"browser ({n} cases)" + (f"; DIFFERENT {bad[:4]}" if bad else ""))
+    if wo is not None:
+        c = ui(wo[2], wo[3])
+        stock_m = [SH.mach(c, 1, m, False)[0] for m in range(6)]
+        check(stock_m == ["toggle"] * 6, f"{key}: the same build without Transpose: the stock machines still toggle the "
+                                         f"list on the press ({stock_m})")
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--cycles", required=True, help="official model-cycles_OS1.13.syx")
+    ap.add_argument("--dry", action="store_true", help="section 1 only (the builds, no Unicorn)")
+    args = ap.parse_args()
+    stock = T.main_os_from_syx(args.cycles)
+    builds = {}
+    print("1. the build")
+    for sel in SELECTIONS:
+        key = "+".join(sel + ["transpose"])
+        w = composed(stock, sel, True)
+        wo = composed(stock, sel, False) if sel else None
+        builds[key] = (w, wo)
+        build_tests(key, stock, w, wo)
+    if not args.dry:
+        alone, with_sample = builds["transpose"][0], builds["sampler+transpose"]
+        print("2. the keys")
+        a, b = key_tests("transpose", stock, alone)
+        da = alone[1]["transpose"]["data_at"]
+        print("3. the keyboard's octave")
+        kbt_tests("transpose", a, b, da)
+        print("4. tr_pitch itself")
+        pitch_unit_tests("transpose", b, {k: int(v, 16) for k, v in alone[0]["symbols"].items()}, da)
+        print("5. the jumps on the audio path (seqrig)")
+        audio_tests("transpose", stock, alone)
+        print("6. the LEDs")
+        led_tests("transpose", a, b, da)
+        print("7. MACHINES on every track")
+        machines_tests("transpose", stock, alone, None)
+        machines_tests("sampler+transpose", stock, *with_sample)
+    print("\nALL OK" if not t7.FAIL else f"\n{len(t7.FAIL)} FAILED: " + "; ".join(t7.FAIL[:6]))
+    return 1 if t7.FAIL else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
