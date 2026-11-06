@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-11-06-01">
-<link rel="stylesheet" href="../assets/guide.css?v=2026-11-06-01">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-06-02">
+<link rel="stylesheet" href="../assets/guide.css?v=2026-11-06-02">
 <script>try{var t=localStorage.getItem("mc-theme")}catch(e){}if(t)document.documentElement.setAttribute("data-theme",t)</script>
 </head>
 <body data-page="guide">
@@ -53,6 +53,7 @@
         <li><a href="#control-all">Control All Config</a></li>
         <li><a href="#cpu">CPU Page</a></li>
         <li><a href="#resample">RESAMPLE</a></li>
+        <li><a href="#transpose">Transpose</a></li>
         <li><a href="#mods-on-samples">Mods on a Model:Samples</a></li>
         <li><a href="#samples">Samples OS</a></li>
         <li><a href="#stock">Back to stock</a></li>
@@ -352,8 +353,30 @@
         </dl>
       </section>
 
+      <section id="transpose">
+        <h2><span class="n">16</span>Transpose</h2>
+        <p class="by">model27's own · MIT license</p>
+        <p class="lede">Moves the keys you play by octaves and makes a track jump in pitch while it plays, with MACHINES and the TRIG keys.</p>
+        <ol>
+          <li>Turn GRID RECORDING mode off and select a track with <b>TRACK</b> + <b>T1</b>–<b>T6</b>. Transpose works on that track.</li>
+          <li>Hold <b>MACHINES</b>: <b>TRIG 8</b>, <b>9</b>, <b>11</b>, <b>12</b>, <b>15</b> and <b>16</b> light up.</li>
+          <li>Hold <b>MACHINES</b> and press <b>TRIG 16</b> to move the notes of the TRIG keys one octave up, or <b>TRIG 15</b> one octave down; two octaves at most either way. The key lights dim with no octave, half for one, full for two.</li>
+          <li>Hold <b>MACHINES</b> and press <b>TRIG 9</b> or <b>TRIG 8</b> to make the track jump 5 or 7 semitones down, or <b>TRIG 11</b> or <b>TRIG 12</b> to make it jump 5 or 7 up. The jump is at once, also on a note that is playing. The key of the jump lights fully, the others dim. Press it again to go back.</li>
+          <li>Let go of <b>MACHINES</b>. If you pressed none of these keys, the MACHINES menu opens now.</li>
+        </ol>
+        <dl class="facts">
+          <div><dt>Keys and pitch</dt><dd>TRIG 15 and 16 change only the notes you play on the TRIG keys, as KBT in TRACK SETUP does; KBT itself stays as you set it, and the octave comes on top. TRIG 8 to 12 change the sound of the track, the sequence included, as if you turned PITCH, up to PITCH's own ±24 semitones; the preset's PITCH stays as you set it.</dd></div>
+          <div><dt>Not saved</dt><dd>each track keeps its octave and its jump until you change the pattern; then all of them go back. Nothing is saved with the project. A jump is not recorded and not sent over MIDI; LIVE RECORDING keeps the notes you play, octave included.</dd></div>
+          <div><dt>MACHINES</dt><dd>with this card, MACHINES opens the MACHINES menu when you let go of it, on every track, not when you press it. A press while the menu is open closes it at once, as before.</dd></div>
+          <div><dt>Lights</dt><dd>the dim and half lights are the LEDs switched on and off 250 times a second, at the brightness set by LED in SETTINGS.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, the effects, the Track FX, the CPU Page, RESAMPLE, Trig conditions, Trig Preview and Control All Config.</dd></div>
+          <div><dt>Credit</dt><dd>the dimmed lights follow the idea of djd_oz's dimmed trigless trigs in Modded-Cycles, written anew.</dd></div>
+          <div><dt>Experimental</dt><dd>checked in an emulator on the OS's own code: every key as on the stock OS but these six, the notes of the TRIG keys, the jumps sample for sample like turning PITCH on every stock machine, the lights and their dimming in the panel's own interrupt. Not yet tried on a Model:Cycles.</dd></div>
+        </dl>
+      </section>
+
       <section id="mods-on-samples">
-        <h2><span class="n">16</span>Mods on a Model:Samples</h2>
+        <h2><span class="n">17</span>Mods on a Model:Samples</h2>
         <p class="lede">A Model:Samples can run the Model:Cycles OS with the same mods as a Model:Cycles. Whatever the machine, the flasher always installs the Model:Cycles OS. With the <a href="#sampler">SAMPLE</a> machine ticked, it can play the samples already on the +Drive (not yet tried on a Model:Samples).</p>
         <ol>
           <li>Back up your samples and projects with Elektron Transfer, then close Transfer.</li>
@@ -377,7 +400,7 @@
       </section>
 
       <section id="samples">
-        <h2><span class="n">17</span>Samples OS</h2>
+        <h2><span class="n">18</span>Samples OS</h2>
         <p class="lede">The Model:Cycles starts as a Model:Samples: you load and play your own samples, managed with Elektron Transfer.</p>
         <p>The <a href="../flasher/?samples">flasher, in its Samples OS tab</a>, puts the official Model:Samples OS inside your Model:Cycles firmware file:</p>
         <dl class="layers fig">
@@ -411,13 +434,13 @@
       </section>
 
       <section id="stock">
-        <h2><span class="n">18</span>Back to stock</h2>
+        <h2><span class="n">19</span>Back to stock</h2>
         <p><b>Back to the official firmware</b>, under the cards of the <a href="../flasher/">flasher</a>, sends your OS file unchanged, over USB, like a normal update. It is also a good rehearsal before a first mod: it checks the cable and the setup without changing anything.</p>
         <p>With the SAMPLE machine, first set your SAMPLE tracks back to an original machine (Kick to Chord): the official OS doesn't have SAMPLE, and a project that still names it can freeze its MACHINES page.</p>
       </section>
 
       <section id="recovery">
-        <h2><span class="n">19</span>Recovery</h2>
+        <h2><span class="n">20</span>Recovery</h2>
         <p class="lede">If the Model:Cycles no longer starts, its startup menu can always reinstall the OS: it lives in an area that updates never write.</p>
         <figure class="fig">
           <div data-device data-scenes="func @logo | func,mainvol | s4 @READY TO/>RECEIVE" data-ms="1300"></div>
@@ -431,7 +454,7 @@
       </section>
 
       <section id="trouble">
-        <h2><span class="n">20</span>Troubleshooting</h2>
+        <h2><span class="n">21</span>Troubleshooting</h2>
         <div class="faq">
           <details>
             <summary>Nothing happens on the Model:Cycles screen</summary>
@@ -497,8 +520,8 @@
   </div>
 </footer>
 
-<script src="../assets/release.js?v=2026-11-06-01"></script>
-<script src="../assets/cycles.js?v=2026-11-06-01"></script>
-<script src="../assets/site.js?v=2026-11-06-01"></script>
+<script src="../assets/release.js?v=2026-11-06-02"></script>
+<script src="../assets/cycles.js?v=2026-11-06-02"></script>
+<script src="../assets/site.js?v=2026-11-06-02"></script>
 </body>
 </html>

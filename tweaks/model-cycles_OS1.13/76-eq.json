@@ -296,7 +296,8 @@
   "syntakt-toy-swarm-macro",
   "syntakt-toy-swarm-macro-acid",
   "syntakt-vintage",
-  "track-filter"
+  "track-filter",
+  "transpose"
  ],
  "writes": [
   {

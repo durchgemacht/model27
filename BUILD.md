@@ -303,7 +303,7 @@ python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,dig
 ```
 MAIN OS patché, `pots` seul : `93ad7348e2ffa42879d2bcfabf66780f0cce721a03022f543ad785c92ba779e8` ; `digidelay` et `pots`
 composés : `81bc4d1e4cfee2bc8daba59ecf99e89a6c33f924ef11b3819632558ccfc4b64a` ; avec SAMPLE 0.15 (`sampler`,
-`digidelay`, `pots`) : `a545a23071d2768adf5a67e895e6ad08bba450cf95be6bd85f32c90c341b1d7a` (SAMPLE 0.14 : `14345987…` ; SAMPLE 0.13 : `bf9a0636…`),
+`digidelay`, `pots`) : `4f8a41c5c5b3d068f40343275749bf45f05ebe78b48190cbec08f0f1e90f1800` (la couche de raccourcis 0.6 ; avec la couche 0.5 : `a545a230…` ; SAMPLE 0.14 : `14345987…` ; SAMPLE 0.13 : `bf9a0636…`),
 ceux que la page compose avec
 `fxslot` 0.7 (le compteur de la page CPU, note 78 §8) et la couche de raccourcis 0.5 (note 63 §25–§31). Depuis POTS 0.2 la ligne tourne à
 6 kHz (`pots_cf.S` pour la décimation, note 69 §24), environ un tiers de la charge de la version à 12 kHz ; celle-ci
@@ -330,8 +330,8 @@ python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,smpfilter   # avec SAMPLE
 ```
-MAIN OS patché, `smpfilter` seul : `e9838dee3f2ff053add47f61f0b41b6cb112b0a9e10f52b95fd7fcde4cb1082a` ; avec SAMPLE
-(`sampler` 0.15, `smpfilter`) : `1caed5f9f90766a8e2b2204b7d496a1d150ed60e65407a41f17bd0b54f2e70d0` (`fltslot` 0.11 et la couche de raccourcis 0.5, qui
+MAIN OS patché, `smpfilter` seul : `c422bf3817202993a9e133e3ea77cd82027f7083fe623818823ebb33f6c3af03` (la couche de raccourcis 0.6 ; avec la couche 0.5 : `e9838dee…`) ; avec SAMPLE
+(`sampler` 0.15, `smpfilter`) : `5dee568510f9c4a9126d20fa080e24e13feec0b5d54d00248b3fd5624aa0b671` (`fltslot` 0.11 et la couche de raccourcis 0.6 ; avec la couche 0.5 : `1caed5f9…`, qui
 garde les rangées de p-locks de k 23 et plus, note 63 §25 ; avec `fltslot` 0.10 et SAMPLE 0.14 : `a545bb6b…`, `b7507068…` ;
 Samples 0.4, le même son que 0.3 au bit près en
 moins d'instructions, note 72 §25 ; SAMPLE 0.13 : `f1ae1200…` ; avec Samples 0.3 : `62db5452…`, `d343e6c9…` ; SAMPLE 0.12 :
@@ -360,10 +360,10 @@ python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines crush
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush   # avec Samples
 ```
-MAIN OS patché, `crush` seul : `29c30e96aea3c47b98a0543d3234e62f8e53868ba11bed1632220b50d2543e01` ; avec Samples
-(`smpfilter`, `crush`) : `973ed79a52a5fc615ab71b204395489101f2b29567512261f8ae1f0b73e70f8c` (`fltslot` 0.11, la couche 0.5 ; avec `fltslot` 0.10 : `36494141…`,
+MAIN OS patché, `crush` seul : `e3e6b94acfd533b949192691ea6c1e1b5eeab31d2c374f08367c7740c1b246da` (la couche de raccourcis 0.6 ; avec la couche 0.5 : `29c30e96…`) ; avec Samples
+(`smpfilter`, `crush`) : `e05c2951153a0aca2153734785690cf4cc528de2086480d44e6688fe8958dbbf` (`fltslot` 0.11, la couche 0.6 ; avec la couche 0.5 : `973ed79a…` ; avec `fltslot` 0.10 : `36494141…`,
 `9c33360e…`) ; avec toutes les cartes de
-la page (treize, release 0.50) : `a503f081d5584cf75ec9ff6d24f55a9f475b64d3501d17b5be6ff022b313307c` (SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.5, note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, note 76 §17 ; avec EQ 0.5, release 0.40 : `9e7c87d2…` ; Reso 0.4, note 75 §17 ; avec Reso 0.3, release 0.39 : `021d39d1…`), ceux que la page compose (Ring 0.3, note 74 §13 ; avec Ring 0.2 :
+la page (quatorze, release 0.51) : `cd89791b44a4051134b8372332da7cb57567359b778c260feacab039a9f6e413` (SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.6 et Transpose 0.2 ; treize cartes, release 0.50, la couche 0.5 : `a503f081…` ; note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, note 76 §17 ; avec EQ 0.5, release 0.40 : `9e7c87d2…` ; Reso 0.4, note 75 §17 ; avec Reso 0.3, release 0.39 : `021d39d1…`), ceux que la page compose (Ring 0.3, note 74 §13 ; avec Ring 0.2 :
 `289e6c14…` (onze cartes, release 0.35 : `2fbe6c3f…`) ; Samples 0.4, note 72 §25 ;
 avec Samples 0.3, release 0.34 : `44e16270…`, `0d64b14e…` ; Crush 0.5, le même son
 que 0.4 au bit près en moins d'instructions, note 73 §20 ; avec Crush 0.4, Bits de 8 bits à 1 bit, `fltslot` 0.10 : `3e95ccad…`,
@@ -389,10 +389,10 @@ python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines ring
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush,ring   # avec Samples et Crush
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines ring --cpu             # avec la page CPU
 ```
-MAIN OS patché (Ring 0.3), `ring` seul : `c8e189ce4e45fe14253cd58d7f0739ef3f5999da93ca9803cf51493e02c9600b` ; avec Samples
-et Crush : `dd49ce7a965a4af9025f72d9bba84e7be1496a35c5c2e8a4f7ad3d2ea4eefd8c` ; avec la page CPU :
-`9fc748813fb71f91cbbd08b7d26ee537965ba09d7839d64811cd0a123535b9f5` (`fltslot` 0.11, la couche 0.5 ; avec `fltslot` 0.10 : `a6340129…`, `4a1554a4…`, `df80d34a…` ; Ring 0.2 : `333bae39…`) ; avec toutes les cartes de la page (treize,
-release 0.50) : `a503f081d5584cf75ec9ff6d24f55a9f475b64d3501d17b5be6ff022b313307c` (SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.5, note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, note 76 §17 ; avec EQ 0.5, release 0.40 : `9e7c87d2…` ; Reso 0.4, note 75 §17 ; avec Reso 0.3, release 0.39 : `021d39d1…`) (Ring 0.3, la porteuse de 2 048 pas sans interpolation et la boucle dans `ring_cf.S`, un tiers
+MAIN OS patché (Ring 0.3), `ring` seul : `20ae22cefbc94374fab9f1b6f250e9e5d373d26e7fd772ef58512663e67b710a` (la couche de raccourcis 0.6 ; avec la couche 0.5 : `c8e189ce…`) ; avec Samples
+et Crush : `031021a98e3f2016cf6f92f33f2f364774454fa6453a0bfbde6cf6667c8f1c4d` (la couche de raccourcis 0.6 ; avec la couche 0.5 : `dd49ce7a…`) ; avec la page CPU :
+`532766f2e061b12a6f966047ef5f5041bec4878d31eb5183997883b0fd116ba8` (`fltslot` 0.11, la couche 0.6 ; avec la couche 0.5 : `9fc74881…` ; avec `fltslot` 0.10 : `a6340129…`, `4a1554a4…`, `df80d34a…` ; Ring 0.2 : `333bae39…`) ; avec toutes les cartes de la page (quatorze,
+release 0.51) : `cd89791b44a4051134b8372332da7cb57567359b778c260feacab039a9f6e413` (SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.6 et Transpose 0.2 ; treize cartes, release 0.50, la couche 0.5 : `a503f081…` ; note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, note 76 §17 ; avec EQ 0.5, release 0.40 : `9e7c87d2…` ; Reso 0.4, note 75 §17 ; avec Reso 0.3, release 0.39 : `021d39d1…`) (Ring 0.3, la porteuse de 2 048 pas sans interpolation et la boucle dans `ring_cf.S`, un tiers
 d'instructions en moins, note 74 §13, et le nom Wave, §14 ; avec Ring 0.2 : `704f5f65…`, `68b3f5f1…`,
 `289e6c14…` (onze cartes, release 0.35 : `2fbe6c3f…`) ; Ring 0.2, le produit sur l'EMAC, `fltslot` 0.10 ; Crush 0.5 ; Samples 0.4 ;
 avec Samples 0.3, release 0.34 : `7f9371fa…`, `0d64b14e…` ; avec Crush 0.4, release 0.32 : `85467706…`, `09661941…` ;
@@ -414,10 +414,10 @@ python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines reso
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush,reso   # avec Samples et Crush
 ```
-MAIN OS patché, `reso` seul : `540699be12940c6778856f9990d153bd3901753d80b7d2221f45a82489dc93ce` ; avec Samples et
-Crush : `f2f326ad6690e816091dbf3e085b4e4e3e29e92f32af0e9234b4ccbce9829db6` (`fltslot` 0.11, la couche 0.5 ; avec `fltslot` 0.10 : `7626270e…`, `ccdcf75a…`) ;
-avec toutes les cartes de la page (treize,
-release 0.50) : `a503f081d5584cf75ec9ff6d24f55a9f475b64d3501d17b5be6ff022b313307c` (SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.5, note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, note 76 §17 ; avec EQ 0.5, release 0.40 : `9e7c87d2…` ; Reso 0.4, le bloc et les coefficients
+MAIN OS patché, `reso` seul : `aaf1adbc95afdd0d7bf01705a986ff22958bf2e3c58e373274de42ef18ac031a` (la couche de raccourcis 0.6 ; avec la couche 0.5 : `540699be…`) ; avec Samples et
+Crush : `dee2a5f8610634916fe36581b4ecf6df18f8c73c5cd4f8aac8a1f34fe32daf81` (`fltslot` 0.11, la couche 0.6 ; avec la couche 0.5 : `f2f326ad…` ; avec `fltslot` 0.10 : `7626270e…`, `ccdcf75a…`) ;
+avec toutes les cartes de la page (quatorze,
+release 0.51) : `cd89791b44a4051134b8372332da7cb57567359b778c260feacab039a9f6e413` (SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.6 et Transpose 0.2 ; treize cartes, release 0.50, la couche 0.5 : `a503f081…` ; note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, note 76 §17 ; avec EQ 0.5, release 0.40 : `9e7c87d2…` ; Reso 0.4, le bloc et les coefficients
 dans `reso_cf.S`, un cinquième d'instructions de moins au pire, note 75 §17 ; avec Reso 0.3, release 0.39 : `0b0fdba1…`,
 `d8f9807c…`, `021d39d1…` ; Reso 0.3, Tone sur COLOR et Decay sur SHAPE, `fltslot` 0.10 ; Crush 0.5 ;
 Samples 0.4 ; Ring 0.3 ; avec Ring 0.2 : `289e6c14…` (onze cartes, release 0.35 : `2fbe6c3f…`) ; avec Samples 0.3, release 0.34 : `c1be9428…`, `0d64b14e…` ; avec Crush 0.4, release 0.32 : `45a81abb…`, `09661941…` ; avec
@@ -442,10 +442,10 @@ python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines eq
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush,eq   # avec Samples et Crush
 ```
-MAIN OS patché (EQ 0.6), `eq` seul : `fb2a9f9b4c36c12f0e8b0efc13d678b643f4593ed31cf2851269036f46d8fbee` ; avec Samples et
-Crush : `015937f5cef075a81c9e45a418b88ab9ef67eaf307c432b831fda54aa68061f0` (`fltslot` 0.11, la couche 0.5 ; avec `fltslot` 0.10 : `49130cc3…`, `33824b1c…`) ;
-avec toutes les cartes de la page (treize,
-release 0.50) : `a503f081d5584cf75ec9ff6d24f55a9f475b64d3501d17b5be6ff022b313307c` (SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.5, note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, le bloc et les coefficients
+MAIN OS patché (EQ 0.6), `eq` seul : `e205497bf3466def04b67d350a1e3a2befec2d306fa1400dd64bc61e3ddb52c5` (la couche de raccourcis 0.6 ; avec la couche 0.5 : `fb2a9f9b…`) ; avec Samples et
+Crush : `aab432fbf4542111a407625555d8a85b8e8f3cddeccf7dea2ec9860f285c86c1` (`fltslot` 0.11, la couche 0.6 ; avec la couche 0.5 : `015937f5…` ; avec `fltslot` 0.10 : `49130cc3…`, `33824b1c…`) ;
+avec toutes les cartes de la page (quatorze,
+release 0.51) : `cd89791b44a4051134b8372332da7cb57567359b778c260feacab039a9f6e413` (SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.6 et Transpose 0.2 ; treize cartes, release 0.50, la couche 0.5 : `a503f081…` ; note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, le bloc et les coefficients
 dans `eq_cf.S`, un septième d'instructions de moins au pire, note 76 §17 ; avec EQ 0.5, release 0.40 : `cf01be47…`,
 `937099de…`, `9e7c87d2…` ; avec Reso 0.3, release 0.39 : `021d39d1…`) (`fltslot` 0.10 ; Crush 0.5 ; Samples 0.4 ; Ring 0.3 ; avec Ring 0.2 : `289e6c14…` (onze cartes, release 0.35 : `2fbe6c3f…`) ;
 avec Samples 0.3, release 0.34 : `567c2b42…`, `0d64b14e…` ; avec Crush 0.4, release 0.32 : `d53b1fe6…`, `09661941…` ; avec `fltslot` 0.9 : `31e4456f…`, `be915b71…`,
@@ -473,7 +473,7 @@ python3 tools/compose.py --cycles model-cycles_OS1.13.syx --cpu                 
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines pots,crush --cpu  # avec POTS et Crush
 ```
 MAIN OS patché, `cpu` seul : `425ad022c55c0037e7846c3c5b84fd87235dba4c1847cf1733795236a50b25b5` ; avec POTS et Crush
-(dans l'ordre des cartes, comme la page) : `1e87a24f06e9c354f84353322f44787f030cf56f3ce91d640a40f3f0f2cfa992` (`fltslot` 0.11, la couche 0.5 ; avec
+(dans l'ordre des cartes, comme la page) : `1e56ae5c2eb9fa12612d2096a97c80c025df0cd554e11341106790a20d770759` (`fltslot` 0.11, la couche 0.6 ; avec la couche 0.5 : `1e87a24f…` ; avec
 `fltslot` 0.10 : `49a0e74a…`) ; avec
 toutes les cartes de la page (douze, release 0.37) : `5af3a7473353c494edefc8ebec1a36642d22b287a06867145aa7c7fff9afa17d`. Avec POTS et Crush, essayé sur un Model:Cycles depuis la ligne de commande le 03/11/2026, les valeurs
 rafraîchies deux fois par seconde (note 78 §10). La page sans son rafraîchissement (`cpu` 0.2), essayée de même le
@@ -496,11 +496,33 @@ python3 tools/compose.py --cycles model-cycles_OS1.13.syx --resample            
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler --resample      # avec SAMPLE
 ```
 MAIN OS patché, `resample` seul : `d88f8603927fd2bbf8eade07af3cd58994e6bafa17a3f4145751e7ba6a8a9a9f` ; avec SAMPLE 0.15 :
-`d18521777c7f08364a4454b7207d6f4982a74c99d6d071f8cf6c2e97d12d5ba5` (SAMPLE 0.14 : `87476afd…` ; SAMPLE 0.13 : `e6e162fe…`) ; avec SAMPLE 0.13 et Trig Preview (le fichier essayé sur
+`92a109a8b53bd7c1a3e9598e5cce64b452bec07e75e2e2a67822c828b65b0377` (la couche de raccourcis 0.6 ; avec la couche 0.5 : `d1852177…` ; SAMPLE 0.14 : `87476afd…` ; SAMPLE 0.13 : `e6e162fe…`) ; avec SAMPLE 0.13 et Trig Preview (le fichier essayé sur
 un Model:Cycles depuis la ligne de commande le 04/11/2026, note 79 §12) :
 `15a32ac02984461ede21bca62bf83e93aa2599bf3f4734c6f18ff2828ef6c76a`, le même que la page construit avec ces trois cartes,
 téléchargé depuis la page et testé sur un Model:Cycles le 04/11/2026 (note 79 §13) ; avec toutes les cartes de la page (treize, release
 0.39) : `7359f2a209e377fed9806ec9a768bf1a3f29205385edf3f5ae9c2896d9441847`.
+
+### Transpose
+
+`tweaks/model-cycles_OS1.13/81-transpose.json` est produit par `tools/gen_transpose.py`, qui compose seule avec
+`tools/compose.py --transpose` la partie `transpose` du constructeur (`tools/machines/transpose/`, objet construit par
+`tools/gen_parts.py`), toujours avec la couche de raccourcis (depuis sa 0.6, MACHINES y est une touche tenue sur toutes
+les pistes) : en mode clavier, MACHINES + TRIG 15 / 16 déplacent le clavier des TRIG d'une octave (KBT, `0x4001a164`),
+MACHINES + TRIG 8 / 9 / 11 / 12 font sauter la hauteur de la piste active (le mot PITCH après le lissage, `0x400597a8`) ;
+les six touches s'allument avant toutes les vues (`0x40006a76`) et l'interruption du panneau les atténue
+(`0x40059dea`) ([note 80](notes/80-transpose.md)). La preuve tourne sur le code de l'OS (Unicorn) :
+```sh
+python3 tools/gen_transpose.py --cycles model-cycles_OS1.13.syx [--check]
+python3 tools/emu/probe_transpose.py --cycles model-cycles_OS1.13.syx
+python3 tools/emu/test_transpose.py --cycles model-cycles_OS1.13.syx [--dry]
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --transpose                         # seul
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler --transpose      # avec SAMPLE
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --transpose --transpose-n 3         # essai : 333 Hz
+```
+MAIN OS patché, `transpose` seul : `ad9e4492357704e72442ed485e878e249b4379ae5d0934f3bc71e900be223f71` ; avec SAMPLE :
+`ab74cbf268f6a783bfc4ec746654e97dc5a2ff10be3c959497dd706e9297761f` ; avec toutes les cartes de la page (quatorze, release
+0.51) : `cd89791b44a4051134b8372332da7cb57567359b778c260feacab039a9f6e413`. La période d'atténuation de 3 ms (essai, jamais proposé) seule :
+`1a29b016d29e02df8f5ffc85eba028ef496c29303bcf64d648bab6ccf3f5cf3f`.
 
 ### Trig Cond dans un autre ordre
 

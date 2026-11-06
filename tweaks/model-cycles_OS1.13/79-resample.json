@@ -293,7 +293,8 @@
   "syntakt-toy-swarm-acid",
   "syntakt-toy-swarm-macro",
   "syntakt-toy-swarm-macro-acid",
-  "syntakt-vintage"
+  "syntakt-vintage",
+  "transpose"
  ],
  "writes": [
   {

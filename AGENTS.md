@@ -183,6 +183,13 @@ tools/machines/resample/      the RESAMPLE recorder, a part (notes/79): the audi
                               0.4 TO Tn puts it on the selected SAMPLE track; tools/gen_resample.py composes it alone
                               into 79-resample.json, the flasher's RESAMPLE card (a part, composer.js resampleLayer);
                               tools/emu/resample_host.py and test_resample.py prove it
+tools/machines/transpose/     Transpose, a part (notes/80): MACHINES + TRIG 15 / 16 move the TRIG keyboard an octave (KBT
+                              plus 12 at the keyboard's read, 0x4001a164), MACHINES + TRIG 8 / 9 / 11 / 12 make the active
+                              track's pitch jump (the PITCH word after the smoother, 0x400597a8), the six keys' LEDs set
+                              before every view (0x40006a76) and dimmed in the panel interrupt (0x40059dea); always with
+                              the shortcut layer, whose 0.6 makes MACHINES a held key on every track; compose.py
+                              --transpose, tools/gen_transpose.py composes it alone into 81-transpose.json, the flasher's
+                              Transpose card (composer.js transposeLayer); tools/emu/test_transpose.py proves it
 tools/emu/                    Unicorn emulation of the OS: test_<mod>.py proofs, mcengine.py, emac.py, syntakt.py
 tools/gen_flasher_tweaks.py   FEATURES list -> docs/flasher/tweaks.js (generated); a machine card embeds its package and
                               the registrar's frame, composed in the page (notes/61)
@@ -219,7 +226,7 @@ CONTRIBUTING.md               terms for outside contributions, and how a machine
 
 Follow the shape of the last ones (tempo-max: commits `5997b4a`, `14fb9fa`, `6e592bc`; trig-hold, arp). In order:
 
-1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 79 is the last) with the
+1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 80 is the last) with the
    user's request and its source, the OS code involved (addresses, `[FAIT]`/`[HYP]`), the design, free space used and
    conflicts with other tweaks. Add a row to `notes/README.md`. See `notes/AGENTS.md`.
 2. **Write the generator** `tools/gen_<mod>.py` (and sources under `tools/machines/<mod>/` if it has code). It reads

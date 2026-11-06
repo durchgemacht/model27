@@ -62,7 +62,7 @@ OUT = ROOT / "docs" / "flasher" / "tweaks.js"
 # place of variants. Its excludes are not written here: they are computed from its committed tweak alone (the
 # package's own generator writes it, its "conflicts") against the other cards offered, so they cannot drift.
 # part (model27, notes/78): a part of the builder (tools/machines/<id>/part.json) that a card adds to the composed
-# build, with or without the machine cards ticked: the CPU page, RESAMPLE (notes/79). As a machine card, no variants, its excludes
+# build, with or without the machine cards ticked: the CPU page, RESAMPLE (notes/79), Transpose (notes/80). As a machine card, no variants, its excludes
 # computed from its tweak alone (tools/gen_<id>.py), and it is composed with the machine cards, never excluded by them.
 CATS = ("pack", "sound", "seq", "live", "screen", "io")
 ALL_FEATURES = [
@@ -500,6 +500,23 @@ ALL_FEATURES = [
         "part": "resample",
     },
     {
+        "id": "transpose",
+        "cat": "live",
+        "label": "Transpose",
+        "desc": "MACHINES + TRIG 15 / 16 move the TRIG keyboard an octave down / up, two at most; MACHINES + TRIG 8 / 9 / "
+                "11 / 12 make the active track's pitch jump -7 / -5 / +5 / +7 semitones, at once; the keys' LEDs dim, "
+                "mid or full show it; the MACHINES menu opens on the release of MACHINES.",
+        # model27's own (notes/80): the keys, the keyboard's octave on KBT, the jump after the smoother, the LEDs and
+        # their dimming in the panel interrupt (the idea of djd_oz's dimmed trigless trigs, notes/45 §6, written anew)
+        # proven in emulation; the device test is P4 of the plan
+        "status": "experimental",
+        "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
+        # a part composed in the page with the machines, effects, Track FX, the CPU page and RESAMPLE ticked, always
+        # with the shortcut layer (MACHINES a held key on every track, its 0.6): alone it gives 81-transpose.json byte
+        # for byte, whose conflicts give its excludes
+        "part": "transpose",
+    },
+    {
         "id": "trig-cond-order",
         "cat": "seq",
         "label": "Trig conditions, A:B before the percentages",
@@ -571,7 +588,7 @@ ALL_FEATURES = [
 # model27 offers a short list of cards. The other definitions above stay as they are, for the command-line build
 # (every tweak of tweaks/ is still built by tools/build.py) and so that merges from upstream apply cleanly; a card
 # comes back into the flasher by adding its id here, once it has been reviewed against the Cycles Mod Standard.
-OFFERED = ("sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample",
+OFFERED = ("sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample", "transpose",
            "control-all-config", "trig-cond-order", "trig-preview")
 FEATURES = [f for f in ALL_FEATURES if f["id"] in OFFERED]
 _missing = set(OFFERED) - {f["id"] for f in FEATURES}

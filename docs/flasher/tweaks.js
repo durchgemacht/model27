@@ -385,6 +385,19 @@ window.MC_TWEAKS = {
    "license": "LICENSE-Model-TG.txt"
   },
   {
+   "id": "transpose",
+   "label": "Transpose",
+   "desc": "MACHINES + TRIG 15 / 16 move the TRIG keyboard an octave down / up, two at most; MACHINES + TRIG 8 / 9 / 11 / 12 make the active track's pitch jump -7 / -5 / +5 / +7 semitones, at once; the keys' LEDs dim, mid or full show it; the MACHINES menu opens on the release of MACHINES.",
+   "status": "experimental",
+   "credit": {
+    "kind": "by",
+    "who": "durchgemacht",
+    "repo": "durchgemacht/model27"
+   },
+   "cat": "live",
+   "part": "transpose"
+  },
+  {
    "id": "trig-cond-order",
    "label": "Trig conditions, A:B before the percentages",
    "desc": "A trig held + CHANCE goes FILL ... !1st, then 1:2 ... 8:8, then 1% ... 99%, and the five dots under the value follow that order. A trig keeps the same condition as on the stock OS.",
@@ -10900,6 +10913,357 @@ window.MC_TWEAKS = {
       "scope": "all",
       "meaning": "opens the RESAMPLE page (RECORD on it arms, RETURN or SETTINGS + RECORD closes it)",
       "replaces": "the toggle of GRID RECORDING while SETTINGS is held (notes/79 §1)"
+     }
+    ]
+   }
+  },
+  "transpose": {
+   "id": "transpose",
+   "version": "0.2",
+   "roots": [
+    "tr_keys",
+    "tr_kbt",
+    "tr_pitch",
+    "tr_frame",
+    "tr_led"
+   ],
+   "patch_points": [
+    {
+     "symbol": "tr_data",
+     "kind": "transpose_data"
+    }
+   ],
+   "data": {
+    "size": 60,
+    "sc": 0,
+    "last": 4,
+    "oct": 8,
+    "jump": 14,
+    "held": 20,
+    "any": 21,
+    "m1": 24,
+    "m2": 32,
+    "latched": 40,
+    "cur": 48,
+    "ph": 56,
+    "known": 57,
+    "n": 58,
+    "dirty": 59,
+    "n_value": 4
+   },
+   "bundle": {
+    "code": "4fefffe42f027408226f00282f6f002400102029000c0680ffffffe9b480656a41f90000000020700c0070ffb088675a2408720120290010e5a97401c4802f42001408000000662e103900000000c0814a006736103900000000468174012f420014c28013c100000000202f0014241f4fef001c4e757428c0824a806722103900000000c0814a0066e02f4900282f6f00100024241f4fef001c4ef94001a0d22f48000c2f4900082f4100044eb900000000206f000c226f00082f4000184a8067c82f48000c74062f4900084eb900000000222f0004206f000c226f0008b48067a814390000000043f9000000008282740113c10000000022085981b481643c75b1080e220852812f4200187581b4af001867501381080e4a91670870012051114000132f2f00104eb9400760ba588f202f0014241f4fef001c4e75733108087405b488670674ff2f420018d2af001874feb4816e167402b4816c0272021381080860b442011381080e60ac72fe1381080860a42f032f2f00084eb900000000508f4e754eb9400cf8664a80671a2f004eb94000eb902f004eb940012442508f7206b28065024e7570064e752f02222f000c2001068010042afee588204024102f3c404a8c682f2f00142f012f2f00144eb940005f864fef00107037b0826518206f0010b1fc000001026710206f0010b1fc000002026720241f4e757007c082e682206f0014d1c2121024007001e5a880811080241f4e757007c082e682206f0018d1c2121024007001e5a88081108060e22f0a247c4007faf4487800054e92588f4a806748487800014e92588f4a80663c487800024e92588f4a8066304eb9400cf9a824404a8067242f004eb94006b978588f4a0066162f0a4eb94006bb18588f245f4a0057c0710044804e75245f42804e752f2f00044eb940016da6588f7205b2af00086516226f000841f900000000123098084881c3fc000cd081723cb2806c04703c4e7572c4b2806ff870c44e754feffff048d7041c2f2f00144eb940058474588f207940a7887c4a88670000d6122877f2142877f3162877f479a877f5244479827418e5a97583260448434243e18a8283260a82838282b2b9000000006700009223c100000000428145f90000000042047406158418081584180e5281b48166ee2240428143e9002275b2180e4a82673077517801b88267467804b882674c55824a826640307cfb00d1c3b1fc000027ff6f24b1fc000058006f04307c58003288528143e900427406b48166bc4cd7041c4fef00104e75307c2800328860e2307cf90060c4307c050060be307c070060b82240428145f90000000043e90022608872ff6000ff524fefffd448d7440c42af001c42af002042af002442af00284aaf0030670a4eb9000000004a8066484203240f06820000002445f90000000042814def001c2042101e1580181814188082158218205281740880831600b48166e64a0056c04cd7440c448013c0000000004fef002c4e754eb90000000045f90000000072062f400014b280670000c2242f0014713228084a806d0000ca240f0682000000242f02223c000000004def00202f0e487801024878000f2f2f00402f41002c2f40002420414e904fef0014202f00104a80670000c253804a80670001122f0270022f0e2f00487800102f2f0040206f002c4e904fef001491c8222f00142608528371b2180e223c00000102b680670000aa7001b088650000ac2f022f0e2f01486800082f2f0040206f002c4e904fef0014222f001420432608528371b2180e223c00000102b68066c8606e240f06820000002442034def001c428120426000fee4240f72ff068200000024b280670000a22f024def00202f0e487800024878000f2f2f004041f9000000002f48002c4e904fef0014203c000001022f022f0e2f00487800102f2f0040206f002c4e904fef001491c86000ff4272027001b0886400ff582f022f0e2f01486800092f2f0040206f002c4e904fef00147004b0836600ff504203204242816000fe582f02203c000002022f0e2f00487800102f2f0040206f002c4e904fef001491c86000feea2f02203c000000004def00202f0e487802024878000f2f2f00402f40002c20404e904fef0014203c000001026000ff5c70ff4fefffd448d73cfc2a6f00307c012e2f003445f900000000320defae33c08c0000001f41002b28464a3900000000660a4a3900000000670001e671b900000000740622005581b4816402700412390000000077815283b68065000172420122474283428213c10000000073b9000000000501670000c8183228282203b68065069280b28064fa4a816600016c7b847db22830ba86670000a6e18d2c052a02eb8d8c8533c68c0000024e717bf9fc08c004367c003f7df9fc08c0042045538b91c64a886d00011ab1fc0000010f6e044a8b66e27a0833c58c00000a4e717bf9fc08c004367c003f7df9fc08c0042045538b91c64a886d0000f0b1fc0000010f6e044a8b66e27cf733c68c0000064e717bf9fc08c004367c003f7df9fc08c0042045538b91c64a886d0000c6b1fc0000010f6e044a8b66e2828415812830528252837207b2826600ff24b3c0650693c0b3c064fa4a89671a103278187401b489670000e0123278202c0d808171808c802a46102f002b320d2c0c42831580782815817830200d428171801439000000008c8213c60000000075b900000000030267141432183018321828b9824a0256c275024482868252817407b48166da13c3000000004cd73cfc4fef002c4e7552812247428213c100000000d3c36000fe8e41e82c016000fee241e82c016000ff0c41e82c016000ff361a32281853814a8167101232282082852a018a847b856000fe80220482851c0122057b866000fe721581782815817830200d12390000000082864cd73cfc13c1000000004fef002c4e7571802a0d2c0c42838a80102f002b2a45320d15807828200d71801581783042811439000000008c8213c6000000006000ff2600002f2f00084eb900000000588f4ef940076ca200002f092f02720012002f014eb900000000508f225f720078154ef940059df40000000000000001ffffffff0000000200000003ffffffffffffffff0000000400000005",
+    "relocs": [
+     [
+      34,
+      "code",
+      2226
+     ],
+     [
+      74,
+      "tr_data",
+      20
+     ],
+     [
+      86,
+      "tr_data",
+      20
+     ],
+     [
+      102,
+      "tr_data",
+      20
+     ],
+     [
+      128,
+      "tr_data",
+      20
+     ],
+     [
+      174,
+      "code",
+      562
+     ],
+     [
+      206,
+      "code",
+      388
+     ],
+     [
+      228,
+      "tr_data",
+      20
+     ],
+     [
+      234,
+      "tr_data",
+      0
+     ],
+     [
+      244,
+      "tr_data",
+      20
+     ],
+     [
+      686,
+      "tr_data",
+      0
+     ],
+     [
+      798,
+      "tr_data",
+      4
+     ],
+     [
+      808,
+      "tr_data",
+      4
+     ],
+     [
+      816,
+      "tr_data",
+      0
+     ],
+     [
+      956,
+      "tr_data",
+      0
+     ],
+     [
+      1004,
+      "code",
+      562
+     ],
+     [
+      1024,
+      "tr_data",
+      0
+     ],
+     [
+      1074,
+      "tr_data",
+      21
+     ],
+     [
+      1086,
+      "code",
+      388
+     ],
+     [
+      1092,
+      "tr_data",
+      0
+     ],
+     [
+      1134,
+      "code",
+      428
+     ],
+     [
+      1360,
+      "code",
+      428
+     ],
+     [
+      1502,
+      "code",
+      428
+     ],
+     [
+      1568,
+      "tr_data",
+      0
+     ],
+     [
+      1590,
+      "tr_data",
+      21
+     ],
+     [
+      1598,
+      "tr_data",
+      59
+     ],
+     [
+      1608,
+      "tr_data",
+      58
+     ],
+     [
+      1626,
+      "tr_data",
+      56
+     ],
+     [
+      1650,
+      "tr_data",
+      56
+     ],
+     [
+      1656,
+      "tr_data",
+      57
+     ],
+     [
+      1942,
+      "tr_data",
+      57
+     ],
+     [
+      1950,
+      "tr_data",
+      57
+     ],
+     [
+      1956,
+      "tr_data",
+      57
+     ],
+     [
+      1994,
+      "tr_data",
+      59
+     ],
+     [
+      2016,
+      "tr_data",
+      56
+     ],
+     [
+      2102,
+      "tr_data",
+      57
+     ],
+     [
+      2114,
+      "tr_data",
+      57
+     ],
+     [
+      2158,
+      "tr_data",
+      57
+     ],
+     [
+      2166,
+      "tr_data",
+      57
+     ],
+     [
+      380,
+      "code",
+      660
+     ],
+     [
+      2182,
+      "code",
+      972
+     ],
+     [
+      2208,
+      "code",
+      1546
+     ]
+    ],
+    "symbols": {
+     "tr_keys": [
+      "code",
+      0
+     ],
+     "tr_kbt": [
+      "code",
+      372
+     ],
+     "tr_pitch": [
+      "code",
+      722
+     ],
+     "tr_frame": [
+      "code",
+      2176
+     ],
+     "tr_led": [
+      "code",
+      2196
+     ]
+    },
+    "bss": 0
+   },
+   "sites": {
+    "keys": {
+     "vtable": "0x400ff9cc",
+     "stock_ptr": "0x4001a0d2",
+     "symbol": "tr_keys"
+    },
+    "kbt": {
+     "at": "0x4001a164",
+     "stock": "4eb940016da6",
+     "op": "jsr",
+     "symbol": "tr_kbt"
+    },
+    "pitch": {
+     "at": "0x400597a8",
+     "stock": "4eb940058474",
+     "op": "jsr",
+     "symbol": "tr_pitch"
+    },
+    "frame": {
+     "at": "0x40006a76",
+     "stock": "4eb940076ca2",
+     "op": "jsr",
+     "symbol": "tr_frame"
+    },
+    "led": {
+     "at": "0x40059dea",
+     "stock": "76ff781533c38c000000",
+     "op": "jmp",
+     "symbol": "tr_led"
+    }
+   },
+   "order": 81,
+   "claims": {
+    "gestures": [
+     {
+      "combo": "MACHINES + TRIG 8/TRIG 9/TRIG 11/TRIG 12",
+      "atoms": [
+       [
+        "MACHINES",
+        "TRIG 11"
+       ],
+       [
+        "MACHINES",
+        "TRIG 12"
+       ],
+       [
+        "MACHINES",
+        "TRIG 8"
+       ],
+       [
+        "MACHINES",
+        "TRIG 9"
+       ]
+      ],
+      "situation": "keys",
+      "scope": "all",
+      "meaning": "the active track's pitch jumps -7 / -5 / +5 / +7 semitones from its PITCH; the jump in force again: back",
+      "replaces": "plays the note on the TRIG keyboard, as without MACHINES"
+     },
+     {
+      "combo": "MACHINES + TRIG 15/TRIG 16",
+      "atoms": [
+       [
+        "MACHINES",
+        "TRIG 15"
+       ],
+       [
+        "MACHINES",
+        "TRIG 16"
+       ]
+      ],
+      "situation": "keys",
+      "scope": "all",
+      "meaning": "the TRIG keyboard an octave down / up, two at most, on top of KBT",
+      "replaces": "plays the note on the TRIG keyboard, as without MACHINES"
      }
     ]
    }

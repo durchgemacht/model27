@@ -9,10 +9,11 @@ tools/machines/<id>/<id>.o, as a package's generator writes its object, then che
 roots are defined, the only undefined symbols are the patch points, every relocation is R_68K_32. --check compares
 with the committed object.
 
-Today six parts: shortcuts, the machine shortcuts and the sound record chain (tools/machines/shortcuts/, B4b);
+Today seven parts: shortcuts, the machine shortcuts and the sound record chain (tools/machines/shortcuts/, B4b);
 dispatch, the dispatchers of the points two machines share (tools/machines/dispatch/, B4c); fxslot, the effect
 slots (tools/machines/fxslot/, notes/68 step F1); fltslot, the filter slot (tools/machines/fltslot/, notes/72);
-cpu, the CPU page (tools/machines/cpu/, notes/78); and resample, the RESAMPLE recorder (tools/machines/resample/). Needs the m68k toolchain; compose.py does not.
+cpu, the CPU page (tools/machines/cpu/, notes/78); resample, the RESAMPLE recorder (tools/machines/resample/); and
+transpose, MACHINES + TRIG keys (tools/machines/transpose/, notes/80). Needs the m68k toolchain; compose.py does not.
 
     python3 tools/gen_parts.py [--check]
 """

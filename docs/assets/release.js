@@ -7,6 +7,11 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.51", date: "2026-11-06", changes: [
+    { en: "A new card, Transpose (experimental): hold MACHINES and press TRIG 15 or 16 to move the notes of the TRIG keys an octave down or up, two at most. TRIG 8, 9, 11 and 12 make the active track jump 7 or 5 semitones down, or 5 or 7 up, at once, also while the pattern plays. Press the key again to go back; a new pattern brings everything back" },
+    { en: "With MACHINES held, the six keys light up dim, half or full to show the octave and the jump. With this card, MACHINES opens the MACHINES menu when you let go of it, unless you used one of these keys" },
+    { en: "Checked in an emulator on the OS's own code: every other key as on the stock OS, the jumps sample for sample like turning PITCH on every stock machine, the lights in the panel's own interrupt. Not yet tried on a Model:Cycles" },
+  ] },
   { version: "0.50", date: "2026-11-06", changes: [
     { en: "SAMPLE locks Loop and Reverse on single steps: hold one or more TRIG keys and MACHINES, then press PUNCH or GATE. Those steps play it the other way round from the track, saved with the pattern; press it again and they follow the track again" },
     { en: "While you hold a TRIG key on a SAMPLE track, the right half of the screen shows that step's LOOP and REV, lit when it plays them, and with MACHINES held the PUNCH and GATE lights show the same. A TRIG key held with MACHINES alone opens the PRESET menu when you let go of MACHINES" },
