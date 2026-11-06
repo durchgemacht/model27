@@ -8,8 +8,8 @@ P0 (probe_transpose.py) read the stock sites; this compares the stock OS and the
      0x400597a8, jsr tr_frame at 0x40006a76; the part's data block: the shortcut layer's data block's address, the
      rest zero; the layer always there, its +0x1c (every) 1, and 0 in the same build without Transpose; every other
      write as in that build (alone: only the layer's and the payload's boot); the payload as in that build up to
-     Transpose's code but for the every byte; the tweaks that write other bytes at the four sites among the computed
-     conflicts;
+     Transpose's code but for the every byte; the tweaks that write other bytes at its sites among the computed
+     conflicts; since 0.3 jsr tr_reload at the reload's three calls (0x4001c19c, 0x4001b884, 0x4002cad0);
   2. the keys, KeyboardView's key handler through its vtable entry, the stock OS and the build with Transpose side by
      side, the project's chain stubbed as in P0: every key code 15..32, held keys none / MACHINES / MACHINES + FUNC /
      MACHINES + TRACK, keyboard mode / grid mode / an armed pattern selection, a press, a release, a repeat and a long
@@ -47,7 +47,14 @@ P0 (probe_transpose.py) read the stock sites; this compares the stock OS and the
      1 cycle of n and a mid one 2 of n in steady state, never lit when the stock OS has it dark, the running light and
      a blink dark at least as long; 20 us of latency: the light over every 100 ms within 1.5 % of 1/4 and 1/2; step 0
      late (PIT3 reloading): the gaps kept; PIT3 standing still: every step ends; the masks cleared: every LED back to
-     the stock OS within 2 cycles.
+     the stock OS within 2 cycles;
+  9. the pattern's reload (0.3), the stock OS and the build side by side, the reload (0x400107d8) stubbed: FUNC +
+     PATTERN tapped through MainScreenView's PATTERN case (0x4001c154) reloads from the temp area, FUNC + PATTERN
+     held opens the prompt, PATTERN alone neither; the prompt's YES (0x4001b858, and 0x4002caa4 from the menu)
+     reloads from the project, NO does not; the same calls with the same arguments on both; when the reload says
+     reloaded every track's jump is 0, the octaves and the rest of the data block as they were; when it fails nothing
+     changes; tr_reload itself: the reload called once with its five arguments, its d0 returned whole, d2-d7/a2-a6
+     and the stack kept.
 
 Needs Unicorn and numpy (pip install unicorn numpy); Unicorn's JIT does not run inside a sandbox that forbids it:
 run it in a normal terminal. Some minutes, most of them sections 5 and 8.
@@ -81,6 +88,8 @@ SELECTIONS = [[], ["sampler"], ["pots", "crush"], ["sampler", "digidelay", "pots
 KB_SLOT, KB_KEYS = 0x400ff9cc, 0x4001a0d2
 SITES = {0x4001a164: ("4eb940016da6", "4eb9", "tr_kbt"), 0x400597a8: ("4eb940058474", "4eb9", "tr_pitch"),
          0x40006a76: ("4eb940076ca2", "4eb9", "tr_frame")}
+RELOAD, RELOAD_SITES = 0x400107d8, (0x4001c19c, 0x4001b884, 0x4002cad0)    # the pattern's reload and its calls (0.3)
+SITES.update({va: ("4eb9400107d8", "4eb9", "tr_reload") for va in RELOAD_SITES})
 LED_SITE = (0x40059dea, "76ff781533c38c000000", "tr_led")    # jmp tr_led ; nop ; nop (0.2)
 ALL_SITES = set(SITES) | {KB_SLOT, LED_SITE[0]}
 BOOT_SITES = {0x400004b2, 0x400b1106, 0x4016cae8}   # the payload's boot: the hook, the stub's mask and its sprite
@@ -164,7 +173,7 @@ def build_tests(key, stock, w, wo):
             if any(va < s_ + k and s_ < va + n for s_, k in ours.items()) and (va not in by or by[va]["new"] != x["new"]):
                 takers.add(t["id"])
     check(takers <= set(tweak["conflicts"]),
-          f"{key}: the tweaks that write other bytes at the four sites ({', '.join(sorted(takers)) or 'none'}) among the "
+          f"{key}: the tweaks that write other bytes at its sites ({', '.join(sorted(takers)) or 'none'}) among the "
           "computed conflicts")
 
 
@@ -687,6 +696,135 @@ def panel_tests(key, stock, w):
           "[DIR, DATA], no row left dimmed")
 
 
+# --- 9. the pattern's reload ------------------------------------------------------------------------------------------
+PAT_CASE = 0x4001c154                   # MainScreenView's PATTERN case (d3 the event)
+PAT_STOPS = {0x4001cbee: "reloaded", 0x4001c618: "prompt", 0x4001c2a8: "taken"}
+YES_CBS = (0x4001b858, 0x4002caa4)      # the prompt's answer (ctx, answer): 0 YES
+CUR_PAT, OK_RET, FAIL_RET = 5, 1, 0x4012ff00
+JUMPS0, OCTS0 = [1, 2, 3, 4, 2, 1], [2, -1, 0, 1, -2, 1]
+
+
+def reload_hooks(ret):
+    import test_shortcuts as SH
+    return {0x400cfd0e: ("ui2", 0x93a20000), 0x4006a96c: ("current", CUR_PAT), SH.PROJECT: ("project", SH.PROJ),
+            RELOAD: ("reload", ret), 0x4002c680: ("after", 0)}
+
+
+def preset(u, da):
+    """Jumps and octaves on every track before a reload: the data block as it was (None on the stock OS)."""
+    if not da:
+        return None
+    reset(u, da)
+    u.uc.mem_write(da + DATA["jump"], bytes(JUMPS0))
+    u.uc.mem_write(da + DATA["oct"], bytes(o & 0xff for o in OCTS0))
+    return bytes(u.uc.mem_read(da, DATA["size"]))
+
+
+def after(u, da, before, ret):
+    """The data block after the calls made: every jump 0 when the reload was called and answered reloaded (ret's
+    byte), the rest as it was; without a call of the reload, nothing changed."""
+    if not da:
+        return True
+    want = bytearray(before)
+    if ret & 0xff and any(n == "reload" for n, _ in u.calls):
+        want[DATA["jump"]:DATA["jump"] + 6] = bytes(6)
+    return bytes(u.uc.mem_read(da, DATA["size"])) == bytes(want)
+
+
+def pat_case(u, flags, ret, da=None):
+    """MainScreenView's PATTERN case with an event of these flags: (where it goes, the calls, the data block right)."""
+    import test_shortcuts as SH
+    from unicorn import UC_HOOK_CODE
+    import unicorn.m68k_const as mk
+    before = preset(u, da)
+    u.hooks = reload_hooks(ret)
+    u.calls.clear()
+    u.uc.mem_write(SH.EVENT, bytes(32))
+    u.uc.mem_write(SH.EVENT + 16, struct.pack(">I", flags))
+    vals = [0x5a5a0000 + i for i in range(len(SH.KEPT))]
+    vals[SH.KEPT.index(mk.UC_M68K_REG_D3)], vals[SH.KEPT.index(mk.UC_M68K_REG_A2)] = SH.EVENT, SH.VIEW
+    for r, v in zip(SH.KEPT, vals):
+        u.uc.reg_write(r, v)
+    u.uc.reg_write(mk.UC_M68K_REG_A7, t7.STACK - 0x400)
+    u.bad.clear()
+    got = []
+
+    def stop(uc, addr, size, ud):
+        if addr in PAT_STOPS:
+            got.append(PAT_STOPS[addr])
+            uc.emu_stop()
+    h = u.uc.hook_add(UC_HOOK_CODE, stop)
+    u.uc.emu_start(PAT_CASE, 0x90000000, count=200_000)
+    u.uc.hook_del(h)
+    calls = [(n, a[:5] if n == "reload" else ()) for n, a in u.calls]      # the others' stacks: not arguments
+    return (got[0] if got else None), calls, after(u, da, before, ret) and not u.bad
+
+
+def answer(u, cb, ans, ret, da=None):
+    """The prompt's answer callback (ctx, answer): (the calls, the data block right, the stack and registers kept)."""
+    import test_shortcuts as SH
+    before = preset(u, da)
+    u.hooks = reload_hooks(ret)
+    u.calls.clear()
+    vals = SH.sentinels(u)
+    u.call(cb, 0x93a30000, ans)
+    kept = [u.uc.reg_read(r) & 0xffffffff for r in SH.KEPT] == vals
+    calls = [(n, a[:5] if n == "reload" else ()) for n, a in u.calls]      # the others' stacks: not arguments
+    return calls, after(u, da, before, ret) and not u.bad, u.sp_ok and kept
+
+
+def reload_tests(key, stock, w):
+    import test_shortcuts as SH
+    tweak, info, img, runtime = w
+    da = info["transpose"]["data_at"]
+    syms = {k: int(v, 16) for k, v in tweak["symbols"].items()}
+    a, b = ui(stock), ui(img, runtime)
+    proj = SH.PROJ
+    bad, n = [], 0
+    for flags, where, args in ((0x12, "reloaded", (proj, 1, CUR_PAT, 1, 1)), (0x13, "reloaded", (proj, 1, CUR_PAT, 1, 1)),
+                               (0x22, "prompt", None), (0x10, "taken", None), (0x02, "taken", None)):
+        for ret in (OK_RET, FAIL_RET):
+            ra, rb = pat_case(a, flags, ret), pat_case(b, flags, ret, da)
+            n += 1
+            reloads = [c[1] for c in rb[1] if c[0] == "reload"]
+            if ra[0] != where or rb[0] != where or ra[1] != rb[1] or not (ra[2] and rb[2]) \
+                    or reloads != ([args] if args else []):
+                bad.append((hex(flags), ret, ra, rb))
+    check(not bad, f"{key}: MainScreenView's PATTERN case: FUNC + PATTERN tapped reloads from the temp area (project, 1, "
+                   f"pattern {CUR_PAT}, 1, 1), FUNC + PATTERN held opens the prompt, PATTERN alone neither; the same "
+                   "calls as the stock OS; reloaded: every jump 0, the octaves and the rest of the data block kept; "
+                   f"failed: nothing changed ({n} cases)" + (f"; DIFFERENT {bad[:3]}" if bad else ""))
+    bad, n = [], 0
+    for cb in YES_CBS:
+        for ans in (0, 1):
+            for ret in (OK_RET, FAIL_RET):
+                ra, rb = answer(a, cb, ans, ret), answer(b, cb, ans, ret, da)
+                reloads = [c[1] for c in rb[0] if c[0] == "reload"]
+                n += 1
+                if ra[0] != rb[0] or not (ra[1] and rb[1] and ra[2] and rb[2]) \
+                        or reloads != ([(proj, 0, CUR_PAT, 1, 1)] if ans == 0 else []):
+                    bad.append((hex(cb), ans, ret, ra, rb))
+    check(not bad, f"{key}: the prompt's answer ({', '.join(map(hex, YES_CBS))}): YES reloads from the project (project, "
+                   f"0, pattern {CUR_PAT}, 1, 1), NO does not; the same calls as the stock OS; reloaded: every jump 0, "
+                   "the octaves and the rest kept; failed or NO: nothing changed; registers and stack kept "
+                   f"({n} cases)" + (f"; DIFFERENT {bad[:3]}" if bad else ""))
+    res = []
+    for ret in (OK_RET, FAIL_RET, 0xabcd0001):
+        before = preset(b, da)
+        b.hooks = reload_hooks(ret)
+        b.calls.clear()
+        vals = SH.sentinels(b)
+        d0 = b.call(syms["tr_reload"], proj, 1, CUR_PAT, 1, 0x101)
+        kept = [b.uc.reg_read(r) & 0xffffffff for r in SH.KEPT] == vals
+        calls = [(nm, x[:5]) for nm, x in b.calls]
+        res.append((d0 & 0xffffffff) == ret and calls == [("reload", (proj, 1, CUR_PAT, 1, 0x101))] and kept and b.sp_ok
+                   and after(b, da, before, ret) and not b.bad)
+    check(all(res), f"{key}: tr_reload: the reload called once with its five arguments, its d0 returned whole "
+                    f"({OK_RET:#x}, {FAIL_RET:#x}, 0xabcd0001), the jumps cleared on byte 1 only, d2-d7/a2-a6 and the "
+                    f"stack kept ({res})")
+    reset(b, da)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cycles", required=True, help="official model-cycles_OS1.13.syx")
@@ -719,6 +857,9 @@ def main():
         machines_tests("sampler+transpose", stock, *with_sample)
         print("8. the dimming: the panel interrupt")
         panel_tests("transpose", stock, alone)
+        print("9. the pattern's reload")
+        reload_tests("transpose", stock, alone)
+        reload_tests("sampler+transpose", stock, with_sample[0])
     print("\nALL OK" if not t7.FAIL else f"\n{len(t7.FAIL)} FAILED: " + "; ".join(t7.FAIL[:6]))
     return 1 if t7.FAIL else 0
 

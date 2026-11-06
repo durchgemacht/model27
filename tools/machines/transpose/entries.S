@@ -6,6 +6,8 @@
  * The composer's other writes call transpose.c directly, each a C call in the OS's ABI:
  *   0x400ff9cc  KeyboardView's key handler (its vtable +8, stock 0x4001a0d2) -> tr_keys (view, event).
  *   0x400597a8  jsr 0x40058474 (the smoother, its argument on the stack, its output in d0) -> jsr tr_pitch.
+ *   0x4001c19c, 0x4001b884, 0x4002cad0  jsr 0x400107d8 (the pattern's reload, five arguments on the stack, d0's byte
+ *               1 when reloaded) -> jsr tr_reload (since 0.3).
  *
  *   tr_kbt   jsr from 0x4001a164 in place of jsr 0x40016da6 (the KBT getter), in KeyboardView's key handler: the
  *            track holder on the stack as the getter's argument, d3 the note's track (0x40012442, read at

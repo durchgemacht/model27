@@ -9,7 +9,8 @@ A builder's part `transpose` (`tools/machines/transpose/`, `compose.py --transpo
 with the shortcut layer (its 0.6), its tweak alone `81-transpose.json` (`tools/gen_transpose.py`), its probe
 `tools/emu/probe_transpose.py` and its proof `tools/emu/test_transpose.py`; the flasher's card Transpose (experimental).
 Addresses: VAs of the Model:Cycles OS 1.13 MAIN OS (base `0x40000400`); `[FAIT]` read in the code or proven in
-emulation, `[HYP]` to read or prove. The steps P0 to P3 are done (§5.1 to §5.4); P4, the device test, is next (§6).
+emulation, `[HYP]` to read or prove. The steps P0 to P3 are done (§5.1 to §5.4), and the part's 0.3 clears the jumps
+when the pattern is reloaded (§5.5); P4, the device test, is under way (§6, §6.1).
 
 ## 1. What the player gets
 
@@ -24,7 +25,8 @@ emulation, `[HYP]` to read or prove. The steps P0 to P3 are done (§5.1 to §5.4
   three dim; pressing the active key again goes back to 0. PITCH + jump is clamped to ±24. A jump is not recorded and
   sends no MIDI.
 - **Kept:** per track, in RAM only; selecting another track keeps the first one's values; a pattern change clears all
-  of them; power-on starts at 0.
+  of them; reloading the pattern (FUNC + PATTERN tapped, from the temp area, or held and YES, from the saved project)
+  clears every jump and keeps the octaves (0.3); power-on starts at 0.
 - **MACHINES on every track** is a held key: the list opens on the release unless something acted (the layer's 0.4
   behaviour, so far only on the tracks of machines with a shortcut); with the list open, a press closes it at once.
 - Brightness steps are relative to SETTINGS › Device › LED (LOW / MID / MAX), which sets one current for all LEDs.
@@ -45,6 +47,7 @@ Taken by the maintainer (2026-11-05):
 | – | Grid mode | MACHINES + TRIG sets trigs (stock) |
 | – | Octave range | ±2 |
 | – | Storage | RAM, cleared on a pattern change |
+| – | Pattern reloaded (FUNC + PATTERN tapped or held) | the jumps back to 0, the octaves stay (2026-11-06, after the device test: « dass die Sprünge auch entfernt werden, wenn man den pattern neu lädt », « 15 und 16 sind von dieser änderung nicht betroffen ») |
 | – | MACHINES | a held key on every track (« selbes Konzept überall ») |
 
 Still open, small (recommendation first):
@@ -97,6 +100,21 @@ The running light inverts a key through the LED timers, on top of the states.
 **Patterns.** The playing one: `*0x40a7887c`, its number at +30706, read byte by byte (fxslot.c). The shown one:
 `0x4000f208(*0x40fe4228)`.
 
+**The reload** (read 2026-11-06). `0x400107d8(project, temp, pattern, ptn, seq)` reloads the pattern: `temp` 1 from
+the temp area (FUNC + SETTINGS' temporary save), 0 from the saved project (`0x4000f00e`; « N/A: Unsaved Proj » when
+there is none, « Prj must be re-saved! » for an old one, « Reload Error »); `ptn` and `seq` the pattern's and the
+sequence's parts (both 1 at every call). It shows « Ptn reloaded from » « Temp Area » / « Proj » and returns d0 = 1, or
+d0's byte 0 on an error. The pattern's number does not change, so `tr_pitch`'s check does not see it. Its only three
+calls (no pointer to it in the image):
+- `0x4001c19c`, MainScreenView's PATTERN case (`0x4001c154`): FUNC (event flag bit 1) and the short press (bit 4):
+  `(project, 1, the current pattern 0x4006a96c, 1, 1)`. FUNC with the long press (bit 5) goes to `0x4001c618`, the
+  prompt « Reload Pattern from\nsaved Project? » (Yes / No).
+- `0x4001b884`, that prompt's answer `0x4001b858(ctx, answer)`: 0 (Yes) → `(project, 0, pattern, 1, 1)`, then
+  `jmp 0x4002c680`; No returns.
+- `0x4002cad0`, the same prompt and answer (`0x4002caa4`) opened by `0x4002cae4`, an item of the list `0x4002c274`
+  builds (called from `0x4001ba66` and `0x4003c228`; which menu it is on the device `[HYP]`).
+None of the callers reads d0 after the call.
+
 **Free sites.** No offered tweak and no part writes `0x400ff9cc`, `0x4001a164`, `0x400597a8`, `0x40006a76` or
 `0x40059dea` (checked against OFFERED and every part.json, 2026-11-05, again after release 0.50 on 2026-11-06). The Modded-Cycles trigless-dim (47, not offered)
 also hooks `0x40059dea`: if it ever comes back, the two exclude each other.
@@ -113,6 +131,7 @@ and one flag in the shortcut layer.
 | `0x400597a8` (6 B) | `jsr 0x40058474` | `jsr tr_pitch`: the smoother, then for each track with a jump: the word at +20 += `0x100` × n, clamped `0x2800`..`0x5800`; d0 the buffer |
 | `0x40006a76` (6 B) | `jsr 0x40076ca2` | `jsr tr_frame`: with MACHINES held in keyboard mode, the six LEDs' states before every view (so ours win), and the dim masks for the interrupt; else masks 0; then the views |
 | `0x40059dea` (10 B) | LED step 0 | `jmp tr_led`: the rows of the dim masks switched off for part of each period (notes/45 §6's principle); the fast path when the masks are 0 |
+| `0x4001c19c`, `0x4001b884`, `0x4002cad0` (6 B each, 0.3) | `jsr 0x400107d8` | `jsr tr_reload`: the reload with the same five arguments; when it reloaded (d0's byte 1) every track's jump 0, the octaves kept; d0 as it returned |
 | the layer, `sc_level` | — | a byte in `sc_data` (« held key on every track »), written by both composers when `transpose` is in the build |
 
 - **State:** per track an octave (−2..+2) and a jump (0 or ±5 / ±7), each with the pattern number it was set in.
@@ -228,6 +247,29 @@ and one flag in the shortcut layer.
 - Guide section 16, release 0.51, stamp `2026-11-06-02`, README, PROVENANCE, BUILD.md (the Transpose section, and the
   hashes the layer's 0.6 changed, each with its layer-0.5 value kept).
 
+## 5.5 0.3: a reload clears the jumps (2026-11-06)
+
+The maintainer after step 6 of the device test (« ja, nach spurwechsel noch da »): the jumps should also go when the
+pattern is reloaded, FUNC + PATTERN held (from the project) or tapped (from the temp area), the octaves not.
+- **The part's 0.3** (2322 bytes of code, the data block unchanged): `tr_reload` (transpose.c) at the reload's three
+  calls (§3, *The reload*): `RELOAD(project, temp, pattern, ptn, seq)`, then, when d0's byte is not 0, `jump[0..5]`
+  0; `oct[]` and everything else untouched; d0 returned whole. A reload that fails (an unsaved project, an old one)
+  keeps the jumps, as it keeps the pattern. The UI task writes the bytes, `tr_pitch` reads them in the audio
+  interrupt: single bytes, as `tr_keys` already writes them.
+- **Both composers** write the three sites (`reload_tap`, `reload_yes`, `reload_menu` in part.json's `sites`); 19
+  writes alone (16 before), 4 504 bytes added to the image. No tweak writes those bytes: no new conflict (281 computed,
+  as before).
+- **Proof** `test_transpose.py` section 1 the three sites, section 9 (Unicorn, the maintainer): MainScreenView's
+  PATTERN case from `0x4001c154` with FUNC + a tap (from the temp area), FUNC + a long press (the prompt), PATTERN
+  alone; the prompt's answers at `0x4001b858` and `0x4002caa4`, Yes and No; the reload stubbed answering 1 or an
+  error, the stock OS and the build side by side: the same calls and arguments, the jumps 0 only after a reload that
+  answered 1, the octaves and the rest of the data block kept; `tr_reload` alone: one call with its five arguments,
+  d0 whole, d2-d7/a2-a6 and the stack kept. Alone and with SAMPLE.
+- **The maintainer's Unicorn run (2026-11-06): ALL OK, 91 checks** (sections 1 to 9). The first run's four failures
+  were the test's own: without a call of the reload (the prompt, PATTERN alone, No) it expected the jumps cleared when
+  the stub would have answered 1; the build kept them, as it should. The test now expects the clearing only after a
+  call of the reload. The smoke test (the maintainer, 2026-11-06): ALL OK, 259 checks.
+
 ## 6. The device test (P4), one at a time
 
 1. Keyboard mode, hold MACHINES: TRIG 8, 9, 11, 12, 15, 16 lit, 15 / 16 and 8–12 dim.
@@ -237,6 +279,19 @@ and one flag in the shortcut layer.
 5. GRID RECORDING on, MACHINES + TRIG 11: a trig on step 11, nothing transposed.
 6. Another track, then back: the first track kept its jump; change the pattern: everything back to 0.
 7. SETTINGS › LED LOW, MID, MAX: the dim steps still visible and steady? Which of D2's two builds looks better?
+8. File C (all fourteen cards): steps 1 to 6 again, next to the other cards.
+9. (0.3) A jump and an octave set, FUNC + PATTERN tapped: the jump back to 0, the octave kept; again with FUNC +
+   PATTERN held, YES.
+
+## 6.1 The maintainer's device test (2026-11-06)
+
+File A (SAMPLE + Transpose, 4 ms, the part's 0.2): steps 1 to 5 « passt alles, nice »; 6: the jump kept on another
+track and gone after a pattern change; 7: « a ist perfekt, werde b gar nicht testen » → **D2 decided: a period of
+4 ms (1/4 and 1/2 at 250 Hz), the default**; B not tried. Then the reload's clearing asked for (§5.5). Step 8 (file C)
+pending.
+File D (all fourteen cards, the part's 0.3, MAIN OS `398b05d1…`), step 9: a jump (+7) and an octave (+1) set, FUNC +
+PATTERN tapped: « Ja, passt » (the jump gone, the octave kept); then a jump (−5), FUNC + PATTERN held, YES:
+« Ja, passt » (the jump gone, the octave kept).
 
 ## 7. Risks and limits
 

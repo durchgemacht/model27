@@ -747,8 +747,9 @@ function resampleLayer(mainOs, part, at, codeEnd, sample = 0xff) {
 
 // compose.transpose_layer(): Transpose, KeyboardView's key handler (its vtable +8, 0x400ff9cc) to tr_keys, the
 // keyboard's read of KBT (0x4001a164) to tr_kbt, the smoother's call (0x400597a8) to tr_pitch and the LED frame's call
-// of the views (0x40006a76) to tr_frame, and the panel interrupt's LED step 0 (0x40059dea) to tr_led; its data block
-// starts with the shortcut layer's data block's address and holds the dimming's period (the part's n_value).
+// of the views (0x40006a76) to tr_frame, the panel interrupt's LED step 0 (0x40059dea) to tr_led, and since its 0.3 the
+// three calls of the pattern's reload (0x400107d8) to tr_reload; its data block starts with the shortcut layer's data
+// block's address and holds the dimming's period (the part's n_value).
 function transposeLayer(mainOs, part, at, codeEnd, scData) {
   const d = part.data, sites = part.sites;
   const dataAt = align4(at + part.bundle.code.length / 2);
@@ -760,7 +761,8 @@ function transposeLayer(mainOs, part, at, codeEnd, scData) {
   const kv = sites.keys, va = parseInt(kv.vtable, 16), method = parseInt(kv.stock_ptr, 16);
   if (u32(mainOs, va - BASE) !== method) throw new Error(`${hx(va)}: not the stock entry ${hx(method)}`);
   const writes = [{ off: va - BASE, old: hex(be32(method)), new: hex(be32(symbols[kv.symbol])) }], skip = new Set([va]);
-  for (const key of ["kbt", "pitch", "frame", "led"]) {   // jsr tr_kbt, tr_pitch, tr_frame; jmp tr_led and two nops
+  for (const key of ["kbt", "pitch", "frame", "led", "reload_tap", "reload_yes", "reload_menu"]) {
+    // jsr tr_kbt, tr_pitch, tr_frame; jmp tr_led and two nops; since 0.3 jsr tr_reload at the reload's three calls
     const s = sites[key], at_ = parseInt(s.at, 16), old = fromHex(s.stock);
     const here = hex(mainOs.subarray(at_ - BASE, at_ - BASE + old.length));
     if (here !== hex(old)) throw new Error(`${hx(at_)}: ${hex(old)} expected, ${here} found`);

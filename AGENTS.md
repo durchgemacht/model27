@@ -186,8 +186,9 @@ tools/machines/resample/      the RESAMPLE recorder, a part (notes/79): the audi
 tools/machines/transpose/     Transpose, a part (notes/80): MACHINES + TRIG 15 / 16 move the TRIG keyboard an octave (KBT
                               plus 12 at the keyboard's read, 0x4001a164), MACHINES + TRIG 8 / 9 / 11 / 12 make the active
                               track's pitch jump (the PITCH word after the smoother, 0x400597a8), the six keys' LEDs set
-                              before every view (0x40006a76) and dimmed in the panel interrupt (0x40059dea); always with
-                              the shortcut layer, whose 0.6 makes MACHINES a held key on every track; compose.py
+                              before every view (0x40006a76) and dimmed in the panel interrupt (0x40059dea); since 0.3 a
+                              reload of the pattern (the three calls of 0x400107d8, FUNC + PATTERN) clears the jumps; always
+                              with the shortcut layer, whose 0.6 makes MACHINES a held key on every track; compose.py
                               --transpose, tools/gen_transpose.py composes it alone into 81-transpose.json, the flasher's
                               Transpose card (composer.js transposeLayer); tools/emu/test_transpose.py proves it
 tools/emu/                    Unicorn emulation of the OS: test_<mod>.py proofs, mcengine.py, emac.py, syntakt.py

@@ -1340,11 +1340,12 @@ def transpose_layer(img, part, at, code_end, sc_data, n=None):
     """Transpose of this build (tools/machines/transpose/, the plan of 2026-11-05): KeyboardView's key handler (its
     vtable +8, 0x400ff9cc) to the part's tr_keys, the keyboard's read of KBT (0x4001a164) to tr_kbt, the audio
     function's call of the smoother (0x400597a8) to tr_pitch and the LED frame's call of the views (0x40006a76) to
-    tr_frame, and since its 0.2 the panel interrupt's LED step 0 (0x40059dea, 10 bytes) to tr_led. The data block after
-    the part's code starts with the shortcut layer's data block's address (sc_data), whose +0x13 the part marks when it
-    acts, and holds the dimming's period (n: 4 by default, part.json data n_value; another for a test build, never
-    offered); the rest, the values per track and the dimming's state, is zero. Returns (blob, symbols, writes, the
-    sites taken, info)."""
+    tr_frame, since its 0.2 the panel interrupt's LED step 0 (0x40059dea, 10 bytes) to tr_led, and since its 0.3 the
+    three calls of the pattern's reload (0x400107d8: 0x4001c19c, 0x4001b884, 0x4002cad0) to tr_reload. The data
+    block after the part's code starts with the shortcut layer's data block's address (sc_data), whose +0x13 the part
+    marks when it acts, and holds the dimming's period (n: 4 by default, part.json data n_value; another for a test
+    build, never offered); the rest, the values per track and the dimming's state, is zero. Returns (blob, symbols,
+    writes, the sites taken, info)."""
     d, sites = part["data"], part["sites"]
     path = object_path(part)
     if not path.is_file():
@@ -1370,7 +1371,8 @@ def transpose_layer(img, part, at, code_end, sc_data, n=None):
         sys.exit(f"!! references to {method:#x}: {[hex(r) for r in g7.refs32(img, method)]}")
     writes = [{"off": va - BASE, "old": g7.be32(method).hex(), "new": g7.be32(syms[kv["symbol"]]).hex()}]
     taken = {va}
-    for key in ("kbt", "pitch", "frame", "led"):          # jsr tr_kbt, tr_pitch, tr_frame; jmp tr_led and two nops
+    for key in ("kbt", "pitch", "frame", "led", "reload_tap", "reload_yes", "reload_menu"):
+        # jsr tr_kbt, tr_pitch, tr_frame; jmp tr_led and two nops; since 0.3 jsr tr_reload at the reload's three calls
         s = sites[key]
         va, old = int(s["at"], 16), bytes.fromhex(s["stock"])
         if img[va - BASE:va - BASE + len(old)] != old:

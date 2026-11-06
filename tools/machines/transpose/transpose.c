@@ -25,7 +25,9 @@
  *     was held), so that MACHINES' release does not open the MACHINES list, and asks for a new LED frame. Every other
  *     key, mode or held combination goes to the stock key handler (0x4001a0d2) unchanged.
  * The values are per track, in RAM only: tr_pitch clears them all when the playing pattern's number changes (read in
- * every audio block, so an old jump never sounds into the new pattern).
+ * every audio block, so an old jump never sounds into the new pattern). Since 0.3 a reload of the pattern clears the
+ * jumps, not the octaves (tr_reload): FUNC + PATTERN tapped (from the temp area) and the YES of "Reload Pattern from
+ * saved Project?" (FUNC + PATTERN held, or the menu's), the three calls of 0x400107d8.
  *
  * The data block (tr_data, part.json "data"), written by the composer and zero at boot but for sc:
  *   +0  sc     the shortcut layer's data block (its +0x13 marks MACHINES used), 0 without the layer
@@ -53,6 +55,9 @@
 #define LED_SET ((void (*)(void *, uint32_t, uint32_t, uint32_t))0x40005f86)   /* (leds, led, state, colour) */
 #define VIEW_LEDS ((void (*)(void *))0x400760ba)              /* a new LED frame */
 #define PLAYING (*(uint8_t *volatile *)0x40a7887c)            /* the playing pattern, its number at +30706 */
+/* (project, from the temp area, pattern, the pattern's part, the sequence's part) -> d0's byte 1 when reloaded, 0 on
+ * "N/A: Unsaved Proj", "Prj must be re-saved!" or "Reload Error" */
+#define RELOAD ((uint32_t (*)(void *, uint32_t, uint32_t, uint32_t, uint32_t))0x400107d8)
 #define LED_COLOUR 0x404a8c68u                                 /* what TrackSelectionView passes along */
 #define LED_BITS 0x4010abf8u                                   /* logical LED -> bit of the 7 latch bytes, or -1 */
 
@@ -203,6 +208,19 @@ int16_t *tr_pitch(void *targets)
 		}
 	}
 	return w;
+}
+
+/* The calls of the pattern's reload (0x400107d8, since 0.3): FUNC + PATTERN tapped (0x4001c19c, from the temp area)
+ * and the YES of "Reload Pattern from saved Project?" (0x4001b884, FUNC + PATTERN held; 0x4002cad0, the same prompt
+ * from the menu 0x4002c274 builds). The reload as the call replaced makes it, then, when it reloaded (d0's byte 1),
+ * every track's jump back to 0; the octaves stay. d0 as the reload left it; no caller reads it. */
+uint32_t tr_reload(void *project, uint32_t temp, uint32_t pattern, uint32_t ptn, uint32_t seq)
+{
+	uint32_t r = RELOAD(project, temp, pattern, ptn, seq), t;
+	if (r & 0xff)
+		for (t = 0; t < 6; t++)
+			D->jump[t] = 0;
+	return r;
 }
 
 /* One LED's state, and its bit in the dimming masks: dim in m1, mid in m2, full in neither. */
