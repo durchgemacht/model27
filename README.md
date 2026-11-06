@@ -23,7 +23,7 @@ Model:Cycles over USB. Modded-Cycles has since moved to a single OS with 2.0; mo
 together, so that a new machine fits next to the others. The rules a mod follows for that are the
 **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.5), written alongside.
 
-**Status: beta, release 0.42.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers thirteen
+**Status: beta, release 0.50.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers thirteen
 cards, all of them tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
 [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples on the +Drive,
 [Control All Config](https://github.com/durchgemacht/cycles-control-all-config), **Digital Delay**, the first
@@ -95,8 +95,10 @@ the keys, shows the value and saves it with the sound, and the machine only read
 instead of PUNCH or GATE on that machine's tracks; while MACHINES is held, PUNCH's and GATE's lights show the switches,
 and the machine shows them on the screen if it wants. On such a machine's tracks MACHINES is a held key: a tap still
 opens the machine list, when you let go of it, and holding it for a shortcut leaves the list closed. Each machine gives
-a shortcut its own meaning, so two machines can use the same one without meeting. For now shortcut values and switches
-cannot be p-locked or used as LFO destinations; SAMPLE's Loop and Reverse are the only switches on the page.
+a shortcut its own meaning, so two machines can use the same one without meeting. Since release 0.50 a switch can be
+locked on single steps: hold the steps' TRIG keys and MACHINES, then press PUNCH or GATE. For now shortcut values cannot
+be p-locked, and neither values nor switches can be LFO destinations; SAMPLE's Loop and Reverse are the only switches
+on the page.
 
 The held key says what a combination works on: **PATTERN** the pattern (PATTERN + Delay Time / Reverb Size chooses its
 effects), **MACHINES** the track's machine (its values and switches above), **RETRIG** the track's filter (RETRIG +

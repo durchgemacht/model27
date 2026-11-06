@@ -302,10 +302,10 @@ python3 tools/build.py -i model-cycles_OS1.13.syx -t pots
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,digidelay,pots   # avec Digital et SAMPLE
 ```
 MAIN OS patché, `pots` seul : `93ad7348e2ffa42879d2bcfabf66780f0cce721a03022f543ad785c92ba779e8` ; `digidelay` et `pots`
-composés : `81bc4d1e4cfee2bc8daba59ecf99e89a6c33f924ef11b3819632558ccfc4b64a` ; avec SAMPLE 0.14 (`sampler`,
-`digidelay`, `pots`) : `14345987cc15c58db1e4247a107b24989f13838090b8677f136700c74c84d5b0` (SAMPLE 0.13 : `bf9a0636…`),
+composés : `81bc4d1e4cfee2bc8daba59ecf99e89a6c33f924ef11b3819632558ccfc4b64a` ; avec SAMPLE 0.15 (`sampler`,
+`digidelay`, `pots`) : `a545a23071d2768adf5a67e895e6ad08bba450cf95be6bd85f32c90c341b1d7a` (SAMPLE 0.14 : `14345987…` ; SAMPLE 0.13 : `bf9a0636…`),
 ceux que la page compose avec
-`fxslot` 0.7 (le compteur de la page CPU, note 78 §8) et la couche de raccourcis 0.4. Depuis POTS 0.2 la ligne tourne à
+`fxslot` 0.7 (le compteur de la page CPU, note 78 §8) et la couche de raccourcis 0.5 (note 63 §25–§31). Depuis POTS 0.2 la ligne tourne à
 6 kHz (`pots_cf.S` pour la décimation, note 69 §24), environ un tiers de la charge de la version à 12 kHz ; celle-ci
 (note 69 §23) avait été testée sur un Model:Cycles (§23.6, `28cf64c0…`), puis jouée avec `fxslot` 0.4 depuis la page le
 29/10/2026 (note 68 §21.8). POTS 0.2 essayé depuis la ligne de commande le 03/11/2026 (note 69 §24.7), puis flashé
@@ -330,8 +330,10 @@ python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,smpfilter   # avec SAMPLE
 ```
-MAIN OS patché, `smpfilter` seul : `a545bb6b7604dc9096455a05c9d8f8746b7beb631da1363465c23faca096af0b` ; avec SAMPLE
-(`sampler` 0.14, `smpfilter`) : `b75070688c5bd3f696455628f0aa5b26d38cbbaa5435094eb7d6f7c1af398b46` (Samples 0.4, le même son que 0.3 au bit près en
+MAIN OS patché, `smpfilter` seul : `e9838dee3f2ff053add47f61f0b41b6cb112b0a9e10f52b95fd7fcde4cb1082a` ; avec SAMPLE
+(`sampler` 0.15, `smpfilter`) : `1caed5f9f90766a8e2b2204b7d496a1d150ed60e65407a41f17bd0b54f2e70d0` (`fltslot` 0.11 et la couche de raccourcis 0.5, qui
+garde les rangées de p-locks de k 23 et plus, note 63 §25 ; avec `fltslot` 0.10 et SAMPLE 0.14 : `a545bb6b…`, `b7507068…` ;
+Samples 0.4, le même son que 0.3 au bit près en
 moins d'instructions, note 72 §25 ; SAMPLE 0.13 : `f1ae1200…` ; avec Samples 0.3 : `62db5452…`, `d343e6c9…` ; SAMPLE 0.12 :
 `7350c436…`, note 60 §21), ceux que la page compose
 (`fltslot` 0.10 : un potard sans valeur montre le popup du type et ne change rien, note 73 §19 ; avec 0.9, huit par
@@ -358,9 +360,10 @@ python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines crush
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush   # avec Samples
 ```
-MAIN OS patché, `crush` seul : `364941412386d186c5bb877b09608f7fc5d921f741067d3b720e83d2d84879d1` ; avec Samples
-(`smpfilter`, `crush`) : `9c33360e1f251ca29bdfaac877b1a7bc670da735b8db8911bb2eb1b40ff3dc6c` ; avec toutes les cartes de
-la page (treize, release 0.44) : `4f6a8756ba15ae1b1f6ad926b1c111316f57fb43c78ee7ac39562d0efc8ba26b` (SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, note 76 §17 ; avec EQ 0.5, release 0.40 : `9e7c87d2…` ; Reso 0.4, note 75 §17 ; avec Reso 0.3, release 0.39 : `021d39d1…`), ceux que la page compose (Ring 0.3, note 74 §13 ; avec Ring 0.2 :
+MAIN OS patché, `crush` seul : `29c30e96aea3c47b98a0543d3234e62f8e53868ba11bed1632220b50d2543e01` ; avec Samples
+(`smpfilter`, `crush`) : `973ed79a52a5fc615ab71b204395489101f2b29567512261f8ae1f0b73e70f8c` (`fltslot` 0.11, la couche 0.5 ; avec `fltslot` 0.10 : `36494141…`,
+`9c33360e…`) ; avec toutes les cartes de
+la page (treize, release 0.50) : `a503f081d5584cf75ec9ff6d24f55a9f475b64d3501d17b5be6ff022b313307c` (SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.5, note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, note 76 §17 ; avec EQ 0.5, release 0.40 : `9e7c87d2…` ; Reso 0.4, note 75 §17 ; avec Reso 0.3, release 0.39 : `021d39d1…`), ceux que la page compose (Ring 0.3, note 74 §13 ; avec Ring 0.2 :
 `289e6c14…` (onze cartes, release 0.35 : `2fbe6c3f…`) ; Samples 0.4, note 72 §25 ;
 avec Samples 0.3, release 0.34 : `44e16270…`, `0d64b14e…` ; Crush 0.5, le même son
 que 0.4 au bit près en moins d'instructions, note 73 §20 ; avec Crush 0.4, Bits de 8 bits à 1 bit, `fltslot` 0.10 : `3e95ccad…`,
@@ -386,10 +389,10 @@ python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines ring
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush,ring   # avec Samples et Crush
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines ring --cpu             # avec la page CPU
 ```
-MAIN OS patché (Ring 0.3), `ring` seul : `a6340129f27113bbff34c413d1a5122e3f3a5264d9a828cff38edf8f04a309fe` ; avec Samples
-et Crush : `4a1554a479e05f8c5655f8244838576e14c3d9daa0905669a3d2cbf5b685892b` ; avec la page CPU :
-`df80d34aff57241cb1faf31eb3f44cd8d8ed4f2fb3fdadf2e3f48dda12d6d804` (Ring 0.2 : `333bae39…`) ; avec toutes les cartes de la page (treize,
-release 0.44) : `4f6a8756ba15ae1b1f6ad926b1c111316f57fb43c78ee7ac39562d0efc8ba26b` (SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, note 76 §17 ; avec EQ 0.5, release 0.40 : `9e7c87d2…` ; Reso 0.4, note 75 §17 ; avec Reso 0.3, release 0.39 : `021d39d1…`) (Ring 0.3, la porteuse de 2 048 pas sans interpolation et la boucle dans `ring_cf.S`, un tiers
+MAIN OS patché (Ring 0.3), `ring` seul : `c8e189ce4e45fe14253cd58d7f0739ef3f5999da93ca9803cf51493e02c9600b` ; avec Samples
+et Crush : `dd49ce7a965a4af9025f72d9bba84e7be1496a35c5c2e8a4f7ad3d2ea4eefd8c` ; avec la page CPU :
+`9fc748813fb71f91cbbd08b7d26ee537965ba09d7839d64811cd0a123535b9f5` (`fltslot` 0.11, la couche 0.5 ; avec `fltslot` 0.10 : `a6340129…`, `4a1554a4…`, `df80d34a…` ; Ring 0.2 : `333bae39…`) ; avec toutes les cartes de la page (treize,
+release 0.50) : `a503f081d5584cf75ec9ff6d24f55a9f475b64d3501d17b5be6ff022b313307c` (SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.5, note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, note 76 §17 ; avec EQ 0.5, release 0.40 : `9e7c87d2…` ; Reso 0.4, note 75 §17 ; avec Reso 0.3, release 0.39 : `021d39d1…`) (Ring 0.3, la porteuse de 2 048 pas sans interpolation et la boucle dans `ring_cf.S`, un tiers
 d'instructions en moins, note 74 §13, et le nom Wave, §14 ; avec Ring 0.2 : `704f5f65…`, `68b3f5f1…`,
 `289e6c14…` (onze cartes, release 0.35 : `2fbe6c3f…`) ; Ring 0.2, le produit sur l'EMAC, `fltslot` 0.10 ; Crush 0.5 ; Samples 0.4 ;
 avec Samples 0.3, release 0.34 : `7f9371fa…`, `0d64b14e…` ; avec Crush 0.4, release 0.32 : `85467706…`, `09661941…` ;
@@ -411,9 +414,10 @@ python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines reso
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush,reso   # avec Samples et Crush
 ```
-MAIN OS patché, `reso` seul : `7626270efbc4b0f1e01164ef3602f905e2e1c58217ad0d5c00f1b0be229a2840` ; avec Samples et
-Crush : `ccdcf75ab8d166f39530fc9186f814d25351ce0ba371d03078e60f28e4943d32` ; avec toutes les cartes de la page (treize,
-release 0.44) : `4f6a8756ba15ae1b1f6ad926b1c111316f57fb43c78ee7ac39562d0efc8ba26b` (SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, note 76 §17 ; avec EQ 0.5, release 0.40 : `9e7c87d2…` ; Reso 0.4, le bloc et les coefficients
+MAIN OS patché, `reso` seul : `540699be12940c6778856f9990d153bd3901753d80b7d2221f45a82489dc93ce` ; avec Samples et
+Crush : `f2f326ad6690e816091dbf3e085b4e4e3e29e92f32af0e9234b4ccbce9829db6` (`fltslot` 0.11, la couche 0.5 ; avec `fltslot` 0.10 : `7626270e…`, `ccdcf75a…`) ;
+avec toutes les cartes de la page (treize,
+release 0.50) : `a503f081d5584cf75ec9ff6d24f55a9f475b64d3501d17b5be6ff022b313307c` (SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.5, note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, note 76 §17 ; avec EQ 0.5, release 0.40 : `9e7c87d2…` ; Reso 0.4, le bloc et les coefficients
 dans `reso_cf.S`, un cinquième d'instructions de moins au pire, note 75 §17 ; avec Reso 0.3, release 0.39 : `0b0fdba1…`,
 `d8f9807c…`, `021d39d1…` ; Reso 0.3, Tone sur COLOR et Decay sur SHAPE, `fltslot` 0.10 ; Crush 0.5 ;
 Samples 0.4 ; Ring 0.3 ; avec Ring 0.2 : `289e6c14…` (onze cartes, release 0.35 : `2fbe6c3f…`) ; avec Samples 0.3, release 0.34 : `c1be9428…`, `0d64b14e…` ; avec Crush 0.4, release 0.32 : `45a81abb…`, `09661941…` ; avec
@@ -438,9 +442,10 @@ python3 tools/emu/test_fltslot.py --cycles model-cycles_OS1.13.syx
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines eq
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,crush,eq   # avec Samples et Crush
 ```
-MAIN OS patché (EQ 0.6), `eq` seul : `49130cc30d7d33b5a08fa3d4b2c242e48feca4351cb9633fbfec9bab14945530` ; avec Samples et
-Crush : `33824b1c94d5d63a0b01e08672e7f4c0fe970dc007e8f7d04af3a965d6eda208` ; avec toutes les cartes de la page (treize,
-release 0.44) : `4f6a8756ba15ae1b1f6ad926b1c111316f57fb43c78ee7ac39562d0efc8ba26b` (SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, le bloc et les coefficients
+MAIN OS patché (EQ 0.6), `eq` seul : `fb2a9f9b4c36c12f0e8b0efc13d678b643f4593ed31cf2851269036f46d8fbee` ; avec Samples et
+Crush : `015937f5cef075a81c9e45a418b88ab9ef67eaf307c432b831fda54aa68061f0` (`fltslot` 0.11, la couche 0.5 ; avec `fltslot` 0.10 : `49130cc3…`, `33824b1c…`) ;
+avec toutes les cartes de la page (treize,
+release 0.50) : `a503f081d5584cf75ec9ff6d24f55a9f475b64d3501d17b5be6ff022b313307c` (SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.5, note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, le bloc et les coefficients
 dans `eq_cf.S`, un septième d'instructions de moins au pire, note 76 §17 ; avec EQ 0.5, release 0.40 : `cf01be47…`,
 `937099de…`, `9e7c87d2…` ; avec Reso 0.3, release 0.39 : `021d39d1…`) (`fltslot` 0.10 ; Crush 0.5 ; Samples 0.4 ; Ring 0.3 ; avec Ring 0.2 : `289e6c14…` (onze cartes, release 0.35 : `2fbe6c3f…`) ;
 avec Samples 0.3, release 0.34 : `567c2b42…`, `0d64b14e…` ; avec Crush 0.4, release 0.32 : `d53b1fe6…`, `09661941…` ; avec `fltslot` 0.9 : `31e4456f…`, `be915b71…`,
@@ -468,7 +473,8 @@ python3 tools/compose.py --cycles model-cycles_OS1.13.syx --cpu                 
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines pots,crush --cpu  # avec POTS et Crush
 ```
 MAIN OS patché, `cpu` seul : `425ad022c55c0037e7846c3c5b84fd87235dba4c1847cf1733795236a50b25b5` ; avec POTS et Crush
-(dans l'ordre des cartes, comme la page) : `49a0e74a0ad3ffe2ca67e0f068a239ba28cbde319aa86295e8588df91886a1c8` ; avec
+(dans l'ordre des cartes, comme la page) : `1e87a24f06e9c354f84353322f44787f030cf56f3ce91d640a40f3f0f2cfa992` (`fltslot` 0.11, la couche 0.5 ; avec
+`fltslot` 0.10 : `49a0e74a…`) ; avec
 toutes les cartes de la page (douze, release 0.37) : `5af3a7473353c494edefc8ebec1a36642d22b287a06867145aa7c7fff9afa17d`. Avec POTS et Crush, essayé sur un Model:Cycles depuis la ligne de commande le 03/11/2026, les valeurs
 rafraîchies deux fois par seconde (note 78 §10). La page sans son rafraîchissement (`cpu` 0.2), essayée de même le
 même jour (note 78 §9) : avec Crush et POTS `7773846a…`. Flashée depuis la page et testée sur un Model:Cycles le
@@ -489,8 +495,8 @@ python3 tools/emu/test_resample.py --cycles model-cycles_OS1.13.syx [--keys] [--
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --resample                         # seul
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler --resample      # avec SAMPLE
 ```
-MAIN OS patché, `resample` seul : `d88f8603927fd2bbf8eade07af3cd58994e6bafa17a3f4145751e7ba6a8a9a9f` ; avec SAMPLE 0.14 :
-`87476afdffed115768ac765206d13e1909fb6f471289fca294329255775c2576` (SAMPLE 0.13 : `e6e162fe…`) ; avec SAMPLE 0.13 et Trig Preview (le fichier essayé sur
+MAIN OS patché, `resample` seul : `d88f8603927fd2bbf8eade07af3cd58994e6bafa17a3f4145751e7ba6a8a9a9f` ; avec SAMPLE 0.15 :
+`d18521777c7f08364a4454b7207d6f4982a74c99d6d071f8cf6c2e97d12d5ba5` (SAMPLE 0.14 : `87476afd…` ; SAMPLE 0.13 : `e6e162fe…`) ; avec SAMPLE 0.13 et Trig Preview (le fichier essayé sur
 un Model:Cycles depuis la ligne de commande le 04/11/2026, note 79 §12) :
 `15a32ac02984461ede21bca62bf83e93aa2599bf3f4734c6f18ff2828ef6c76a`, le même que la page construit avec ces trois cartes,
 téléchargé depuis la page et testé sur un Model:Cycles le 04/11/2026 (note 79 §13) ; avec toutes les cartes de la page (treize, release

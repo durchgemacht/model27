@@ -7,6 +7,12 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.50", date: "2026-11-06", changes: [
+    { en: "SAMPLE locks Loop and Reverse on single steps: hold one or more TRIG keys and MACHINES, then press PUNCH or GATE. Those steps play it the other way round from the track, saved with the pattern; press it again and they follow the track again" },
+    { en: "While you hold a TRIG key on a SAMPLE track, the right half of the screen shows that step's LOOP and REV, lit when it plays them, and with MACHINES held the PUNCH and GATE lights show the same. A TRIG key held with MACHINES alone opens the PRESET menu when you let go of MACHINES" },
+    { en: "The column on the left of SAMPLE's screen shows T1 to T6 with the track's pan under it. FUNC + LEVEL turns the pan 2 a step as before; from an odd value, such as 63 at the right end, it now lands on the even value next to it, so 0 can always be reached again" },
+    { en: "Tested on a Model:Cycles (2026-11-05), flashed over USB, step by step: locks on and off, saved and loaded, next to a Track FX, and the other machines' tracks as before. SAMPLE is Cycles One-Shot 0.15" },
+  ] },
   { version: "0.49", date: "2026-11-05", changes: [
     { en: "A new page, the Uploader, puts audio files on your Model:Cycles' +Drive over USB, for SAMPLE. Drop files and whole folders on the left, open a folder of the Cycles on the right, press Upload: each file becomes a 48 kHz mono sample, and the folders are made on the Cycles too. It works with the official OS too" },
     { en: "On the left, make folders, drag rows into them and rename them; what is not audio is left out. Drag rows onto a folder on the right to upload them there. On the Cycles' side, a click opens a folder; Select puts a box on each row, to pick samples and folders and delete them in one go. A name already in a folder is skipped, not replaced" },

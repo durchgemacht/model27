@@ -5,8 +5,7 @@ added machine of the Model:Cycles.
   - 27-sampler.json: 7th machine, after the 6 stock ones.
 
 The code is Cycles One-Shot's (durchgemacht, MIT: tools/machines/sampler/LICENSE, copied next to the tweaks as
-LICENSE-One-Shot), taken as is from https://github.com/durchgemacht/cycles-one-shot at its commit UPSTREAM_COMMIT below (0.15
-in progress, not tagged yet; tag v0.14 before it; 0.8 made the
+LICENSE-One-Shot), taken as is from https://github.com/durchgemacht/cycles-one-shot at tag v0.15 (UPSTREAM_COMMIT below; 0.8 made the
 patch points SAMPLE_MACHINE and DESC_START symbols behind CM_SYMBOLS in pool.h and view.c, and gave each assembly
 file a section of its own, for builders like this one; 0.9 split the bar above the waveform into the pattern's
 number and the sample's name; 0.10 puts a column on the left with the pattern's number, the track's number and its
@@ -73,8 +72,8 @@ LICENSE_OUT = DEV / "LICENSE-One-Shot"
 SRC = HERE / "machines" / "sampler"
 
 UPSTREAM = "https://github.com/durchgemacht/cycles-one-shot"
-UPSTREAM_TAG, UPSTREAM_COMMIT = None, "1d24f7b931ff9d6dc1ef7124cb7c54e4a4db6332"   # 0.15 in progress, not tagged yet
-VERSION = "0.15-dev"   # notes/63 §28-§31; pinned to its tag at the release
+UPSTREAM_TAG, UPSTREAM_COMMIT = "v0.15", "b5020bb5d2abf6a374444900aab2824406887def"
+VERSION = "0.15"
 
 POOL = (0x43800000, 0x46700000)
 # The build recipe (sources, flags, defines, patch points, symbols to keep) is the manifest's,
@@ -128,10 +127,12 @@ def build_tweak(img, check=False):
             "both with the Model:Samples' pictures in the knob view;",
             "DECAY, GATE and PUNCH: the stock amp chain. MACHINES + PUNCH = Loop (a hard seam, as on the",
             "Model:Samples), MACHINES + GATE = Reverse (from the next trig), two switches of the builder's shortcut",
-            "layer (notes/63 §16), saved with the sound. A trig that cuts a sounding note brings the new one in over",
-            "0.67 ms. On a SAMPLE track the main screen shows a column with the pattern's number, the track's number",
-            "and its level, the sample's name with L and R while the switches are on, and the waveform with the start",
-            "and end marked.",
+            "layer (notes/63 §16), saved with the sound; with trigs held, MACHINES + PUNCH or GATE locks the switch on",
+            "those steps instead (a p-lock of k 32, notes/63 §27-§29). A trig that cuts a sounding note brings the new",
+            "one in over 0.67 ms. On a SAMPLE track the main screen shows a column with the pattern's number, the",
+            "track's number and pan and its level, the sample's name with L and R while the switches are on, and the",
+            "waveform with the start and end marked; while a trig is held, the right half shows whether that step plays",
+            "LOOP and REV (notes/63 §30). FUNC + LEVEL/DATA's pan lands on even values on SAMPLE's tracks (§31).",
             "Code of Cycles One-Shot %s (durchgemacht, MIT, %s, %s), copied as is into tools/machines/sampler/,"
             % (VERSION, UPSTREAM, "tag " + UPSTREAM_TAG if UPSTREAM_TAG else "commit " + UPSTREAM_COMMIT[:7]),
             "compiled once with CM_SYMBOLS and SMP_SWITCHES into sampler.o and placed by tools/relocate.py (notes/60).",

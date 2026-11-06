@@ -610,3 +610,29 @@ half-finished step never blocks a build.
   this pin composes it (`.syx` `856b552f…`, the same file as `build.py -t sampler`, MAIN OS `522bc89c…`), by the
   maintainer on a Model:Cycles flashed over USB (2026-11-04): the pictures on a SAMPLE track, SNARE's on a SNARE track,
   Loop and Reverse with L and R, "passt" `[FAIT sur la machine]`. The card stays `tested`.
+
+## 23. One-Shot 0.15 pinned: Loop and Reverse per step, the step panel, the pan (2026-11-06)
+
+- **What changed upstream**: One-Shot 0.15 (`b5020bb`, tag `v0.15`; its code is `1d24f7b`'s, the release commit
+  adds the version and the docs) plays the locks of k 32 that the shortcut layer 0.5 writes (`note_switches`), draws
+  a step panel in NoteVelocityView's draw while a trig is held, shows T1..T6 and the pan in the column, and puts
+  FUNC + LEVEL/DATA's pan on even values on its tracks (two hooks, point `main.pan`, `0x4001ab14` and `0x4001ab52`).
+  The work, its proofs and the device test: notes/63 §25–§32.
+- **Here**: every file of `tools/machines/sampler/` is byte for byte One-Shot's at `b5020bb`. The manifest's
+  version, name, description, source, two `main.pan` hooks and the two symbols kept, the tests; `gen_sampler.py`
+  pinned on v0.15. 136 writes and 280 conflicts; 38 528 bytes of code and tables, 62 248 of variables, 46 292 bytes
+  added to the image (42 980 at 0.14: the layer 0.5's code, the panel, the pan hooks).
+- **Hashes**: SAMPLE alone `49ac6238…` (the file of the device test's last steps), with both effects `a545a230…`, with
+  Samples `1caed5f9…`, with RESAMPLE `d1852177…`, every card of the page `a503f081…`; BUILD.md also gives the other
+  builds the layer 0.5 moved (the Track FX alone and together, the CPU page with them). The smoke test's pins: 136
+  writes and 46 292 bytes in the log line, the Model:Samples packings `44abb137…` (`_smp-os`) and `5dc14a91…`
+  (`_cyc-os`).
+- The card's text (a block for TRIG + MACHINES + PUNCH / GATE), the guide's SAMPLE section (the version, a step for the
+  locks and the panel, the column and its pan, the table, the limits, the Tested line), README (release 0.50, switches
+  lockable), release 0.50, stamp `2026-11-06-01`; PROVENANCE.md names the tag and the commit.
+- **Tested**: One-Shot's host tests with and without the switches, under ASan and UBSan too. Unicorn, run by the
+  maintainer on the final code (2026-11-05): `test_sample_pan.py`, `test_shortcuts.py`, `test_compose.py`,
+  `test_views.py`, `test_refchord.py`, `test_chordtables.py`, `test_fltslot.py` ALL OK; `test_fxslot.py`,
+  `test_cpu.py` and `test_resample.py`, whose selections hold SAMPLE or the layer, run by the maintainer on the release's code (2026-11-06): ALL OK (540, 139 and 181 checks) `[FAIT en émulation]`. On a Model:Cycles, flashed
+  over USB, ten steps as the work was built, the last ones with this pin's files (SAMPLE alone `49ac6238…`, every card
+  `a503f081…`): notes/63 §32. The card stays `tested`.

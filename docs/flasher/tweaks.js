@@ -406,9 +406,9 @@ window.MC_TWEAKS = {
  "packages": {
   "sampler": {
    "id": "sampler",
-   "name": "SAMPLE machine: sampler for samples on the +Drive, one shot or loop, forward or reverse (Cycles One-Shot 0.15-dev)",
+   "name": "SAMPLE machine: sampler for samples on the +Drive, one shot or loop, forward or reverse (Cycles One-Shot 0.15)",
    "order": 27,
-   "version": "0.15-dev",
+   "version": "0.15",
    "symbols": {
     "update": "sampler_update",
     "render": "sampler_render"

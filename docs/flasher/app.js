@@ -1779,6 +1779,10 @@ const FEAT = {
         "again. The screen shows L after the sample's name."],
       ["[MACHINES] + [GATE]", "Switches Reverse on or off, from the next trig. The screen shows R after the sample's " +
         "name."],
+      ["[TRIG] + [MACHINES] + [PUNCH] / [GATE]", "Locks Loop or Reverse on single steps. Press and hold one or more " +
+        "[TRIG] keys and [MACHINES], then press [PUNCH] or [GATE]. Those steps play it the other way round from the " +
+        "track. Press it again to let them follow the track. While you hold a [TRIG] key, the right half of the " +
+        "screen shows that step's LOOP and REV, lit when it plays them."],
     ] },
   "chord-keys": { label: "Chord Keys",
     short: "On a CHORD track, TRIG 1–16 play the chords of your scale.",
