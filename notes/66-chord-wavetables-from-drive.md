@@ -2246,3 +2246,232 @@ The maintainer: « 2. verstehe ich nicht », « rest wie empfohlen », and on 4 
   - The uploader's warning about a table without a sine (§16.3) can become a note ("CHORD Tables puts a sine in
     front"): W7.
 
+## 28. T1: read in the code (2026-11-08)
+
+The maintainer, 2026-11-05: « Ja, T1 starten ». The five readings of §27.7's T1, done in the disassembly of MAIN OS
+1.13 (`_scratch/control-all/main.dis`, not committed) and in its image. Nothing built.
+
+### 28.1 CHORD's SWEEP, and the knob at the hook `[FAIT]`
+
+- **The descriptor table `0x4010dce0`, read whole.** It has 76 entries of `0x38` bytes: group at `+0`, k at `+4`, CC
+  at `+0x18`, long name at `+0x2c`, group name at `+0x30`, short name at `+0x34`. COLOR, SHAPE, SWEEP and CONTOUR have
+  one entry per machine (46–49 for KICK up to 71–74 for CHORD), each machine's four followed by an Amp Decay.
+- **CHORD's SWEEP is descriptor 73** ("Chord Sweep", group 5, k 13, default `0x2b00`), and no other machine's. The
+  CHORD Wave Bank's TECHNICAL.md gives `0x49` too.
+- **At `0x4001f886`:**
+  - `d3` holds what the knob lookup returned (`0x4001f6ee`), and `d2` the event;
+  - `0x4006f762(d2)` gives the knob number (SWEEP is 6).
+- **So `d3` = 73 exactly when SWEEP turns on a CHORD track.**
+  - With PATTERN held no MACHINES level applies, so the lookup returns the plain descriptor.
+  - FUNC (fine adjust) changes only knobs 14 and 15, so FUNC + SWEEP still gives 73.
+  - An added machine's descriptors are 76 + 5 i.
+- **The gesture needs no lookup of the track's machine:** PATTERN held and `d3` = 73 is the whole test.
+
+### 28.2 The popup `[FAIT]`
+
+- **The handler sets up its popup before `0x4001f886`** (`0x4001f708..0x4001f76e`), for the descriptor the lookup
+  returned:
+  - `0x4001ddb2(view, d3)` runs when the (descriptor, track) pair changed;
+  - then a timeout of 60 is written at `+568`, and a redraw is asked for.
+- **The popup draws** the descriptor row's long name, and the value through the descriptor's interface object
+  (`0x40a71754` + 100 d, formatter at `+0x20`; notes/47 §3.3, notes/73 §19.1).
+- **So the lookup must return a descriptor of our own** when PATTERN + SWEEP turns on a CHORD track. That is the
+  track filter's way for its type, descriptor 5:
+  - `fl_knob` returns 5 on RETRIG + PITCH, and `fl_keys` steps on it at `0x4001f886`;
+  - `show_type` writes the long name into both tables, the knob's steps at `+0x10`, `fl_fmt_type` at `+0x20`, and
+    clears the picture at `+0x2c`.
+- **The knob lookup is a vtable entry:** `0x401005a8`, stock `0x4001e814`. Today the shortcut layer takes it
+  (`sc_knob`), with the track filter's `fl_knob` in front.
+  - CHORD Tables' link: call the next lookup; if it returns 73 while PATTERN is held, return our descriptor instead.
+  - That makes a fifth site to share (§27.5).
+- **Not proposed:** pointing the popup elsewhere from the keys hook (`+560`, a second call of `0x4001ddb2`). Nothing
+  has proven that way.
+
+### 28.3 A free descriptor `[FAIT]`
+
+- **Which entries are free.** The stock table's 0–5 and 10–13 are "Error" entries: group −1, k −1, range 0..0, their
+  CC fields leftovers. Group −1 keeps them out of the tables the OS builds at boot, so no CC reaches them (notes/72
+  §9). Of those:
+  - 1–4 are the shortcut layer's and the Track FX' values, 5 is the Track FX' type;
+  - 0 ends the handler (`0x4001f704`).
+- **Free: 10, 11, 12 and 13.** No manifest, part or `claims.json` claims them.
+- **Proposed: descriptor 10**, written as the track filter writes its 5:
+  - group −1, k 0, no CC, the names "Wavetable" / "WAVE";
+  - in the stock table, and in the one the OS uses (a copy, in a build with an added machine);
+  - its formatter prints the table, 0–63.
+  - The claim: `descriptors: [10]`.
+
+### 28.4 The pattern change and the first note `[FAIT, by reading]`
+
+- **The sequencer runs in an interrupt of its own.** Its handler `0x40054c1e` is installed as vector 121
+  (`0x400001e4`, at `0x40055ec0`), apart from the audio interrupt (`0x40059382` → `0x4005979e`, voice loop
+  `0x4005981e`).
+- **That handler writes the playing pattern before it builds the step's events.** The writes are at `0x40054d56`
+  (and `0x4005550a`, `0x40055700`; `0x40055c5c` in `0x40055c38`). The events are built at `0x400551a6` →
+  `0x400548ce`, which reads the pattern at `0x40054828`.
+- **A note starts in the audio block after its trig:** `v + 0x34` is copied to `v + 0x38` at the block's end
+  (notes/14 §2, §11.6 above).
+- **So in the block where a note of the new pattern starts, `*0x40a7887c` is already the new pattern.** `cw_setup`
+  gives that note the new table from its first block.
+- **Not read: the two interrupts' priorities.** If the sequencer can preempt a block, the CHORD voices of that one
+  block may see the old and the new pattern. A note still starts only at a block's end. P3 proves this on the OS's
+  own code.
+
+### 28.5 The OS's sine `[FAIT]`
+
+- **Where it comes from.** SRAM is filled at boot from the image (`0x4000045c`: `0x4019b590..` → `0x80000000`,
+  `0x401a2a50..0x401aa140` → `0x80008000`). So the sine at `0x8000eee4` is the image's `0x401a9934`.
+- **What it is:**
+  - 257 Q31 words, the last equal to the first;
+  - full scale: +2³¹ − 1 at index 64, −2³¹ at 192;
+  - sine phase: 0 at index 0, then rising;
+  - a fit gives amplitude 1,000000 of full scale and phase 0.
+- **The converter writes the same wave.** `tools/wavetable.py`'s `sine_frame` is 32 767 · sin(2πm/256) in 16 bits:
+  - against the OS's sine >> 16, rounded, at most 1 step apart (the OS reaches 32 768 at its peak, the converter
+    32 767);
+  - the loader turns a file's sample x into the word x << 16 (`build()`), which is at most 1,37 steps of 16 bits from
+    the OS's word.
+- **The loader's test** (§27.10):
+  - a file's first 256 samples against the OS's sine >> 16, each within a few steps;
+  - proposed: 4 steps, which covers the converter's 1 and the uploader's rounding of positive samples (§11.4);
+  - 256 integer comparisons, once per file, in the tick.
+
+### 28.6 What follows for the plan
+
+- **T2 (emulation) is next.**
+- **T3 gets one more site to share:** the knob lookup (`0x401005a8`), next to the loader's hook, the initializer's,
+  the encoder handler's, and PATTERN's release.
+- **The gesture:** `d3` = 73 while PATTERN is held, with no machine check. The popup comes from descriptor 10,
+  returned by the lookup, and the claims add descriptor 10.
+- **The pattern header:** bytes 36, 37 and 39 are still claimed by nothing (2026-11-08, after Transpose).
+
+## 29. T2 prepared: the render at a change of frames (2026-11-08)
+
+The maintainer: « Ja, T2 vorbereiten ». The question of §26.3 step 4 and §27.3: what CHORD's render does when its
+frames change address, or content, at the same index between two blocks.
+
+### 29.1 The probe
+
+**`tools/emu/probe_chord_switch.py`** runs the official MAIN OS 1.13 with no package. Between two blocks it rewrites
+the stock table's pointers (`0x40118590`), which is what a table change of §27.3 does to the setup: other frames at
+the same SWEEP. CHORD plays alone on track 1 (the voice loop, `mcengine`), the note starts from block 1, the switch
+comes before block 24.
+- **A. The same frames at other addresses.** Copies in free memory from block 24, the stock addresses again from block
+  44: steps 1 and 3 of §27.3 with the same content. Compared with the run without a switch, sample for sample, in
+  four runs:
+  - a1: SWEEP between two frames (a crossfade);
+  - a2: SWEEP on a frame;
+  - a3: SWEEP creeping;
+  - a4: a high note (note 96).
+- **B. Another table at the same index** (the stock frames in reverse). Compared with the stock table throughout and
+  with the other table throughout:
+  - which block hears the new table;
+  - what the switch block plays: the old frames, the new ones, or a linear fade across the block;
+  - the largest step at the switch, against the waves' own largest step.
+
+  Three runs: b1 SWEEP between two frames, b2 SWEEP creeping, b3 the high note.
+- **`--wav DIR`** writes two seconds of CHORD to listen to: four notes, each switching table in its middle (step 1 of
+  §27.3, at once), and the same notes without a switch.
+- **`--dry`** runs what needs no emulator: the stock table as the image holds it, the copies' place in memory, and
+  the analysis on made-up runs.
+- **What the probe checks, so that its results can be trusted (a FAIL otherwise):**
+  - after the switch, every sub-voice's two frames come from the new pointers;
+  - no access falls outside memory;
+  - the copies stay unchanged;
+  - the runs agree before the switch.
+- **Everything else is a "finding":** a measurement for the design, not a pass or a fail.
+
+### 29.2 What the answers decide
+
+- **A identical:** step 3 of §27.3 (from the SDRAM frames to the same frames in SRAM) cannot be heard, and the clean
+  change works as planned.
+- **A not identical:**
+  - a difference of a few steps, far under the note: it cannot be heard, so it is accepted and noted;
+  - anything larger: step 3 needs another way, to design then.
+- **B shows what step 1 does:**
+  - the render fades by itself: a soft change;
+  - the render switches at once: a click is likelier.
+- **The ear decides from the listening files.** A click is accepted at first (§27.10).
+
+### 29.3 Run here (2026-11-08)
+
+- `py_compile` passes.
+- **`--dry`: ALL OK.** The stock table holds entry 0 at frame 1 in the OS's data, 30 distinct frames in SRAM, and entry
+  31 repeating entry 30. The 31 + 31 copies sit in mapped memory, apart from everything else. Case B differs from the
+  stock table at every entry but the middle one. The analysis' self-test passes.
+- **The emulation stops with SIGILL in the agent's sandbox** (exit 132), so the run is the maintainer's:
+
+```sh
+../.venv-emu/bin/python3 tools/emu/probe_chord_switch.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx --wav ../_scratch/chordtables-t2
+```
+
+### 29.4 The first run (the maintainer, 2026-11-08) `[FAIT en émulation]`
+
+**ALL OK.** Every check of the probe's set-up holds. The findings:
+
+| Case | Differs from the reference in | At most | Equal again from |
+|---|---|---|---|
+| a1 the same frames moved, SWEEP between two frames | blocks 24–26 and 44–46 | 155 434 920, −5,5 dB under the note's peak | block 27 (47) |
+| a2 SWEEP on a frame | the same | 151 231 289, −6,3 dB | block 27 (47) |
+| a3 SWEEP creeping | the same | 167 678 548, −5,6 dB | block 27 (47) |
+| a4 note 96 | the same | 97 372 381, −0,7 dB | block 27 (47) |
+
+| Case | The switch block, max \|difference\| to: old / new / fade (n + 1)/32 / fade n/32 | Equal to the other table from | Largest step at the switch, against the waves' own |
+|---|---|---|---|
+| b1 another table, SWEEP between two frames | 155 434 920 / 135 775 582 / 125 066 174 / 125 993 838 | block 27 | 9 036 920 against 40 021 051 (−12,9 dB) |
+| b2 SWEEP creeping | 167 678 548 / 206 300 163 / 113 410 431 / 115 020 427 | block 27 | 14 185 094 against 54 537 625 (−11,7 dB) |
+| b3 note 96 | 83 265 134 / 91 177 668 / 89 587 861 / 89 057 925 | block 27 | 44 432 247 against 92 661 206 (−6,4 dB) |
+
+**What it shows:**
+- **The render has a transition of its own.** When a sub-voice's frames change address at the same index, the render
+  treats it as a jump of frame (§19.1, "another frame"). Its output then departs from the plain path for three
+  blocks, the switch block and the two after it (about 2 ms), and runs on the new frames from the fourth.
+- **Step 1 of §27.3 (another table) is smooth.**
+  - In every case the switch's largest step stays under the waves' own largest step, by 6 to 13 dB. The switch
+    makes no jump in the wave.
+  - The switch block is closest to a linear fade, but not one: the render's transition has a shape of its own.
+  - So the click the maintainer accepted (§27.10) may not come at all: the render fades. The listening file
+    `chord-switch-at-once.wav` decides by ear.
+- **Step 3 of §27.3 (the same frames, at other addresses) is not silent.**
+  - The same transition runs although the content is the same, and changes the output by up to about half the
+    note's level for those three blocks.
+  - So it is not a crossfade between equal waves; the render's gains during the jump do not sum to the plain path's.
+    Most likely a dip, `[HYP]`.
+  - The clean change as §27.3 planned it would put this transition 3 to 20 ms after the first.
+
+### 29.5 Step 3 without the transition: the previous pair moved too (prepared 2026-11-08)
+
+- **The render decides by comparison.** It compares the new f0 with the previous one (`+176`) and the index with the
+  previous index (`+188`, §19.1).
+- **At step 3 only the addresses change**, so `cw_setup` can write the previous pair (`+176`, `+180`) at the new
+  addresses too, wherever it points at the old copy of a frame. The render then sees no change of frame and takes
+  its plain path, on frames of the same content.
+- **The probe's new cases a5 to a7** test exactly this: a1, a3 and a4 again, with every sub-voice's previous pair
+  moved before the switch block, and moved back before block 44. If each is identical to the run without a switch,
+  sample for sample, step 3 is silent with this rule.
+- **A third listening file:** `chord-same-frames-moved.wav`, step 3 without the rule, to hear how much the
+  transition matters.
+- **Here:** `--dry` ALL OK (the move maps each stock frame to its copy and back); the run is the maintainer's, the
+  same command as in §29.3.
+
+### 29.6 The second run (the maintainer, 2026-11-08) `[FAIT en émulation]`
+
+**ALL OK.**
+- **a1 to a4 and b1 to b3:** the same numbers as in §29.4.
+- **a5, a6 and a7 (the previous pair moved too) are each identical to the run without a switch, sample for sample,
+  through both switches (blocks 24 and 44):**
+  - a5: SWEEP between two frames;
+  - a6: SWEEP creeping;
+  - a7: note 96, sub-voices switched off for their pitch included.
+- **So step 3 of §27.3 is silent with this rule.** When the frames a sub-voice plays only move (the same content,
+  other addresses), `cw_setup` writes the new addresses into `+168` / `+172` and into the previous pair `+176` /
+  `+180` alike. The render then sees no change of frame. This joins the design of §27.3, steps 1 and 3:
+  - **step 1** (another table) writes only `+168` / `+172`, and the render's own transition brings the new table
+    in (§29.4);
+  - **step 3** (the same table, from SDRAM to SRAM) writes the four pointers.
+- **Step 3 needs the right moment.** It must come only once the render has left its transition from step 1, so that
+  `+176` / `+180` already hold the new table's SDRAM frames. That is three blocks after step 1, and the copy into
+  SRAM takes longer anyway (§27.3: 5 to 30 blocks). P3 proves the whole sequence in T5.
+- **T2 is done in emulation.** Open: the maintainer's ear on `chord-switch-at-once.wav` (step 1, the render's
+  transition) and `chord-same-frames-moved.wav` (step 3 without the rule, which the design avoids).
+
