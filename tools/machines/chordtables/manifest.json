@@ -75,6 +75,6 @@
                          "0.3": {"tool": "tools/emu/test_chordtables.py (Unicorn: 0, P1 to P5, L, C, notes/66 §32), tools/emu/probe_chord_lines.py", "date": "2026-11-08", "by": "maintainer", "result": "ALL OK (the second run, §32.5; the first stopped on the proof's own file, §32.4); probe ALL OK (§32.6)", "build": "alone, sampler before it, with digidelay, with crush"}},
            "hardware": {"0.1": {"date": "2026-10-24", "by": "maintainer", "build": "a compose build of notes/66 §15.3 (CHORD Tables alone, .syx e4dafb31, or with SAMPLE, 77a10a97; which one not said); \"getestet, funktioniert\" (notes/66 §17); the interface lags with tables on several CHORD tracks (§18)"},
                         "0.2": {"date": "2026-10-24", "by": "maintainer", "build": "both compose builds of notes/66 §25.1 (alone 44d7695b, with SAMPLE 9066396a)", "result": "\"besser, aber immer noch laggy. vor allem wenn man control all benutzt und chord mit custom wavetables auf allen spuren\" (notes/66 §25.3)"},
-                        "0.3": {"status": "not yet tested"}},
-           "status": "experimental"}
+                        "0.3": {"date": "2026-11-08", "by": "maintainer", "build": "the full build of notes/66 §33.1 with the knob's step fixed (0.3b: sampler, chordtables, digidelay, pots, smpfilter, crush, ring, reso, eq, cpu, resample, transpose, with control-all-config, trig-preview, trig-cond-order; .syx 59923758, MAIN OS 0e1c33bc)", "result": "the eight tests of notes/66 §33 passed: the gesture and the tables, SWEEP and an LFO, six CHORD tracks with LFOs and Control All without lag, pattern changes without a click, save and load, the other mods, files on the +Drive, the official OS (\"passt, funktioniert\")"}},
+           "status": "tested"}
 }

@@ -2950,6 +2950,21 @@ python3 tools/compose.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx \
   project of steps 4 and 5 (patterns on table 1, table 2 and 0) loads, and CHORD plays the stock table in every
   pattern. The official OS loads only its own fields of the header (§27.2), so bytes 36 and 37 change nothing there.
 - **Every test of the sheet passed on the device**, steps 1 to 6 and the optional 7 and 8.
+
+### 33.5 Tested on the Model:Cycles (2026-11-08)
+
+- **CHORD Tables 0.3 is `tested`** (the manifest), with the build 0.3b of §33.3 (`b16309a`).
+- **What passed, in the maintainer's full build:**
+  - the gesture and the popup;
+  - the tables, and SWEEP or an LFO through them;
+  - six CHORD tracks with LFOs on SWEEP and Control All, without the lag of 0.2;
+  - pattern changes without a click;
+  - save and load;
+  - the other mods at the shared sites;
+  - files uploaded and deleted on the +Drive;
+  - the official OS.
+- **Not in the web flasher:** there is none online since 2026-11-07. The card of §26.4 (W7) waits for it, together
+  with the test sheet for testers (`_scratch/beta-tests/chordtables-0.3.md`).
 - **The test sheet** for testers, with these steps and two optional ones (files on the +Drive, back to the official
   OS): `_scratch/beta-tests/chordtables-0.3.md` (not committed; the maintainer's wish of 2026-11-08, for beta releases
   once the flasher is online again).
