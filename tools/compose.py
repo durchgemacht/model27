@@ -212,6 +212,12 @@ def load_manifest(mid):
             sys.exit(f"!! {mid}: an extension names its entry points in build.roots (it has no update and render)")
         if any(pp["kind"] in ("machine_index", "descriptor_base") for pp in m["build"].get("patch_points", [])):
             sys.exit(f"!! {mid}: an extension has no machine index and no descriptors of its own")
+    for u in m["uses"]:                     # a chain hook (notes/66 §30.2): in front of what the build has there
+        if "chain" in u:
+            if not isinstance(u["chain"], str) or not u["chain"]:
+                sys.exit(f"!! {mid}: chain names the symbol the package reads as the entry behind it")
+            if "vtable" not in u and ("hook" not in u or u["hook"]["op"] != "jsr"):
+                sys.exit(f"!! {mid}: a chain is a jsr hook or a vtable entry, the entry behind it called like the site")
     if any(u["point"] == "memory.sram" for u in m["uses"]) and not m["_stock"]:
         sys.exit(f"!! {mid}: memory.sram is the SRAM the OS gives a stock machine: only an extension of that machine "
                  "may take it (notes/66 §19.5)")
@@ -263,7 +269,45 @@ def patch_values(m, values):
             defines.append(f"-D{pp['define']}={values[pp['kind']]}")
         else:
             sys.exit(f"!! {m['id']}: a patch point needs 'symbol' or 'define'")
+    for u in m["uses"]:                     # a chain hook's entry behind, 0 until the parts are placed (notes/66 §30.2)
+        if "chain" in u:
+            symbols[u["chain"]] = values.get("chain", {}).get(site_of(u), 0)
     return defines, symbols
+
+
+def site_of(u):
+    """The address a hook or a vtable entry of a package's uses takes."""
+    return int((u["hook"] if "hook" in u else u["vtable"])["at"], 16)
+
+
+def chain_sites(mans):
+    """The chain hooks of the packages (notes/66 §30.2), {site: (package, use)}; one package a site."""
+    out = {}
+    for m in mans:
+        for u in m["uses"]:
+            if "chain" in u:
+                va = site_of(u)
+                if va in out:
+                    sys.exit(f"!! {out[va][0]['id']} and {m['id']}: two chain hooks at {va:#x} (one package a site, "
+                             "until something needs more)")
+                out[va] = (m, u)
+    return out
+
+
+def chain_next(u, extras):
+    """What the build puts at a chain hook's site without the package: the address a part's write there jumps to or
+    holds, else the stock method for a vtable entry, or 0 for a hook (the package then does the stock work)."""
+    va = site_of(u)
+    for x in extras:
+        for w in x[2]:
+            if w["off"] + BASE == va:
+                new = bytes.fromhex(w["new"])
+                if "vtable" in u:
+                    return int.from_bytes(new, "big")
+                if len(new) != 6 or new[:2] != b"\x4e\xb9":
+                    sys.exit(f"!! {va:#x}: a chain hook goes in front of a jsr only, not {new.hex()}")
+                return int.from_bytes(new[2:], "big")
+    return int(u["vtable"]["stock_ptr"], 16) if "vtable" in u else 0
 
 
 def compile_objects(m, tmp, defines=()):
@@ -938,8 +982,9 @@ def shortcut_layer(img, part, mans, syms_of, uses, at, code_end, first, descn=No
     if g7.refs32(img, method) != [va]:
         sys.exit(f"!! references to {method:#x}: {[hex(r) for r in g7.refs32(img, method)]}")
     for m in mans:
-        if any("vtable" in u and int(u["vtable"]["at"], 16) == va for u in m["uses"]):
-            sys.exit(f"!! {m['id']}: replaces the knob lookup ({va:#x}), which the shortcut layer takes")
+        if any("vtable" in u and "chain" not in u and int(u["vtable"]["at"], 16) == va for u in m["uses"]):
+            sys.exit(f"!! {m['id']}: replaces the knob lookup ({va:#x}), which the shortcut layer takes (a chain hook "
+                     "goes in front of it, notes/66 §30.2)")
     writes = [{"off": va - BASE, "old": g7.be32(method).hex(), "new": g7.be32(syms[kv["symbol"]]).hex()}]
     for s in sites["record"]:
         writes.append({"off": int(s["at"], 16) - BASE, "old": s["stock"],
@@ -951,7 +996,7 @@ def shortcut_layer(img, part, mans, syms_of, uses, at, code_end, first, descn=No
         if img[va - BASE:va - BASE + 6] != bytes.fromhex(s["stock"]):
             sys.exit(f"!! {va:#x}: {s['stock']} expected, {img[va - BASE:va - BASE + 6].hex()} found")
         for m in mans:
-            if any("hook" in u and int(u["hook"]["at"], 16) == va for u in m["uses"]):
+            if any("hook" in u and "chain" not in u and int(u["hook"]["at"], 16) == va for u in m["uses"]):
                 sys.exit(f"!! {m['id']}: hooks {va:#x}, which the shortcut layer takes")
         op = {"jmp": "4ef9", "jsr": "4eb9"}[s["op"]]
         writes.append({"off": va - BASE, "old": s["stock"],
@@ -1483,10 +1528,11 @@ def folder_tweaks():
     return out
 
 
-def computed_conflicts(writes, ram, declared, tweaks=None):
+def computed_conflicts(writes, ram, declared, tweaks=None, at=None):
     """Ids of the tweaks (by default the folder's) this build cannot be installed with: other bytes at the same
-    address, or a payload in one of our RAM ranges. The same whole write is not a conflict (check_overlaps.py's
-    rule)."""
+    address, a payload in one of our RAM ranges, or a payload appended where ours is (at, the image's end: both
+    would take the same bytes of the grown OS, check_overlaps.py's chain of payloads, notes/66 §31). The same whole
+    write is not a conflict (check_overlaps.py's rule)."""
     mine = {}
     for w in writes:
         for i, b in enumerate(bytes.fromhex(w["new"])):
@@ -1501,7 +1547,7 @@ def computed_conflicts(writes, ram, declared, tweaks=None):
         ap = t.get("append")
         if ap and not clash:
             lo, hi = int(ap["dest"], 16), int(ap["dest"], 16) + ap["size"]
-            clash = any(lo < b and a < hi for a, b in ram)
+            clash = any(lo < b and a < hi for a, b in ram) or (at is not None and ap.get("at") == at)
         if clash:
             ids.add(tid)
     return ids
@@ -1552,12 +1598,7 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                 at = (bss_cursor + 15) & ~15
                 lines[point] = (at, need)
                 bss_cursor = at + need
-        for m in mans:
-            code_at, bss_at = align4(code_cursor), align4(bss_cursor)
-            i = added.index(m) if m["_machine"] else None
-            values = {"machine_index": first + i, "descriptor_base": 76 + 5 * i} if m["_machine"] else {}
-            if m["_effect"] and m["_effect"].get("line"):
-                values = {"fx_line": lines[m["_effect"]["point"]][0]}
+        def placement(m, code_at, bss_at, values):
             if relocator == "ld":
                 blob, syms, bss_end = compile_package(m, tmp, code_at, bss_at, gs.STUBS, values)
             else:
@@ -1574,6 +1615,17 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                     i_ = next((k for k in range(min(len(blob), len(b2))) if blob[k] != b2[k]), min(len(blob), len(b2)))
                     bad = {k: (f"{v:#x}", f"{s2[k]:#x}") for k, v in syms.items() if k in s2 and s2[k] != v}
                     sys.exit(f"!! {m['id']}: relocator and ld differ, first byte at +{i_:#x}; symbols {bad}")
+            return blob, syms, bss_end
+        placed_at = {}                       # each package's place and values, for the chain hooks' second placement
+        for m in mans:
+            code_at, bss_at = align4(code_cursor), align4(bss_cursor)
+            i = added.index(m) if m["_machine"] else None
+            values = {"machine_index": first + i, "descriptor_base": 76 + 5 * i} if m["_machine"] else {}
+            if m["_effect"] and m["_effect"].get("line"):
+                values = {"fx_line": lines[m["_effect"]["point"]][0]}
+            values["desc_used"] = gs.DESCN if added else g7.DESC   # the descriptor table the OS uses (notes/66 §30.2)
+            blob, syms, bss_end = placement(m, code_at, bss_at, values)
+            placed_at[m["id"]] = (code_at, bss_at, values, len(blob), bss_end)
             mc = m["_machine"]
             if mc:
                 knobs = tuple((k["long"], k["short"], k["default"]) + ((k["min"], k["max"]) if "min" in k else ())
@@ -1647,6 +1699,23 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             trs = transpose_layer(img, load_part("transpose"), at, gs.STUBS, layer[1]["sc_data"], transpose_n)
             blobs.append((at, trs[0]))
             code_cursor = at + len(trs[0])
+        chains = chain_sites(mans)           # the packages' chain hooks (notes/66 §30.2), in front of the parts
+        if chains:
+            extras = [x for x in (layer, dispatch, fxs, fls, cpus, rss, trs) if x]
+            nexts = {va: chain_next(u, extras) for va, (_m, u) in chains.items()}
+
+            def unchained(x):                # a part's writes at those sites go; its entries stay, reached through
+                return x and (x[0], x[1], [w for w in x[2] if w["off"] + BASE not in chains], x[3], x[4])
+            layer, dispatch, fxs, fls, cpus, rss, trs = map(unchained, (layer, dispatch, fxs, fls, cpus, rss, trs))
+            for mid in dict.fromkeys(m["id"] for m, _u in chains.values()):
+                m = next(x for x in mans if x["id"] == mid)
+                code_at, bss_at, values, n, end = placed_at[mid]
+                values = dict(values, chain={va: nexts[va] for va, (mm, _u) in chains.items() if mm is m})
+                blob, syms, bss_end = placement(m, code_at, bss_at, values)   # the same size: the same layout
+                if len(blob) != n or bss_end != end:
+                    sys.exit(f"!! {mid}: placed again with its chain hooks' values, its size changed")
+                blobs[[a for a, _b in blobs].index(code_at)] = (code_at, blob)
+                syms_of[mid] = syms
         for m in mans:                       # a package's RAM claim must lie outside the payload
             for lo, hi in ram_claims(m):
                 if lo < bss_cursor and pay < hi:
@@ -1677,7 +1746,7 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                 writes, append = writes1, append1
     skip = ((layer[3] if layer else set()) | (dispatch[3] if dispatch else set()) | (fxs[3] if fxs else set())
             | (fls[3] if fls else set()) | (cpus[3] if cpus else set()) | (rss[3] if rss else set())
-            | (trs[3] if trs else set()))
+            | (trs[3] if trs else set())) - set(chains)   # a chain hook takes its site in front of the part's
     for m in mans:
         writes += package_writes(m, img, syms_of[m["id"]], skip)
     for extra in (layer, dispatch, fxs, fls, cpus, rss, trs):
@@ -1723,7 +1792,7 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     others = {i: c for i, c in (cl.tweak_claims() if against_claims is None else against_claims).items()
               if i in pool and i not in ids}          # a package's own tweak: an alternative, its bytes say so
     by_claims = cl.claim_conflicts(holders, others)
-    by_bytes = computed_conflicts(writes, ram, set(), against)
+    by_bytes = computed_conflicts(writes, ram, set(), against, append.get("at"))
     conflicts = (by_bytes | declared | set(by_claims)) - {tid}
     tweak = {
         "id": tid,

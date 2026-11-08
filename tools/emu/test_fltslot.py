@@ -1484,7 +1484,7 @@ def refusal_tests(stock):
             except SystemExit:
                 done = False
         check(not done, f"the composer refuses {name}")
-    for ids in (["refmachine2", "refflt"], ["chordtables", "refflt"], ["refflt", "refchord"]):
+    for ids in (["refmachine2", "refflt"], ["refchord", "refflt"], ["refflt", "refchord"]):
         try:
             compose.compose(stock, ids)
             done = True
@@ -1492,6 +1492,12 @@ def refusal_tests(stock):
             done = False
         check(not done, f"the composer refuses {' + '.join(ids)}: a machine's value on MACHINES + a knob and a filter "
                         "(the rule R1, k 28..31 hold one meaning)")
+    try:                                     # CHORD Tables 0.3 keeps its choice in the pattern, not in k 28..31
+        compose.compose(stock, ["chordtables", "refflt"])
+        done = True
+    except SystemExit:
+        done = False
+    check(done, "the composer takes chordtables + refflt: CHORD Tables' table is the pattern's since 0.3 (notes/66 §30)")
 
 
 def main():

@@ -120,7 +120,8 @@ CLAIM_TYPES = ("sound_slots", "record_slots", "saved", "descriptors", "formatter
                "gestures", "ram", "views")
 SOUND_SLOTS = range(0, 33)          # k 0-32 (STANDARD.md §5.2)
 RECORD_SLOTS = range(0, 32)         # the record's 16-bit slots at +28 + 2 * slot, as far as read (STANDARD.md §5.3)
-DESCRIPTORS = range(1, 5)           # the OS's unused descriptors, "Error" (STANDARD.md §3.1)
+DESCRIPTORS = (1, 2, 3, 4, 5, 10, 11, 12, 13)   # the OS's unused descriptors, "Error": STANDARD.md §3.1 knows 1-4;
+                                    # model27 takes 5 (the Track FX' type) and 10-13 too (notes/72 §9, notes/66 §30.3)
 VIEWS = ("main", "knob", "note")      # MainScreenView, the knob view, NoteVelocityView (STANDARD.md §3.1)
 
 _ALT = re.compile(r"([A-Z][A-Z-]*)(?: (\d+)(?:-(\d+))?)?")
@@ -215,7 +216,7 @@ def normalize(claims, kind, packages=()):
                 raise ValueError(f"{what} {item!r} is not a number{also}")
             for n in nums:
                 if n not in allowed:
-                    raise ValueError(f"{what} {n} is outside {allowed.start}-{allowed.stop - 1}")
+                    raise ValueError(f"{what} {n} is outside {_ranges(allowed)}")
                 got.append((n, scope(item)))
         return got
 
@@ -429,6 +430,21 @@ def situations_meet(s, t):
     return s == "any" or t == "any" or s == t
 
 
+_PLACE = re.compile(r"(.+) \+(\d+)")
+
+
+def saved_meet(w, n, w2, m):
+    """Two saved places (w, n bytes) and (w2, m bytes) meet: the same text, or the same structure at offsets whose
+    bytes overlap ("pattern, header +29" for 3 bytes and "pattern, header +31": notes/66 §30.3)."""
+    if w == w2:
+        return True
+    a, b = _PLACE.fullmatch(w), _PLACE.fullmatch(w2)
+    if not a or not b or a.group(1) != b.group(1):
+        return False
+    x, y = int(a.group(2)), int(b.group(2))
+    return x < y + m and y < x + n
+
+
 def clash_items(a, b):
     """Why two holders' claims (to_json, resolved) cannot be installed together, by notes/65 §5: the same sound
     slot, record slot, saved bytes or descriptor in scopes that meet; the same interface object's formatter or picture,
@@ -441,9 +457,9 @@ def clash_items(a, b):
         hit = sorted({n for n, s in a.get(key, []) for m, t in b.get(key, []) if n == m and meet(s, t)})
         if hit:
             out.append((kind, f"{label} {_ranges(hit)}", None))
-    for w in sorted({w for w, _n, s in a.get("saved", []) for w2, _m, t in b.get("saved", [])
-                     if w == w2 and meet(s, t)}):
-        out.append(("saved", f"saved bytes: {w}", None))
+    for w, w2 in sorted({(w, w2) for w, n, s in a.get("saved", []) for w2, m, t in b.get("saved", [])
+                         if saved_meet(w, n, w2, m) and meet(s, t)}):
+        out.append(("saved", f"saved bytes: {w}" if w == w2 else f"saved bytes: {w} and {w2}", None))
     for key, kind in (("formatters", "formatter"), ("pictures", "picture")):
         for o in sorted({o for o, _s, _k in a.get(key, []) for o2, _t, _l in b.get(key, []) if o == o2}):
             out.append((kind, f"the {kind} of interface object {o}", None))
@@ -860,7 +876,7 @@ def self_test():
          and claims["sound_slots"][1] == (29, "all"))
     case("a tweak's default scope is every track", normalize({"sound_slots": [28]}, "tweak")[0]["sound_slots"]
          == [(28, "all")])
-    for bad in ({"sound_slot": [28]}, {"sound_slots": [33]}, {"record_slots": [32]}, {"descriptors": [5]},
+    for bad in ({"sound_slot": [28]}, {"sound_slots": [33]}, {"record_slots": [32]}, {"descriptors": [6]},
                 {"descriptors": [{"slots": [1, 2]}]}, {"sound_slots": [{"slots": [30, 28]}]},
                 {"plock_rows": "yes"}, {"midi": {"cc": [128]}}, {"midi": {"nrpn": ["1:200"]}},
                 {"ram": [["0x2000", "0x1000"]]}, {"views": ["browser"]}, {"saved": [{"where": "x", "bytes": 0}]},
@@ -868,6 +884,16 @@ def self_test():
                 {"formatters": [{"knob": "Cutoff", "object": 53}]}, {"pictures": [{"knob": "Reso", "object": 54}]},
                 {"pictures": [{"knob": "Reso", "object": "54", "replaces": "0x400466f0"}]}):
         case(f"refused: {json.dumps(bad)}", bool(normalize(bad, "package", ("sampler",))[1]))
+    case("descriptors 5 and 10-13, the OS's other unused ones (notes/66 §30.3)",
+         not normalize({"descriptors": [5, 10, 13]}, "package", ("sampler",))[1])
+    case("saved places meet: the same text", saved_meet("pattern, track +512", 1, "pattern, track +512", 1))
+    case("saved places meet: overlapping bytes of the same structure",
+         saved_meet("pattern, header +29", 3, "pattern, header +31", 2)
+         and saved_meet("pattern, header +36", 2, "pattern, header +35", 2))
+    case("saved places apart: bytes next to each other, another structure, no offset",
+         not saved_meet("pattern, header +29", 3, "pattern, header +32", 4)
+         and not saved_meet("pattern, header +36", 2, "pattern, track +36", 2)
+         and not saved_meet("settings", 8, "settings +0", 8))
     case("refused: scope machine in a tweak", bool(normalize({"sound_slots": [{"slots": [28, 28], "scope": "machine"}]},
                                                              "tweak")[1]))
     case("refused: scope machine:FOO",

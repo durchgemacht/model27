@@ -46,6 +46,14 @@ SELECTIONS = ((["sampler"], []), (["refmachine"], []), (["sampler", "refmachine"
               (["refchord", "refmachine2"], []), (["sampler", "refchord", "refmachine2"], []),
               # notes/66 W3: CHORD Tables, alone, and with SAMPLE before and after it (two RAM claims)
               (["chordtables"], []), (["chordtables", "sampler"], []), (["sampler", "chordtables"], []),
+              # notes/66 §30, CHORD Tables 0.3: its chain hooks in front of the filter slot's (fl_knob, fl_keys), of
+              # the effect slots' and the filter slot's together, of the shortcut layer's with Transpose, and the full
+              # offered set (the knob lookup, the encoder's question, PATTERN's release, the header's loader and
+              # initializer all chained)
+              (["chordtables", "crush"], []), (["sampler", "chordtables", "digidelay", "pots", "crush"], []),
+              (["chordtables", "transpose"], []),
+              (["sampler", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu",
+                "resample", "transpose"], []),
               # notes/68: the effects alone, in both slots, with SAMPLE before and after them, with the shortcut layer
               # and the dispatchers (REF2, SAMPLE), and with an extension of CHORD (the stock descriptor table)
               (["digidelay"], []), (["refdelay", "refreverb"], []), (["sampler", "digidelay"], []),
@@ -89,8 +97,8 @@ COMPARED = ("id", "order", "name", "version", "conflicts", "writes", "append", "
 
 
 def packages():
-    """(id, roots, patch points, object bytes) of every package with exactly one committed object, then of every part
-    of the builder, laid out with all its roots."""
+    """(id, roots, patch points, object bytes) of every package with exactly one committed object (its chain hooks'
+    symbols among the patch points), then of every part of the builder, laid out with all its roots."""
     for d in sorted(p for p in MACHINES.iterdir() if p.is_dir()):
         mf = d / "manifest.json"
         if not mf.is_file():
@@ -104,7 +112,8 @@ def packages():
                 names = [r[0], r[1] if len(r) > 1 else r[0], *dict.fromkeys(r[2:] + b.get("keep", []))]
             else:
                 names = [b["symbols"]["update"], b["symbols"]["render"], *b.get("keep", [])]
-            yield m["id"], names, b.get("patch_points", []), (d / objs[0]).read_bytes()
+            chains = [u["chain"] for u in m.get("uses", []) if "chain" in u]     # notes/66 §30.2: symbols too
+            yield m["id"], names, b.get("patch_points", []) + [{"symbol": c} for c in chains], (d / objs[0]).read_bytes()
     for pid in PARTS:
         b = json.loads((MACHINES / pid / "part.json").read_text(encoding="utf-8"))["build"]
         yield pid, b["roots"], b["patch_points"], (MACHINES / pid / b["objects"][0]).read_bytes()
@@ -146,7 +155,7 @@ def part2(out, cycles):
     for t in compose.folder_tweaks():
         slim = {"id": t["id"], "writes": [{"off": w["off"], "new": w["new"]} for w in t.get("writes", [])]}
         if t.get("append"):
-            slim["append"] = {"dest": t["append"]["dest"], "size": t["append"]["size"]}
+            slim["append"] = {k: t["append"][k] for k in ("at", "dest", "size") if k in t["append"]}
         tweaks.append(slim)
         full[t["id"]] = t
     # probes for the rule the folder leaves undecided (its tweaks with a payload in our ranges also write our bytes):

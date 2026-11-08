@@ -275,8 +275,13 @@ function patchValues(p, values) {
     if (!pp.symbol) throw new Error(`${p.id}: patch points as defines cannot be applied to a committed object: use symbols`);
     out[pp.symbol] = values[pp.kind];
   }
+  for (const u of p.uses)                         // a chain hook's entry behind, 0 until the parts are placed
+    if ("chain" in u) out[u.chain] = (values.chain || {})[siteOf(u)] || 0;
   return out;
 }
+
+// compose.site_of(): the address a hook or a vtable entry of a package's uses takes
+const siteOf = (u) => parseInt(("hook" in u ? u.hook : u.vtable).at, 16);
 
 const ramClaims = (p) => p.uses.filter((u) => u.point === "memory.ram").map((u) => u.range.map((x) => parseInt(x, 16)));
 
@@ -432,7 +437,7 @@ function shortcutLayer(mainOs, part, packages, symsOf, uses, at, codeEnd, first,
   const kv = sites.knob, va = parseInt(kv.vtable, 16), method = parseInt(kv.stock_ptr, 16);
   if (u32(mainOs, va - BASE) !== method) throw new Error(`${hx(va)}: not the stock entry ${hx(method)}`);
   for (const p of packages)
-    if (p.uses.some((u) => "vtable" in u && parseInt(u.vtable.at, 16) === va))
+    if (p.uses.some((u) => "vtable" in u && !("chain" in u) && parseInt(u.vtable.at, 16) === va))   // a chain hook goes in front
       throw new Error(`${p.id}: replaces the knob lookup (${hx(va)}), which the shortcut layer takes`);
   const writes = [{ off: va - BASE, old: hex(be32(method)), new: hex(be32(symbols[kv.symbol])) }];
   for (const s of sites.record)
@@ -444,7 +449,7 @@ function shortcutLayer(mainOs, part, packages, symsOf, uses, at, codeEnd, first,
     const va = parseInt(s.at, 16), here = hex(mainOs.subarray(va - BASE, va - BASE + 6));
     if (here !== s.stock) throw new Error(`${hx(va)}: ${s.stock} expected, ${here} found`);
     for (const p of packages)
-      if (p.uses.some((u) => "hook" in u && parseInt(u.hook.at, 16) === va))
+      if (p.uses.some((u) => "hook" in u && !("chain" in u) && parseInt(u.hook.at, 16) === va))
         throw new Error(`${p.id}: hooks ${hx(va)}, which the shortcut layer takes`);
     const op = { jmp: bytesOf(0x4e, 0xf9), jsr: bytesOf(0x4e, 0xb9) }[s.op];
     writes.push({ off: va - BASE, old: s.stock, new: hex(concat(op, be32(symbols[s.symbol]))) });
@@ -855,6 +860,15 @@ function resolveClaims(c, pid) {
   return out;
 }
 
+// claims.saved_meet(): two saved places meet, the same text or the same structure at overlapping bytes
+function savedMeet(w, n, w2, m) {
+  if (w === w2) return true;
+  const a = /^(.+) \+(\d+)$/.exec(w), b = /^(.+) \+(\d+)$/.exec(w2);
+  if (!a || !b || a[1] !== b[1]) return false;
+  const x = parseInt(a[2], 10), y = parseInt(b[2], 10);
+  return x < y + m && y < x + n;
+}
+
 // claims.clashes(): why two holders' claims cannot be installed together, empty when they can
 function claimClashes(a, b) {
   const out = [];
@@ -863,9 +877,11 @@ function claimClashes(a, b) {
     for (const [n, s] of a[key] || []) for (const [m, t] of b[key] || []) if (n === m && meet(s, t)) hit.push(n);
     if (hit.length) out.push(`${label} ${rangesText(hit)}`);
   }
-  const saved = new Set();
-  for (const [w, , s] of a.saved || []) for (const [w2, , t] of b.saved || []) if (w === w2 && meet(s, t)) saved.add(w);
-  for (const w of [...saved].sort()) out.push(`saved bytes: ${w}`);
+  const saved = new Map();                        // claims.saved_meet(): the same place, or overlapping bytes
+  for (const [w, n, s] of a.saved || [])
+    for (const [w2, m, t] of b.saved || []) if (savedMeet(w, n, w2, m) && meet(s, t)) saved.set(`${w}\u0000${w2}`, [w, w2]);
+  for (const [w, w2] of [...saved.entries()].sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0)).map(([, v]) => v))
+    out.push(w === w2 ? `saved bytes: ${w}` : `saved bytes: ${w} and ${w2}`);
   for (const [key, kind] of [["formatters", "formatter"], ["pictures", "picture"]]) {
     const objects = new Set();                    // one of each per interface object: the scope does not narrow it
     for (const [o] of a[key] || []) for (const [o2] of b[key] || []) if (o === o2) objects.add(o);
@@ -948,7 +964,7 @@ function claimConflicts(holders, against) {
 
 // compose.computed_conflicts(): the ids of the given tweaks this build cannot be installed with (other bytes at the
 // same address, or a payload in one of the RAM ranges), plus the declared ones
-function computedConflicts(writes, ram, declared, tweaks) {
+function computedConflicts(writes, ram, declared, tweaks, at = null) {
   const mine = new Map();
   for (const w of writes) fromHex(w.new).forEach((b, i) => mine.set(w.off + i, b));
   const ids = new Set(declared);
@@ -958,7 +974,7 @@ function computedConflicts(writes, ram, declared, tweaks) {
     const ap = t.append;
     if (ap && !clash) {
       const lo = parseInt(ap.dest, 16), hi = lo + ap.size;
-      clash = ram.some(([a, b]) => lo < b && a < hi);
+      clash = ram.some(([a, b]) => lo < b && a < hi) || (at !== null && ap.at === at);   // a payload where ours is
     }
     if (clash) ids.add(t.id);
   }
@@ -1018,12 +1034,18 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {},
       bssCursor = at + need;
     }
   }
+  const placedAt = {};                            // each package's place and values, for the chain hooks' second placement
   packages.forEach((p) => {
     const codeAt = align4(codeCursor), bssAt = align4(bssCursor);
     const { mc, st, fx, fl } = kindOf(p), i = added.indexOf(p);
-    const values = patchValues(p, mc ? { machine_index: first + i, descriptor_base: 76 + 5 * i }
-      : fx && fx.line ? { fx_line: lines[fx.point][0] } : {});
+    const raw = Object.assign(mc ? { machine_index: first + i, descriptor_base: 76 + 5 * i }
+      : fx && fx.line ? { fx_line: lines[fx.point][0] } : {}, { desc_used: added.length ? lay.descn : frames.stock.desc });
+    for (const u of p.uses)
+      if ("chain" in u && (typeof u.chain !== "string" || !u.chain || !("vtable" in u || ("hook" in u && u.hook.op === "jsr"))))
+        throw new Error(`${p.id}: a chain is a jsr hook or a vtable entry, named by the symbol it reads`);
+    const values = patchValues(p, raw);
     const { blob, symbols: syms, bssEnd } = place(p.bundle, codeAt, bssAt, values);
+    placedAt[p.id] = [codeAt, bssAt, raw, blob.length, bssEnd];
     if (codeAt + blob.length > lay.stubs)
       throw new Error(`${p.id}: code and tables end at ${hx(codeAt + blob.length)}, past ${hx(lay.stubs)}`);
     if (mc)
@@ -1110,6 +1132,43 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {},
     blobs.push([at, trs.blob]);
     codeCursor = at + trs.blob.length;
   }
+  const chains = new Map();                       // compose.chain_sites(): the packages' chain hooks, in front of the parts
+  for (const p of packages)
+    for (const u of p.uses)
+      if ("chain" in u) {
+        const va = siteOf(u);
+        if (chains.has(va)) throw new Error(`${chains.get(va)[0].id} and ${p.id}: two chain hooks at ${hx(va)}`);
+        chains.set(va, [p, u]);
+      }
+  if (chains.size) {
+    const extras = [layer, dispatch, fxs, fl, cpus, rss, trs].filter((x) => x);
+    const nexts = new Map();
+    for (const [va, [, u]] of chains) {           // compose.chain_next(): what the build puts there without the package
+      let nxt = null;
+      for (const x of extras)
+        for (const w of x.writes)
+          if (w.off + BASE === va && nxt === null) {
+            const nw = fromHex(w.new);
+            if ("vtable" in u) nxt = u32(nw, 0);
+            else if (nw.length !== 6 || nw[0] !== 0x4e || nw[1] !== 0xb9)
+              throw new Error(`${hx(va)}: a chain hook goes in front of a jsr only, not ${w.new}`);
+            else nxt = u32(nw, 2);
+          }
+      nexts.set(va, nxt !== null ? nxt : "vtable" in u ? parseInt(u.vtable.stock_ptr, 16) : 0);
+    }
+    for (const x of extras) x.writes = x.writes.filter((w) => !chains.has(w.off + BASE));
+    for (const p of packages) {                   // placed again with the values: the same size, the same layout
+      const mine = [...chains].filter(([, [q]]) => q === p);
+      if (!mine.length) continue;
+      const [codeAt, bssAt, raw, n, end] = placedAt[p.id];
+      const chain = {};
+      for (const [va] of mine) chain[va] = nexts.get(va);
+      const { blob, symbols: syms, bssEnd } = place(p.bundle, codeAt, bssAt, patchValues(p, Object.assign({}, raw, { chain })));
+      if (blob.length !== n || bssEnd !== end) throw new Error(`${p.id}: placed again with its chain hooks' values, its size changed`);
+      blobs[blobs.findIndex(([a]) => a === codeAt)] = [codeAt, blob];
+      symsOf[p.id] = syms;
+    }
+  }
   for (const p of packages)                       // a package's RAM claim must lie outside the payload
     for (const [lo, hi] of ramClaims(p))
       if (lo < bssCursor && pay < hi)
@@ -1128,6 +1187,7 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {},
   const skip = new Set([...(layer ? layer.skip : []), ...(dispatch ? dispatch.skip : []), ...(fxs ? fxs.skip : []),
                         ...(fl ? fl.skip : []), ...(cpus ? cpus.skip : []), ...(rss ? rss.skip : []),
                         ...(trs ? trs.skip : [])]);
+  for (const va of chains.keys()) skip.delete(va);    // a chain hook takes its site in front of the part's
   for (const p of packages) writes.push(...packageWrites(p, mainOs, symsOf[p.id], skip));
   for (const x of [layer, dispatch, fxs, fl, cpus, rss, trs]) if (x) writes.push(...x.writes);
   writes.sort((a, b) => a.off - b.off);
@@ -1159,7 +1219,7 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {},
   const pool = new Set(tweaks.filter((t) => t.id).map((t) => t.id));
   const others = Object.fromEntries(Object.entries(claims).filter(([i]) => pool.has(i) && !ids.includes(i)));
   const byClaims = claimConflicts(holders, others);
-  const conflicts = [...new Set([...computedConflicts(writes, ram, declared, tweaks), ...Object.keys(byClaims)])]
+  const conflicts = [...new Set([...computedConflicts(writes, ram, declared, tweaks, append.at === undefined ? null : append.at), ...Object.keys(byClaims)])]
     .filter((x) => x !== tid).sort();
   const symbols = {};
   for (const p of packages)

@@ -1,30 +1,24 @@
 #!/usr/bin/env python3
-"""Measurement for notes/66 §18 and §23: the lines of SDRAM CHORD reads and writes per audio block, with the stock
-table and with a CHORD Tables table, in 0.1's way and in 0.2's (the frames in SRAM, §19 to §22).
+"""Measurement for notes/66 §18, §23 and §32: the lines of SDRAM CHORD reads and writes per audio block, on the stock
+OS and with CHORD Tables 0.3 (one table per pattern, in the stock table's SRAM, notes/66 §27 to §31).
 
-The maintainer's report of 2026-10-24: the whole interface lags, more with every CHORD track playing a table. The
-stock frames are in the internal SRAM (one cycle an access, not cached), a table's frames in SDRAM, through the data
-cache (ACR0 = 0x4007e020, set at 0x40000552: 0x40000000..0x47ffffff cacheable, copyback). The MCF54415 has an 8 KB
-data cache of 16-byte lines, and its SDRAM is DDR2 on 8 bits (notes/26 §1). This probe counts, in the real voice loop
-(0x400a7d4a, blocks of 32 frames at 48 kHz), what each case costs in lines:
-  - distinct lines: the 16-byte lines of SDRAM the voice loop reads or writes in a block, split into the table's
-    frames (the RAM claim 0x43400000..0x43700000) and the rest. It is the number of line fills when everything else
-    of the block (mixing, effects, the interface) evicts the cache between two blocks, as notes/26 §1 found with six
-    voices: "almost every line is read again from SDRAM in every block";
+The maintainer's report of 2026-10-24: the whole interface lagged with 0.1 and 0.2, more with every CHORD track
+playing a table. The stock frames are in the internal SRAM (one cycle an access, not cached), a table's frames in
+SDRAM, through the data cache (ACR0 = 0x4007e020, set at 0x40000552: 0x40000000..0x47ffffff cacheable, copyback). The
+MCF54415 has an 8 KB data cache of 16-byte lines, and its SDRAM is DDR2 on 8 bits (notes/26 §1). This probe counts, in
+the real voice loop (0x400a7d4a, blocks of 32 frames at 48 kHz), what each case costs in lines:
+  - distinct lines: the 16-byte lines of SDRAM the voice loop reads or writes in a block, split into the RAM claim
+    (0x43400000..0x43700000, a table's buffers) and the rest;
   - cache misses: the same accesses through a model of the data cache (8 KB, 4 ways, 16-byte lines, LRU, write
     allocate, notes/26 §6), the voice loop alone from block to block; with dirty lines written back. A lower bound;
   - the internal SRAM's lines, for the comparison: free of the cache;
   - the first block of the note (block 2: the note starts a block after its trig, notes/66 §11.6), then the mean and
-    the maximum of the next blocks, minus the voice loop with no note (the same tracks, no trig).
+    the maximum of the next blocks, minus the voice loop with no note (the same tracks, no trig, the stock OS).
 
-Cases: one CHORD track (track 1, machine defaults, note 60 or 84, SWEEP still at 24 or moving 3 a block) and six
-CHORD tracks (SWEEP still, 24 to 104, or moving: each track its own frames), for the stock OS, CHORD Tables at
-Wavetable 0, CHORD Tables with a table (six tables, one per track, or the same table on all six). Each CHORD Tables
-case twice: without the move, which is 0.1's way, and with it ("0.2"), made by the package's own tick before the
-first block (the audio adopts it at its first setup). In 0.2 the lines "in the RAM claim" are what the copies into
-the pool read (a table's frames, the stock frames' copy). A table's frames are the stock frames in another order:
-only their addresses matter here. The emulator does not time memory: lines are what it can count, not their cost in
-time.
+Cases: one CHORD track (track 1, note 60 or 84) and six (note 60), SWEEP still (24 + 16 t) or moving (3 a block): the
+stock OS, CHORD Tables 0.3 at the stock table, and 0.3 with a pattern's table at home (every position copied into
+SRAM before the measure). A table's frames are the stock frames turned around: only their addresses matter here. The
+emulator does not time memory: lines are what it can count, not their cost in time.
 
 Needs Unicorn and numpy (pip install unicorn numpy) and m68k-elf-objdump; Unicorn's JIT does not run inside a
 sandbox that forbids it: run it in a normal terminal (model27's .venv-emu has both). About a minute.
@@ -33,7 +27,6 @@ sandbox that forbids it: run it in a normal terminal (model27's .venv-emu has bo
 """
 import argparse
 import pathlib
-import struct
 import sys
 
 from unicorn import UC_HOOK_MEM_READ, UC_HOOK_MEM_WRITE, UC_MEM_WRITE
@@ -76,19 +69,13 @@ class Cache:
 
 
 class Probe(CT.Voice):
-    """The voice loop of a build, every SDRAM and SRAM access of a block recorded by line."""
+    """The voice loop of a build, CHORD on the given tracks, every SDRAM and SRAM access of a block recorded by line."""
 
     def __init__(self, img, runtime=None, tweak=None, syms=None, tracks=(0,), note=60):
-        super().__init__(img, runtime, tweak, syms)
+        super().__init__(img, runtime, tweak, syms, tracks=tracks)
         self.on = tuple(tracks)
-        for t in range(6):
-            if t in self.on:
-                self.e.set(t, machine=CT.CHORD, note=note, pitch=64, finetune=64, color=3, shape=43, sweep=24 + 16 * t,
-                           contour=64, punch=0, gate=0, decay=64)
-            else:
-                self.e.set(t, machine=0x7f)         # no voice: the loop skips it (as part C of test_chordtables)
-            if t:
-                self.e.uc.mem_write(CT.CUR_SNDS + 4 * t, struct.pack(">I", 0))   # k 30 from the targets
+        for t in self.on:
+            self.e.set(t, note=note, sweep=24 + 16 * t)
         self.rec = None
         self.cache = Cache()
         self.emac_loads = 0
@@ -116,12 +103,6 @@ class Probe(CT.Voice):
         elif SRAM[0] <= addr < SRAM[1]:
             self.rec[1].update(lines)
 
-    def wavetables(self, n):
-        """Wavetable n (0: the stock table) on every CHORD track: n, n + 1, ... one per track, or n on all six when
-        n is negative."""
-        for i, t in enumerate(self.on):
-            self.k30(0 if not n else -n if n < 0 else n + i, track=t)
-
     def measure(self, blocks, trig=True, sweep=None):
         """Per block: (distinct SDRAM lines, of them in the RAM claim, distinct SRAM lines, cache fills, write backs)."""
         out = []
@@ -145,7 +126,7 @@ class Probe(CT.Voice):
 
 
 def moving(b, t):
-    return CT.sweeps(b, t)
+    return (24 + 3 * b + 40 * t) % 128
 
 
 def summary(run, idle, n):
@@ -173,85 +154,49 @@ def main():
     stock = T.main_os_from_syx(args.cycles)
     tweak, info, img, runtime = TC.built(stock, ["chordtables"])
     syms = {k: int(v, 16) for k, v in tweak["symbols"].items()}
-    ref = CT.Voice(stock)
-    frames = [ref.frame(CT.SINE)] + [ref.frame(struct.unpack(">I", ref.e.uc.mem_read(CT.CHORD_TABLE + 4 * i, 4))[0])
-                                     for i in range(31)]
+    table = CT.tables_of(CT.Voice(stock))[0]
     built = (img, runtime, tweak, syms)
     loads = {}
 
-    def case(key, name, args_, tracks, note=60, tables=0, sweep=None, moved=False):
-        def make():
-            p = Probe(*args_, tracks=tracks, note=note)
-            if tables:
-                for i in range(len(tracks) if tables > 0 else 1):
-                    p.table(i, i, frames[i:] + frames[:i] if i else frames[::-1])
-            p.wavetables(1 if tables > 0 else -1 if tables < 0 else 0)
-            if moved:
-                p.move()                        # 0.2: the stock frames copied, the pool ready (notes/66 §19)
-            return p
-        p = make()
+    def case(key, name, args_, tracks, note=60, at_home=False, sweep=None):
+        p = Probe(*args_, tracks=tracks, note=note)
+        ok = True
+        if args_ is built:
+            ok &= p.move() == 1                     # the stock frames copied (notes/66 §31)
+            p.value(0, 0)
+            if at_home:                             # the pattern's table, every position home before the measure
+                p.table(0, 0, table)
+                p.value(1, 2)
+                p.pat.link(playing=1)
+                mask = sum(1 << t for t in tracks)
+                for k in range(60):
+                    p.e.block(mask if k == 1 else 0)
+                ok &= p.r32(syms["ct_away"]) == 0
         run = p.measure(total, sweep=sweep)
-        idle = make().measure(total, trig=False, sweep=sweep)
-        ok = not p.e.unmapped and (not moved or p.r32(syms["ct_moved"]) == 1 and p.r32(syms["ct_fallback"]) == 0)
+        idle = Probe(stock, tracks=tracks, note=note).measure(total, trig=False, sweep=sweep)
+        ok &= not p.e.unmapped
         loads[name] = loads.get(name, 0) + p.emac_loads
-        s = summary(run, idle, n)
-        report(key, name, s)
-        return s, ok
+        s_ = summary(run, idle, n)
+        report(key, name, s_)
+        return s_, ok
 
-    print("One CHORD track (track 1), the others off")
-    for note in (60, 84):
-        for still in (True, False):
-            key = f"1 track, note {note}, SWEEP {'24' if still else 'moving'}"
-            sw = None if still else moving
-            a, ok_a = case(key, "stock OS", (stock,), (0,), note, sweep=sw)
-            b, ok_b = case(key, "Wavetable 0", built, (0,), note, sweep=sw)
-            c, ok_c = case(key, "a table", built, (0,), note, tables=1, sweep=sw)
-            check(ok_a and ok_b and ok_c and a[1][1] == b[1][1] == 0 and c[1][1] > 0,
-                  f"{key}: nothing unmapped; the stock OS and Wavetable 0 read no table frames, a table does "
-                  f"({c[1][1]:.0f} lines a block)")
-            print(f"finding  {key}: a table adds {c[1][0] - a[1][0]:+.0f} SDRAM lines a block against the stock OS "
-                  f"({c[1][3] - a[1][3]:+.0f} misses with the voice loop alone); Wavetable 0 "
-                  f"{b[1][0] - a[1][0]:+.0f}")
-            d, ok_d = case(key, "Wavetable 0, 0.2", built, (0,), note, sweep=sw, moved=True)
-            e, ok_e = case(key, "a table, 0.2", built, (0,), note, tables=1, sweep=sw, moved=True)
-            # with SWEEP still, one line a block is left in the RAM claim: the table's pointer list, which cw_setup
-            # reads for the two sources (ptrs[i], ptrs[i + 1]); the frames themselves come from SRAM
-            check(ok_d and ok_e and e[1][1] < c[1][1] and (not still or e[1][1] <= 1),
-                  f"{key}: 0.2 adopted, no frame read where it is for want of a slot; a table reads "
-                  f"{e[1][1]:.1f} lines a block in the RAM claim against {c[1][1]:.0f} in 0.1's way"
-                  + (" (SWEEP still: its pointer list only, after the note's first block)" if still
-                     else " (the copies of new frames)"))
-            print(f"finding  {key}: 0.2: a table adds {e[1][0] - a[1][0]:+.0f} SDRAM lines a block against the stock OS, "
-                  f"0.1's way {c[1][0] - a[1][0]:+.0f}; cache misses {e[1][3] - a[1][3]:+.0f} against "
-                  f"{c[1][3] - a[1][3]:+.0f}; Wavetable 0 {d[1][0] - a[1][0]:+.0f} lines, SRAM lines {e[1][2]:.0f} "
-                  f"with a table (the stock OS {a[1][2]:.0f})")
-
-    print("Six CHORD tracks")
-    for still in (True, False):
-        key = f"6 tracks, note 60, SWEEP {'still' if still else 'moving'}"
-        sw = None if still else moving
-        a, ok_a = case(key, "stock OS", (stock,), tuple(range(6)), sweep=sw)
-        b, ok_b = case(key, "Wavetable 0", built, tuple(range(6)), sweep=sw)
-        c, ok_c = case(key, "six tables", built, tuple(range(6)), tables=1, sweep=sw)
-        d, ok_d = case(key, "one table on all six", built, tuple(range(6)), tables=-1, sweep=sw)
-        # each track reads its own two frames (its SWEEP differs): one shared table reads about as many lines as six
-        check(ok_a and ok_b and ok_c and ok_d and a[1][1] == b[1][1] == 0 and c[1][1] > 0 and d[1][1] > 0,
-              f"{key}: nothing unmapped; the stock OS and Wavetable 0 read no table frames, six tables and one shared "
-              f"table do ({c[1][1]:.0f} and {d[1][1]:.0f} lines a block)")
-        print(f"finding  {key}: six tables add {c[1][0] - a[1][0]:+.0f} SDRAM lines a block against the stock OS "
-              f"({c[1][3] - a[1][3]:+.0f} misses with the voice loop alone), one shared table "
-              f"{d[1][0] - a[1][0]:+.0f} ({d[1][3] - a[1][3]:+.0f})")
-        b2, ok_b2 = case(key, "Wavetable 0, 0.2", built, tuple(range(6)), sweep=sw, moved=True)
-        c2, ok_c2 = case(key, "six tables, 0.2", built, tuple(range(6)), tables=1, sweep=sw, moved=True)
-        d2, ok_d2 = case(key, "one table on all six, 0.2", built, tuple(range(6)), tables=-1, sweep=sw, moved=True)
-        check(ok_b2 and ok_c2 and ok_d2 and c2[1][0] < c[1][0] and d2[1][0] < d[1][0],
-              f"{key}: 0.2 adopted, no frame read where it is for want of a slot; six tables read {c2[1][0]:.0f} SDRAM "
-              f"lines a block against {c[1][0]:.0f} in 0.1's way, one shared table {d2[1][0]:.0f} against "
-              f"{d[1][0]:.0f}")
-        print(f"finding  {key}: 0.2: six tables add {c2[1][0] - a[1][0]:+.0f} SDRAM lines a block against the stock "
-              f"OS ({c2[1][3] - a[1][3]:+.0f} misses, {c2[1][4] - a[1][4]:+.0f} write backs with the voice loop "
-              f"alone), one shared table {d2[1][0] - a[1][0]:+.0f} ({d2[1][3] - a[1][3]:+.0f} misses); Wavetable 0 "
-              f"{b2[1][0] - a[1][0]:+.0f} ({b2[1][3] - a[1][3]:+.0f} misses)")
+    for tracks, label in (((0,), "1 track"), (tuple(range(6)), "6 tracks")):
+        for note in ((60, 84) if len(tracks) == 1 else (60,)):
+            for still in (True, False):
+                key = f"{label}, note {note}, SWEEP {'still' if still else 'moving'}"
+                sw = None if still else moving
+                a, ok_a = case(key, "stock OS", (stock,), tracks, note, sweep=sw)
+                b, ok_b = case(key, "0.3 at the stock table", built, tracks, note, sweep=sw)
+                c, ok_c = case(key, "0.3, a table at home", built, tracks, note, at_home=True, sweep=sw)
+                check(ok_a and ok_b and ok_c and b[1][1] == 0 and c[1][1] <= (2 if still else 70 * len(tracks))
+                      and b[1][0] - a[1][0] < 12 and c[1][0] - a[1][0] < 20,
+                      f"{key}: nothing unmapped, every position home; at the stock table {b[1][0] - a[1][0]:+.0f} SDRAM "
+                      f"lines a block against the stock OS, with a table at home {c[1][0] - a[1][0]:+.0f} "
+                      f"({c[1][1]:.1f} in the RAM claim: frame 1, read in SDRAM as the stock OS reads its own)")
+                print(f"finding  {key}: a table at home: {c[1][0] - a[1][0]:+.0f} SDRAM lines a block, "
+                      f"{c[1][3] - a[1][3]:+.0f} misses, {c[1][4] - a[1][4]:+.0f} write backs against the stock OS; "
+                      f"SRAM lines {c[1][2]:.0f} (the stock OS {a[1][2]:.0f}); 0.2 added 6 to 312 lines here, 0.1 110 "
+                      "a track (notes/66 §18.1, §24.6)")
     print("finding  MACs with a load (run by emac.py, noted from their address): "
           + ", ".join(f"{k} {v}" for k, v in loads.items()))
     print("\nALL OK" if not t7.FAIL else f"\n{len(t7.FAIL)} FAILED: " + "; ".join(t7.FAIL[:6]))

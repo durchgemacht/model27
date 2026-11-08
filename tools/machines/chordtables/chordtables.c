@@ -1,38 +1,37 @@
 /* CHORD Tables: the stock CHORD machine of the Model:Cycles OS 1.13 plays wavetables from the +Drive (notes/66).
 
-   An extension of CHORD (machine 5), not an added machine: the builder's shortcut layer gives CHORD's tracks
-   MACHINES + SWEEP = Wavetable, 0 to 64, kept in k 30 and saved with the sound; 0 is the stock table. SWEEP still
-   moves through the table's frames.
+   Since 0.3 (notes/66 §27 to §31) the pattern chooses one table for every CHORD track, and the whole table takes the
+   stock table's place in SRAM: SWEEP, an LFO on it included, then reads SRAM as on the stock OS.
 
-   - cw_setup takes the place of jsr 0x400a8080 at 0x400ab15e, the one call through which CHORD's update gets its
-     two frames (notes/66 §1.1). In the block a note starts (v + 0x38 set: the block after the trig, or the machine
-     change, notes/66 §11.6) it latches the track's table from k 30 of the sound the note plays (CUR_SNDS[t] + 80),
-     or of the targets when CUR_SNDS[t] is 0 (a preview note). Without a table it calls the stock function;
-     with one it does that function's work on the table's frames: frames SWEEP >> 10 and the next, the crossfade
-     (SWEEP & 1023) << 21, the index, in the four sub-voices.
-   - ct_hook_tick takes the place of jsr 0x40076be4 at 0x400075f0, in the screen's redraw (UI task, about 30 times
-     a second; with SAMPLE, through the builder's tick dispatcher). The loader reads the files /Wavetables/01 to
-     /Wavetables/64 one per tick, once the drive is mounted and again whenever the drive's file index changes. A file
-     is a sample file (64-byte header, big-endian 16-bit), mono, of k x 256 samples, k = 1 to 32: k single-cycle
-     frames, spread over the 32 frames SWEEP reaches by linear crossfades, each frame 257 Q31 samples with the last
-     equal to the first. A file kept under the same id is not read again; another file, a missing one or one that
-     is not k x 256 mono samples empties its slot, and its tracks play the stock table from their next note.
-   - Memory: the RAM claim 0x43400000..0x43700000 holds one file as read, then 72 buffers of a table each (64
-     slots and 8 spare), then the stock frames' copy. A table is published by one 32-bit write of its slot; the
-     buffer it replaces is reused only once no track's latch and no voice's frame pointer reaches into it (the audio
-     interrupt runs to its end before the UI task looks).
-   - The frames CHORD plays are read in SRAM (0.2, notes/66 §19): a table's frames in SDRAM cost 110 to 121 lines
-     of the 8 KB data cache a block for each track (§18.1). The stock table's 30 frames in SRAM, read by CHORD
-     alone, become a pool of slots, once the tick has copied them into the RAM claim (the move). From then on
-     cw_setup maps each frame a track plays, at Wavetable 0 by the stock selector's rule, to the address the render
-     reads: a slot holding a copy of it, or a slot no voice points at, copied in. The render also reads the
-     previous block's two frames when the frame changes (+176, +180): a slot any voice points at is never written,
-     and a frame keeps its pointer while a voice points at it, so the render decides as it would on the frames' own
-     addresses and the sound is the stock OS's at Wavetable 0 and 0.1's with a table, sample for sample. Which
-     slots a voice may point at is kept per voice (pin), from its own 16 pointers when it remaps (notes/66 §22).
-     A stock frame outside SRAM (frame 1, in the OS's data) is read where it is, as the stock OS reads it; a stock
-     frame's copy goes back to its own slot, and, while a CHORD track plays the stock table, a table's frame takes
-     first a slot not holding its own stock frame (§24): Wavetable 0 alone copies nothing.
+   - The choice: PATTERN + SWEEP on a CHORD track steps the shown pattern's byte 36 through 0..127, two steps a table
+     (the table is the value / 2: 0 the stock table, 1 to 63 the files /Wavetables/01 to /Wavetables/63); byte 37 is a
+     check, 0x5a + byte 36 (notes/66 §27.10, §28). The OS saves the header's 64 bytes but loads and initializes only
+     its own fields, so ct_load and ct_init (entries.S) keep the two bytes in the pattern's loader and initializer.
+     ct_knob, in front of the knob lookup, gives descriptor 10 (an unused "Error" one, notes/66 §28.3) for PATTERN +
+     SWEEP on CHORD (descriptor 73) so that the popup shows the table; ct_keys, at the encoder handler's question for
+     TRACK, steps on descriptor 10 before any edit; ct_release ends the pattern selection's wait as the effect slots
+     do. All five are chain hooks (notes/66 §30.2): the composer puts them in front of the parts that take the same
+     sites, and each calls the entry behind it, or does the stock work when there is none.
+   - The audio (cw_setup in place of jsr 0x400a8080 at 0x400ab15e, CHORD's one call for its two frames, notes/66
+     §1.1): every call reads the playing pattern's choice. The table wanted gets the list the voices read at once
+     (step 1 of notes/66 §27.3): a position whose SRAM slot already holds the wanted frame reads the slot, any other
+     reads the table's buffer in SDRAM, and the render brings the new frames in by its own transition (§29.4). Then
+     each call moves one position home: the wanted frame copied into its slot once no CHORD sub-voice points at the
+     slot, and at once every sub-voice pointer to the buffer's frame (+168, +172 and the previous pair +176, +180)
+     moved to the slot, the same content, so the render sees no change (§29.6). The slots are the stock table's own
+     SRAM frames, positions 2 to 31; position 0 is the OS's sine and position 1 stays in SDRAM, as in the stock
+     table (§19.1, §28.5). With the stock table wanted and every slot home, the stock function itself runs.
+   - The move, once, on the screen's tick: the stock frames copied into the RAM claim (STOCK), so that the stock
+     table can come back home the same way.
+   - The loader (ct_hook_tick in place of jsr 0x40076be4 at 0x400075f0, the screen's redraw, about 30 Hz; with SAMPLE
+     through the builder's tick dispatcher): the files /Wavetables/01 to /63, one per tick, once the drive is mounted
+     and again whenever the drive's file index changes. A file is a sample file (64-byte header, big-endian 16-bit),
+     mono, of k x 256 samples, k = 1 to 32. Its first frame must be a sine (the OS's, within 4 steps): if it is not,
+     the OS's sine goes in front of its frames (notes/66 §27.10, §28.5). The frames are spread over the 32 positions
+     SWEEP reaches by linear crossfades, each 257 Q31 samples with the last equal to the first.
+   - Memory: the RAM claim 0x43400000..0x43700000 holds one file as read, 71 buffers of a table each (63 tables and 8
+     spare), then the stock frames' copy. A table is published by one 32-bit write of its slot; the buffer it
+     replaces is reused once it is not the table wanted and no voice points into it.
 
    The file system calls follow One-Shot's tick (tools/machines/sampler/machine/pool.c): the tick takes its own
    lock (the redraw also runs from another task) and leaves the drive alone while the running task holds the file
@@ -49,21 +48,35 @@ typedef uint8_t u8;
 /* --- the audio side ------------------------------------------------------------------------------------------------ */
 #define VOICE0          0x42308828u                 /* voice of track 0; one per track, 0x31c apart */
 #define VSTRIDE         0x31c
-#define V_STARTS        0x38                        /* set in the block a note starts */
 #define SUB_STRIDE      120                         /* CHORD's four sub-voices */
-#define CHORD_SETUP     ((void (*)(char *, const char *))0x400a8080)
-#define CUR_SND(t)      (((const char *volatile *)0x800017ec)[t])   /* the sound a track's note plays, or 0 */
-#define TARGETS(t)      ((const char *)0x800015ae + 66 * (t))       /* its 66 bytes, k 0..32 */
-#define SOUND_K30       80                          /* a sound: +20 + 2 * 30 */
-#define TARGETS_K30     60
-#define P_SWEEP         0x1a
-#define CHORD_MACHINE   5                           /* a voice's machine, at +0 */
 #define SUB_FRAMES      168                         /* a sub-voice's +168 f0, +172 f1, +176 and +180 the previous */
+#define CHORD_SETUP     ((void (*)(char *, const char *))0x400a8080)
+#define P_SWEEP         0x1a
 #define STOCK_TABLE     ((const u32 *)0x40118590)   /* the selector's: frame n (1..32) at entry n - 1 */
 #define SINE            0x8000eee4u                 /* the selector's answer outside 1..32 */
 #define SRAM_LO         0x80000000u                 /* the internal SRAM, 64 KB, not cached */
 #define SRAM_HI         0x80010000u
 #define IN_SRAM(a)      ((u32)(a) - SRAM_LO < SRAM_HI - SRAM_LO)
+
+/* --- the patterns, the keys, the descriptors ----------------------------------------------------------------------- */
+#define ROOT            (*(u8 *volatile *)0x40fe4228)   /* the patterns' singleton (notes/42 §5) */
+#define PLAYING         (*(u8 *volatile *)0x40a7887c)   /* the playing pattern */
+#define SHOWN           ((u8 *(*)(u8 *))0x4000f208)     /* the shown pattern's object, from the singleton */
+#define HDR             36                          /* the header's byte 36: the value 0..127; 37: 0x5a + byte 36 */
+#define VALUES          128
+#define KEY_HELD        ((s32 (*)(u32))0x4007faf4)  /* (logical key) -> 1 while held */
+#define K_PATTERN       3
+#define SWEEP_DESC      73                          /* Chord Sweep (notes/66 §28.1) */
+#define TABLE_DESC      10                          /* an unused "Error" descriptor, display only (notes/66 §28.3) */
+#define STOCK_DESC      0x4010dce0u                 /* the stock descriptor table, 0x38 bytes an entry */
+#define DSTRIDE         0x38
+#define UI_OBJ(i)       ((u8 *)0x40a71754 + 100 * (i))      /* descriptor i's interface object (notes/47 §3.3) */
+#define K0_RANGE        0x7f00                      /* the display's range, as the Track FX' type (fltslot) */
+
+typedef u32 (*lookup_fn)(void *view, u32 knob, u32 func, s32 track);
+
+extern char ct_next_knob[];                         /* the knob lookup behind ct_knob: a part's, or the stock one */
+extern char ct_desc_used[];                         /* the descriptor table the OS uses (a copy with an added machine) */
 
 /* --- the file system on the +Drive (One-Shot's os.h, notes/66 §11.2, §11.3) ----------------------------------------- */
 #define FS_MOUNTED      (*(volatile u32 *)0x40f07cf4)
@@ -79,167 +92,238 @@ typedef uint8_t u8;
 #define TICK_STOCK      ((u32 (*)(void *))0x40076be4)
 
 /* --- the tables --------------------------------------------------------------------------------------------------- */
-#define TABLES          64                          /* MACHINES + SWEEP 1..64: /Wavetables/01 .. 64 */
+#define TABLES          63                          /* the value / 2 = 1..63: /Wavetables/01 .. 63 */
 #define FRAMES          32                          /* SWEEP >> 10 reaches 0..31; pointer 32 repeats 31 */
 #define FRAME_LEN       257
 #define POINTERS        (FRAMES + 1)
+#define FIRST_SLOT      2                           /* positions 2..31 live in the stock table's SRAM frames */
 #define CYCLE           256                         /* samples of a frame in a file */
 #define FILE_MAX        32                          /* frames in a file */
 #define HEADER          64
 #define BUFFERS         (TABLES + 8)
 #define RAM             0x43400000u                 /* the RAM claim, to 0x43700000 */
-#define CLAIM_END       0x43700000u
-#define IN_CLAIM(a)     ((u32)(a) - RAM < CLAIM_END - RAM)
 #define STAGE_BYTES     (FILE_MAX * CYCLE * 2)
 #define BUF_BYTES       ((POINTERS * 4 + FRAMES * FRAME_LEN * 4 + 15) & ~15u)
 #define STAGE           ((s16 *)RAM)
 #define BUF(b)          ((u32 *)(RAM + STAGE_BYTES + (u32)(b) * BUF_BYTES))
 #define FREE            0
-#define RETIRED         0xff                        /* replaced, until no latch and no voice points into it */
+#define RETIRED         0xff                        /* replaced, until it is not wanted and no voice points into it */
 #define STOCK           BUF(BUFFERS)                /* the stock frames' copy: 33 pointers, then the frames */
-#define COPY0           ((u32)(STOCK + POINTERS))   /* slot k's stock frame copied at COPY0 + 1 028 k */
-#define POOL_MAX        32
-#define KB_SHIFT        10                          /* frames are 1 028 bytes apart: one starts in a KB at most */
-#define KBS             ((SRAM_HI - SRAM_LO) >> KB_SHIFT)
-#define MOVED           1                           /* ct_moved: the pool is in use */
-#define READY           2                           /* the tick has copied the frames; the audio adopts them */
-#define REFUSED         0xff                        /* the stock table is not as expected: 0.1's way for good */
+#define MOVED           1                           /* ct_moved: the stock frames are copied, tables may come */
+#define REFUSED         0xff                        /* the stock table is not as expected: the stock table for good */
+#define SINE_STEPS      4                           /* a file's first frame within this of the OS's sine is a sine */
 
 /* The state, roots of the object so that a proof finds them in the composed tweak's symbols. */
 u32 *volatile ct_slot[TABLES];                      /* table n + 1: its pointer list, or 0 */
 u32 ct_slot_id[TABLES];                             /* the id of the file it came from */
-const u32 *volatile ct_latch[6];                    /* each track's table, latched at its note's start; 0: stock */
 u8 ct_owner[BUFFERS];                               /* FREE, 1 + the slot it holds, or RETIRED */
-u32 ct_scan;                                        /* 1..64: the file the tick reads next; 0: none */
-volatile u32 ct_moved;                              /* 0, READY, MOVED or REFUSED */
-u32 ct_pool_addr[POOL_MAX];                         /* slot k: its address in SRAM, a stock frame's */
-u32 volatile ct_pool_tag[POOL_MAX];                 /* the frame slot k holds a copy of; 0: none */
-u32 ct_pool_n;                                      /* slots, 30 on the OS 1.13 */
-u32 ct_fallback;                                    /* frames read where they are for want of a free slot */
-static u8 kb_slot[KBS];                             /* 1 + the slot whose frame starts in that KB of SRAM, or 0 */
-static u32 cursor;                                  /* the slot taken last */
-static u32 last_src[6][2], last_ptr[6][2];          /* a track's two sources and pointers in its last block */
-static u32 pin[6];                                  /* the slots a voice may point at until its next remap */
-static u32 far[6];                                  /* 1: it may point into the RAM claim, a frame read there */
-static u32 home;                                    /* the slots holding their own stock frame's copy */
+u32 ct_scan;                                        /* 1..63: the file the tick reads next; 0: none */
+volatile u32 ct_moved;                              /* 0, MOVED or REFUSED */
+const u32 *volatile ct_tag[FRAMES];                 /* position i (2..31): the list whose frame i its slot holds */
+const u32 *volatile ct_want;                        /* the list the voices' list was made for (STOCK, or a buffer) */
+u32 ct_list[POINTERS];                              /* what the voices read: per position, its slot or the wanted list's */
+volatile u32 ct_away;                               /* bit i: position i not home yet (its slot holds another frame) */
+u32 ct_copies;                                      /* frames copied into the slots since boot, for the proof */
+static u32 cursor;                                  /* the position tried last */
 static u32 sig_count, sig_sum;                      /* the file index when the scan started */
 static u8 seen;                                     /* a scan has started since the drive was mounted */
 static volatile unsigned char busy;
+static const char long_name[] = "Wavetable", short_name[] = "WAVE";
+
+/* --- the patterns ---------------------------------------------------------------------------------------------------- */
+
+static u32 irq_off(void)
+{
+	u32 sr, masked;
+
+	__asm__ volatile ("move.w %%sr, %0" : "=d"(sr));
+	masked = sr | 0x0700;
+	__asm__ volatile ("move.w %0, %%sr" : : "d"(masked) : "memory");
+	return sr;
+}
+
+static void irq_restore(u32 sr)
+{
+	__asm__ volatile ("move.w %0, %%sr" : : "d"(sr) : "memory");
+}
+
+static int valid(const volatile u8 *h)
+{
+	return h[HDR] < VALUES && h[HDR + 1] == (u8)(0x5a + h[HDR]);
+}
+
+static void put(volatile u8 *h, u32 v)
+{
+	u32 sr = irq_off();
+
+	h[HDR] = (u8)v;
+	h[HDR + 1] = (u8)(0x5a + v);
+	irq_restore(sr);
+}
+
+/* The playing pattern's header, or 0. Its number is read byte by byte: a pattern may be only 2-aligned (fxslot.c). */
+static const volatile u8 *playing_header(void)
+{
+	u8 *root = ROOT, *p = PLAYING;
+	u32 n;
+
+	if (!root || !p)
+		return 0;
+	n = (u32)p[30706] << 24 | (u32)p[30707] << 16 | (u32)p[30708] << 8 | p[30709];
+	if (n >= 96)
+		return 0;
+	return *(u8 *volatile *)(root + 5192 + 732 * n + 60);
+}
+
+/* The shown pattern's header and its header object (for the notify), or 0. */
+static volatile u8 *shown_header(u8 **object)
+{
+	u8 *root = ROOT, *p;
+
+	if (!root || !(p = SHOWN(root)))
+		return 0;
+	*object = p + 44;
+	return *(u8 *volatile *)(*object + 16);
+}
+
+/* entries.S's ct_load, in the loader after its fields: dst the working pattern's header, src the saved one's. */
+void ct_hdr_load(volatile u8 *dst, const volatile u8 *src)
+{
+	put(dst, valid(src) ? src[HDR] : 0);
+}
+
+/* entries.S's ct_init, in the initializer of a new pattern's header. */
+void ct_hdr_init(volatile u8 *h)
+{
+	put(h, 0);
+}
+
+/* The popup's value (descriptor 10's formatter): the shown pattern's table, 0 to 63. */
+void ct_fmt(void *fn, s32 v, char *buf)
+{
+	u8 *object;
+	const volatile u8 *h = shown_header(&object);
+	u32 n = h && valid(h) ? h[HDR] >> 1 : 0;
+
+	(void)fn;
+	(void)v;
+	if (n >= 10)
+		*buf++ = (char)('0' + n / 10);
+	*buf++ = (char)('0' + n % 10);
+	*buf = 0;
+}
+
+/* ParameterPageView's knob lookup (its vtable's +0x7c, 0x401005a8), in front of the one behind it: PATTERN held + SWEEP
+   on a CHORD track (descriptor 73) gives descriptor 10, display only: group -1 and k 0 (the OS builds nothing on it, an
+   edit would write the unused k 0), no CC, the names and this package's formatter, the knob's steps of Chord Sweep. */
+u32 ct_knob(void *view, u32 knob, u32 func, s32 track)
+{
+	u32 d = ((lookup_fn)(u32)ct_next_knob)(view, knob, func, track), k;
+	u8 *o = UI_OBJ(TABLE_DESC);
+
+	if (d != SWEEP_DESC || !KEY_HELD(K_PATTERN))
+		return d;
+	for (k = 0; k < 2; k++) {
+		volatile u32 *row = (volatile u32 *)((k ? (u32)ct_desc_used : STOCK_DESC) + DSTRIDE * TABLE_DESC);
+
+		row[1] = 0;                             /* k 0 */
+		row[2] = 0;
+		row[3] = K0_RANGE;
+		row[4] = 0;
+		row[5] = 0;
+		row[6] = 0xffffffffu;                   /* no CC (the stock row carries CC 99 / 98) */
+		row[7] = 0xffffffffu;                   /* no NRPN */
+		row[8] = 0;
+		row[0x2c / 4] = (u32)long_name;
+		row[0x34 / 4] = (u32)short_name;
+	}
+	*(volatile u32 *)(o + 0x10) = *(volatile u32 *)(UI_OBJ(SWEEP_DESC) + 0x10);    /* the knob's steps */
+	*(volatile u32 *)(o + 0x20) = (u32)ct_fmt;
+	*(volatile u32 *)(o + 0x2c) = 0;                /* no "Error" picture */
+	return TABLE_DESC;
+}
+
+/* entries.S's ct_keys on descriptor 10: the handler's step moves the shown pattern's value, 0..127, two a table. */
+void ct_step(s32 step)
+{
+	u8 *object;
+	volatile u8 *h = shown_header(&object);
+	s32 v;
+
+	if (!h)
+		return;                                 /* no pattern shown */
+	v = (valid(h) ? h[HDR] : 0) + step;
+	put(h, v < 0 ? 0 : v >= VALUES ? VALUES - 1 : (u32)v);
+	((void (*)(u8 *, u32))(*(u32 **)object)[4])(object, 0);    /* the header's notify, as the stock setters */
+}
 
 /* --- the audio side ------------------------------------------------------------------------------------------------ */
 
-static const u32 *table_of(s32 t)
+/* The list wanted by the playing pattern: STOCK, or a loaded table's buffer. */
+static const u32 *wanted(void)
 {
-	const char *snd = CUR_SND(t);
-	s32 w = snd ? *(const volatile s16 *)(snd + SOUND_K30) : *(const s16 *)(TARGETS(t) + TARGETS_K30);
-	s32 n = w >> 8;                                 /* 8.8 */
+	const volatile u8 *h = playing_header();
+	u32 n;
 
-	return n >= 1 && n <= TABLES ? ct_slot[n - 1] : 0;
+	if (!h || !valid(h))
+		return STOCK;
+	n = h[HDR] >> 1;
+	return n && ct_slot[n - 1] ? ct_slot[n - 1] : STOCK;
 }
 
-/* 1 + the slot whose frame starts at a, or 0 for an address that is no slot's. */
-static u32 slot_of(u32 a)
+static u32 slot(u32 i)
 {
-	u32 k;
-
-	if (!IN_SRAM(a))
-		return 0;
-	k = kb_slot[(a - SRAM_LO) >> KB_SHIFT];
-	return k && ct_pool_addr[k - 1] == a ? k : 0;
+	return STOCK_TABLE[i - 1];
 }
 
-static u32 slot_bit(u32 a)
+/* The voices' list for the wanted list w (step 1): a position whose slot holds w's frame reads the slot, any other
+   reads w's own frame; position 0 is the sine and 1 is w's, in SDRAM. */
+static void relist(const u32 *w)
 {
-	u32 k = slot_of(a);
+	u32 i, away = 0;
 
-	return k ? 1u << (k - 1) : 0;
-}
-
-/* Voice t's 16 frame pointers (+168..+180 of its four sub-voices): the slots among them as bits; *out gets 1 when
-   one of them points into the RAM claim (a frame of a table or of the stock copy read where it is). Sub-voices 2 to
-   4 hold sub-voice 1's pointers unless one was switched off for its pitch (notes/66 §19.1): only theirs that differ
-   are looked up. */
-static u32 own(u32 t, u32 *out)
-{
-	const u32 *q = (const u32 *)(VOICE0 + VSTRIDE * t + SUB_FRAMES);
-	u32 bits = 0, far = 0, j, i, a;
-
-	for (i = 0; i < 4; i++) {
-		bits |= slot_bit(q[i]);
-		far |= IN_CLAIM(q[i]);
-	}
-	for (j = 1; j < 4; j++)
-		for (i = 0; i < 4; i++)
-			if ((a = q[SUB_STRIDE / 4 * j + i]) != q[i]) {
-				bits |= slot_bit(a);
-				far |= IN_CLAIM(a);
-			}
-	*out = far;
-	return bits;
-}
-
-/* Voice t plays CHORD (its machine at +0). Another machine's voice is never read by CHORD's render, and it comes back
-   to CHORD through the reset, its pointers the sine: its pin and far do not count. */
-static int chord_voice(u32 t)
-{
-	return *(const volatile u32 *)(VOICE0 + VSTRIDE * t) == CHORD_MACHINE;
-}
-
-/* The adoption, in the audio's first setup after the move: each voice's slots and whether it reads a frame outside
-   SRAM, from its pointers. From then on a voice's pointers change only in its own setup (which recomputes them), its
-   render (+168 -> +176, +172 -> +180) and the reset (the sine): pin[t] and far[t] hold until its next remap. */
-static void __attribute__((noinline)) adopt(void)
-{
-	u32 t;
-
-	for (t = 0; t < 6; t++)
-		pin[t] = chord_voice(t) ? own(t, &far[t]) : (far[t] = 0);
-	ct_moved = MOVED;
-}
-
-/* 1 + k when s is slot k's own stock frame's copy, else 0. */
-static u32 home_of(u32 s)
-{
-	u32 d = s - COPY0, k = d / (4 * FRAME_LEN);
-
-	return d < 4 * FRAME_LEN * ct_pool_n && d == k * 4 * FRAME_LEN ? k + 1 : 0;
-}
-
-/* Rule 2: the slot holding a copy of s, or 0; first a stock frame's own slot, then where track t had its two
-   sources, then among all slots. */
-static u32 held(u32 t, u32 s)
-{
-	u32 k, j;
-
-	k = home_of(s);
-	if (k && ct_pool_tag[k - 1] == s)
-		return ct_pool_addr[k - 1];
-	for (j = 0; j < 2; j++)
-		if (s == last_src[t][j]) {
-			k = slot_of(last_ptr[t][j]);
-			if (k && ct_pool_tag[k - 1] == s)
-				return last_ptr[t][j];
+	ct_list[0] = SINE;
+	ct_list[1] = w[1];
+	for (i = FIRST_SLOT; i < FRAMES; i++) {
+		if (ct_tag[i] == w)
+			ct_list[i] = slot(i);
+		else {
+			ct_list[i] = w[i];
+			away |= 1u << i;
 		}
-	for (k = 0; k < ct_pool_n; k++)
-		if (ct_pool_tag[k] == s)
-			return ct_pool_addr[k];
+	}
+	ct_list[FRAMES] = ct_list[FRAMES - 1];
+	ct_away = away;
+	ct_want = w;
+}
+
+/* A sub-voice of any voice points at a (+168..+180): its frame is read there, in this block or the next. */
+static int pointed(u32 a)
+{
+	const volatile u32 *v = (const volatile u32 *)(VOICE0 + SUB_FRAMES);
+	u32 t, j;
+
+	for (t = 0; t < 6; t++, v += VSTRIDE / 4)
+		for (j = 0; j < 4; j++) {
+			const volatile u32 *q = v + SUB_STRIDE / 4 * j;
+
+			if (q[0] == a || q[1] == a || q[2] == a || q[3] == a)
+				return 1;
+		}
 	return 0;
 }
 
-/* Rule 3: a voice points at s, a frame in the RAM claim, where it is. Only the voices that may (far) are looked at,
-   such a frame being rare: from before the move, or for want of a free slot. */
-static int pointed(u32 s)
+/* Every sub-voice pointer to from (+168..+180 of every voice) to to: the same content, so the render sees no change. */
+static void move_pointers(u32 from, u32 to)
 {
-	const u32 *q;
+	volatile u32 *v = (volatile u32 *)(VOICE0 + SUB_FRAMES);
 	u32 t, j, i;
 
-	for (t = 0; t < 6; t++)
-		if (far[t] && chord_voice(t))
-			for (j = 0, q = (const u32 *)(VOICE0 + VSTRIDE * t + SUB_FRAMES); j < 4; j++, q += SUB_STRIDE / 4)
-				for (i = 0; i < 4; i++)
-					if (q[i] == s)
-						return 1;
-	return 0;
+	for (t = 0; t < 6; t++, v += VSTRIDE / 4)
+		for (j = 0; j < 4; j++)
+			for (i = 0; i < 4; i++)
+				if (v[SUB_STRIDE / 4 * j + i] == from)
+					v[SUB_STRIDE / 4 * j + i] = to;
 }
 
 /* 257 longs from src to dst: 32 moves of 8 longs, then the last one. */
@@ -260,136 +344,61 @@ static void copy_frame(s32 *dst, const s32 *src)
 			  : "d1", "d2", "d3", "d4", "d5", "d6", "d7", "a2", "cc", "memory");
 }
 
-/* A CHORD track plays the stock table (its latch 0): the stock frames' own slots are worth keeping. */
-static int stock_played(void)
+/* One position home, the next away one whose slot no sub-voice points at: the wanted frame copied into the slot,
+   every pointer to that frame moved to the slot, the list too (step 3 of notes/66 §27.3, §29.6). */
+static void home_one(void)
 {
-	u32 t;
+	const u32 *w = ct_want;
+	u32 n, i;
 
-	for (t = 0; t < 6; t++)
-		if (!ct_latch[t] && chord_voice(t))
-			return 1;
-	return 0;
-}
-
-/* Rules 3 to 5 for a source in the RAM claim no slot holds: read where it is while a voice points at it; else
-   copied into a slot outside busy: a stock frame into its own slot when that is free, a table's frame, while a CHORD
-   track plays the stock table, first into a slot not holding its own stock frame (the next one after the last
-   taken); else, no such slot, read where it is. */
-static u32 place(u32 s, u32 busy)
-{
-	u32 free, pick, k, h;
-
-	if (pointed(s))
-		return s;
-	free = ~busy & (ct_pool_n == 32 ? ~0u : (1u << ct_pool_n) - 1);
-	if (!free) {
-		ct_fallback++;
-		return s;
+	for (n = 0; n < FRAMES; n++) {
+		i = (cursor + 1 + n) & (FRAMES - 1);
+		if (!(ct_away & (1u << i)) || pointed(slot(i)))
+			continue;
+		copy_frame((s32 *)slot(i), (const s32 *)w[i]);
+		ct_tag[i] = w;
+		move_pointers(w[i], slot(i));
+		ct_list[i] = slot(i);
+		if (i == FRAMES - 1)
+			ct_list[FRAMES] = slot(i);
+		ct_away &= ~(1u << i);
+		ct_copies++;
+		cursor = i;
+		return;
 	}
-	h = home_of(s);
-	if (h && free >> (h - 1) & 1)
-		k = h - 1;
-	else {
-		pick = free & ~home && stock_played() ? free & ~home : free;
-		k = pick & ~((2u << cursor) - 1) ? pick & ~((2u << cursor) - 1) : pick;
-		k = 31 - __builtin_clz(k & -k);         /* its lowest bit */
-		cursor = k;
-	}
-	ct_pool_tag[k] = 0;
-	copy_frame((s32 *)ct_pool_addr[k], (const s32 *)s);
-	ct_pool_tag[k] = s;
-	home = (home & ~(1u << k)) | (u32)(h == k + 1) << k;
-	return ct_pool_addr[k];
 }
 
-/* Track t's sources s0 and s1 mapped to the pointers the render reads, into last_ptr[t]: off the path of the
-   blocks whose frames stay, and out of line so that the audio's code for those stays short. The slots no voice may
-   point at are those outside every other voice's pin and outside this voice's own pointers and new ones. */
-static void __attribute__((noinline)) remap(u32 t, u32 s0, u32 s1)
+/* The stock selector 0x400a8060 on a list: n = 0..32 its pointer, the sine outside. */
+static u32 sel(const u32 *list, s32 n)
 {
-	u32 a, b, u, mine, outside, busy;
-
-	mine = own(t, &outside);
-	far[t] = outside;
-	/* rule 1: the sine, and the stock frames outside SRAM, where the OS has them; rule 2 */
-	a = IN_SRAM(s0) || !IN_CLAIM(s0) ? s0 : held(t, s0);
-	b = s1 == s0 ? a : IN_SRAM(s1) || !IN_CLAIM(s1) ? s1 : held(t, s1);
-	if (!a || !b) {
-		busy = mine | slot_bit(a) | slot_bit(b);
-		for (u = 0; u < 6; u++)
-			if (u != t && chord_voice(u))
-				busy |= pin[u];
-		if (!a) {
-			a = place(s0, busy);
-			busy |= slot_bit(a);
-		}
-		if (!b)
-			b = s1 == s0 ? a : place(s1, busy);
-	}
-	pin[t] = mine | slot_bit(a) | slot_bit(b);
-	far[t] = outside | IN_CLAIM(a) | IN_CLAIM(b);
-	last_src[t][0] = s0;
-	last_src[t][1] = s1;
-	last_ptr[t][0] = a;
-	last_ptr[t][1] = b;
-}
-
-/* The two pointers the render reads for sources s0 and s1 on track t. */
-static void map(u32 t, u32 s0, u32 s1, u32 *p0, u32 *p1)
-{
-	const u32 *sub = (const u32 *)(VOICE0 + VSTRIDE * t + SUB_FRAMES);
-
-	if (s0 != last_src[t][0] || s1 != last_src[t][1] || sub[0] != last_ptr[t][0] || sub[1] != last_ptr[t][1])
-		remap(t, s0, s1);                       /* else the same frames: the voice still points at their slots */
-	*p0 = last_ptr[t][0];
-	*p1 = last_ptr[t][1];
-}
-
-/* The stock selector 0x400a8060 on the stock frames' copy: n = 0..32 its pointer, the sine outside. */
-static u32 stock_sel(s32 n)
-{
-	return (u32)n <= FRAMES ? STOCK[n] : SINE;
+	return (u32)n <= FRAMES ? list[n] : SINE;
 }
 
 void cw_setup(char *v, const char *p)
 {
 	u32 t = ((u32)v - VOICE0) / VSTRIDE;
-	const u32 *ptrs;
+	const u32 *w;
 	s32 sweep, i, j;
 	u32 xf, f0, f1;
 
-	if (t > 5) {
-		CHORD_SETUP(v, p);
+	if (t > 5 || ct_moved != MOVED) {
+		CHORD_SETUP(v, p);                      /* before the move: the stock table, as the stock OS plays it */
 		return;
 	}
-	if (*(const volatile u32 *)(v + V_STARTS))
-		ct_latch[t] = table_of(t);
-	ptrs = ct_latch[t];
-	sweep = *(const s16 *)(p + P_SWEEP);
-	if (ct_moved == READY)
-		adopt();
-	if (!ptrs && ct_moved != MOVED) {
-		CHORD_SETUP(v, p);                      /* the stock table, as the stock OS plays it */
+	w = wanted();
+	if (w != ct_want)
+		relist(w);                              /* step 1: the new table's frames at once */
+	if (ct_away)
+		home_one();
+	if (w == STOCK && !ct_away) {
+		CHORD_SETUP(v, p);                      /* the stock table at home: the stock function */
 		return;
 	}
-	if (!ptrs) {                                    /* the stock function's work, on the copy (0x400a8080) */
-		i = sweep >> 10;
-		xf = ((u32)sweep & 1023) << 21;
-		f0 = stock_sel(i);
-		f1 = stock_sel(i + 1);
-	} else {
-		if (sweep < 0) {                        /* the stock function would take the sine: the first frame */
-			i = 0;
-			xf = 0;
-		} else {
-			i = sweep >> 10;                /* 0..31 */
-			xf = ((u32)sweep & 1023) << 21;
-		}
-		f0 = ptrs[i];
-		f1 = ptrs[i + 1];
-	}
-	if (ct_moved == MOVED)
-		map(t, f0, f1, &f0, &f1);
+	sweep = *(const s16 *)(p + P_SWEEP);        /* the stock function's work (0x400a8080), on the list */
+	i = sweep >> 10;
+	xf = ((u32)sweep & 1023) << 21;
+	f0 = sel(ct_list, i);
+	f1 = sel(ct_list, i + 1);
 	for (j = 0; j < 4; j++) {
 		char *s = v + SUB_STRIDE * j;
 
@@ -428,18 +437,7 @@ static int read_at(u32 ino, u32 pos, void *buf, u32 n)
 	return FS_READ(buf, n, fh) == (s32)n;
 }
 
-static int latched(const u32 *ptrs)
-{
-	s32 t;
-
-	for (t = 0; t < 6; t++)
-		if (ct_latch[t] == ptrs)
-			return 1;
-	return 0;
-}
-
-/* A voice's frame pointer (+168..+180 of a sub-voice) reaches into [lo, hi). Once none does and no latch holds the
-   buffer, none will: a voice gets a buffer's frames only from its latch, or from another voice that points at them. */
+/* A voice's frame pointer (+168..+180 of a sub-voice) reaches into [lo, hi). */
 static int pointed_into(u32 lo, u32 hi)
 {
 	const char *v = (const char *)VOICE0;
@@ -456,66 +454,60 @@ static int pointed_into(u32 lo, u32 hi)
 	return 0;
 }
 
+/* A retired buffer is free once it is not the table wanted and no voice points into it: no list can reach it any
+   more (it is in no slot), and the slots holding its frames are no longer copies of a wanted frame. */
 static void reclaim(void)
 {
 	s32 b;
-	u32 k, lo;
+	u32 i, lo;
 
 	for (b = 0; b < BUFFERS; b++)
-		if (ct_owner[b] == RETIRED && !latched(BUF(b))) {
+		if (ct_owner[b] == RETIRED && ct_want != BUF(b)) {
 			lo = (u32)BUF(b);
 			if (pointed_into(lo, lo + BUF_BYTES))
 				continue;
-			for (k = 0; k < ct_pool_n; k++)  /* the slots holding its frames: no longer copies of them */
-				if (ct_pool_tag[k] - lo < BUF_BYTES)
-					ct_pool_tag[k] = 0;
+			for (i = FIRST_SLOT; i < FRAMES; i++)
+				if (ct_tag[i] == BUF(b))
+					ct_tag[i] = 0;
 			ct_owner[b] = FREE;
 		}
 }
 
-/* The move (notes/66 §19.3), once, on the tick: the stock table's frames in SRAM copied into STOCK, which gets the
-   selector's 33 pointers (the sine at 0, frames in SDRAM kept where they are); each of them becomes a slot of the
-   pool, tagged with its copy, so a track playing it keeps its pointer. Then READY: the audio's next setup adopts it
-   (adopt), so that the voices' pointers are read where they cannot change under the reading. A table not as
-   expected (a frame overlapping another's KB, more than POOL_MAX) leaves 0.1's way for good. */
+/* The move (notes/66 §31), once, on the tick: the stock table's frames 2..31, in SRAM, copied into STOCK with the
+   selector's 33 pointers (the sine at 0, frame 1 where the OS has it); each slot holds the stock frame, its tag STOCK.
+   A table not as expected leaves the stock table for good. */
 static void move(void)
 {
 	u32 *ptrs = STOCK;
 	s32 *copy = (s32 *)(ptrs + POINTERS);
-	u32 n, k, j, src;
+	u32 i, j;
 
-	for (k = 0; k < KBS; k++)
-		kb_slot[k] = 0;
-	ct_pool_n = 0;
-	ptrs[0] = SINE;
-	for (n = 1; n <= FRAMES; n++) {
-		src = STOCK_TABLE[n - 1];
-		if (IN_SRAM(src) && src != SINE) {
-			for (k = 0; k < ct_pool_n && ct_pool_addr[k] != src; k++)
-				;
-			if (k == ct_pool_n) {
-				u32 kb = (src - SRAM_LO) >> KB_SHIFT;
-
-				if (k == POOL_MAX || kb_slot[kb] || src - SRAM_LO > SRAM_HI - SRAM_LO - 4 * FRAME_LEN) {
-					ct_pool_n = 0;
-					ct_moved = REFUSED;
-					return;
-				}
-				for (j = 0; j < FRAME_LEN; j++)
-					copy[j] = ((const s32 *)src)[j];
-				ct_pool_addr[k] = src;
-				ct_pool_tag[k] = (u32)copy;
-				kb_slot[kb] = (u8)(k + 1);
-				ct_pool_n = k + 1;
-				copy += FRAME_LEN;
-			}
-			src = ct_pool_tag[k];
-		}
-		ptrs[n] = src;
+	if (IN_SRAM(STOCK_TABLE[0]) || STOCK_TABLE[FRAMES - 1] != STOCK_TABLE[FRAMES - 2]) {
+		ct_moved = REFUSED;
+		return;
 	}
-	home = ct_pool_n == 32 ? ~0u : (1u << ct_pool_n) - 1;
-	__asm__ volatile ("" : : : "memory");          /* the copies, pointers and slots before the flag */
-	ct_moved = READY;
+	for (i = FIRST_SLOT; i < FRAMES; i++) {
+		if (!IN_SRAM(slot(i)) || slot(i) == SINE) {
+			ct_moved = REFUSED;
+			return;
+		}
+		for (j = FIRST_SLOT; j < i; j++)
+			if (slot(i) == slot(j)) {
+				ct_moved = REFUSED;
+				return;
+			}
+	}
+	ptrs[0] = SINE;
+	ptrs[1] = STOCK_TABLE[0];
+	for (i = FIRST_SLOT; i < FRAMES; i++, copy += FRAME_LEN) {
+		for (j = 0; j < FRAME_LEN; j++)
+			copy[j] = ((const s32 *)slot(i))[j];
+		ptrs[i] = (u32)copy;
+		ct_tag[i] = STOCK;
+	}
+	ptrs[FRAMES] = ptrs[FRAMES - 1];
+	__asm__ volatile ("" : : : "memory");          /* the copies, pointers and tags before the flag */
+	ct_moved = MOVED;
 }
 
 static s32 free_buffer(void)
@@ -528,7 +520,7 @@ static s32 free_buffer(void)
 	return -1;
 }
 
-/* Slot n takes buffer b (-1: none) in one write; the buffer it held waits for the latches. */
+/* Slot n takes buffer b (-1: none) in one write; the buffer it held is retired. */
 static void publish(u32 n, s32 b, u32 id)
 {
 	u32 *old = ct_slot[n];
@@ -541,26 +533,58 @@ static void publish(u32 n, s32 b, u32 id)
 		ct_owner[((u32)old - (u32)BUF(0)) / BUF_BYTES] = RETIRED;
 }
 
-/* k frames of 256 samples at src spread over the 32 frames of the buffer by linear crossfades, as Q31 with the
-   257th sample equal to the first; then the 33 pointers, the last repeating frame 31. */
+/* The OS's sine as 16 bits, rounded (its peak 32 768 kept at 32 767). */
+static s32 sine16(u32 m)
+{
+	s32 x = (((const s32 *)SINE)[m] >> 16) + ((((const s32 *)SINE)[m] >> 15) & 1);
+
+	return x > 32767 ? 32767 : x;
+}
+
+/* The file's first frame is the OS's sine, each sample within SINE_STEPS (notes/66 §28.5). */
+static int starts_with_sine(const s16 *src)
+{
+	u32 m;
+
+	for (m = 0; m < CYCLE; m++) {
+		s32 d = src[m] - sine16(m);
+
+		if (d > SINE_STEPS || d < -SINE_STEPS)
+			return 0;
+	}
+	return 1;
+}
+
+/* Sample m of source frame f: with the sine put in front, frame 0 is the OS's sine and frame f is the file's f - 1. */
+static s32 sample(const s16 *src, u32 front, u32 f, u32 m)
+{
+	if (front)
+		return f ? src[(f - 1) * CYCLE + m] : sine16(m);
+	return src[f * CYCLE + m];
+}
+
+/* k frames of 256 samples at src (the OS's sine in front when the first is not one) spread over the 32 frames of the
+   buffer by linear crossfades, as Q31 with the 257th sample equal to the first; then the 33 pointers, the sine at 0,
+   the last repeating frame 31. */
 static void build(u32 *buf, const s16 *src, u32 k)
 {
 	s32 *frames = (s32 *)(buf + POINTERS);
-	u32 s, j;
+	u32 front = !starts_with_sine(src), n = k + front, s, j;
 
 	for (s = 0; s < FRAMES; s++) {
 		s32 *f = frames + s * FRAME_LEN;
-		u32 pos = s * (k - 1), i0 = pos / (FRAMES - 1), rem = pos % (FRAMES - 1);
-		const s16 *a = src + i0 * CYCLE, *b = rem ? a + CYCLE : a;
+		u32 pos = s * (n - 1), i0 = pos / (FRAMES - 1), rem = pos % (FRAMES - 1);
 
 		for (j = 0; j < CYCLE; j++) {
-			s32 x = a[j] + ((s32)b[j] - a[j]) * (s32)rem / (FRAMES - 1);
+			s32 a = sample(src, front, i0, j), b = rem ? sample(src, front, i0 + 1, j) : a;
+			s32 x = a + (b - a) * (s32)rem / (FRAMES - 1);
 
 			f[j] = (s32)((u32)x << 16);
 		}
 		f[CYCLE] = f[0];
 		buf[s] = (u32)f;
 	}
+	buf[0] = SINE;
 	buf[FRAMES] = buf[FRAMES - 1];
 }
 
@@ -581,7 +605,7 @@ static int load_one(u32 n)
 	path[i + 2] = 0;
 	if (FS_OPEN(path, "r", fh) != 0) {
 		if (ct_slot[n])
-			publish(n, -1, 0);              /* gone: its tracks play the stock table */
+			publish(n, -1, 0);              /* gone: its patterns play the stock table */
 		return 1;
 	}
 	ino = fh[0];

@@ -2475,3 +2475,372 @@ comes before block 24.
 - **T2 is done in emulation.** Open: the maintainer's ear on `chord-switch-at-once.wav` (step 1, the render's
   transition) and `chord-same-frames-moved.wav` (step 3 without the rule, which the design avoids).
 
+## 30. T3: the builder's design (2026-11-08)
+
+The maintainer: « Ja, T3 starten », and asked whether `composer.js` should follow although the web flasher is gone:
+« Beide wie bisher ». So `compose.py` and `composer.js` change together, and `webcompose_check` proves them.
+
+### 30.1 What the builder does today at the five sites `[FAIT]`
+
+Read in `tools/compose.py` (`fx_layer`, `fl_layer`, `compose`) and the parts' sources:
+
+| Site | Who takes it today |
+|---|---|
+| Knob lookup, vtable entry `0x401005a8` | the shortcut layer's `sc_knob`, which calls the stock lookup `0x4001e814` (fixed in `shortcuts.S`); with filters, the filter slot's `fl_knob` in front of it (`knob_next` in its data block = `sc_knob`) |
+| `0x4001f886`, the encoder handler's question for TRACK | the effect slots' `fx_keys`; with filters, `fl_keys` in front of it (`keys_next` = `fx_keys`, or 0) |
+| `0x40020dca`, PATTERN's release | the effect slots' `fx_release` |
+| `0x4005b4b0`, the pattern header's loader | the effect slots' `fx_load` |
+| `0x4006155e`, a new header's initializer | the effect slots' `fx_init` |
+
+- **The chains run front to back.** The part in front holds the address of the one behind it in its data block, and
+  the composer drops the writes of the part behind at the shared site.
+- **The part behind never changes.** So every build without the front part stays byte for byte.
+- **The baseline:** `webcompose_check` on today's `main` (`0321e15`): every selection identical between the two
+  composers, the fills 6/6. Its log, with each selection's MAIN OS hash, is kept for the comparison after T3
+  (`_scratch/chordtables-t2/webcompose_base_2026-11-08.log`, not committed).
+
+### 30.2 The design: a package's entry in front of the chain
+
+- **A chain hook.** A hook or vtable entry in a package's `uses` may name `next`: a symbol the package reads as the
+  entry behind it.
+  - The composer writes the package's entry at the site, in front of whatever the build would put there: a part's
+    entry, or nothing.
+  - It resolves `next` to that entry's address, or to 0. At 0 the package does the replaced instructions itself,
+    so its entry stands in for the stock code.
+  - So no part changes, and a build without the package stays byte for byte.
+- **Two placements.** The parts are laid out after the packages, so a package with chain hooks is placed twice:
+  first to learn its size, then again after the parts, with the `next` values. Its size cannot change, so neither
+  does the layout.
+- **Two packages at one site** would each go in front of the one before, in the order given. Nothing needs this yet;
+  the composer refuses it until something does.
+- **CHORD Tables 0.3's five chain hooks:**
+  - the knob lookup (vtable `0x401005a8`, `next`: `fl_knob`, `sc_knob` or the stock lookup);
+  - `0x4001f886` (`next`: `fl_keys`, `fx_keys`, or 0);
+  - PATTERN's release (`0x40020dca`, `next`: `fx_release`, or 0, when it does the same itself);
+  - the loader (`0x4005b4b0`, `next`: `fx_load`, or 0);
+  - the initializer (`0x4006155e`, `next`: `fx_init`, or 0).
+- **One more patch point kind, `desc_used`:** the descriptor table the OS uses (the stock one, or the copy in a build
+  with an added machine), for descriptor 10's row (§28.3). It is known before any placement.
+- **Unchanged:** CHORD's call (`0x400ab15e`) and the screen's tick (`0x400075f0`, through the dispatcher next to
+  SAMPLE) stay as in 0.2.
+- **No longer used by CHORD Tables:** the shortcut and the shortcut layer. So rule R1 no longer stands between CHORD
+  Tables and the Track FX.
+
+### 30.3 The claims
+
+- **Saved bytes as ranges.** `claims.py` compares saved places as strings (notes/68 §13.4, §14.6). With CHORD
+  Tables' "pattern, header +36" (2 bytes) next to the effect slots' "+29" (3 bytes) and Chord Keys' "+32" (4) and
+  "+40" (24), places of the same structure are compared as ranges of bytes. Every other place stays a string.
+- **Descriptors.** model27's vocabulary is 1–4 today. It grows to the OS's other unused "Error" entries, 5 and 10–13
+  (notes/72 §9, §28.3). The self-test's refused example moves from 5 to 6.
+  - This is model27's builder, not the Mod Standard: its text (descriptors 1–4) is not changed, as `machine.stock`
+    did not change it either.
+- **The gesture:** PATTERN + SWEEP, with `replaces` (the stock disarm of the pattern selection, then the edit).
+  CHORD Tables claims descriptor 10, and saved bytes "pattern, header +36", 2 bytes.
+
+### 30.4 T3 alone proves only that nothing changes
+
+- **No package uses a chain hook before CHORD Tables 0.3 (T4).** T3 alone can only show that every existing build
+  stays as it was.
+- **Proposed:** T3 and T4 as one step, the builder and CHORD Tables 0.3 together. T5 then proves them on the OS's
+  code in the builds that matter: alone, with SAMPLE, with the effects, with the filters, with Transpose.
+- **No reference package of its own.** REFC proved W2's extension of a stock machine, but a chain hook means
+  something only at the sites a real gesture uses.
+- **The order of the work:**
+  1. the claims;
+  2. `compose.py`;
+  3. `chordtables.c`, its manifest, `gen_chordtables.py`;
+  4. `composer.js`;
+  5. the checks without emulation;
+  6. T5's proofs, for the maintainer's terminal.
+
+**Decided (the maintainer, 2026-11-08):** « T3 + T4 zusammen », no reference package of its own.
+
+## 31. T3 and T4 built: the chain hooks and CHORD Tables 0.3 (2026-11-08)
+
+Nothing committed. No emulation run yet: the proofs are T5's.
+
+### 31.1 The claims (`tools/claims.py`)
+
+- **Saved places meet as ranges** (`saved_meet`): two places of the same structure with a byte offset ("pattern,
+  header +29", 3 bytes, against "pattern, header +36", 2 bytes) meet when their bytes overlap. Any other place meets
+  only the same text. A clash between two places reads "saved bytes: A and B".
+- **Descriptors:** 1–5 and 10–13 (§30.3).
+- **The self-test** grows by four cases (descriptors 5 and 10–13; the same text; overlapping bytes; neighbouring bytes,
+  another structure, no offset), and its refused descriptor is 6: all pass.
+- **Four FAILs in the self-test are older than this work.** HEAD (`0321e15`) shows the same four: lfo-plus × the
+  shortcut layer; SAMPLE × the track filter; SAMPLE's tweak × REF2's; `claim_conflicts` naming the tweak. They are
+  not touched here. `claims.py --check` is ALL OK.
+
+### 31.2 The builder (`tools/compose.py`, `docs/flasher/composer.js`, the same in both)
+
+- **A chain hook:** a jsr hook or a vtable entry in a package's `uses` with `"chain": "<symbol>"`.
+  - `load_manifest` checks its form.
+  - `patch_values` gives the symbol the entry behind it: 0 at the first placement, the composer's value at the second.
+- **`chain_sites`** collects them, one package a site. **`chain_next`** finds what the build puts at the site
+  without the package: the target of a part's jsr there, or the method a part's vtable write holds. With nothing
+  there it is the stock method for a vtable entry, 0 for a hook.
+- **The order in `compose`:**
+  1. the parts are laid out as before;
+  2. their writes at the chained sites are dropped;
+  3. the chaining package is placed again at the same addresses with the values. A changed size would stop the
+     build; it cannot change.
+  4. the chained sites leave the set of sites the parts take, so the package's own writes go there.
+- **The package's placement** is one function now (`placement`), used by both placements, with `--compare-ld` as
+  before.
+- **The patch point kind `desc_used`:** the stock descriptor table, or the copy in a build with an added machine.
+- **The shortcut layer** no longer refuses a package's knob lookup or hook at its sites when it is a chain hook.
+- **A rule that was missing, found on the way:**
+  - `computed_conflicts` had no rule for two payloads appended at the same place of the grown OS (`append.at`, the
+    image's end, `0x401aa140` for 148 of the folder's tweaks).
+  - Every composed build so far also shared bytes with each of those tweaks, so the gap never showed.
+  - CHORD Tables 0.3 shares no bytes with Model-TG, and `check_overlaps.py` stopped on `model-tg+chordtables` and
+    `model-tg-st+chordtables`.
+  - Both composers now count a payload appended where the build's is as a conflict. `webcompose_synth.py` passes
+    the folder's `append.at` along.
+- **`webcompose_synth.py`:**
+  - the chain symbols are placed with the patch points in part 1;
+  - four new selections in part 2: `chordtables+crush`, `sampler+chordtables+digidelay+pots+crush`,
+    `chordtables+transpose`, and the full offered set with CHORD Tables.
+
+### 31.3 CHORD Tables 0.3 (`tools/machines/chordtables/`)
+
+- **`chordtables.c` (rewritten):** the pool of 0.2 and its tags, pins and remap are gone.
+  - `cw_setup`: before the move, and with the stock table at home, the stock function. Otherwise the stock
+    function's work (`sel` of the stock selector) on `ct_list`.
+  - Each call reads the playing pattern (`wanted`). A new table gets its list at once (`relist`, step 1).
+  - `home_one` moves one position home: the frame copied into its slot once no sub-voice of any voice points at the
+    slot (`pointed`), and at once every pointer to the buffer's frame moved to the slot (`move_pointers`, all four
+    fields, step 3 of §29.6).
+  - Slots: the stock table's own frames 2–31. Position 0 is the OS's sine, position 1 the table's in SDRAM.
+  - `ct_tag[i]` says whose frame slot i holds, so a table that comes back finds its homes.
+- **The pattern side:** `ct_hdr_load`, `ct_hdr_init` and `ct_step` write bytes 36 and 37 with the interrupts masked;
+  `ct_step` calls the header's notify.
+  - `ct_knob` gives descriptor 10 on PATTERN + SWEEP over descriptor 73, its rows in both tables written as §28.3
+    says. `ct_fmt` prints the shown pattern's table.
+- **The loader:**
+  - 63 files, 71 buffers;
+  - the sine test of §28.5 (`starts_with_sine`, 4 steps); without the sine, the OS's goes in front (`sample`);
+  - `buf[0]` is the OS's sine.
+  - `reclaim` frees a retired buffer once it is not the table wanted and no voice points into it, and clears the
+    tags of its frames.
+- **The move:** the stock frames 2–31 copied into `STOCK`, which gets the selector's pointers, every tag `STOCK`.
+  A stock table not as expected leaves the stock table for good.
+- **`entries.S` (new): `ct_keys`, `ct_release`, `ct_load`, `ct_init`.** An entry behind is reached through the stack
+  (its address pushed, then `rts`), so no register changes. `ct_load` and `ct_init` keep `d0`–`d1`/`a0`–`a1`.
+- **The manifest:** 0.3, the five chain hooks, the patch point `ct_desc_used`. The claims: saved "pattern, header
+  +36" (2 bytes), descriptor 10, the RAM, the gesture PATTERN + SWEEP with `replaces`. No sound or record slot any
+  more.
+- **Built with `m68k-elf-gcc` 16.2.0** (`-Werror` clean). 4 156 bytes of code (0.2: 4 887), 872 bytes of variables.
+  10 writes alone (0.2: 13), 4 156 bytes added to the image (0.2: 7 120). Only R_68K_32 relocations.
+
+### 31.4 Measured here
+
+- **The chains, read in the placed object of each build** (the immediates of `ct_keys`, `ct_release`, `ct_load`,
+  `ct_init`, and `ct_knob`'s value):
+
+| Build | knob lookup | `0x4001f886` | release | loader | initializer |
+|---|---|---|---|---|---|
+| chordtables | stock `0x4001e814` | 0 | 0 | 0 | 0 |
+| chordtables + sampler (both orders) | `sc_knob` | 0 | 0 | 0 | 0 |
+| chordtables + digidelay | stock | `fx_keys` | `fx_release` | `fx_load` | `fx_init` |
+| chordtables + crush | `fl_knob` | `fl_keys` | 0 | 0 | 0 |
+| chordtables + transpose | `sc_knob` | 0 | 0 | 0 | 0 |
+| sampler, chordtables, digidelay, pots, crush, eq | `fl_knob` | `fl_keys` | `fx_release` | `fx_load` | `fx_init` |
+| the full offered set with CHORD Tables, CPU, RESAMPLE, Transpose | `fl_knob` | `fl_keys` | `fx_release` | `fx_load` | `fx_init` |
+
+  In every one, the vtable entry holds `ct_knob` and `0x4001f886` jumps to `ct_keys`. `fl_keys` still calls
+  `fx_keys` behind it (its `keys_next`).
+- **CHORD Tables now composes with the Track FX.** Rule R1 no longer applies: there is no machine value in k 28..31.
+- **`webcompose_check` (part 1 and part 2): every selection identical between the two composers, 63 of them, the
+  fills 6/6.**
+  - Against the baseline of §30.1, the 55 selections without CHORD Tables are unchanged: writes, conflicts and MAIN
+    OS.
+  - The four with CHORD Tables changed (alone `0605e510…`, with Digital Delay `3bf4e7f0…`, with SAMPLE before
+    `8ad2b4b2…` and after `159b2ab3…`). Four are new: with Crush `78c965dd…`, with Transpose `59ca3059…`, SAMPLE +
+    Digital + POTS + Crush `88b064a6…`, the full set `c507555e…`.
+
+### 31.5 Checks without emulation (2026-11-08)
+
+- **All pass:**
+  - `gen_chordtables.py --check`, `gen_parts.py --check`, `gen_flasher_tweaks.py --check`;
+  - `check_overlaps.py` (CHORD Tables against Model-TG computed now, against lfo-plus no longer: they share no slot
+    any more);
+  - `registry.py --check` (REGISTRY.md regenerated: k 30 and record slot 30 freed, the header's bytes, the hooks);
+  - `claims.py --check`;
+  - `ref_mainos.py --check`;
+  - `py_compile`.
+- **The dry runs:**
+  - `test_fxslot.py --dry`: ALL OK.
+  - `test_fltslot.py --dry`: ALL OK. Its R1 example is REFC in both orders now, and a new case checks that
+    `chordtables + refflt` composes.
+  - `test_compose.py --dry`: no FAIL (no CHORD Tables in its selections).
+- **`tools/emu/test_chordtables.py` still proves 0.2.** T5 rewrites it for 0.3 (§27.6), and `probe_chord_lines.py`
+  measures 0.3.
+
+## 32. T5 prepared: the proofs of 0.3 (2026-11-08)
+
+The maintainer: « Ja, T5 vorbereiten ».
+
+### 32.1 `tools/emu/test_chordtables.py`, rewritten
+
+- **The reference for the sound is the stock OS itself.** Its pointer table `0x40118590` is rewritten in the same
+  blocks to point at the table's frames, so a CHORD track plays the table as the stock function plays it.
+  - The lists 0.3 gives its voices are the stock selector's own: the sine at 0, frame 1 in SDRAM, frames 2–31 in a
+    buffer or a slot.
+  - The render decides by comparing pointers. Every pointer 0.3 moves is moved in all four fields at once (§29.6).
+  - So 0.3 must sound the same sample for sample, through every change and every copy.
+- **Selections:** chordtables; sampler,chordtables; chordtables,digidelay; chordtables,crush. P1–P3 and C for the
+  first two, the rest for all four; `--machines` runs everything for what it names.
+- **0. The sites and the chains,** read in the built bytes: the six sites and each chain hook's entry behind, as
+  measured in §31.4. Also the bootstrap and the boot hook, as before.
+- **P1. The stock table**, on six CHORD tracks, the scenario of 0.2's P1m (notes, high notes that switch sub-voices
+  off, SWEEP creeping, jumping, negative, fast, a track to TONE and back), 150 blocks.
+  - The guises: the patterns unlinked, a pattern choosing an empty slot, one with a wrong check byte, one past 127,
+    one at 0.
+  - Expected: identical to the stock OS, the stock frames never written, nothing copied, the stock function called
+    as often as on the stock OS.
+- **P2. A pattern's table**, against the stock OS switched in the same blocks:
+  - table 1; table 2 two blocks later (a change during a change); the stock table; table 2 again with frames of it
+    still at home;
+  - the playing pattern edited; an empty slot; a wrong check; the loader's new buffer for a table;
+  - the patterns unlinked, then linked again; the stock table to the end.
+  - Expected: the six tracks identical, sample for sample.
+  - Then a table chosen before the move: the stock table until the move in block 30, then the table.
+- **P3,** in the same run:
+  - no slot written while a sub-voice points at it, nothing but the package writing them;
+  - a finding: the blocks each change takes to come home;
+  - at the end, every position home, each slot holding its stock frame again, the stock function called.
+- **P4. The header:** test_fxslot.py's §5 for bytes 36 and 37 (the stock loader and initializer, the build's,
+  `keep`, a whole pattern saved, loaded and copied, an old file, every write masked). With the effect slots behind
+  the chain, their bytes 29–31 are checked too.
+- **P5. The gesture:**
+  - `ct_knob`, with the lookup behind it intercepted: descriptor 10 for PATTERN + SWEEP over 73, the lookup's answer
+    otherwise; descriptor 10's rows in both tables, and its interface object;
+  - `ct_keys`, as the handler calls it: the steps +1, +1, +1, −5, +200, +1, −300 give 1, 2, 3, 0, 127, 127, 0; the
+    notify at each step; the shown pattern the one edited;
+  - any other turn goes to the entry behind or to isKeyHeld(2);
+  - `ct_fmt` prints 3, 0, 63, 10, and 0 for a wrong check;
+  - PATTERN's release, by test_fxslot.py's own test.
+- **L. The loader**, 0.2's harness:
+  - the first tick's move;
+  - the scan 01–63, with 64 never opened;
+  - the sine in front of files 01, 02, 03, 63 and 11 (one sample 5 steps off), none in front of 08 (the converter's)
+    or 10 (within 3 steps);
+  - the tables exactly as computed;
+  - added, replaced, deleted files; not mounted, locked; no free buffer;
+  - a retired buffer kept while it is wanted, then while a voice points into it, then freed with its slot's tag
+    cleared.
+- **C. The cost** (STANDARD.md §6): 0.3 at the stock table and with a table at home, SWEEP still and creeping,
+  against stock CHORD (a check: under +100 and +150 instructions a block a voice); the blocks of a change as a
+  finding.
+- **`--dry`:** the builds, the sites and the chains, without an emulator. Unicorn cannot even be created inside the
+  agent's sandbox (SIGILL).
+
+### 32.2 `tools/emu/probe_chord_lines.py`, for 0.3
+
+- **The cases:** one CHORD track (note 60 and 84) and six, SWEEP still and moving. Each with the stock OS, 0.3 at the
+  stock table, and 0.3 with a pattern's table at home.
+- **What it reports:** lines of SDRAM, of them in the RAM claim, cache misses, SRAM lines.
+- **A check:** at the stock table under 12 lines a block more than the stock OS, with a table at home under 20. 0.1
+  added 110 lines a track, 0.2 up to 312.
+
+### 32.3 Run here (2026-11-08)
+
+- **`py_compile` passes.**
+- **`--dry`: ALL OK** for the four selections: the sites and the chains as in §31.4.
+- **A check of names, by hand** (an AST walk, since pyflakes cannot be installed here): every name defined, and
+  every attribute taken from an imported module (`F.HDR_AT`, `t7.STOP`, `compose.gs.DESCN`…) exists.
+- **The emulation is the maintainer's:**
+
+```sh
+../.venv-emu/bin/python3 tools/emu/test_chordtables.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx
+../.venv-emu/bin/python3 tools/emu/probe_chord_lines.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx
+```
+
+### 32.4 The first run (the maintainer, 2026-11-08) `[FAIT en émulation]`, as far as it went
+
+- **CHORD Tables alone, every check ok up to L:**
+  - the bootstrap and the boot hook; the sites and the chains;
+  - P1: identical to the stock OS, nothing written into SRAM, 824 calls of the stock function as on the stock OS;
+  - P2: identical to the stock OS switched in the same blocks, through every change, and with the move late;
+  - P3: no slot written while pointed at, nothing else writing them, every slot back at the end;
+  - P4; P5; PATTERN's release.
+- **A finding of P3:** 9 changes brought home in 4 to 8 blocks with six CHORD tracks (the first, a change during a
+  change, 8; then 4 to 6). 271 frames copied in all.
+- **Then L stopped on the proof's own file, not the package:** the "sine within 3 steps" sample went past 32 767 at
+  the sine's peak, and `struct.pack` refused it. Its samples are clipped now. The files' building was checked here,
+  without the emulator: "within 3 steps" is taken as a sine, "one sample 5 off" gets the sine in front, the
+  converter's file is within 1 step. The run again is the maintainer's.
+
+### 32.5 The second run (the maintainer, 2026-11-08) `[FAIT en émulation]`
+
+**ALL OK, for the four selections** (chordtables; sampler,chordtables; chordtables,digidelay; chordtables,crush).
+
+- **0:** the bootstrap, the boot hook, the six sites, and the chains of §31.4 in every build.
+- **P1 and P2–P3** (chordtables, sampler,chordtables):
+  - every check of §32.4 again;
+  - 824 calls of the stock function, as on the stock OS;
+  - 9 changes home in 4 to 8 blocks (six CHORD tracks), 271 frames copied;
+  - identical in both builds: SAMPLE before CHORD Tables moves its code, not its sound.
+- **P4:** in every build.
+  - With Digital Delay, the chain to `fx_load` / `fx_init` keeps the effect slots' bytes 29–31 as test_fxslot.py
+    wants them, and bytes 36 and 37 as ours.
+- **P5:** in every build.
+  - The lookup behind `ct_knob`: the stock one; `sc_knob` (`0x4300a6bc`) next to SAMPLE; `fl_knob` (`0x4300281a`)
+    with Crush.
+  - Descriptor 10's rows in the copy (`0x43034000`) next to SAMPLE.
+  - Any other turn goes to `fx_keys` with Digital Delay, to `fl_keys` with Crush, to isKeyHeld(2) alone.
+  - PATTERN's release, in every build.
+- **L:** in every build: the move, the scan 01–63, the sine put in front as §32.1 lists, every table exact,
+  the reclaim.
+- **C (STANDARD.md §6, instructions per block per voice, mean of 21 blocks):**
+
+| Case | Mean | Max | Against stock CHORD |
+|---|---|---|---|
+| stock CHORD | 8 292 | 8 300 | — |
+| 0.3 at the stock table | 8 343 | 8 351 | +51 |
+| 0.3, a table at home | 8 325 | 8 333 | +33 |
+| stock CHORD, SWEEP creeping | 8 283 | 8 300 | — |
+| 0.3, a table at home, SWEEP creeping | 8 316 | 8 333 | +33 |
+
+  - With a table at home, a moving SWEEP costs nothing more than a still one. 0.2 paid +842 for it (§24.6) and 0.1
+    read 110 lines of SDRAM a track.
+  - **A change with one CHORD track:**
+    - the first block 10 107, then 9 719 to 9 759 a block for the copy of one frame, its free-slot check and the
+      pointers' move;
+    - about +1 400 against a table at home, about a sixth of a CHORD voice;
+    - 30 blocks for the 30 positions (20 ms).
+    - The measured window (19 blocks) is shorter than that, so the finding's "back at the table's own cost" reads
+      None, as expected.
+  - With six CHORD tracks, six frames a block in 5 blocks (P3).
+- **Next:** `probe_chord_lines.py`, then a build for the device.
+
+### 32.6 The lines, measured (the maintainer, 2026-11-08) `[FAIT en émulation]`
+
+`probe_chord_lines.py`: **ALL OK.** SDRAM lines a block in the voice loop (mean of 22 blocks, minus the loop with no
+note), cache misses with the voice loop alone:
+
+| Case | stock OS | 0.3 at the stock table | 0.3, a table at home |
+|---|---|---|---|
+| 1 track, note 60, SWEEP still | 53 | 59 (+6) | 61 (+8) |
+| 1 track, note 60, SWEEP moving | 54 | 60 (+6) | 61 (+7) |
+| 1 track, note 84, still / moving | 53 / 54 | 59 / 60 | 61 / 61 |
+| 6 tracks, SWEEP still | 277, 1 miss | 283, 6 misses | 285, 21 misses |
+| 6 tracks, SWEEP moving | 295, 22 misses | 301, 29 misses | 302 (18 in the RAM claim), 23 misses |
+
+- **A table at home costs what the stock table costs:** +7 or +8 lines a block, one track or six, SWEEP still or
+  moving. The SRAM lines are the stock OS's exactly (180, 191, 722, 692).
+- **For comparison, on six tracks:** 0.1 added 654 lines a block (§18.1: 277 → 931, 941 misses). 0.2 added from 6 (SWEEP
+  still) to 312 (six tables with SWEEP moving, §24.6).
+- **The +6 at the stock table** are `cw_setup`'s own reads (the playing pattern, its header, the state). The table
+  adds 1 or 2 more (its list).
+- **The 18 lines in the RAM claim, with six tracks moving,** are frame 1, which a track reads in the table's buffer
+  while its SWEEP passes 0 and 1. The stock OS reads its own frame 1 in its data at the same moments, so the lines
+  are the same, in another place.
+- **A table at home counts more MACs with a load** (347 200 against 319 424). Its notes were already playing from the
+  run that brought the table home, so block 0 renders too. The first block's count shows the same (292 instead of
+  300).
+- **The cause of 0.2's lag on the device** (copies of frames under the LFOs, §26.2) **is gone in the emulator:** with
+  a table at home, nothing is copied while the pattern plays. Only the device can say whether the lag is gone.
+
