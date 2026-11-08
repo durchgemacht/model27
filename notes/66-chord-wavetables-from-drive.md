@@ -2844,3 +2844,113 @@ note), cache misses with the voice loop alone:
 - **The cause of 0.2's lag on the device** (copies of frames under the LFOs, §26.2) **is gone in the emulator:** with
   a table at home, nothing is copied while the pattern plays. Only the device can say whether the lag is gone.
 
+**Committed `7906bdb`** (§28–§32 with the builder and 0.3; the maintainer: « Ja, committen »).
+
+## 33. 0.3 on the device: prepared (2026-11-08)
+
+The maintainer chose their full build with CHORD Tables (« Dein voller Build »), the case where 0.2 lagged.
+
+### 33.1 The build
+
+```sh
+python3 tools/compose.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx \
+    --machines sampler,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq --cpu --resample --transpose \
+    --with control-all-config,trig-preview,trig-cond-order --tool ../elektron-firmware-tool-main/elektron-firmware-tool \
+    --out build/chordtables-0.3/
+```
+
+- **The result:** 160 writes, payload `0x43000000..0x43168d18` (below CHORD Tables' RAM claim and SAMPLE's pool),
+  137 152 bytes added to the image. MAIN OS `0ec8759c…`.
+- **elektron-firmware-tool:** checksums and HMAC ok, the same MAIN OS.
+- **Copied as `build/chordtables-0.3/CHORD-Tables-0.3_full-build.syx`** (git-ignored), `.syx` `37e1f3d4…`.
+- **The tables:** the four of the digiemu test (`_scratch/chordtables-digiemu/01.wav`–`04.wav`, made by
+  `tools/wavetable.py`, each a sine first: three of 32 frames, one of a sine and an organ). On the +Drive in
+  `/Wavetables` as `01` to `04`, or the files still there from 0.2's test.
+
+### 33.2 The steps, one after the other
+
+1. **The gesture and a table:**
+   - a new project, CHORD on track 1, a note playing;
+   - PATTERN held + SWEEP: the popup "Wavetable", the values 0, 1, 2…, two steps of the knob a table;
+   - at 1 the table of `01` sounds, at 0 the stock CHORD.
+2. **SWEEP through the table:** by hand, then an LFO on SWEEP. No click while it moves.
+3. **The load, 0.2's case:**
+   - CHORD on all six tracks, each with an LFO on SWEEP, the pattern on a table;
+   - TRACK held + SWEEP and other knobs (Control All): does the interface stay quick?
+   - the CPU page (SETTINGS → Device Config → CPU), against the same pattern at 0.
+4. **Pattern changes while playing:** a pattern on table 1, one on table 2, one at 0. Listen for a click at the change
+   (the render's own transition, §29.4).
+5. **Saved and loaded:** the project saved, the Cycles off and on, the project loaded: each pattern's table kept.
+6. **The rest of the build next to it:**
+   - PATTERN + Delay Time still picks the delay's effect;
+   - RETRIG + PITCH a Track FX on a CHORD track;
+   - MACHINES + TRIG the keyboard;
+   - SAMPLE as before.
+
+### 33.3 Step 1 on the device, and a fix: the step is 8.8 (2026-11-08)
+
+- **The maintainer**, with the four tables uploaded into `/Wavetables`: « kann ich pattern+sweep nutze, springt die
+  wavertable auswahl von 0 direkt zu 63. keine änderung am sound. gleiches verhalten nach neuststart ».
+- **Why** `[FAIT]`:
+  - `ct_step` added the handler's step to the value as it came. That step is the interface object's (`0x4006f96a`),
+    in 8.8 like the parameters' values: 0x100 a detent, more for a fast turn (notes/70 §2).
+  - So one detent gave +256, clamped at 127: table 63.
+  - There is no file `63`, so the stock table played: no change of sound.
+  - After the restart the pattern still held 127, the same.
+  - P5 had stepped by ±1, a step the handler never gives, so the emulation did not see it.
+- **The fix:** `ct_step` adds the step / 256, and at least ±1 for a finer step (FUNC). Two detents a table, as
+  decided (§27.10). 4 224 bytes of code (+68).
+- **P5 now steps as the handler does:** a detent three times, −5 detents, a fast turn of 3, a fine step of 0x40, 64
+  twice, a detent, −127. Expected 1, 2, 3, 0, 3, 4, 68, 127, 127, 0. `--dry` ALL OK here.
+- **Checks:** `gen_chordtables.py`, `check_overlaps.py`, `registry.py` (regenerated), `claims.py`,
+  `gen_flasher_tweaks.py` pass; `webcompose_check` 63/63 identical.
+- **The new device build (0.3b), the same selection:** MAIN OS `0e1c33bc…`, `.syx` `59923758…`, the tool's check ok;
+  `build/chordtables-0.3/CHORD-Tables-0.3b_full-build.syx`.
+- **The proof with the fix** (the maintainer, 2026-11-08, `--machines chordtables`): **ALL OK** `[FAIT en émulation]`.
+  P5 gives 1, 2, 3, 0, 3, 4, 68, 127, 127, 0 for the handler's steps, the shown pattern 5 → 7 for two detents. Every
+  other part reads as in §32.5.
+
+### 33.4 Step 1 again, with 0.3b (the maintainer, 2026-11-08)
+
+- **The maintainer: « getestet, funktioniert ».** The build 0.3b, a new project, CHORD on track 1.
+- **What works:**
+  - PATTERN + SWEEP shows "Wavetable", one value every two detents;
+  - the tables `01` to `04` sound at 1 to 4;
+  - at 0, the stock CHORD.
+- **Step 2 (the maintainer, 2026-11-08): « passt ».** Table 1 (saw to square): SWEEP turned by hand through the
+  whole range and back, then an LFO on SWEEP at full depth. No click, no dropout.
+- **Step 3, the load (the maintainer, 2026-11-08): « passt ».**
+  - The case: CHORD on all six tracks, each with an LFO on SWEEP, the pattern on table 1; Control All turning SWEEP
+    and other knobs.
+  - **The interface stays quick: 0.2's lag (§25.3, §26) is gone on the device**, in the maintainer's full build.
+  - Not said: the CPU page's values with table 1 and at 0.
+- **Step 4, pattern changes while notes sound (the maintainer, 2026-11-08):** « bro, alter, das ist so geil.
+  funktioniert!!!! ».
+  - Patterns on table 1, table 2 and 0, changed while playing.
+  - No click: the new table comes in through the render's own transition (§29.4).
+- **Step 5, saved and loaded (the maintainer, 2026-11-08): « passt ».** The project saved, the Cycles off and on,
+  the project loaded: each pattern kept its table (bytes 36 and 37 through the OS's save and `ct_load`).
+- **Step 6, the rest of the build (the maintainer, 2026-11-08): « test 6 passt ».** The chain hooks leave everything
+  behind them working:
+  - PATTERN + DELAY TIME still picks the delay's effect;
+  - RETRIG + PITCH a Track FX on a CHORD track, which acts on the chord with its table;
+  - MACHINES + TRIG 15/16 moves the keyboard;
+  - SAMPLE plays as before;
+  - PATTERN released after PATTERN + SWEEP leaves no selection waiting.
+- **The six steps of §33.2 all passed on the device**, with the build 0.3b.
+- **The optional test 7, files on the +Drive (the maintainer, 2026-11-08): « passt alles. wechsel in punkt 4 ist
+  instant ».**
+  - A pattern at 5 with no file `05` played the stock table.
+  - `05` (one saw wave, no sine in front) uploaded while it played: the table came in, a sine at SWEEP fully left,
+    blending into the saw to the right (the sine put in front, §28.5).
+  - A pattern at 4 with `04` deleted: back to the stock table at once.
+  - The Uploader showed its warning about the missing sine, but in a place easy to miss. Warnings and errors as a
+    popup are a later wish of the maintainer's for the Uploader, not this note's.
+- **The optional test 8, back to the official OS 1.13 (the maintainer, 2026-11-08): « passt, funktioniert ».** The
+  project of steps 4 and 5 (patterns on table 1, table 2 and 0) loads, and CHORD plays the stock table in every
+  pattern. The official OS loads only its own fields of the header (§27.2), so bytes 36 and 37 change nothing there.
+- **Every test of the sheet passed on the device**, steps 1 to 6 and the optional 7 and 8.
+- **The test sheet** for testers, with these steps and two optional ones (files on the +Drive, back to the official
+  OS): `_scratch/beta-tests/chordtables-0.3.md` (not committed; the maintainer's wish of 2026-11-08, for beta releases
+  once the flasher is online again).
+

@@ -528,7 +528,7 @@ Code trop gros pour un masque, ajouté à la fin de l'image (`at`) et copié au 
 | macro-tg | 32 | `0x401bf8c0` | 105 564 | `0x401d951c` | `0x46700000` | 324 576 | model-tg-st |
 | refchord | 34 | `0x401aa140` | 2 256 | `0x401aaa10` | `0x43000000` | 221 192 |  |
 | acid-tg | 35 | `0x401bf8c0` | 11 792 | `0x401c26d0` | `0x46700000` | 221 928 | model-tg-st |
-| chordtables | 36 | `0x401aa140` | 4 156 | `0x401ab17c` | `0x43000000` | 222 056 |  |
+| chordtables | 36 | `0x401aa140` | 4 224 | `0x401ab1c0` | `0x43000000` | 222 056 |  |
 | digidelay | 39 | `0x401aa140` | 3 884 | `0x401ab06c` | `0x43000000` | 1 269 784 |  |
 | pots | 70 | `0x401aa140` | 7 632 | `0x401abf10` | `0x43000000` | 352 504 |  |
 | smpfilter | 72 | `0x401aa140` | 26 848 | `0x401b0a20` | `0x43000000` | 221 628 |  |
@@ -870,7 +870,7 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | sample-preview-st | 11 | 0 | 3 | 0 | 4 | 4 | 0 |  | notes/46 |
 | refchord | 13 | 0 | 8 | 3 | 1 | 1 | 0 | 2 256 o | notes/66 |
 | acid-tg | 114 | 50 | 15 | 47 | 1 | 1 | 0 | 11 792 o | notes/54 |
-| chordtables | 10 | 0 | 7 | 1 | 1 | 1 | 0 | 4 156 o | notes/66 |
+| chordtables | 10 | 0 | 7 | 1 | 1 | 1 | 0 | 4 224 o | notes/66 |
 | digidelay | 10 | 0 | 8 | 0 | 1 | 1 | 0 | 3 884 o | notes/68 |
 | arp | 14 | 0 | 6 | 0 | 4 | 4 | 0 |  | notes/32 |
 | trig-hold | 5 | 0 | 3 | 0 | 1 | 1 | 0 |  | notes/33 |

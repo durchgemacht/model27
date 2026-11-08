@@ -676,16 +676,20 @@ def gesture_tests(key, img, runtime, syms, desc_used):
           "0..0x7f00, no CC or NRPN, Wavetable / WAVE; its interface object: ct_fmt, no picture, Chord Sweep's steps")
     # ct_keys, as the handler calls it
     g.u.uc.mem_write(g.pat.headers[0] + HDR, rec(0))
+    # the handler's step is 8.8, as the interface object gives it (0x4006f96a, notes/70 §2): 0x100 a detent, more
+    # for a fast turn, less with FUNC (the device showed the first build adding it whole: notes/66 §33.3)
+    turns = (0x100, 0x100, 0x100, -0x500, 0x300, 0x40, 0x4000, 0x4000, 0x100, -0x7f00)
     steps, ok, notified = [], True, 0
-    for step in (1, 1, 1, -5, 200, 1, -300):
+    for step in turns:
         taken, regs = g.keys(TABLE_DESC, step)
         ok &= taken and regs
         steps.append(g.header(0)[0])
         notified += g.count("notify")
-    check(ok and steps == [1, 2, 3, 0, 127, 127, 0] and g.header(0) == rec(0) and notified == 7,
+    check(ok and steps == [1, 2, 3, 0, 3, 4, 68, 127, 127, 0] and g.header(0) == rec(0) and notified == len(turns),
           f"{key}: P5 ct_keys on descriptor 10 with PATTERN: the handler's end, its registers from its frame; the shown "
-          f"pattern's value {steps} for steps +1, +1, +1, -5, +200, +1, -300 (0 to 127), its check byte, the header's "
-          f"notify at each step ({notified})")
+          f"pattern's value {steps} for the handler's steps (8.8) of a detent three times, -5 detents, a fast turn of "
+          f"3, a fine step (0x40: one), 64 twice, a detent, -127 (0 to 127); its check byte, the header's notify at "
+          f"each step ({notified})")
     g.u.uc.mem_write(g.pat.headers[0] + HDR, rec(7))
     out = []
     for n in (7, 0, 127, 20):
@@ -699,7 +703,7 @@ def gesture_tests(key, img, runtime, syms, desc_used):
           f"{key}: P5 ct_fmt prints the shown pattern's table: values 7, 0, 127, 20 and a wrong check byte -> {out}")
     g.show(1)
     g.u.uc.mem_write(g.pat.headers[1] + HDR, rec(5))
-    taken, regs = g.keys(TABLE_DESC, 2)
+    taken, regs = g.keys(TABLE_DESC, 0x200)
     check(taken and regs and g.header(1) == rec(7) and g.header(0)[0] == 12,
           f"{key}: P5 the shown pattern is the one edited: pattern 1 from 5 to 7, pattern 0 untouched")
     others = []

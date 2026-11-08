@@ -243,16 +243,20 @@ u32 ct_knob(void *view, u32 knob, u32 func, s32 track)
 	return TABLE_DESC;
 }
 
-/* entries.S's ct_keys on descriptor 10: the handler's step moves the shown pattern's value, 0..127, two a table. */
+/* entries.S's ct_keys on descriptor 10: the handler's step moves the shown pattern's value, 0..127, two a table. The
+   step is the interface object's (0x4006f96a), in 8.8 as the parameters' values: 0x100 a detent, more for a fast turn
+   (notes/70 §2); a finer step (FUNC) still moves one. */
 void ct_step(s32 step)
 {
 	u8 *object;
 	volatile u8 *h = shown_header(&object);
-	s32 v;
+	s32 v, d = step / 256;
 
 	if (!h)
 		return;                                 /* no pattern shown */
-	v = (valid(h) ? h[HDR] : 0) + step;
+	if (!d)
+		d = step > 0 ? 1 : step < 0 ? -1 : 0;
+	v = (valid(h) ? h[HDR] : 0) + d;
 	put(h, v < 0 ? 0 : v >= VALUES ? VALUES - 1 : (u32)v);
 	((void (*)(u8 *, u32))(*(u32 **)object)[4])(object, 0);    /* the header's notify, as the stock setters */
 }
