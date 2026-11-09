@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.53", date: "2026-11-09", changes: [
+    { en: "The Uploader shows a warning or a problem in a window over the page, which stays until you press OK. After an upload it names each file that was skipped, not uploaded or uploaded with a warning, and why. The line under the title still says what happened last" },
+    { en: "A wavetable in Wavetables whose first waveform is not a sine still uploads, and its warning now says what CHORD Tables does with it: it puts a sine in front, which SWEEP plays at the far left. Checked against a stand-in Model:Cycles in the browser" },
+  ] },
   { version: "0.52", date: "2026-11-08", changes: [
     { en: "A new card, CHORD Tables: CHORD plays your own wavetables from the +Drive, one for each pattern. Put them on the +Drive with the Uploader, in a folder Wavetables, named 01 to 63. Hold PATTERN on a CHORD track and turn SWEEP to choose the pattern's wavetable: 0 is CHORD's own, 1 to 63 the files, two steps of the knob each. Every CHORD track in the pattern plays it, and SWEEP moves through its waveforms as through CHORD's own" },
     { en: "The wavetable is saved with the pattern and comes in at once when the pattern changes, also on notes that still sound, without a click. It plays from the same fast memory as CHORD's own, so six CHORD tracks with LFOs on SWEEP cost about what they cost with CHORD's own sound. A wavetable uploaded or deleted while the Model:Cycles runs is read within about two seconds" },

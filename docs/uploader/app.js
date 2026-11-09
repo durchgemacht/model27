@@ -26,17 +26,89 @@
         selecting: false,                       /* Select is on: a box on each row, a click picks instead of opening */
         tree: { dir: true, name: "", kids: [], open: true, up: null },   /* the list to upload */
         fsel: [], fanchor: -1, renaming: null,  /* the nodes selected in it, the row Shift starts from, the one renamed */
-        drag: null                              /* the nodes being dragged */
+        drag: null,                             /* the nodes being dragged */
+        alerting: false, alertBack: null        /* the window of a warning or a problem is open; where focus goes back */
     };
 
     function $(id) { return document.getElementById(id); }
     function hex(n) { return "0x" + n.toString(16).padStart(2, "0"); }
 
-    /* The one status line, under the header: news plain, a warning dashed, a problem inverted. */
-    function show(text, kind) {
+    /* The one status line, under the header: news plain, a warning dashed, a problem inverted. A warning or a problem
+       also opens a window over the page, which stays until OK (the maintainer's wish of 2026-11-08: the line alone was
+       easy to miss); rows: the files it is about, { name, why }. */
+    function show(text, kind, rows) {
         $("status").textContent = text;
         $("status").className = "status" + (kind ? " " + kind : "");
         $("status").hidden = false;
+        if (kind === "warn" || kind === "bad")
+            alertBox(text, kind, rows || []);
+    }
+
+    var ALERT_ROWS = 12;    /* the files named in the window; the list on the page has them all */
+
+    /* The window: its title Warning, or Problem once a problem is in it; a second message while it is open goes under
+       the first. A dialog (showModal: the page behind it is inert), closed by OK or Escape. */
+    function alertBox(text, kind, rows) {
+        var d = $("alert"), body = $("alert-body"), p = document.createElement("p"), ul, li, b, why, i;
+
+        if (!state.alerting) {
+            body.innerHTML = "";
+            d.className = "alert";
+            state.alertBack = document.activeElement || null;
+        }
+        if (kind === "bad")
+            d.className = "alert bad";
+        $("alert-h").textContent = /\bbad\b/.test(d.className) ? "Problem" : "Warning";
+        p.textContent = text;
+        body.appendChild(p);
+        if (rows.length) {
+            ul = document.createElement("ul");
+            for (i = 0; i < rows.length && i < ALERT_ROWS; i++) {
+                li = document.createElement("li");
+                b = document.createElement("b");
+                b.textContent = rows[i].name;
+                why = document.createElement("span");
+                why.textContent = rows[i].why;
+                li.appendChild(b);
+                li.appendChild(why);
+                ul.appendChild(li);
+            }
+            if (rows.length > ALERT_ROWS) {
+                li = document.createElement("li");
+                li.textContent = "And " + (rows.length - ALERT_ROWS) + " more: see the list.";
+                ul.appendChild(li);
+            }
+            body.appendChild(ul);
+        }
+        if (!state.alerting) {
+            state.alerting = true;
+            if (typeof d.showModal === "function")
+                d.showModal();
+            else
+                d.hidden = false;
+        }
+        $("alert-ok").focus();
+    }
+    function closeAlert() {
+        var d = $("alert");
+
+        if (!state.alerting)
+            return;
+        if (typeof d.close === "function" && d.open)
+            d.close();          /* onclose follows */
+        else {
+            d.hidden = true;
+            alertClosed();
+        }
+    }
+    function alertClosed() {
+        var back = state.alertBack;
+
+        state.alerting = false;
+        state.alertBack = null;
+        if (back && typeof back.focus === "function" && document.body && document.body.contains &&
+            document.body.contains(back))
+            back.focus();
     }
     function kb(n) { return n >= 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.ceil(n / 1024) + " KB"; }
 
@@ -548,12 +620,14 @@
         }
         data = E.sampleFile(frames, E.RATE);
         /* CHORD Tables plays this folder: a file it cannot play is not written; a table whose first frame is no
-           sine is written with a warning, since SWEEP 0 then plays no sine */
+           sine is written with a warning: CHORD Tables puts the OS's sine in front of it (notes/66 §27.10), so it
+           does not play as the file is */
         if (dir === E.WAVETABLES) {
             if (!E.tableFrames(frames))
                 throw unplayable(frames.length);
             if (!E.startsWithSine(frames))
-                warn = "its first " + E.CYCLE + " samples are no sine, so CHORD Tables plays no sine at SWEEP 0";
+                warn = "its first waveform is not a sine, so CHORD Tables puts a sine in front of it, which SWEEP " +
+                       "plays at the far left";
         }
         if (data.length - 80 > POOL)
             throw new Error("too long: SAMPLE holds up to 63 MB, this is " + kb(data.length));
@@ -610,7 +684,7 @@
     /* The nodes, with everything in them, into a folder of the Cycles; their folders are made there. */
     async function uploadNodes(nodes, base) {
         var list = jobs(topsOf(nodes), base, []), files = list.filter(function (j) { return !j.dir; }), cache = {},
-            broken = [], ok = 0, warned = 0, refused = 0, skipped = 0, made = 0, k = 0, said, j, i;
+            broken = [], ok = 0, warned = 0, refused = 0, skipped = 0, made = 0, k = 0, said, notes, j, i;
 
         if (!list.length)
             return;
@@ -662,18 +736,21 @@
         overall();
         await listDir(state.path);
         if (!files.length) {
-            show(broken.length ? "The folder could not be made: see the list." : plural(made, "folder") + " made in " + base + ".",
-                 broken.length ? "bad" : "ok");
+            show(broken.length ? "The folder could not be made." : plural(made, "folder") + " made in " + base + ".",
+                 broken.length ? "bad" : "ok", list.filter(function (x) { return x.node.kind === "bad" && x.node.why; })
+                                                 .map(function (x) { return { name: x.path, why: x.node.why }; }));
             return;
         }
+        notes = list.filter(function (x) { return x.node.kind && x.node.kind !== "ok" && x.node.why; })
+                    .map(function (x) { return { name: x.path, why: x.node.why }; });
         said = ok + " of " + files.length + " uploaded to " + base + ".";
         if (skipped)
             said += " " + skipped + " skipped: the name is already there.";
         if (refused)
             said += " " + refused + " not uploaded: CHORD Tables cannot play it.";
         if (warned)
-            said += " " + warned + " with a warning: see the list.";
-        show(said, ok + skipped !== files.length ? "bad" : warned || skipped ? "warn" : "ok");
+            said += " " + warned + " with a warning.";
+        show(said, ok + skipped !== files.length ? "bad" : warned || skipped ? "warn" : "ok", notes);
     }
 
     /* ---- selecting ----------------------------------------------------------------------- */
@@ -1208,6 +1285,8 @@
             ev.returnValue = "";
         }
     });
+    $("alert-ok").onclick = closeAlert;
+    $("alert").onclose = alertClosed;               /* OK, or Escape on the dialog */
     if (NO_MIDI) {
         $("nomidi").textContent = NO_MIDI_TEXT[NO_MIDI];
         $("nomidi").hidden = false;

@@ -35,11 +35,15 @@ function element(id) {
 }
 const ids = ["status", "nomidi", "chip", "chip-text", "ports", "in", "out", "retry", "src", "remove-sel", "pick", "chooser",
              "files", "upload", "path", "select-mode", "del-sel", "mkdir", "refresh", "newdir", "dirname", "mkdir-ok", "mkdir-cancel",
-             "folder", "src-mkdir", "pick-dir", "chooser-dir", "overall", "overall-fill", "dst"];
+             "folder", "src-mkdir", "pick-dir", "chooser-dir", "overall", "overall-fill", "dst",
+             "alert", "alert-h", "alert-body", "alert-ok"];
 const elements = {};
 ids.forEach(id => { elements[id] = element(id); });
 /* hidden in index.html until the page shows them */
 ["status", "nomidi", "ports", "newdir", "overall"].forEach(id => { elements[id].hidden = true; });
+/* the window of a warning or a problem: a <dialog>, closed in index.html; this DOM has no showModal, so app.js shows
+   and hides it by hidden */
+elements.alert.hidden = true;
 
 /* ---- a stand-in Cycles ------------------------------------------------------------------ */
 const drive = new Map([["/", { folder: true }], ["/factory", { folder: true, protect: true }],
@@ -244,13 +248,24 @@ const add = (...list) => {
     elements.chooser.files = list;
     elements.chooser.onchange();
 };
+/* the window: open or not, its title, its messages (a <p> each), the files they name ("path: why"); OK closes it */
+const alertOpen = () => !elements.alert.hidden;
+const alertTitle = () => elements["alert-h"].textContent;
+const alertSaid = () => elements["alert-body"].children.filter(c => !c.children.length).map(c => c.textContent);
+const alertRows = () => elements["alert-body"].children.filter(c => c.children.length)
+    .flatMap(ul => ul.children.map(li => (li.children.length ? li.children[0].textContent + ": " + li.children[1].textContent
+                                                              : li.textContent)));
+const dismiss = () => {
+    elements["alert-ok"].onclick();
+    check(!alertOpen(), "OK closes the window");
+};
 const uploaded = (n) => until(() => new RegExp("of " + n + " uploaded").test(elements.status.textContent), "the upload of " + n + " ends");
 
 (async () => {
     /* before connecting: the chip offers it, nothing to see or do on the Cycles' side */
     check(elements["chip-text"].textContent === "Connect the Cycles" && elements.chip.className === "chip off" && elements.ports.hidden,
           "before: the chip offers to connect, no ports yet: " + elements["chip-text"].textContent);
-    check(elements.status.hidden && elements.nomidi.hidden, "no status line and no Web MIDI warning yet");
+    check(elements.status.hidden && elements.nomidi.hidden && !alertOpen(), "no status line, no Web MIDI warning, no window yet");
     check(/Connect the Cycles/.test(elements.folder.innerHTML), "the Cycles' side asks to connect");
     check(elements.upload.disabled && elements.upload.textContent === "Upload → /", "Upload is off: " + elements.upload.textContent);
     check(elements["del-sel"].disabled && elements.mkdir.disabled && elements.refresh.disabled, "the Cycles' tools are off");
@@ -279,6 +294,10 @@ const uploaded = (n) => until(() => new RegExp("of " + n + " uploaded").test(ele
     check(elements.newdir.hidden, "the name field is closed");
     await newFolder("  ");
     check(elements.status.className === "status warn" && /Type a name/.test(elements.status.textContent), "an empty name is asked for");
+    check(alertOpen() && alertTitle() === "Warning" && elements.alert.className === "alert" &&
+          JSON.stringify(alertSaid()) === '["Type a name for the new folder."]' && !alertRows().length && elements["alert-ok"].focused,
+          "a warning opens the window, its OK focused: " + alertTitle() + " " + alertSaid());
+    dismiss();
     check(children("/").length === 2 && !elements.newdir.hidden, "nothing is made, the field stays open");
     elements["mkdir-cancel"].onclick();
     check(elements.newdir.hidden && elements.dirname.value === "", "Cancel closes and empties it");
@@ -304,6 +323,11 @@ const uploaded = (n) => until(() => new RegExp("of " + n + " uploaded").test(ele
           "the audio file is done: " + fstate(0).textContent);
     check(fstate(1).textContent === "failed" && fstate(1).className === "state bad" &&
           fwhy(1) === "The browser cannot read this audio file.", "the other one fails, and says why: " + fwhy(1));
+    check(alertOpen() && alertTitle() === "Problem" && elements.alert.className === "alert bad" &&
+          alertSaid()[0] === "1 of 2 uploaded to /My Samples." &&
+          JSON.stringify(alertRows()) === '["/My Samples/notes: The browser cannot read this audio file."]',
+          "a problem: the window names the file and why: " + alertTitle() + " " + alertSaid() + " " + alertRows());
+    dismiss();
     check(elements.upload.textContent === "Upload 1 file → /My Samples", "the failed one is still to do: " + elements.upload.textContent);
 
     /* what arrived */
@@ -337,6 +361,10 @@ const uploaded = (n) => until(() => new RegExp("of " + n + " uploaded").test(ele
           /^Something named Kick 01 is already in \/My Samples; it stays as it is\.$/.test(fwhy(1)), "it is skipped: " + fwhy(1));
     check(elements.status.textContent === "0 of 1 uploaded to /My Samples. 1 skipped: the name is already there." &&
           elements.status.className === "status warn", "the status line says so: " + elements.status.textContent);
+    check(alertOpen() && alertTitle() === "Warning" &&
+          JSON.stringify(alertRows()) === '["/My Samples/Kick 01: Something named Kick 01 is already in /My Samples; it stays as it is."]',
+          "the window names the skipped file: " + alertRows());
+    dismiss();
     check(!log.slice(writes).includes(E.TYPE.OPEN_WRITE), "and nothing is opened for it");
     check(elements.upload.disabled, "a skipped file is not tried again");
 
@@ -370,6 +398,9 @@ const uploaded = (n) => until(() => new RegExp("of " + n + " uploaded").test(ele
     await uploaded(1);
     check(fstate(0).textContent === "failed" && /Write protected/.test(fwhy(0)), "the refusal is shown: " + fwhy(0));
     check(!/warning/.test(elements.status.textContent), "no warning outside /Wavetables");
+    check(alertOpen() && alertTitle() === "Problem" && /^\/factory\/Snare: .*Write protected/.test(alertRows()[0] || ""),
+          "the window shows the refusal: " + alertRows());
+    dismiss();
 
     /* /Wavetables, which model27's CHORD Tables plays: a table whose first frame is no sine is told */
     crumbs()[0].onclick();
@@ -382,10 +413,15 @@ const uploaded = (n) => until(() => new RegExp("of " + n + " uploaded").test(ele
     await uploaded(2);
     check(/^done/.test(fstate(0).textContent) && fwhy(0) === "", "01, a sine first: done, no warning: " + fwhy(0));
     check(/^done/.test(fstate(1).textContent) && fstate(1).className === "state warn" &&
-          fwhy(1) === "Warning: its first 256 samples are no sine, so CHORD Tables plays no sine at SWEEP 0.",
+          fwhy(1) === "Warning: its first waveform is not a sine, so CHORD Tables puts a sine in front of it, which SWEEP " +
+                      "plays at the far left.",
           "02, a saw first: done, with the warning: " + fwhy(1));
     check(/2 of 2 uploaded to \/Wavetables\. 1 with a warning/.test(elements.status.textContent) &&
           elements.status.className === "status warn", "the status line counts it: " + elements.status.textContent);
+    check(alertOpen() && alertTitle() === "Warning" && alertSaid()[0] === "2 of 2 uploaded to /Wavetables. 1 with a warning." &&
+          JSON.stringify(alertRows()) === JSON.stringify(["/Wavetables/02: " + fwhy(1)]),
+          "the window names the table and the warning: " + alertSaid() + " " + alertRows());
+    dismiss();
     check(drive.has("/Wavetables/01") && drive.has("/Wavetables/02"), "both are on the drive: a warning, not a refusal");
 
     /* a file CHORD Tables cannot play (a second of tone: 48000 samples, not frames of 256) is not written */
@@ -401,6 +437,9 @@ const uploaded = (n) => until(() => new RegExp("of " + n + " uploaded").test(ele
     check(log.slice(before).filter(t => t === E.TYPE.OPEN_WRITE).length === 1, "only 04 was opened for writing");
     check(/1 of 2 uploaded to \/Wavetables\. 1 not uploaded: CHORD Tables cannot play it\./.test(elements.status.textContent) &&
           elements.status.className === "status bad", "the status line says it: " + elements.status.textContent);
+    check(alertOpen() && alertTitle() === "Problem" && alertRows().length === 1 && /^\/Wavetables\/03: CHORD Tables plays/.test(alertRows()[0]),
+          "the window names the refused file: " + alertRows());
+    dismiss();
 
     /* selecting on the Cycles: a click, Shift for a run, ⌘ to add or take one */
     check(JSON.stringify(folderNames()) === '["01","02","04"]', "the folder: " + folderNames());
@@ -490,6 +529,9 @@ const uploaded = (n) => until(() => new RegExp("of " + n + " uploaded").test(ele
     check(asked[asked.length - 1] === "Delete 1 sample and 1 folder with everything in them from the Cycles? This cannot be undone.",
           "a mixed selection is counted: " + asked[asked.length - 1]);
     check(elements.status.textContent === "the Cycles did not delete /Kit/b: File in use", "the refusal is shown: " + elements.status.textContent);
+    check(alertOpen() && alertTitle() === "Problem" && JSON.stringify(alertSaid()) === '["the Cycles did not delete /Kit/b: File in use"]',
+          "and in the window: " + alertSaid());
+    dismiss();
     check(!drive.has("/Kit/a") && drive.has("/Kit/b") && drive.has("/Kit/c") && drive.has("/Kit") && drive.has("/Loose"),
           "a went; b, what follows and Loose stay");
     check(!!row("Kit") && shown() === "/", "the folder is still listed");
@@ -569,6 +611,7 @@ const uploaded = (n) => until(() => new RegExp("of " + n + " uploaded").test(ele
           "the folder comes with its folders, folders first: " + tree());
     check(elements.status.textContent === "2 files left out: not audio." && elements.status.className === "status warn",
           "what is not audio is left out and counted: " + elements.status.textContent);
+    check(alertOpen() && alertTitle() === "Warning" && alertSaid().length === 1, "a warning in the window");
     check(lstate("Kit A").textContent === "2 files" && lrow("Kit A").children[0].textContent === "▾" &&
           lrow("Kit A").children[1].className === "pix dir", "a folder row counts its files: " + lstate("Kit A").textContent);
     check(elements.upload.textContent === "Upload 2 files → /", "Upload counts the files inside: " + elements.upload.textContent);
@@ -588,6 +631,10 @@ const uploaded = (n) => until(() => new RegExp("of " + n + " uploaded").test(ele
     check(JSON.stringify(tree()) === JSON.stringify(["Kit A", "  Hats", "    HH 01", "  Snares", "    SD 01", "  BD 01", "  Clap"]),
           "Hats and Clap are inside Kit A, Docs (no audio) is left out: " + tree());
     check(elements.status.textContent === "2 files left out: not audio.", "the two others are counted: " + elements.status.textContent);
+    check(alertOpen() && alertTitle() === "Warning" &&
+          JSON.stringify(alertSaid()) === '["2 files left out: not audio.","2 files left out: not audio."]',
+          "a second warning while the window is open goes under the first: " + alertSaid());
+    dismiss();
 
     /* New folder in the list, named at once; rows dragged onto it move into it */
     key("files", "Escape");
@@ -671,6 +718,11 @@ const uploaded = (n) => until(() => new RegExp("of " + n + " uploaded").test(ele
     elements.upload.onclick();
     await until(() => elements.status.textContent === "0 of 1 uploaded to /Lib.", "nothing went: " + elements.status.textContent);
     check(elements.status.className === "status bad", "said as a problem");
+    check(alertOpen() && alertTitle() === "Problem" &&
+          JSON.stringify(alertRows()) === JSON.stringify(["/Lib/Kit B: A sample named Kit B is already in /Lib.",
+                                                          "/Lib/Kit B/K1: Its folder could not be made on the Cycles."]),
+          "the window names the folder and its file: " + alertRows());
+    dismiss();
     check(lstate("Kit B").textContent === "failed" && lrow("Kit B").children[2].children[1].textContent ===
           "A sample named Kit B is already in /Lib.", "the folder says why");
     check(lstate("K1").textContent === "failed" && lrow("K1").children[2].children[1].textContent ===
@@ -684,6 +736,8 @@ const uploaded = (n) => until(() => new RegExp("of " + n + " uploaded").test(ele
     check(elements.status.className === "status bad" && elements["chip-text"].textContent === "No answer" &&
           elements.chip.className === "chip off", "the chip says No answer: " + elements["chip-text"].textContent);
     check(!elements.ports.hidden, "the ports stay in view");
+    check(alertOpen() && alertTitle() === "Problem" && /does not answer/.test(alertSaid()[0] || ""), "and in the window: " + alertSaid());
+    dismiss();
     check(/Connect the Cycles/.test(elements.folder.innerHTML) && elements.upload.disabled && elements["del-sel"].disabled,
           "nothing to act on");
 

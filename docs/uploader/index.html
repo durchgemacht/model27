@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-11-08-01">
-<link rel="stylesheet" href="style.css?v=2026-11-08-01">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-09-01">
+<link rel="stylesheet" href="style.css?v=2026-11-09-01">
 <!-- light only, as the flasher and the manager -->
 <script>document.documentElement.setAttribute("data-theme","light")</script>
 </head>
@@ -88,6 +88,15 @@
   </div>
 </main>
 
+<!-- a warning or a problem, over the page until OK (app.js alertBox) -->
+<dialog id="alert" class="alert" aria-labelledby="alert-h">
+  <div class="alert-in">
+    <h2 id="alert-h">Warning</h2>
+    <div id="alert-body" class="alert-body"></div>
+    <button id="alert-ok" class="btn" type="button">OK</button>
+  </div>
+</dialog>
+
 <footer class="foot">
   <div class="wrap">
     <p>Your audio files go from this browser to your Cycles, nowhere else. Chrome, Edge or Opera on a computer (Web
@@ -98,9 +107,9 @@
 </footer>
 
 <!-- ?v= : the site's version stamp, so a browser never mixes a new page with cached old scripts -->
-<script src="../assets/release.js?v=2026-11-08-01"></script>
-<script src="../assets/site.js?v=2026-11-08-01"></script>
-<script src="elektron.js?v=2026-11-08-01"></script>
-<script src="app.js?v=2026-11-08-01"></script>
+<script src="../assets/release.js?v=2026-11-09-01"></script>
+<script src="../assets/site.js?v=2026-11-09-01"></script>
+<script src="elektron.js?v=2026-11-09-01"></script>
+<script src="app.js?v=2026-11-09-01"></script>
 </body>
 </html>

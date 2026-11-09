@@ -66,7 +66,9 @@ the computer, go into that folder. Folders are made on the Cycles before what is
 a folder is skipped, not replaced. Each file is converted in the browser to a 48 kHz mono sample and written with the
 OS's own file commands (Transfer protocol, `0x14`-`0x16`, `0x24`,
 `0x43`-`0x45`; how they were found: Cycles One-Shot's `TECHNICAL.md`). In `/Wavetables` it applies CHORD Tables'
-rules (notes/66). It came from Cycles One-Shot's upload page (MIT, same author), whose old address now leads here;
+rules (notes/66). The status line under the title says what happened last; a warning or a problem also opens a window
+over the page (`alertBox()`, a `<dialog>` in `index.html`), which stays until OK or Escape and names the files it is
+about, a second message going under the first (release 0.53, the maintainer's wish of 08/11/2026). It came from Cycles One-Shot's upload page (MIT, same author), whose old address now leads here;
 this copy is the one kept up. `style.css` follows the manager's: the same tokens, header, buttons, connect chip,
 status line and footer, overridden on `site.css`'s classes as there. Light only. It is not tied to the other pages
 and loads only `release.js` and `site.js`. Checks: `tools/webuploader_check.sh` (the protocol, and the page against a

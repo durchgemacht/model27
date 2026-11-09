@@ -84,6 +84,21 @@ button,input,select{font:inherit;color:inherit}
 .status.bad{background:var(--ink);color:var(--paper)}
 .status.warn{border-style:dashed}
 
+/* a warning or a problem: a window over the page until OK, as the flasher's How to use, its backdrop the same 1-bit
+   dither; a warning's title over a dashed line, a problem's inverted */
+.alert{width:min(560px,calc(100vw - 32px));max-width:none;max-height:calc(100vh - 48px);margin:auto;padding:0;
+  border:3px solid var(--ink);background:var(--card);color:var(--ink);box-shadow:8px 8px 0 var(--ink);overflow:auto}
+.alert::backdrop{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h1v1H0zM2 0h1v1H2zM1 2h1v1H1zM3 2h1v1H3z' fill='%230b0c0e'/%3E%3C/svg%3E")}
+.alert-in{display:flex;flex-direction:column;gap:14px;padding:14px 20px 20px}
+.alert h2{margin:0;padding-bottom:8px;border-bottom:3px dashed currentColor;font-size:20px}
+.alert.bad h2{margin:-14px -20px 0;padding:14px 20px 12px;border-bottom:0;background:var(--ink);color:var(--paper)}
+.alert-body{display:flex;flex-direction:column;gap:12px}
+.alert-body p{margin:0;font-weight:700;line-height:1.5;overflow-wrap:anywhere}
+.alert-body ul{margin:0;padding:0;list-style:none;border-top:1px solid var(--ink)}
+.alert-body li{display:flex;flex-direction:column;gap:2px;padding:6px 0;border-bottom:1px solid var(--ink);font-size:13px;line-height:1.45}
+.alert-body li b{overflow-wrap:anywhere}
+.alert .btn{align-self:flex-end;min-width:120px;min-height:44px}
+
 /* the two panes: the files to upload on the left, the Cycles on the right. Quieter than the flasher's cards: the pane
    has the 3 px frame, everything inside it 1 px lines and small tools; one filled button, Upload. */
 .panes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px;align-items:start}

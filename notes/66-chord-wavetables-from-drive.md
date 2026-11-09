@@ -3037,3 +3037,19 @@ sub-choice, its guide link, the Experimental tag.
 - **For the maintainer, once the flasher is online:** flash from the page with CHORD Tables (alone, or with the
   fourteen others: the page's file has the MAIN OS of §34.2), repeat test 1 of §33 (the gesture and a table), and say
   so: the card then becomes `tested`.
+
+## 35. The uploader's warning for a table without a sine (2026-11-09)
+
+Test 7 of §33 showed that the uploader's warning for `05` (no sine first) sits in the status line, where it is easy to
+miss (the maintainer, 2026-11-08: « an einer stelle die man nicht unbedingt wahrnimmt »), and its text was 0.2's: « its
+first 256 samples are no sine, so CHORD Tables plays no sine at SWEEP 0 ». Since 0.3 the loader puts the OS's sine in
+front of such a table (§27.10, `build()` spreads the k + 1 frames over the 32), so the text now says so: « its first
+waveform is not a sine, so CHORD Tables puts a sine in front of it, which SWEEP plays at the far left ». The file is
+still written; a file CHORD Tables cannot play (not frames of 256, more than 32) is still refused.
+
+The maintainer asked (2026-11-08) for every warning and problem of the uploader in a window that has to be closed:
+release 0.53, `alertBox()` in `docs/uploader/app.js` (docs/AGENTS.md, The uploader). After an upload the window names
+each file that was skipped, refused or written with a warning, with its reason. `tools/uploader/page.test.js` checks
+the window at each warning and problem it drives; tried in the browser against `tools/uploader/fake-cycles.js` (a
+problem, a warning, Escape, an upload into `/Wavetables` of a table with a saw first and a file of 1000 samples, the
+phone's width, no error in the console).
