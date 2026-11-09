@@ -3220,3 +3220,28 @@ The maintainer: « Ja, N2 bauen ».
   0.3.
 - **The second run** (the maintainer, 2026-11-09, `--machines chordtables`, with case k fixed): « all ok ». N1 and N2
   are proven in emulation; on the device nothing yet (N4).
+
+### 36.8 N3 built: the Uploader's warnings for names (2026-11-09)
+
+The maintainer: « Ja, N3 bauen ».
+
+- **`docs/uploader/elektron.js`:**
+  - `tableNumber(name)`: `number()` of the loader.
+  - `playsFirst(a, b)`: `before()` on the bytes the Cycles keeps (Windows-1252, `encodeText`).
+- **`docs/uploader/app.js`, `tableWarning(name, frames, items)`** in `/Wavetables`, for a file it writes (an unplayable
+  one is still refused):
+  - a name without a number 01 to 63: « CHORD Tables plays only names that start with 01 to 63, such as 07 Glass Pad,
+    so it does not play this one »;
+  - a number the folder already has, the other name first: « table 07 already has 07 Glass, which CHORD Tables plays:
+    its name comes first »;
+  - this name first: « CHORD Tables plays this one as table 07, not 07 Pad: its name comes first »;
+  - the sine of §35 after those.
+  - The folder as listed before each file, so files of one upload count against each other. The warnings go to the
+    row and to the window of §35.
+- **Tests:**
+  - `elektron.test.js`: the 17 names of §36.5; byte order (Glass before Pad, a name before a longer one starting with
+    it, capitals before small letters, `é` after `Z`).
+  - `page.test.js`: `7 Pad`, `04 Glass` next to `04`, `06 Pad` without a warning, then `06 Aa` first; all written; the
+    window naming both. `webuploader_check.sh`: OK.
+- **In the browser** against `fake-cycles.js`: `07 Pad`, then `07 Glass` and `7 Glass`. The window named both: `07
+  Glass` plays instead of `07 Pad`, and `7 Glass` does not play. No error in the console.

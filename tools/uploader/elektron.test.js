@@ -134,6 +134,19 @@ check(E.cleanName("x".repeat(80) + ".wav").length === E.NAME_MAX, "names stop at
           "nothing, 300, 33 frames, 48000 (a second of sound) and 255 samples: it cannot play them");
 }
 
+/* CHORD Tables 0.4's names (number() and before() in chordtables.c, notes/66 §36.3): the same 17 cases as on the host */
+{
+    const want = { "07": 7, "07 Glass Pad": 7, "07-glass": 7, "07.wav": 7, "01": 1, "63": 63, "63 x": 63, "7 Glass": 0,
+                   "070": 0, "64 Pad": 0, "00": 0, "0": 0, "": 0, "Glass 07": 0, "6": 0, "99": 0, "7": 0 };
+    const got = Object.keys(want).filter(k => E.tableNumber(k) !== want[k]);
+    check(!got.length && E.TABLES === 63, "a name's table: 07, 07 Glass Pad, 07-glass, 07.wav, 01, 63, 63 x; nothing for " +
+          "7 Glass, 070, 64 Pad, 00, 0, an empty name, Glass 07, 6, 99, 7" + (got.length ? "; wrong: " + got : ""));
+    check(E.playsFirst("07 Glass", "07 Pad") < 0 && E.playsFirst("07 Pad", "07 Glass") > 0 && E.playsFirst("07", "07") === 0 &&
+          E.playsFirst("07", "07 a") < 0 && E.playsFirst("07 Pad", "07 pad") < 0 && E.playsFirst("07 Z", "07 é") < 0,
+          "byte order: Glass before Pad, a name before a longer one that starts with it, capitals before small " +
+          "letters, é (0xe9) after Z");
+}
+
 if (failures) {
     console.log(failures + " check(s) failed");
     process.exit(1);

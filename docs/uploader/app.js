@@ -597,6 +597,32 @@
         cache[path] = [];
     }
 
+    function two(n) { return (n < 10 ? "0" : "") + n; }
+
+    /* What CHORD Tables will do otherwise than the file says, in /Wavetables (notes/66 §36): a name without a number
+       01 to 63 it does not play; of two files with one number it plays the name first in byte order; a table whose
+       first frame is no sine gets the OS's sine in front of it (§27.10). items: the folder before this file. "" when
+       it plays the file as it is. */
+    function tableWarning(name, frames, items) {
+        var n = E.tableNumber(name), said = [], others, first;
+
+        if (!n)
+            return "CHORD Tables plays only names that start with 01 to 63, such as 07 Glass Pad, so it does not play " +
+                   "this one";
+        others = items.filter(function (x) { return !x.folder && x.name !== name && E.tableNumber(x.name) === n; });
+        if (others.length) {
+            first = others.reduce(function (a, b) { return E.playsFirst(a.name, b.name) <= 0 ? a : b; });
+            said.push(E.playsFirst(name, first.name) < 0
+                ? "CHORD Tables plays this one as table " + two(n) + ", not " + others.map(function (x) { return x.name; })
+                      .join(" or ") + ": its name comes first"
+                : "table " + two(n) + " already has " + first.name + ", which CHORD Tables plays: its name comes first");
+        }
+        if (!E.startsWithSine(frames))
+            said.push("its first waveform is not a sine, so CHORD Tables puts a sine in front of it, which SWEEP plays " +
+                      "at the far left");
+        return said.join("; ");
+    }
+
     /* One file into a folder of the Cycles. A name already in that folder is skipped: the sample there stays as it
        is. part(f): how far it got, 0 to 1. */
     async function upload(entry, dir, cache, part) {
@@ -619,15 +645,12 @@
             throw new Error("the browser cannot read this audio file");
         }
         data = E.sampleFile(frames, E.RATE);
-        /* CHORD Tables plays this folder: a file it cannot play is not written; a table whose first frame is no
-           sine is written with a warning: CHORD Tables puts the OS's sine in front of it (notes/66 §27.10), so it
-           does not play as the file is */
+        /* CHORD Tables plays this folder: a file it cannot play is not written; one it will not play as the file is
+           written with a warning (tableWarning) */
         if (dir === E.WAVETABLES) {
             if (!E.tableFrames(frames))
                 throw unplayable(frames.length);
-            if (!E.startsWithSine(frames))
-                warn = "its first waveform is not a sine, so CHORD Tables puts a sine in front of it, which SWEEP " +
-                       "plays at the far left";
+            warn = tableWarning(entry.name, frames, items);
         }
         if (data.length - 80 > POOL)
             throw new Error("too long: SAMPLE holds up to 63 MB, this is " + kb(data.length));

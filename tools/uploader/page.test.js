@@ -441,6 +441,37 @@ const uploaded = (n) => until(() => new RegExp("of " + n + " uploaded").test(ele
           "the window names the refused file: " + alertRows());
     dismiss();
 
+    /* names in /Wavetables (CHORD Tables 0.4, notes/66 §36): a name without a number 01 to 63 is told it does not
+       play; a number the folder already has is told which file plays. The files are written all the same. */
+    const lwhy = (name) => (lrow(name).children[2].children[1] || { textContent: "" }).textContent;
+    clearList();
+    add(file("7 Pad.wav", 0x57), file("04 Glass.wav", 0x57), file("06 Pad.wav", 0x57));
+    elements.upload.onclick();
+    await uploaded(3);
+    check(lstate("7 Pad").className === "state warn" && lwhy("7 Pad") ===
+          "Warning: CHORD Tables plays only names that start with 01 to 63, such as 07 Glass Pad, so it does not play this one.",
+          "7 Pad: written, told it does not play: " + lwhy("7 Pad"));
+    check(lstate("04 Glass").className === "state warn" && lwhy("04 Glass") ===
+          "Warning: table 04 already has 04, which CHORD Tables plays: its name comes first.",
+          "04 Glass: written, told that 04 plays: " + lwhy("04 Glass"));
+    check(lstate("06 Pad").className === "state ok" && lwhy("06 Pad") === "", "06 Pad: a number of its own, no warning");
+    check(drive.has("/Wavetables/7 Pad") && drive.has("/Wavetables/04 Glass") && drive.has("/Wavetables/06 Pad"),
+          "all three on the drive: warnings, not refusals");
+    check(alertOpen() && alertTitle() === "Warning" && alertSaid()[0] === "3 of 3 uploaded to /Wavetables. 2 with a warning." &&
+          JSON.stringify(alertRows()) === JSON.stringify(["/Wavetables/04 Glass: " + lwhy("04 Glass"), "/Wavetables/7 Pad: " + lwhy("7 Pad")]),
+          "the window names both: " + alertRows());
+    dismiss();
+    clearList();
+    add(file("06 Aa.wav", 0x57));
+    elements.upload.onclick();
+    await uploaded(1);
+    check(lwhy("06 Aa") === "Warning: CHORD Tables plays this one as table 06, not 06 Pad: its name comes first.",
+          "06 Aa: its name comes before 06 Pad, so it is the one that plays: " + lwhy("06 Aa"));
+    dismiss();
+    ["7 Pad", "04 Glass", "06 Pad", "06 Aa"].forEach(n => drive.delete("/Wavetables/" + n));   /* the folder as before */
+    elements.refresh.onclick();
+    await until(() => folderNames().length === 3, "the folder listed again: " + folderNames());
+
     /* selecting on the Cycles: a click, Shift for a run, ⌘ to add or take one */
     check(JSON.stringify(folderNames()) === '["01","02","04"]', "the folder: " + folderNames());
     click("01");

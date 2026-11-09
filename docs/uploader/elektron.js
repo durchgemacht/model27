@@ -253,6 +253,27 @@
         return n > 0 && n % CYCLE === 0 && n / CYCLE <= TABLE_MAX ? n / CYCLE : 0;
     }
 
+    /* The table a name plays as since CHORD Tables 0.4 (number() in chordtables.c, notes/66 §36.3): two digits 01 to
+       63, then no digit ("07", "07 Glass Pad"); 0 for any other name. */
+    var TABLES = 63;
+
+    function tableNumber(name) {
+        var m = /^([0-9][0-9])(?![0-9])/.exec(String(name)), n = m ? +m[1] : 0;
+
+        return n >= 1 && n <= TABLES ? n : 0;
+    }
+
+    /* Of two names with one number, CHORD Tables plays the one first in byte order, the bytes as the Cycles keeps the
+       name (Windows-1252; before() in chordtables.c): negative when a comes first. */
+    function playsFirst(a, b) {
+        var x = encodeText(a), y = encodeText(b), i;
+
+        for (i = 0; i < x.length && i < y.length; i++)
+            if (x[i] !== y[i])
+                return x[i] - y[i];
+        return x.length - y.length;
+    }
+
     function startsWithSine(frames) {
         var re = [], im = [], h, k, a, h1, rest = 0, dc = 0;
 
@@ -309,4 +330,7 @@
     exports.WAVETABLES = WAVETABLES;
     exports.tableFrames = tableFrames;
     exports.startsWithSine = startsWithSine;
+    exports.TABLES = TABLES;
+    exports.tableNumber = tableNumber;
+    exports.playsFirst = playsFirst;
 })(typeof module !== "undefined" && module.exports ? module.exports : (window.Elektron = {}));
