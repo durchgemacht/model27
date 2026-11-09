@@ -50,7 +50,7 @@ HEADER = """<header class="site-top">
   <a class="site-brand" href="../">model27</a>
   <nav aria-label="Site">
     <a href="../flasher/">Flasher</a>
-    <a href="../manager/">Manager</a>
+    <a href="../manager/" hidden>Manager</a>
     <a href="../uploader/">Uploader</a>
     <a href="./" aria-current="page">Wavetables</a>
     <a href="../guide/">Guide</a>
@@ -92,6 +92,8 @@ def page(editor, stamp, version):
     t = once(t, "<title>CHORD Wave Editor</title>", TITLE, "its <title>")
     t = once(t, "</style>", CSS + "</style>", "</style>")
     t = once(t, '<main class="app">', HEADER + '\n<main class="app">', '<main class="app">')
+    # the title on one line, as the other pages' (the maintainer's choice, 2026-11-09)
+    t = once(t, "<h1>Wavetables<br>for CHORD</h1>", "<h1>Wavetables for CHORD</h1>", "its <h1>")
     feet = re.findall(r'<footer><div class="foot-in">.*?</div></footer>', t, re.S)
     if len(feet) != 1:
         sys.exit(f"!! the editor has {len(feet)} footers, expected one")
@@ -122,7 +124,8 @@ def unstamped(t):
 
 
 def nav_of(folder):
-    """The site nav of a page: (where each link goes, its text) in order, and where its aria-current link goes."""
+    """The site nav of a page: (where each link goes, its text, hidden or not) in order, and where its aria-current
+    link goes. A hidden link stays in the nav, out of sight (the Manager since 2026-11-09, the maintainer's choice)."""
     path = DOCS / folder / "index.html" if folder else DOCS / "index.html"
     m = re.search(r'<nav aria-label="Site">(.*?)</nav>', path.read_text(encoding="utf-8"), re.S)
     if not m:
@@ -133,7 +136,7 @@ def nav_of(folder):
         if not href.startswith("https://"):
             href = posixpath.normpath(posixpath.join(folder, href))
             href = "" if href == "." else href
-        links.append((href, label.strip()))
+        links.append((href, label.strip(), bool(re.search(r"\shidden(\s|$|=)", attrs))))
         if 'aria-current="page"' in attrs:
             current = href
     return links, current
@@ -158,7 +161,8 @@ def check_navs():
             print(f"!! {name}: aria-current is on {current!r}, not on its own link")
             ok = False
     if ok:
-        print(f"ok: the {len(PAGES)} pages have the same nav ({', '.join(label for _, label in first[1])})")
+        print(f"ok: the {len(PAGES)} pages have the same nav "
+              f"({', '.join(label + (' (hidden)' if hidden else '') for _, label, hidden in first[1])})")
     return ok
 
 

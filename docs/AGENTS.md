@@ -51,7 +51,9 @@ its slot. It is not tied to the flasher: it only loads `flasher.js` and links no
 browser's IndexedDB under the page's origin (an export from another address imports as is). `style.css` is the
 flasher's 1-bit look, its own copy of the tokens, header, buttons and footer; class names that `site.css` styles too
 (`.wrap`, `.top`, `.brand`, `.btn`, `.foot`) are overridden there, and the page's own classes avoid the others.
-Light only, as the flasher. Checks: `tools/webmanager_check.sh` (the scripts on the host); the page itself against
+Light only, as the flasher. Its link in the site's nav is `hidden` on every page (the maintainer's choice of
+09/11/2026): the page stays at `manager/` and keeps the nav, with its own link current but out of sight; nothing
+else on the site links it. Checks: `tools/webmanager_check.sh` (the scripts on the host); the page itself against
 the stand-in `tools/manager/fake-cycles.js` (serve the repository's root, load it by hand, `FakeCycles.install()`),
 and on a Model:Cycles by the maintainer.
 
