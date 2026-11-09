@@ -23,8 +23,8 @@ Model:Cycles over USB. Modded-Cycles has since moved to a single OS with 2.0; mo
 together, so that a new machine fits next to the others. The rules a mod follows for that are the
 **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.5), written alongside.
 
-**Status: beta, release 0.52.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers fifteen
-cards, all of them tested on a Model:Cycles, all but the newest as the page builds them: the **SAMPLE** machine of
+**Status: beta, release 0.55.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers fifteen
+cards, all of them tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
 [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples on the +Drive,
 [Control All Config](https://github.com/durchgemacht/cycles-control-all-config), **Digital Delay**, the first
 effect: a second delay for the delay slot, chosen per pattern with PATTERN + Delay Time, based on the digital delay of
@@ -47,7 +47,7 @@ SAMPLE. The fourteenth, **Transpose**, model27's own: with MACHINES held, TRIG 1
 of the TRIG keys by octaves and TRIG 8, 9, 11 and 12 make the active track jump in pitch at once, the keys' lights
 dimmed to show it. The fifteenth, **CHORD Tables**, model27's own: the CHORD machine plays your own wavetables
 from the +Drive, one for each pattern, chosen with PATTERN + SWEEP and saved with the pattern; tested on a
-Model:Cycles from the command line with all the other cards, not yet flashed from the page. The
+Model:Cycles from the command line with all the other cards, then flashed from the page. The
 [guide](https://durchgemacht.github.io/model27/guide/) explains them. Combining machines is proven with two internal
 reference machines: SAMPLE with the first one on a Model:Cycles; the second one, with a shortcut, and sharing the
 main screen, the knob view, the screen's tick and the browser with SAMPLE, in emulation so far, composed by the page
@@ -169,6 +169,15 @@ USB, for SAMPLE: drop audio files or whole folders on the left, open a folder of
 folder on the right go there. It also deletes several samples or folders in one go, and works with the official OS
 too. Close Elektron Transfer
 first. It is Cycles One-Shot's upload page, moved here.
+
+## A wavetable of your own for CHORD: Wavetables
+
+**[Wavetables](https://durchgemacht.github.io/model27/wavetables/)** gives CHORD a wavetable of your own: drag waves of
+Plaits and Braids, or your own WAV files (single cycles, or wavetables as Serum and Vital write them), onto its 31
+frames, hear them with SWEEP and an LFO, and save the wavetable into your firmware: the official OS 1.13, or a build of
+this flasher (its `.syx` from the last step), whose cards all stay. SWEEP then moves through your waves instead of
+CHORD's. Your files stay in your browser. It is the editor of CHORD Wave Bank, in the site's look;
+`tools/gen_wavetables_page.py` writes the page from it.
 
 ## Building from the command line
 

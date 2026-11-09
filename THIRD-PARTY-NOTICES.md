@@ -81,6 +81,12 @@ Confirmed under the MIT License:
   `tools/machines/sampler/LICENSE`, served as `docs/flasher/LICENSE-One-Shot.txt`), moved here by its author;
   `elektron.js` is copied unchanged but for its header comment, the page is restyled for this site.
 
+- **Wavetables** (`docs/wavetables/index.html`, written by `tools/gen_wavetables_page.py`): by durchgemacht and
+  Claude, the editor of CHORD Wave Bank (MIT), unchanged but for the site's header, footer and scripts. It holds the
+  wave tables of Braids (`wt_waves`, `wt_map`) and Plaits by Emilie Gillet, from
+  [pichenettes/eurorack](https://github.com/pichenettes/eurorack) at commit `08460a6` (MIT); the license texts of the
+  editor, Braids and Plaits are in the comment at the top of the page.
+
 ## Tools used but not included
 
 The emulation proofs import [Unicorn](https://www.unicorn-engine.org/) (GPL-2.0) and numpy (BSD-3-Clause); the

@@ -4903,11 +4903,11 @@ const FEAT = {
         "screen shows that step's LOOP and REV, lit when it plays them."],
     ] },
   chordtables: { label: "CHORD Tables",
-    short: "CHORD plays your own wavetables from the +Drive, one for each pattern.",
+    short: "CHORD plays your own wavetables from the +Drive.",
     desc: [
-      ["", "Put wavetables on the +Drive first, with this site's Uploader, in a folder Wavetables. Start each name with " +
-        "its number, 01 to 63: 07 Glass Pad is wavetable 7. A wavetable is up to 32 single-cycle waveforms of 256 " +
-        "samples, one after the other."],
+      ["", "Make your wavetables first: each one an audio file of up to 32 single-cycle waveforms of 256 samples, " +
+        "one after the other. Put them on the +Drive with this site's Uploader, in a folder Wavetables, and start each " +
+        "file's name with its number, 01 to 63: a file you name 07 Glass Pad.wav is wavetable 7."],
       ["[PATTERN] + SWEEP", "Sets the pattern's wavetable. Press and hold [PATTERN] on a CHORD track, then turn " +
         "SWEEP. The popup shows Wavetable and its number: 0 is CHORD's own, 1 to 63 the files with that number, two " +
         "steps of the knob each. Every CHORD track in the pattern plays it."],

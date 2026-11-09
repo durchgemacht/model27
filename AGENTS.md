@@ -217,8 +217,11 @@ tools/manager/                host tests of the manager's scripts (tools/webmana
                               stand-in Model:Cycles for trying the page in a browser (notes/77)
 tools/uploader/               host tests of the uploader's scripts (tools/webuploader_check.sh) and fake-cycles.js, a
                               stand-in +Drive for trying the page in a browser
+tools/gen_wavetables_page.py  docs/wavetables/index.html from CHORD Wave Bank's editor (the site's header, nav and
+                              footer added); --check, which also compares the nav of every page
 docs/                         GitHub Pages site: index.html, flasher/, manager/ (one project per firmware, notes/77),
-                              uploader/ (audio files onto the +Drive), guide/, assets/release.js
+                              uploader/ (audio files onto the +Drive), wavetables/ (CHORD's wavetable into the
+                              firmware, generated), guide/, assets/release.js
 notes/                        numbered technical notes (French), index in notes/README.md
 BUILD.md, FLASH.md            command-line build and flashing (French)
 README.md                     English overview for Model:Cycles owners (mod table)
@@ -279,6 +282,8 @@ tools/webflash_check.sh                          # flasher.js validates .syx lik
 tools/webflash_smoke.sh                          # the flasher page in jsdom (node, npm, network)
 tools/webmanager_check.sh                        # the manager's scripts on the host (node)
 tools/webuploader_check.sh                       # the uploader's scripts on the host (node)
+python3 tools/gen_wavetables_page.py --editor …/chordwave-editor.html --check   # with CHORD Wave Bank's editor: the
+                                                 # Wavetables page is its, and every page has the same nav
 python3 -m py_compile tools/*.py tools/emu/*.py
 ```
 

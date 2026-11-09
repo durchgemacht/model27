@@ -267,7 +267,7 @@ window.MC_TWEAKS = {
    "id": "chordtables",
    "label": "CHORD Tables",
    "desc": "CHORD plays wavetables from the +Drive, one table per pattern: the files 01 to 63 in a folder Wavetables. On a CHORD track, PATTERN + SWEEP picks the pattern's table (0 = CHORD's own, two steps of the knob a table); every CHORD track of the pattern plays it, and SWEEP moves through its waveforms.",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "by",
     "who": "durchgemacht",

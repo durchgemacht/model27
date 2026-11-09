@@ -440,7 +440,7 @@ async function main() {
       `Transpose alone ${trAlone}; with SAMPLE ${trSmp}, with the CPU page and RESAMPLE ${trAll}, one composed tweak; ` +
       `with Control All Config and Trig Preview ${trTp}, no clash; in Mods; no sub-choice; its guide link; ` +
       `tested, so no tag`);
-    // CHORD Tables: a package card on the stock CHORD (notes/66), composed with the machine cards, in Mods; experimental
+    // CHORD Tables: a package card on the stock CHORD (notes/66), composed with the machine cards, in Mods; tested
     box("feat-chordtables").click(); await wait(5);
     const ctAlone = chosen();
     box("feat-sampler").click(); await wait(5);
@@ -453,9 +453,9 @@ async function main() {
       && ctOn && !chosen().length
       && doc.querySelector('#grp-mod #feat-chordtables') && doc.querySelector('#features a[href$="#chord-tables"]')
       && doc.querySelectorAll('input[name="var-chordtables"]').length === 0
-      && /Experimental/.test((doc.querySelector("#mod-chordtables .tag") || {}).textContent || ""),
+      && !doc.querySelector("#mod-chordtables .tag"),
       `CHORD Tables alone ${ctAlone}; with SAMPLE ${ctSmp}; with Digital Delay, Crush and Transpose ${ctFx}, one composed ` +
-      `tweak, no clash; in Mods; no sub-choice; its guide link; experimental, so its tag`);
+      `tweak, no clash; in Mods; no sub-choice; its guide link; tested, so no tag`);
     const every = ["sampler", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample", "transpose", "control-all-config", "trig-cond-order", "trig-preview"];
     for (const i of every) { box("feat-" + i).click(); await wait(5); }
     const fxAll = chosen();

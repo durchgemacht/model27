@@ -14,7 +14,8 @@ and a converter-made file; the maintainer's third run ALL OK (§15.4), the cost 
 the maintainer on 2026-10-24 (§15.7): "getestet, funktioniert". The device test is open.**
 
 **Later: 0.2 tested on the device and paused (§25, §26). 2026-11-05: a new way planned, one table per pattern in the
-stock table's place (§27).**
+stock table's place (§27). 0.3 tested on the device (§33), 0.4 with names after the number (§36.11); the card
+flashed from the page on 2026-11-09 and tested (§36.12).**
 
 The maintainer asked on 2026-10-23 whether a mod could let the stock CHORD machine load wavetables from the +Drive
 and pick them with RETRIG + CONTOUR ("the exact knob does not matter"), or with FUNC + MACHINES as SAMPLE does. Two
@@ -3296,3 +3297,11 @@ The full build of §36.9 (`.syx e38153f1…`, MAIN OS `8e0a9241…`), a new proj
 - The guide's Tested and release 0.54 say so; `BUILD.md` names the file tried.
 - The flasher's card stays `experimental` until the maintainer flashes it from the page, as for 0.3. The flasher is
   offline.
+
+### 36.12 The card flashed from the page: tested (2026-11-09)
+
+- The maintainer flashed CHORD Tables from the flasher page: « Ja, von der Seite geflasht ». As for Transpose
+  (notes/80 §6.1) and the CPU page, the card is now `tested`: `gen_flasher_tweaks.py` and `tweaks.js` (no tag),
+  `webflash_smoke.js` (no tag expected), the guide's Tested (« then flashed from this page »), release 0.54's line and
+  a line in release 0.55, README, `BUILD.md`.
+- The firmware is unchanged: the same package 0.4, the same MAIN OS as §36.10.

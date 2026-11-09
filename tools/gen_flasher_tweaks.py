@@ -351,9 +351,9 @@ ALL_FEATURES = [
                 "On a CHORD track, PATTERN + SWEEP picks the pattern's table (0 = CHORD's own, two steps of the knob a "
                 "table); every CHORD track of the pattern plays it, and SWEEP moves through its waveforms.",
         # model27's own (notes/66 §27 to §33): 0.3 proven in emulation (test_chordtables.py, probe_chord_lines.py) and
-        # tested on the Model:Cycles on 2026-11-08 in the maintainer's full build from the command line (notes/66 §33);
-        # experimental here until flashed from this page, as the other cards were
-        "status": "experimental",
+        # tested on the Model:Cycles on 2026-11-08 in the maintainer's full build from the command line (notes/66 §33),
+        # 0.4 on 2026-11-09 (§36.10), then flashed from the page the same day (§36.12): tested as this page builds it
+        "status": "tested",
         "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
         # an extension of CHORD composed in the page like a machine (notes/66 §3): alone it gives 36-chordtables.json
         # byte for byte; its chain hooks go in front of the effect slots' and the filter slot's (notes/66 §30.2)

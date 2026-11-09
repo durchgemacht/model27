@@ -7,10 +7,16 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.55", date: "2026-11-09", changes: [
+    { en: "A new page, Wavetables, gives CHORD a wavetable of your own: drag waves of Plaits and Braids, or your own WAV files, onto its 31 frames, hear them with SWEEP and an LFO, and save the wavetable into your firmware. SWEEP then moves through your waves instead of CHORD's" },
+    { en: "It goes into the official OS 1.13 or into a build from this site, which keeps all its cards: download the build's .syx in the flasher's last step and drop it on the page. Your OS file and your waves stay in your browser. It is the editor of CHORD Wave Bank, in the site's look" },
+    { en: "Tested on a Model:Cycles (2026-11-08): a build with every card but CHORD Tables, with a wavetable from this editor in it, installed and played. Checked on the files: into the official OS and into a build with all fifteen cards, nothing changes but the wavetable. With CHORD Tables, 0 plays your wavetable; not yet tried on a Model:Cycles" },
+    { en: "CHORD Tables is tested as this page builds it: flashed from here onto a Model:Cycles (2026-11-09), after the tests from the command line. Its card no longer says Experimental" },
+  ] },
   { version: "0.54", date: "2026-11-09", changes: [
     { en: "CHORD Tables reads wavetables with names: start the name with the wavetable's number, 01 to 63, and add what you like. 07 Glass Pad is wavetable 7, and 07 alone still is. Of two files with the same number, the one whose name comes first alphabetically plays. A renamed file is read within about two seconds" },
     { en: "The Uploader warns, in Wavetables, when a name does not start with 01 to 63 and when a number is already taken, saying which file plays. The files are uploaded all the same" },
-    { en: "Checked in an emulator on the OS's own code: the names, two files with one number, renaming, adding, replacing and deleting files, 63 files at once. Tested on a Model:Cycles (2026-11-09), from the command line with all fourteen other cards: a name after the number, a name without one, two files with one number and a delete, and six CHORD tracks under load; not yet flashed from this page" },
+    { en: "Checked in an emulator on the OS's own code: the names, two files with one number, renaming, adding, replacing and deleting files, 63 files at once. Tested on a Model:Cycles (2026-11-09), from the command line with all fourteen other cards: a name after the number, a name without one, two files with one number and a delete, and six CHORD tracks under load; then flashed from this page" },
   ] },
   { version: "0.53", date: "2026-11-09", changes: [
     { en: "The Uploader shows a warning or a problem in a window over the page, which stays until you press OK. After an upload it names each file that was skipped, not uploaded or uploaded with a warning, and why. The line under the title still says what happened last" },
