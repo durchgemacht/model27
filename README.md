@@ -23,8 +23,8 @@ Model:Cycles over USB. Modded-Cycles has since moved to a single OS with 2.0; mo
 together, so that a new machine fits next to the others. The rules a mod follows for that are the
 **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.5), written alongside.
 
-**Status: beta, release 0.51.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers fourteen
-cards, all of them tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
+**Status: beta, release 0.52.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers fifteen
+cards, all of them tested on a Model:Cycles, all but the newest as the page builds them: the **SAMPLE** machine of
 [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples on the +Drive,
 [Control All Config](https://github.com/durchgemacht/cycles-control-all-config), **Digital Delay**, the first
 effect: a second delay for the delay slot, chosen per pattern with PATTERN + Delay Time, based on the digital delay of
@@ -45,7 +45,9 @@ time the sound takes, with the Track FX' and the effects' shares. The thirteenth
 opened with SETTINGS + RECORD and saves the take as a sample in /recordings, named in the stock name editor, ready for
 SAMPLE. The fourteenth, **Transpose**, model27's own: with MACHINES held, TRIG 15 and 16 move the notes
 of the TRIG keys by octaves and TRIG 8, 9, 11 and 12 make the active track jump in pitch at once, the keys' lights
-dimmed to show it. The
+dimmed to show it. The fifteenth, **CHORD Tables**, model27's own: the CHORD machine plays your own wavetables
+from the +Drive, one for each pattern, chosen with PATTERN + SWEEP and saved with the pattern; tested on a
+Model:Cycles from the command line with all the other cards, not yet flashed from the page. The
 [guide](https://durchgemacht.github.io/model27/guide/) explains them. Combining machines is proven with two internal
 reference machines: SAMPLE with the first one on a Model:Cycles; the second one, with a shortcut, and sharing the
 main screen, the knob view, the screen's tick and the browser with SAMPLE, in emulation so far, composed by the page

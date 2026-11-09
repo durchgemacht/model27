@@ -2969,3 +2969,71 @@ python3 tools/compose.py --cycles ../model-cycles_OS1/model-cycles_OS1.13.syx \
   OS): `_scratch/beta-tests/chordtables-0.3.md` (not committed; the maintainer's wish of 2026-11-08, for beta releases
   once the flasher is online again).
 
+
+## 34. W7: the card in the flasher (2026-11-08)
+
+The maintainer (2026-11-08): « bereite das alles vor. flasher wird wieder online gehen », then « mach alles fertig
+damit die karte im flasher erscheint […] den ganzen beta kram machen wir dann später ». So the card goes in as the
+others did: a box for beta testers, or a beta page apart from the tested flasher, comes later (the test sheet stays
+in `_scratch/beta-tests/chordtables-0.3.md`).
+
+### 34.1 What the page gets
+
+- **The card** (`tools/gen_flasher_tweaks.py`): `FEATURES` entry `chordtables` after SAMPLE, `cat` sound, status
+  `experimental`, credit « by durchgemacht » with the model27 repository, no license file (model27's own code, as
+  Crush). `OFFERED` takes it after `sampler`; `docs/flasher/tweaks.js` has fifteen cards and the package.
+- **The status:** the package is `tested` (§33.5), from the command line; the card stays `experimental` until the
+  maintainer flashes it from the page, as for Transpose (notes/80 §6.1) and the CPU page.
+- **Its section: Mods, not Machines.** `kindOf()` in `docs/flasher/app.js` gave every package without a filter or an
+  effect slot the Machines section, whose How to use says the machines are listed after CHORD in the MACHINES menu and
+  whose note asks to set their tracks to an original machine before another firmware: neither holds for an extension
+  of CHORD. A package with a `machine.stock` use is now a mod. The log of the build says « chordtables on CHORD »
+  instead of « as machine 5 ».
+- **The card's texts** (`FEAT` in app.js, Writing for users): the short text; blocks for the files, [PATTERN] + SWEEP,
+  SWEEP, Patterns, Other firmware (the effects' wording: the stock sound without it; flash it again and the patterns
+  play their tables again; set them again if the project was saved in between). No « Good to know »: the rewritten
+  cards have none (`webflash_smoke.js` checks it). `GUIDE_OF`: `chord-tables`.
+- **The guide:** section 4 « CHORD Tables » after SAMPLE (five steps, then Patterns, Files, Load, Other firmware, Other
+  mods, Tested: « Not yet flashed from this page »), the later sections renumbered 5 to 22. CHORD Tables is in the
+  « Other mods » list of every other card: the maintainer's full build holds all fifteen (§33).
+- **Release 0.52** (`docs/assets/release.js`, 2026-11-08), the stamps `2026-11-08-01` on the five pages, the README's
+  status (fifteen cards, CHORD Tables tested from the command line), a `BUILD.md` section, the `PROVENANCE.md` row
+  rewritten for 0.3.
+
+### 34.2 The references
+
+`tools/ref_mainos.py` (16 minutes here): REF_MAINOS 121 combinations, REF_MODS 4098 entries. The MAIN OS hashes:
+
+| Build | MAIN OS SHA-256 |
+|---|---|
+| `chordtables` alone | `49596b80843a76b7d7891f76d047ff1402811b4fabc1cf75049abbdf34b0fd6f` |
+| with SAMPLE | `e34b7597e94c1095a30b420aff62a1bb78183c2c5945a0b8b6bf03ba50339fef` |
+| all fifteen cards | `0e1c33bca35ab4a9d9ac0aa4bcb4ded45aee0876e4ccdeea7431688c883c6079`, the device's build of §33.3 |
+
+**An open point, the size of app.js.** REF_MODS holds every set of package cards, times the four with and without the
+CPU page, RESAMPLE and Transpose: 2^9 × 8 = 4096 sets with nine packages, twice the 2048 of release 0.51. `app.js` goes
+from 549 KB to 965 KB; a tenth package card would take it near 1.8 MB, and `ref_mainos.py` near half an hour. The page
+checks every mod of a build against REF_MODS (notes/49); for the composed tweak, a reference per package and part, or
+only for the sets of the REF_MAINOS sample, would keep it linear. Not changed here.
+
+### 34.3 `tools/webflash_smoke.js`
+
+The lists: the cards' order, the packages, the fifteen rows by section, the names, the credits (22, CHORD Tables
+linking the model27 repository), every card ticked together. A check of its own: CHORD Tables alone (`chordtables`),
+with SAMPLE (`sampler+chordtables`), with Digital Delay, Crush and Transpose (one composed tweak, no clash), in Mods, no
+sub-choice, its guide link, the Experimental tag.
+
+### 34.4 Checks (2026-11-08/09)
+
+- `gen_flasher_tweaks.py --check`, `check_overlaps.py`, `registry.py --check`: ok. `claims.py --check`: ALL OK; its
+  `--self-test` has the four FAILs it already had before this section (lfo-plus, SAMPLE × the track filter, REF2,
+  the clash text), nothing new.
+- `webcompose_check.sh` on the official OS: 63/63 selections identical to `compose.py`, among them `chordtables`
+  alone (MAIN OS `49596b80…`), with SAMPLE (`e34b7597…`) and with every package and part (`7a644275…`).
+- `webflash_smoke.sh`, synthetic OS: ALL OK. On the official OS (`SMOKE_JOBS=4`): ALL PARTS OK, every combination of
+  REF_MAINOS reached by ticking its cards and equal to its reference, each mod checked against REF_MODS. Not run: the
+  Model:Samples flows (no official Model:Samples file here).
+- `py_compile`, `node --check` of the changed scripts: ok.
+- **For the maintainer, once the flasher is online:** flash from the page with CHORD Tables (alone, or with the
+  fourteen others: the page's file has the MAIN OS of §34.2), repeat test 1 of §33 (the gesture and a table), and say
+  so: the card then becomes `tested`.

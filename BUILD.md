@@ -262,6 +262,32 @@ python3 tools/emu/test_control_all_config.py --cycles model-cycles_OS1.13.syx \
 python3 tools/build.py -i model-cycles_OS1.13.syx -t control-all-config
 ```
 
+### CHORD Tables (wavetables du +Drive)
+
+`tweaks/model-cycles_OS1.13/36-chordtables.json` est produit par `tools/gen_chordtables.py`, qui compile
+`tools/machines/chordtables/` (`chordtables.c`, `entries.S`) en son objet et le compose seul avec `tools/compose.py`,
+sans rien enregistrer : une extension de la machine CHORD d'origine ([note 66](notes/66-chord-wavetables-from-drive.md)).
+Depuis la 0.3 (note 66 §27 à §31), le pattern choisit une table pour toutes les pistes CHORD, PATTERN + SWEEP (octets 36
+et 37 de l'en-tête du pattern, deux pas par table) : 0 la table d'origine, 1 à 63 les fichiers `/Wavetables/01` à `63`
+du +Drive, lus sur le tick de l'écran ; la table entière prend la place de la table d'origine en SRAM. Ses cinq crochets
+en chaîne (le lookup des potards, `0x4001f886`, le relâchement de PATTERN, le chargeur et l'initialisation de l'en-tête)
+passent devant les parties du constructeur aux mêmes endroits (note 66 §30.2). La preuve tourne sur le code de l'OS
+(Unicorn) :
+```sh
+python3 tools/gen_chordtables.py --cycles model-cycles_OS1.13.syx [--check]
+python3 tools/emu/test_chordtables.py --cycles model-cycles_OS1.13.syx [--dry]
+python3 tools/emu/probe_chord_lines.py --cycles model-cycles_OS1.13.syx
+python3 tools/emu/probe_chord_switch.py --cycles model-cycles_OS1.13.syx [--wav <dossier>]
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines chordtables                # seul
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,chordtables        # avec SAMPLE
+```
+MAIN OS patché, `chordtables` 0.3 seul : `49596b80843a76b7d7891f76d047ff1402811b4fabc1cf75049abbdf34b0fd6f` ; avec
+SAMPLE : `e34b7597e94c1095a30b420aff62a1bb78183c2c5945a0b8b6bf03ba50339fef` ; avec toutes les cartes de la page (quinze,
+release 0.52 : `--machines sampler,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq --cpu --resample --transpose
+--with control-all-config,trig-preview,trig-cond-order`) : `0e1c33bca35ab4a9d9ac0aa4bcb4ded45aee0876e4ccdeea7431688c883c6079`,
+le fichier essayé sur un Model:Cycles depuis la ligne de commande le 08/11/2026 (note 66 §33 : les huit essais) ; pas
+encore flashé depuis la page.
+
 ### Digital Delay (effet)
 
 `tweaks/model-cycles_OS1.13/39-digidelay.json` est produit par `tools/gen_digidelay.py`, qui compile

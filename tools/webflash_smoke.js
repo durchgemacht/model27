@@ -229,19 +229,21 @@ async function main() {
     const fx3 = ["ring", "reso", "eq"].map((i) => cards.find((f) => f.id === i) || {});
     const cpu = cards.find((f) => f.id === "cpu") || {}, rsm = cards.find((f) => f.id === "resample") || {};
     const trs = cards.find((f) => f.id === "transpose") || {};
+    const ct = cards.find((f) => f.id === "chordtables") || {};
     check(ids.join() === "control-all-config,trig-preview,trig-cond-order"
-      && cards.map((f) => f.id).join() === "control-all-config,trig-preview,sampler,digidelay,pots,smpfilter,crush,ring,reso,eq,cpu,resample,transpose,trig-cond-order"
+      && cards.map((f) => f.id).join() === "control-all-config,trig-preview,sampler,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq,cpu,resample,transpose,trig-cond-order"
       && cpu.part === "cpu" && !cpu.package && !cpu.variants && rsm.part === "resample" && !rsm.package && !rsm.variants
       && trs.part === "transpose" && !trs.package && !trs.variants
-      && smp.package === "sampler" && !smp.variants && dd.package === "digidelay" && !dd.variants
+      && smp.package === "sampler" && !smp.variants && ct.package === "chordtables" && !ct.variants
+      && dd.package === "digidelay" && !dd.variants
       && pots.package === "pots" && !pots.variants && sf.package === "smpfilter" && !sf.variants
       && cr.package === "crush" && !cr.variants && fx3.every((f) => f.package === f.id && !f.variants)
-      && Object.keys(w.MC_TWEAKS.packages).join() === "sampler,digidelay,pots,smpfilter,crush,ring,reso,eq"
+      && Object.keys(w.MC_TWEAKS.packages).join() === "sampler,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq"
       && Object.keys(w.MC_TWEAKS.parts || {}).join() === "shortcuts,dispatch,fxslot,fltslot,cpu,resample,transpose"
       && w.MC_TWEAKS.registrar && w.MC_TWEAKS.registrar.schema === "model27-registrar-frame/0.1"
       && !cards.some((f) => f.engines || f.needs) && !w.MC_TWEAKS.tweaks.some((x) => x.append && x.append.syntakt),
-      "MC_TWEAKS: model27's fourteen cards, Control All Config, Trig preview and Trig conditions (their tweaks), SAMPLE (a " +
-      "machine card), " +
+      "MC_TWEAKS: model27's fifteen cards, Control All Config, Trig preview and Trig conditions (their tweaks), SAMPLE (a " +
+      "machine card), CHORD Tables (a package on the stock CHORD, notes/66), " +
       "Digital Delay and POTS (effect cards), Samples, Crush, Ring, Reso and EQ (Track FX cards): their packages, the registrar's frame and the " +
       "parts, composed in the page, the CPU page, RESAMPLE and Transpose (part cards, composed with them), " +
       "nothing that needs the Syntakt OS: " + ids.join());
@@ -255,12 +257,12 @@ async function main() {
     // display order: by section (Sounds & machines, Sequencer, then Live playing), FEATURES order inside a section;
     // the build keeps FEATURES order (checked in 1b)
     const feats = [...doc.querySelectorAll("#features input[type=checkbox]")].map((c) => c.id);
-    check(feats.join() === "feat-sampler,feat-digidelay,feat-pots,feat-smpfilter,feat-crush,feat-ring,feat-reso,feat-eq,feat-resample,feat-trig-preview,feat-trig-cond-order,feat-control-all-config,feat-transpose,feat-cpu",
-      "14 feature rows, by section: " + JSON.stringify(feats));
+    check(feats.join() === "feat-sampler,feat-digidelay,feat-pots,feat-smpfilter,feat-crush,feat-ring,feat-reso,feat-eq,feat-chordtables,feat-resample,feat-trig-preview,feat-trig-cond-order,feat-control-all-config,feat-transpose,feat-cpu",
+      "15 feature rows, by section: " + JSON.stringify(feats));
     const KIND = { sampler: "machine", digidelay: "effect", pots: "effect", smpfilter: "filter", crush: "filter",
-      ring: "filter", reso: "filter", eq: "filter" };
+      ring: "filter", reso: "filter", eq: "filter" };   // CHORD Tables, a package on the stock CHORD: in Mods (notes/66 §34)
     check(cards.every((f) => doc.querySelector(`#grp-${KIND[f.id] || "mod"} #mod-${f.id} #feat-${f.id}`)),
-      "every card in its section: SAMPLE in Machines, Digital Delay and POTS in Effects, Samples, Crush, Ring, Reso and EQ in Track FX, the others in Mods");
+      "every card in its section: SAMPLE in Machines, Digital Delay and POTS in Effects, Samples, Crush, Ring, Reso and EQ in Track FX, the others in Mods, CHORD Tables too");
     // tested is the rule and goes unsaid on a card; only the exceptions carry a tag
     const tags = cards.map((f) => f.id + ":" + ((doc.querySelector(`#mod-${f.id} .tag`) || {}).textContent || "-"));
     check(tags.join() === cards.map((f) => f.id + ":" + (f.status === "tested" ? "-" : "Experimental")).join(),
@@ -268,7 +270,7 @@ async function main() {
     check(doc.getElementById("drop3-wrap").hidden, "no Syntakt drop zone: no card needs the Syntakt OS");
     const credits = [...doc.querySelectorAll("#features .credit a")].map((a) => a.href);
     const creditOf = (id) => [...doc.querySelectorAll(`#mod-${id} .credit a`)].map((a) => a.href);
-    check(credits.length === 21
+    check(credits.length === 22
       && creditOf("sampler")[0] === "https://github.com/durchgemacht/cycles-one-shot" && /\/LICENSE-One-Shot\.txt$/.test(creditOf("sampler")[1])
       && creditOf("smpfilter")[0] === "https://github.com/durchgemacht/cycles-one-shot" && /\/LICENSE-One-Shot\.txt$/.test(creditOf("smpfilter")[1])
       && creditOf("digidelay")[0] === "https://github.com/gialloinfuso/PPPCCC-M-S-Mods"
@@ -279,11 +281,11 @@ async function main() {
       && /\/LICENSE-elektron-model-tweaks\.txt$/.test(creditOf("trig-preview")[1])
       && creditOf("pots").join() === "https://github.com/durchgemacht/model27" && !doc.querySelector("#features label .credit")
       && creditOf("trig-cond-order").join() === "https://github.com/durchgemacht/model27"
-      && ["crush", "ring", "reso", "eq", "transpose"].every((i) => creditOf(i).join() === "https://github.com/durchgemacht/model27")
+      && ["chordtables", "crush", "ring", "reso", "eq", "transpose"].every((i) => creditOf(i).join() === "https://github.com/durchgemacht/model27")
       && creditOf("cpu")[0] === "https://github.com/TinyGregAudio/Model-TG" && /\/LICENSE-Model-TG\.txt$/.test(creditOf("cpu")[1])
       && creditOf("resample")[0] === "https://github.com/TinyGregAudio/Model-TG" && /\/LICENSE-Model-TG\.txt$/.test(creditOf("resample")[1]),
       "each card credits its author (outside its label: the link doesn't tick it), with a link to the MIT license of the code it carries (SAMPLE and " +
-      "Samples both One-Shot's, the CPU page and RESAMPLE Model-TG's); POTS, Trig conditions, Crush, Ring, Reso, EQ and Transpose, " +
+      "Samples both One-Shot's, the CPU page and RESAMPLE Model-TG's); POTS, Trig conditions, CHORD Tables, Crush, Ring, Reso, EQ and Transpose, " +
       "model27's own, link the model27 repository: " +
       JSON.stringify(credits));
     const list = [...doc.querySelectorAll("#credits-list a")].map((a) => a.textContent);
@@ -438,14 +440,30 @@ async function main() {
       `Transpose alone ${trAlone}; with SAMPLE ${trSmp}, with the CPU page and RESAMPLE ${trAll}, one composed tweak; ` +
       `with Control All Config and Trig Preview ${trTp}, no clash; in Mods; no sub-choice; its guide link; ` +
       `tested, so no tag`);
-    const every = ["sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample", "transpose", "control-all-config", "trig-cond-order", "trig-preview"];
+    // CHORD Tables: a package card on the stock CHORD (notes/66), composed with the machine cards, in Mods; experimental
+    box("feat-chordtables").click(); await wait(5);
+    const ctAlone = chosen();
+    box("feat-sampler").click(); await wait(5);
+    const ctSmp = chosen();
+    for (const i of ["digidelay", "crush", "transpose"]) { box("feat-" + i).click(); await wait(5); }
+    const ctFx = chosen();
+    const ctOn = box("feat-chordtables").checked && !doc.querySelector("#features .say.clash");
+    for (const i of ["sampler", "digidelay", "crush", "transpose", "chordtables"]) { box("feat-" + i).click(); await wait(5); }
+    check(ctAlone === "chordtables" && ctSmp === "sampler+chordtables" && ctFx === "sampler+chordtables+digidelay+crush+transpose"
+      && ctOn && !chosen().length
+      && doc.querySelector('#grp-mod #feat-chordtables') && doc.querySelector('#features a[href$="#chord-tables"]')
+      && doc.querySelectorAll('input[name="var-chordtables"]').length === 0
+      && /Experimental/.test((doc.querySelector("#mod-chordtables .tag") || {}).textContent || ""),
+      `CHORD Tables alone ${ctAlone}; with SAMPLE ${ctSmp}; with Digital Delay, Crush and Transpose ${ctFx}, one composed ` +
+      `tweak, no clash; in Mods; no sub-choice; its guide link; experimental, so its tag`);
+    const every = ["sampler", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample", "transpose", "control-all-config", "trig-cond-order", "trig-preview"];
     for (const i of every) { box("feat-" + i).click(); await wait(5); }
     const fxAll = chosen();
     const fxAllOn = every.every((i) => box("feat-" + i).checked) && !doc.querySelector("#features .say.clash");
     for (const i of every) { box("feat-" + i).click(); await wait(5); }
-    check(fxAll === "control-all-config,trig-preview,sampler+digidelay+pots+smpfilter+crush+ring+reso+eq+cpu+resample+transpose,trig-cond-order"
+    check(fxAll === "control-all-config,trig-preview,sampler+chordtables+digidelay+pots+smpfilter+crush+ring+reso+eq+cpu+resample+transpose,trig-cond-order"
       && fxAllOn && !chosen().length,
-      `every card ticked: ${fxAll}, the five Track FX, the CPU page, RESAMPLE and Transpose in one composed tweak, no clash`);
+      `every card ticked: ${fxAll}, CHORD Tables, the five Track FX, the CPU page, RESAMPLE and Transpose in one composed tweak, no clash`);
     // Trig conditions: a tweak card, after the composed tweak of the machine and effect cards in the build
     box("feat-trig-cond-order").click(); await wait(5);
     const tcoAlone = chosen();
@@ -490,7 +508,7 @@ async function main() {
     // English only: no language switch; the cards by their names, their credits and guide links
     const names = [...doc.querySelectorAll("#features .nm")].map((e) => e.textContent);
     check(!doc.querySelector(".lang") && doc.documentElement.lang === "en" && /new tricks/.test(text(doc, "h1s"))
-      && names.join() === "SAMPLE,Digital Delay,POTS,LP/HP Filter,Crush,Ring,Reso,EQ,RESAMPLE,Trig Preview,Trig Condition Order,Control All Config,Transpose,CPU Page"
+      && names.join() === "SAMPLE,Digital Delay,POTS,LP/HP Filter,Crush,Ring,Reso,EQ,CHORD Tables,RESAMPLE,Trig Preview,Trig Condition Order,Control All Config,Transpose,CPU Page"
       && /by drumkilla/.test(text(doc, "features")) && /by durchgemacht/.test(text(doc, "features"))
       && doc.querySelector('#features a[href$="#control-all"]') && doc.querySelector('#features a[href$="#sampler"]'),
       "English only, no language switch; the cards by their names: " + names.join());

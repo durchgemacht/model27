@@ -7,6 +7,11 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.52", date: "2026-11-08", changes: [
+    { en: "A new card, CHORD Tables: CHORD plays your own wavetables from the +Drive, one for each pattern. Put them on the +Drive with the Uploader, in a folder Wavetables, named 01 to 63. Hold PATTERN on a CHORD track and turn SWEEP to choose the pattern's wavetable: 0 is CHORD's own, 1 to 63 the files, two steps of the knob each. Every CHORD track in the pattern plays it, and SWEEP moves through its waveforms as through CHORD's own" },
+    { en: "The wavetable is saved with the pattern and comes in at once when the pattern changes, also on notes that still sound, without a click. It plays from the same fast memory as CHORD's own, so six CHORD tracks with LFOs on SWEEP cost about what they cost with CHORD's own sound. A wavetable uploaded or deleted while the Model:Cycles runs is read within about two seconds" },
+    { en: "Checked in an emulator on the OS's own code: every CHORD track sample for sample like the stock OS switched to the same wavetable, and like the stock OS at 0. Tested on a Model:Cycles (2026-11-08), from the command line with all fourteen other cards; not yet flashed from this page" },
+  ] },
   { version: "0.51", date: "2026-11-06", changes: [
     { en: "A new card, Transpose: hold MACHINES and press TRIG 15 or 16 to move the notes of the TRIG keys an octave down or up, two at most. TRIG 8, 9, 11 and 12 make the active track jump 7 or 5 semitones down, or 5 or 7 up, at once, also while the pattern plays. Press the key again to go back. A new pattern brings everything back; a temporary reload or a reload from the project (FUNC + PATTERN) brings the pitch back and keeps the octave" },
     { en: "With MACHINES held, the six keys light up dim, half or full to show the octave and the jump. With this card, MACHINES opens the MACHINES menu when you let go of it, unless you used one of these keys" },

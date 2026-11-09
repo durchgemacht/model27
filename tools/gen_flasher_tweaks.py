@@ -344,6 +344,22 @@ ALL_FEATURES = [
         "package": "sampler",
     },
     {
+        "id": "chordtables",
+        "cat": "sound",
+        "label": "CHORD Tables",
+        "desc": "CHORD plays wavetables from the +Drive, one table per pattern: the files 01 to 63 in a folder Wavetables. "
+                "On a CHORD track, PATTERN + SWEEP picks the pattern's table (0 = CHORD's own, two steps of the knob a "
+                "table); every CHORD track of the pattern plays it, and SWEEP moves through its waveforms.",
+        # model27's own (notes/66 §27 to §33): 0.3 proven in emulation (test_chordtables.py, probe_chord_lines.py) and
+        # tested on the Model:Cycles on 2026-11-08 in the maintainer's full build from the command line (notes/66 §33);
+        # experimental here until flashed from this page, as the other cards were
+        "status": "experimental",
+        "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
+        # an extension of CHORD composed in the page like a machine (notes/66 §3): alone it gives 36-chordtables.json
+        # byte for byte; its chain hooks go in front of the effect slots' and the filter slot's (notes/66 §30.2)
+        "package": "chordtables",
+    },
+    {
         "id": "digidelay",
         "cat": "sound",
         "label": "Digital Delay (effect)",
@@ -590,8 +606,8 @@ ALL_FEATURES = [
 # model27 offers a short list of cards. The other definitions above stay as they are, for the command-line build
 # (every tweak of tweaks/ is still built by tools/build.py) and so that merges from upstream apply cleanly; a card
 # comes back into the flasher by adding its id here, once it has been reviewed against the Cycles Mod Standard.
-OFFERED = ("sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample", "transpose",
-           "control-all-config", "trig-cond-order", "trig-preview")
+OFFERED = ("sampler", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample",
+           "transpose", "control-all-config", "trig-cond-order", "trig-preview")
 FEATURES = [f for f in ALL_FEATURES if f["id"] in OFFERED]
 _missing = set(OFFERED) - {f["id"] for f in FEATURES}
 if _missing:
