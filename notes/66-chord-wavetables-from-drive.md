@@ -3245,3 +3245,47 @@ The maintainer: « Ja, N3 bauen ».
     window naming both. `webuploader_check.sh`: OK.
 - **In the browser** against `fake-cycles.js`: `07 Pad`, then `07 Glass` and `7 Glass`. The window named both: `07
   Glass` plays instead of `07 Pad`, and `7 Glass` does not play. No error in the console.
+
+### 36.9 N4 prepared: the texts and the device build (2026-11-09)
+
+The maintainer: « Ja, N4 ».
+
+- **The card** (`FEAT` in `docs/flasher/app.js`): « Start each name with its number, 01 to 63: 07 Glass Pad is wavetable
+  7 ».
+- **The guide**, §4:
+  - step 2: the name starts with the number, then a name if you like; the Uploader warns.
+  - Files: renamed files are read within two seconds; `7 Pad` and `070` do not play; of two files with one number,
+    the name first alphabetically, capitals before small letters.
+  - Tested: the names in the emulator, not yet on the device.
+- **Release 0.54**, the stamps `2026-11-09-02`, `BUILD.md` (0.4's hashes, 0.3's kept), the `PROVENANCE.md` row.
+- **The test sheet:** `_scratch/beta-tests/chordtables-0.4.md`, the one of 0.3 with the naming rule, tests 9 to 11
+  (a name after the number, a name without one, two files with one number and a delete) and their rows in the
+  results. The files are in `_scratch/beta-tests/files/names/`: `07 Glass Pad`, `7 Pad`, `12 Pad` and `12 Glass`,
+  copies of `01` to `04` of `_scratch/chordtables-digiemu/`.
+- **The device build:** `build/chordtables-0.4/CHORD-Tables-0.4_full-build.syx` (.syx `e38153f1…`, MAIN OS
+  `8e0a9241…`, the tool's check ok). The fifteen cards as in §33.1; its MAIN OS is the page's for the same cards
+  (REF_MAINOS).
+- **Checks:** `gen_flasher_tweaks.py --check`, `webflash_smoke.sh` (synthetic OS), `webuploader_check.sh`,
+  `webmanager_check.sh`: OK; the guide's anchors and tags.
+- **On the device, one test after the other:** 9, 10, 11, then a short pass over 1, 4 and 7 of §33 (the table, a
+  pattern change, files added and deleted).
+- **The texts against Writing for users** (`docs/AGENTS.md`; the maintainer asked, 2026-11-09): four breaches found
+  and fixed. Guide step 3, « Put CHORD on a track », named no key; it is now « Press MACHINES and pick CHORD ». Step 4,
+  « or give it an LFO », left the keys out; it is now « press and hold LFO, then turn SWEEP », the result in a sentence of
+  its own. Step 5 had the filler « as usual ». On the card, the popup's sentence shared the action's sentence.
+
+### 36.10 0.4 on the device (the maintainer, 2026-11-09)
+
+The full build of §36.9 (`.syx e38153f1…`, MAIN OS `8e0a9241…`), a new project, tables `01` to `04` in `/Wavetables`.
+
+- **Test 9, a name after the number:** `07 Glass Pad` uploaded, PATTERN + SWEEP to 7: « passt ». It plays as table 7,
+  tables 1 to 4 as before.
+- **Test 10, a name without a number:** `7 Pad` uploaded: « passt ». The Uploader's window warns that it does not play,
+  table 7 still plays `07 Glass Pad`.
+- **Test 11, two files with one number:** `12 Pad`, then `12 Glass`: « passt ». The window says `12 Glass` plays,
+  table 12 plays it; after `12 Glass` is deleted, `12 Pad` within about two seconds.
+- **Test 3 again, the load** (the listing every 2 s is new work in the UI task): six CHORD tracks with LFOs on SWEEP,
+  table 7, the pattern playing, TRACK held and the knobs turned for about 10 seconds: « passt ». No hitch every 2
+  seconds, no click.
+- **All tests of 0.4 passed** on the Model:Cycles (2026-11-09), from the command line with all fourteen other cards.
+  Not yet flashed from the page (the flasher is offline).

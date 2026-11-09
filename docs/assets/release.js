@@ -7,6 +7,11 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.54", date: "2026-11-09", changes: [
+    { en: "CHORD Tables reads wavetables with names: start the name with the wavetable's number, 01 to 63, and add what you like. 07 Glass Pad is wavetable 7, and 07 alone still is. Of two files with the same number, the one whose name comes first alphabetically plays. A renamed file is read within about two seconds" },
+    { en: "The Uploader warns, in Wavetables, when a name does not start with 01 to 63 and when a number is already taken, saying which file plays. The files are uploaded all the same" },
+    { en: "Checked in an emulator on the OS's own code: the names, two files with one number, renaming, adding, replacing and deleting files, 63 files at once. Not yet tried on a Model:Cycles" },
+  ] },
   { version: "0.53", date: "2026-11-09", changes: [
     { en: "The Uploader shows a warning or a problem in a window over the page, which stays until you press OK. After an upload it names each file that was skipped, not uploaded or uploaded with a warning, and why. The line under the title still says what happened last" },
     { en: "A wavetable in Wavetables whose first waveform is not a sine still uploads, and its warning now says what CHORD Tables does with it: it puts a sine in front, which SWEEP plays at the far left. Checked against a stand-in Model:Cycles in the browser" },

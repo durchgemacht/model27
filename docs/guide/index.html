@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-11-09-01">
-<link rel="stylesheet" href="../assets/guide.css?v=2026-11-09-01">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-09-02">
+<link rel="stylesheet" href="../assets/guide.css?v=2026-11-09-02">
 <script>try{var t=localStorage.getItem("mc-theme")}catch(e){}if(t)document.documentElement.setAttribute("data-theme",t)</script>
 </head>
 <body data-page="guide">
@@ -134,18 +134,18 @@
         <p class="lede">CHORD plays your own wavetables from the +Drive. Each pattern chooses one, and every CHORD track in the pattern plays it; SWEEP moves through its waveforms as through CHORD's own.</p>
         <ol>
           <li>Make your wavetables: each one is up to 32 single-cycle waveforms of 256 samples, one after the other, mono. Its first waveform should be a sine; if it is not, CHORD Tables puts one in front.</li>
-          <li>Put them on the +Drive with the <a href="../uploader/">Uploader</a>, in a folder <b>Wavetables</b> at the top, named <code>01.wav</code> to <code>63.wav</code>. The Uploader drops the <code>.wav</code>. A file named any other way is not played.</li>
-          <li>Put CHORD on a track. Press and hold <b>PATTERN</b>, then turn <b>SWEEP</b>. The popup shows Wavetable and a number, one number every two steps of the knob: 0 is CHORD's own sound, 1 to 63 the file with that number.</li>
-          <li>Turn <b>SWEEP</b> to move through the wavetable, or give it an LFO. At the far left you hear a sine.</li>
-          <li>Save the project as usual. Each pattern keeps its wavetable.</li>
+          <li>Put them on the +Drive with the <a href="../uploader/">Uploader</a>, in a folder <b>Wavetables</b> at the top. Start each name with the wavetable's number, two digits from <code>01</code> to <code>63</code>, then a name if you like: <code>07 Glass Pad.wav</code> is wavetable 7, and so is <code>07.wav</code>. The Uploader drops the <code>.wav</code>, and it warns you when CHORD Tables will not play a file as you named it.</li>
+          <li>Press <b>MACHINES</b> and pick <b>CHORD</b>. Press and hold <b>PATTERN</b>, then turn <b>SWEEP</b>. The popup shows Wavetable and a number, one number every two steps of the knob: 0 is CHORD's own sound, 1 to 63 the file with that number.</li>
+          <li>Turn <b>SWEEP</b> to move through the wavetable. At the far left you hear a sine. To let the LFO move through it, press and hold <b>LFO</b>, then turn <b>SWEEP</b>. SWEEP becomes the LFO's destination.</li>
+          <li>Save the project. Each pattern keeps its wavetable.</li>
         </ol>
         <dl class="facts">
           <div><dt>Patterns</dt><dd>one wavetable per pattern, for every CHORD track in it. When the pattern changes, the new wavetable comes in at once, also on notes that still sound, without a click.</dd></div>
-          <div><dt>Files</dt><dd>a wavetable uploaded or deleted while the Model:Cycles runs is read within about two seconds. A number without a file plays CHORD's own sound.</dd></div>
+          <div><dt>Files</dt><dd>a wavetable uploaded, deleted or renamed while the Model:Cycles runs is read within about two seconds. A number without a file plays CHORD's own sound. A name that does not start with <code>01</code> to <code>63</code> is not played (<code>7 Pad</code>, <code>070</code>). Of two files with the same number, the one whose name comes first alphabetically plays, capitals before small letters.</dd></div>
           <div><dt>Load</dt><dd>the wavetable plays from the same fast memory as CHORD's own, so six CHORD tracks with LFOs on SWEEP cost about what they cost with CHORD's own sound.</dd></div>
           <div><dt>Other firmware</dt><dd>without CHORD Tables, another model27 build or the official one, every pattern plays CHORD's own sound. Flash CHORD Tables again and the patterns play their wavetables again. If you saved the project in between, set the wavetables again.</dd></div>
           <div><dt>Other mods</dt><dd>goes with SAMPLE, the effects, the Track FX, the CPU Page, RESAMPLE, Transpose, Trig Condition Order, Trig Preview and Control All Config.</dd></div>
-          <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code: every CHORD track sounds sample for sample like the stock OS switched to the same wavetable, through every change of pattern, and like the stock OS at 0. Tested on a Model:Cycles (2026-11-08), from the command line with all fourteen other cards: the knob, the wavetables, SWEEP and LFOs, six CHORD tracks with LFOs and Control All, pattern changes, saving and loading, the other mods, files added and deleted, and the official OS. Not yet flashed from this page.</dd></div>
+          <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code: every CHORD track sounds sample for sample like the stock OS switched to the same wavetable, through every change of pattern, and like the stock OS at 0. Tested on a Model:Cycles (2026-11-08), from the command line with all fourteen other cards: the knob, the wavetables, SWEEP and LFOs, six CHORD tracks with LFOs and Control All, pattern changes, saving and loading, the other mods, files added and deleted, and the official OS. The names after the number (2026-11-09) are checked in the emulator, not yet on a Model:Cycles. Not yet flashed from this page.</dd></div>
         </dl>
       </section>
 
@@ -542,8 +542,8 @@
   </div>
 </footer>
 
-<script src="../assets/release.js?v=2026-11-09-01"></script>
-<script src="../assets/cycles.js?v=2026-11-09-01"></script>
-<script src="../assets/site.js?v=2026-11-09-01"></script>
+<script src="../assets/release.js?v=2026-11-09-02"></script>
+<script src="../assets/cycles.js?v=2026-11-09-02"></script>
+<script src="../assets/site.js?v=2026-11-09-02"></script>
 </body>
 </html>

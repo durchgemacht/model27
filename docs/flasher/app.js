@@ -4905,10 +4905,11 @@ const FEAT = {
   chordtables: { label: "CHORD Tables",
     short: "CHORD plays your own wavetables from the +Drive, one for each pattern.",
     desc: [
-      ["", "Put wavetables on the +Drive first, with this site's Uploader: in a folder Wavetables, named 01 to 63. A " +
-        "wavetable is up to 32 single-cycle waveforms of 256 samples, one after the other."],
+      ["", "Put wavetables on the +Drive first, with this site's Uploader, in a folder Wavetables. Start each name with " +
+        "its number, 01 to 63: 07 Glass Pad is wavetable 7. A wavetable is up to 32 single-cycle waveforms of 256 " +
+        "samples, one after the other."],
       ["[PATTERN] + SWEEP", "Sets the pattern's wavetable. Press and hold [PATTERN] on a CHORD track, then turn " +
-        "SWEEP: the popup shows Wavetable and its number. 0 is CHORD's own, 1 to 63 the files with that number, two " +
+        "SWEEP. The popup shows Wavetable and its number: 0 is CHORD's own, 1 to 63 the files with that number, two " +
         "steps of the knob each. Every CHORD track in the pattern plays it."],
       ["SWEEP", "Moves through the wavetable's waveforms, as through CHORD's own. At the far left you hear a sine."],
       ["Patterns", "The wavetable is saved with the pattern. When the pattern changes, the new one comes in at once, " +
