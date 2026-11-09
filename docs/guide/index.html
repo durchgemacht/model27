@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-11-09-03">
-<link rel="stylesheet" href="../assets/guide.css?v=2026-11-09-03">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-09-04">
+<link rel="stylesheet" href="../assets/guide.css?v=2026-11-09-04">
 <script>try{var t=localStorage.getItem("mc-theme")}catch(e){}if(t)document.documentElement.setAttribute("data-theme",t)</script>
 </head>
 <body data-page="guide">
@@ -134,7 +134,8 @@
         <p class="by">model27's own · MIT license</p>
         <p class="lede">CHORD plays your own wavetables from the +Drive. Each pattern chooses one, and every CHORD track in the pattern plays it; SWEEP moves through its waveforms as through CHORD's own.</p>
         <ol>
-          <li>Make your wavetables: each one is up to 32 single-cycle waveforms of 256 samples, one after the other, mono. Its first waveform should be a sine; if it is not, CHORD Tables puts one in front.</li>
+          <li>Make your wavetables on the <a href="../wavetables/">Wavetables</a> page. Fill its 31 slots, then press <b>Save…</b>. Under CHORD Tables, choose the wavetable's number and press <b>Save .wav</b>.</li>
+          <li>From another program, a wavetable is up to 32 single-cycle waveforms of 256 samples, one after the other, mono, at 48 kHz. Its first waveform should be a sine; if it is not, CHORD Tables puts one in front.</li>
           <li>Put them on the +Drive with the <a href="../uploader/">Uploader</a>, in a folder <b>Wavetables</b> at the top. Start each name with the wavetable's number, two digits from <code>01</code> to <code>63</code>, then a name if you like: <code>07 Glass Pad.wav</code> is wavetable 7, and so is <code>07.wav</code>. The Uploader drops the <code>.wav</code>, and it warns you when CHORD Tables will not play a file as you named it.</li>
           <li>Press <b>MACHINES</b> and pick <b>CHORD</b>. Press and hold <b>PATTERN</b>, then turn <b>SWEEP</b>. The popup shows Wavetable and a number, one number every two steps of the knob: 0 is CHORD's own sound, 1 to 63 the file with that number.</li>
           <li>Turn <b>SWEEP</b> to move through the wavetable. At the far left you hear a sine. To let the LFO move through it, press and hold <b>LFO</b>, then turn <b>SWEEP</b>. SWEEP becomes the LFO's destination.</li>
@@ -543,8 +544,8 @@
   </div>
 </footer>
 
-<script src="../assets/release.js?v=2026-11-09-03"></script>
-<script src="../assets/cycles.js?v=2026-11-09-03"></script>
-<script src="../assets/site.js?v=2026-11-09-03"></script>
+<script src="../assets/release.js?v=2026-11-09-04"></script>
+<script src="../assets/cycles.js?v=2026-11-09-04"></script>
+<script src="../assets/site.js?v=2026-11-09-04"></script>
 </body>
 </html>

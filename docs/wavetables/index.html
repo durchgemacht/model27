@@ -490,6 +490,10 @@ footer p { margin: 0; max-width: 100ch; }
         <div class="card-row"><button id="btn-save" type="button" disabled>Save wavetable</button><button id="btn-copy" type="button" hidden>Copy JSON instead</button></div>
       </div>
       <div class="card">
+        <div class="card-head"><h3>CHORD Tables</h3><button type="button" class="help" aria-label="Explain" data-help="Saves the wavetable as a .wav file for CHORD Tables, a mod in model27's flasher. The file's name starts with the number you choose here. Put the file on the +Drive with model27's Uploader, in the folder Wavetables. On the Model:Cycles, press and hold PATTERN, then turn SWEEP until the popup shows Wavetable and that number.">?</button></div>
+        <div class="card-row"><label class="lab" for="table-no">Number</label><select id="table-no"></select><button id="btn-save-wav" type="button" disabled>Save .wav</button></div>
+      </div>
+      <div class="card">
         <div class="card-head"><h3>Firmware</h3><button type="button" class="help" aria-label="Explain" data-help="Puts your wavetable into CHORD, in the OS file you drop here: the official OS 1.13 (model-cycles_OS1.13.syx from Elektron) or a model27 build (Download in the flasher), which keeps all its mods. The file stays on your computer. Install the saved file like an official OS update.">?</button></div>
         <label class="drop" id="os-drop" tabindex="0">
           <span class="drop-ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M14 3H5v18h14V8z"/><path d="M14 3v5h5"/><path d="M12 11v6M9.5 14.5 12 17l2.5-2.5"/></svg></span>
@@ -508,7 +512,7 @@ footer p { margin: 0; max-width: 100ch; }
 <footer><div class="foot-in">
     <p>Your OS file and your waves stay in this browser. The preview models the waves and CHORD's crossfade, not its envelopes, COLOR or the rest of the signal path.</p>
     <p>The editor of CHORD Wave Bank, MIT license. Wave tables of Braids and Plaits by Emilie Gillet, MIT license, from pichenettes/eurorack (commit 08460a6). Not affiliated with Elektron; contains no Elektron firmware.</p>
-    <p>model27 <span data-rel="version">0.55</span> · <a href="../#version">what's new</a> · <a href="../guide/">guide</a></p>
+    <p>model27 <span data-rel="version">0.56</span> · <a href="../#version">what's new</a> · <a href="../guide/">guide</a></p>
 </div></footer>
 <div id="help-pop" class="help-pop" role="dialog" aria-label="Explanation" hidden><p id="help-text"></p><button type="button" class="help-x" aria-label="Close">×</button></div>
 
@@ -1376,7 +1380,23 @@ const WAV = (() => {
     }
     return order;
   }
-  return { parse, frames, spectrum, spreadPicks, orderCycles };
+  // A wavetable for CHORD Tables (a model27 mod, which reads WAVs from the +Drive folder Wavetables): the OS's sine,
+  // then the frames (Q31, their first 256 samples), as one 48 kHz mono 16-bit WAV file. 48 kHz, the Model:Cycles'
+  // rate, so that the Uploader writes the samples as they are. The sine is the OS's at 0x8000eee4 rounded to 16 bits
+  // (checked against OS 1.13): CHORD Tables takes a first frame within 4 steps of it for the sine.
+  function write(frames) {
+    const N = 256, n = (frames.length + 1) * N, b = new Uint8Array(44 + 2 * n), dv = new DataView(b.buffer);
+    const put = (o, s) => { for (let i = 0; i < 4; i++) b[o + i] = s.charCodeAt(i); };
+    const at = (k, v) => dv.setInt16(44 + 2 * k, Math.max(-32768, Math.min(32767, v)), true);
+    put(0, "RIFF"); dv.setUint32(4, 36 + 2 * n, true); put(8, "WAVE");
+    put(12, "fmt "); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+    dv.setUint32(24, 48000, true); dv.setUint32(28, 96000, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+    put(36, "data"); dv.setUint32(40, 2 * n, true);
+    for (let i = 0; i < N; i++) at(i, Math.floor(Math.sin(2 * Math.PI * i / N) * 32768 + 0.5));
+    frames.forEach((q, f) => { for (let i = 0; i < N; i++) at((f + 1) * N + i, Math.round(q[i] / 65536)); });
+    return b;
+  }
+  return { parse, frames, spectrum, spreadPicks, orderCycles, write };
 })();
 // ==/WAV==
 
@@ -1627,7 +1647,7 @@ const WAV = (() => {
     renderSlots(); paintPool();
     clearTimeout(timer);
     result = null;
-    $("btn-save").disabled = $("btn-copy").disabled = true;
+    $("btn-save").disabled = $("btn-copy").disabled = $("btn-save-wav").disabled = true;
     fwReady();
     const filled = slots.filter(Boolean).length;
     $("f-slots").textContent = `${filled} of 31 filled`;
@@ -1654,7 +1674,7 @@ const WAV = (() => {
       const dips = morph.map((m, i) => [m, i + 1]).filter(([m]) => m < 0.7);
       if (dips.length) say(`The volume dips when sweeping into frame ${dips.map(d => d[1]).join(", ")}.`, "warn");
       else say("Ready. The volume stays steady across the whole sweep.", "good");
-      $("btn-save").disabled = $("btn-copy").disabled = false;
+      $("btn-save").disabled = $("btn-copy").disabled = $("btn-save-wav").disabled = false;
       updateLiveTables();
       fwReady();
       paintSlots(); drawTable(null);
@@ -2208,6 +2228,30 @@ const WAV = (() => {
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     note(`Saved ${filename} to your downloads.`, "good");
   }
+  // For CHORD Tables: "07 my-wavetable.wav", the number first, as the mod reads it.
+  async function saveWav() {
+    if (!result) return;
+    const filename = `${$("table-no").value} ${setJson().name}.wav`, data = WAV.write(result.frames);
+    const next = "Put it on the +Drive with the Uploader, in the folder Wavetables.";
+    if (downloads) {
+      try {
+        await downloads.save({ filename, data });
+        note(`Saved ${filename}. ${next}`, "good");
+      } catch (err) {
+        const code = err && err.code;
+        if (code === "declined") note("Not saved.");
+        else if (code === "rate_limited") note("A save prompt is already open.", "warn");
+        else note(`This page cannot save files here (${code || "error"}). Open the editor as a local file to save the .wav.`, "bad");
+      }
+      return;
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([data], { type: "audio/wav" }));
+    a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    note(`Saved ${filename} to your downloads. ${next}`, "good");
+  }
   function copy() {
     if (!result) return;
     const text = JSON.stringify(setJson()) + "\n";
@@ -2372,6 +2416,8 @@ const WAV = (() => {
   menuLabels();
   $("btn-save").addEventListener("click", save);
   $("btn-copy").addEventListener("click", copy);
+  for (let n = 1; n <= 63; n++) $("table-no").add(new Option(String(n).padStart(2, "0")));
+  $("btn-save-wav").addEventListener("click", saveWav);
   $("btn-load").addEventListener("click", () => $("file-input").click());
   $("file-input").addEventListener("change", e => {
     const f = e.target.files[0];
@@ -2431,5 +2477,5 @@ const WAV = (() => {
 </script>
 
 <!-- ?v= : the site's version stamp, as on the other pages -->
-<script src="../assets/release.js?v=2026-11-09-03"></script>
-<script src="../assets/site.js?v=2026-11-09-03"></script>
+<script src="../assets/release.js?v=2026-11-09-04"></script>
+<script src="../assets/site.js?v=2026-11-09-04"></script>

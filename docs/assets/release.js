@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.56", date: "2026-11-09", changes: [
+    { en: "The Wavetables page saves your wavetable as a file for CHORD Tables: press Save…, choose the wavetable's number under CHORD Tables, then press Save .wav. Put the file on the +Drive with the Uploader, in the folder Wavetables. With CHORD Tables on your Model:Cycles, a new wavetable needs no new firmware" },
+    { en: "The file holds a sine and your 31 waves, at 48 kHz and 16 bits, its name starting with the number, such as 07 my-wavetable.wav. Checked on the files: the Uploader writes it as it is, without a warning, and CHORD Tables plays your waves as the page made them, at 16 bits. Not yet tried on a Model:Cycles" },
+  ] },
   { version: "0.55", date: "2026-11-09", changes: [
     { en: "A new page, Wavetables, gives CHORD a wavetable of your own: drag waves of Plaits and Braids, or your own WAV files, onto its 31 frames, hear them with SWEEP and an LFO, and save the wavetable into your firmware. SWEEP then moves through your waves instead of CHORD's" },
     { en: "It goes into the official OS 1.13 or into a build from this site, which keeps all its cards: download the build's .syx in the flasher's last step and drop it on the page. Your OS file and your waves stay in your browser. It is the editor of CHORD Wave Bank, in the site's look" },

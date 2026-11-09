@@ -87,6 +87,8 @@ with the Braids and Plaits wave tables in it. It fills CHORD's 31 frames, plays 
 of the file the user drops: the official OS 1.13, or a build whose bootloader parts, CHORD's pointer table and the
 part of MAIN OS copied into SRAM are those of OS 1.13, as in this flasher's Model:Cycles builds (checked on
 CHORD Tables alone and on all fifteen cards, 2026-11-09); it refuses the others, Model:Samples containers among them.
+Since release 0.56 it also saves the table for CHORD Tables (Save .wav): the OS's sine and the 31 frames, 48 kHz,
+mono, 16 bits, named `NN <name>.wav` by the number chosen beside the button, which the Uploader writes unchanged.
 Everything runs in the browser. `tools/gen_wavetables_page.py --editor <its chordwave-editor.html>` writes the page:
 the editor as it is, with this site's title and icon, its header and nav (classes `.site-top`, `.site-brand`: the
 editor has a `.brand` of its own; no `site.css`), a footer with model27's version, and `release.js` and `site.js`;
