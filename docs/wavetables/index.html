@@ -305,6 +305,7 @@ button.big { width: 100%; min-height: 52px; font-size: 14px; }
 .msg.bad { width: fit-content; padding: 2px 6px; background: var(--ink); color: var(--paper); font-weight: 700; }
 .msg.bad::before { content: "× "; }
 #btn-save-open { flex: none; }
+#save-need { margin: 0; }
 .sheet { position: absolute; right: 24px; bottom: calc(100% + 10px); width: min(520px, calc(100% - 48px)); max-height: calc(100vh - 140px); overflow: auto;
   display: grid; gap: 16px; padding: 12px 18px 20px; background: var(--card); border: 3px solid var(--ink); box-shadow: 8px 8px 0 var(--ink); }
 .sheet-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 3px solid var(--ink); }
@@ -488,6 +489,7 @@ footer p { margin: 0; max-width: 100ch; }
       <div class="card">
         <div class="card-head"><h3>Wavetable</h3><button type="button" class="help" aria-label="Explain" data-help="Saves the table and its harmonics as a .json file. Open… brings it back here to change it later.">?</button></div>
         <div class="card-row"><button id="btn-save" type="button" disabled>Save wavetable</button><button id="btn-copy" type="button" hidden>Copy JSON instead</button></div>
+        <p id="save-need" class="note"></p>
       </div>
       <div class="card">
         <div class="card-head"><h3>CHORD Tables</h3><button type="button" class="help" aria-label="Explain" data-help="Saves the wavetable as a .wav file for CHORD Tables, a mod in model27's flasher. The file's name starts with the number you choose here. Put the file on the +Drive with model27's Uploader, in the folder Wavetables. On the Model:Cycles, press and hold PATTERN, then turn SWEEP until the popup shows Wavetable and that number.">?</button></div>
@@ -1651,6 +1653,9 @@ const WAV = (() => {
     fwReady();
     const filled = slots.filter(Boolean).length;
     $("f-slots").textContent = `${filled} of 31 filled`;
+    // under Save wavetable: why the saves wait (the .wav and the firmware need the full table too, see result)
+    $("save-need").hidden = filled === FRAMES;
+    $("save-need").textContent = `${filled} of 31 slots filled. Fill all 31 to save.`;
     if (filled < FRAMES) {
       ["f-morph", "f-level", "f-top"].forEach(id => $(id).textContent = "–");
       const empty = FRAMES - filled;
