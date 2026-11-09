@@ -378,7 +378,7 @@ footer p { margin: 0; max-width: 100ch; }
         <button id="btn-sort" type="button" title="Sort the filled slots from dark to bright; empty slots go to the end">Sort by brightness</button>
         <button id="btn-reverse" type="button">Reverse</button>
         <span class="group"><button id="btn-gaps" type="button">Fill gaps</button><button type="button" class="help" aria-label="Explain" data-help="Fills each gap of empty slots with waves in between its neighbours, so SWEEP moves evenly from the wave before the gap to the wave after it. Leave more empty slots between waves that sound very different. A gap at the start begins at the sine; empty slots after the last wave stay empty.">?</button></span>
-        <span class="group"><label for="harmonics">Harmonics</label><input id="harmonics" type="range" min="10" max="40" step="1" value="15"><span id="harm-val">H15</span><button type="button" class="help" aria-label="Explain" data-help="Sets how many harmonics each wave keeps, 15 by default (10–40). Fewer sound duller and softer. CHORD's own wavetable goes up to 16.">?</button></span>
+        <span class="group"><label for="harmonics">Harmonics</label><input id="harmonics" type="range" min="10" max="40" step="1" value="15"><span id="harm-val">H15</span><button type="button" class="help" aria-label="Explain" data-help="Sets how many harmonics each wave keeps. The range is 10 to 40, and 15 is the default; CHORD's own wavetable goes up to 16. Fewer harmonics sound duller and softer. More can sound very harsh on the Model:Cycles, depending on COLOR and on the chord you set with SHAPE. The preview here leaves COLOR out.">?</button></span>
       </div>
       <div id="slots" class="slots"></div>
     </div>
