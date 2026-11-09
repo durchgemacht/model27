@@ -1,9 +1,9 @@
 {
  "schema": "cycles-mod/0.1",
  "id": "chordtables",
- "version": "0.3",
+ "version": "0.4",
  "name": "CHORD Tables: the stock CHORD machine plays wavetables from the +Drive, one table per pattern, PATTERN + SWEEP picks it",
- "description": "An extension of the stock CHORD machine (notes/66): since 0.3 (notes/66 §27 to §31) the pattern chooses one table for every CHORD track. PATTERN + SWEEP on a CHORD track steps the shown pattern's value, 0 to 127, two steps a table: 0 the stock table, 1 to 63 the files /Wavetables/01 to /Wavetables/63 on the +Drive (mono sample files of k x 256 samples, k single-cycle frames, k = 1 to 32, the OS's sine put in front of a file whose first frame is not one), loaded on the screen's tick; the value is kept in the pattern header's bytes 36 and 37. The whole table takes the stock table's place in SRAM, so SWEEP and an LFO on it cost what they cost on the stock OS: a table change reads the new frames in SDRAM from the next block and moves them into SRAM over a few blocks, every voice's pointers moved with them. A pattern at 0, every pattern saved before, and every other track play as on the stock OS.",
+ "description": "An extension of the stock CHORD machine (notes/66): since 0.3 (notes/66 §27 to §31) the pattern chooses one table for every CHORD track. PATTERN + SWEEP on a CHORD track steps the shown pattern's value, 0 to 127, two steps a table: 0 the stock table, 1 to 63 the files of /Wavetables on the +Drive whose names start with 01 to 63 and then no digit (07, 07 Glass Pad; since 0.4: the folder listed with the OS's own calls, notes/66 §36; mono sample files of k x 256 samples, k single-cycle frames, k = 1 to 32, the OS's sine put in front of a file whose first frame is not one), loaded on the screen's tick; the value is kept in the pattern header's bytes 36 and 37. The whole table takes the stock table's place in SRAM, so SWEEP and an LFO on it cost what they cost on the stock OS: a table change reads the new frames in SDRAM from the next block and moves them into SRAM over a few blocks, every voice's pointers moved with them. A pattern at 0, every pattern saved before, and every other track play as on the stock OS.",
  "license": "MIT",
  "credit": {"kind": "own", "who": "durchgemacht and Claude", "repo": "durchgemacht/model27"},
  "device": "Model:Cycles",
@@ -20,7 +20,7 @@
   "patch_points": [{"symbol": "ct_desc_used", "kind": "desc_used"}],
   "roots": ["cw_setup", "ct_hook_tick", "ct_knob", "ct_keys", "ct_release", "ct_load", "ct_init", "ct_tick", "ct_step",
             "ct_fmt", "ct_hdr_load", "ct_hdr_init", "ct_slot", "ct_slot_id", "ct_owner", "ct_scan", "ct_moved", "ct_tag",
-            "ct_want", "ct_list", "ct_away", "ct_copies"]
+            "ct_want", "ct_list", "ct_away", "ct_copies", "ct_slot_ino", "ct_found", "ct_listing"]
  },
  "uses": [
   {"point": "machine.stock", "machine": "CHORD",
@@ -28,7 +28,7 @@
   {"point": "chord.waves", "hook": {"at": "0x400ab15e", "stock": "4eb9400a8080", "op": "jsr", "symbol": "cw_setup"},
    "why": "CHORD's update gets its two frames through this one call (notes/66 §1.1): the stock function at the stock table, the same work on the pattern's table otherwise"},
   {"point": "screen.tick", "hook": {"at": "0x400075f0", "stock": "4eb940076be4", "op": "jsr", "symbol": "ct_hook_tick"},
-   "why": "the screen's redraw, about 30 Hz, UI task: the move on the first tick, then the loader, one file per tick; with SAMPLE, through the tick dispatcher"},
+   "why": "the screen's redraw, about 30 Hz, UI task: the move on the first tick, then the loader: /Wavetables listed 16 entries a tick, then one file a tick that needs the drive; with SAMPLE, through the tick dispatcher"},
   {"point": "knob.lookup", "vtable": {"at": "0x401005a8", "stock_ptr": "0x4001e814", "symbol": "ct_knob"}, "chain": "ct_next_knob",
    "why": "PATTERN + SWEEP on a CHORD track gives descriptor 10, display only, whose popup shows the pattern's table (notes/66 §28.2); in front of the filter slot's or the shortcut layer's lookup, else the stock one (notes/66 §30.2)"},
   {"point": "keys.encoder", "hook": {"at": "0x4001f886", "stock": "487800024e94", "op": "jsr", "symbol": "ct_keys"}, "chain": "ct_next_keys",
@@ -40,7 +40,7 @@
   {"point": "pattern.init", "hook": {"at": "0x4006155e", "stock": "420011400026", "op": "jsr", "symbol": "ct_init"}, "chain": "ct_next_init",
    "why": "a new pattern's header: bytes 36 and 37 at the stock table, after the effect slots' bytes"},
   {"point": "memory.ram", "range": ["0x43400000", "0x43700000"],
-   "why": "one file as read, 71 table buffers (63 slots, 8 spare) and the stock frames' copy, 2.4 MB (notes/66 §2.2, §31)"},
+   "why": "one file as read, 71 table buffers (63 slots, 8 spare), the stock frames' copy, the listing's 63 names and its folder entry, 2.4 MB (notes/66 §2.2, §31, §36)"},
   {"point": "memory.sram", "range": ["0x80001c5c", "0x800074b4"], "takes": "CHORD's frames",
    "why": "22 of the stock table's 30 frames in SRAM, read by CHORD alone (notes/27 §3.3): the pattern's table takes their place, the stock frames copied into the RAM claim (notes/66 §27.3)"},
   {"point": "memory.sram", "range": ["0x8000cac0", "0x8000eae0"], "takes": "CHORD's frames",
@@ -72,9 +72,10 @@
  "compat": {"built_against": ["model27"], "requires": [], "conflicts_declared": []},
  "tests": {"emulation": {"0.1": {"tool": "tools/emu/test_chordtables.py (Unicorn, the OS's own code, notes/66 §14, 2026-10-23); digiemu (the maintainer, notes/66 §15.7)", "date": "2026-10-24", "build": "Unicorn: alone, with sampler before and after it; digiemu: alone (.syx e4dafb31, four tables in /Wavetables)"},
                          "0.2": {"tool": "tools/emu/test_chordtables.py (Unicorn: P1 to P2, P1m, P5, P2h, P2i, notes/66 §21)", "date": "2026-10-24", "by": "maintainer", "result": "ALL OK on the code of notes/66 §21, §22 (§22.3), §22.4 (§22.5) and the cure of §24 (§24.4) and §24.5 (§24.6)", "build": "alone, with sampler before and after it"},
-                         "0.3": {"tool": "tools/emu/test_chordtables.py (Unicorn: 0, P1 to P5, L, C, notes/66 §32), tools/emu/probe_chord_lines.py", "date": "2026-11-08", "by": "maintainer", "result": "ALL OK (the second run, §32.5; the first stopped on the proof's own file, §32.4); probe ALL OK (§32.6)", "build": "alone, sampler before it, with digidelay, with crush"}},
+                         "0.3": {"tool": "tools/emu/test_chordtables.py (Unicorn: 0, P1 to P5, L, C, notes/66 §32), tools/emu/probe_chord_lines.py", "date": "2026-11-08", "by": "maintainer", "result": "ALL OK (the second run, §32.5; the first stopped on the proof's own file, §32.4); probe ALL OK (§32.6)", "build": "alone, sampler before it, with digidelay, with crush"},
+                         "0.4": {"tool": "tools/emu/test_chordtables.py (Unicorn: 0, P1 to P5, L with names, C, notes/66 §36.6)", "date": "2026-11-09", "by": "maintainer", "result": "the first run: every section passed in the four selections but L's case k, which counted the listing on time after the pass (the proof's count, §36.7); after its fix ALL OK (--machines chordtables)", "build": "alone, sampler before it, with digidelay, with crush"}},
            "hardware": {"0.1": {"date": "2026-10-24", "by": "maintainer", "build": "a compose build of notes/66 §15.3 (CHORD Tables alone, .syx e4dafb31, or with SAMPLE, 77a10a97; which one not said); \"getestet, funktioniert\" (notes/66 §17); the interface lags with tables on several CHORD tracks (§18)"},
                         "0.2": {"date": "2026-10-24", "by": "maintainer", "build": "both compose builds of notes/66 §25.1 (alone 44d7695b, with SAMPLE 9066396a)", "result": "\"besser, aber immer noch laggy. vor allem wenn man control all benutzt und chord mit custom wavetables auf allen spuren\" (notes/66 §25.3)"},
                         "0.3": {"date": "2026-11-08", "by": "maintainer", "build": "the full build of notes/66 §33.1 with the knob's step fixed (0.3b: sampler, chordtables, digidelay, pots, smpfilter, crush, ring, reso, eq, cpu, resample, transpose, with control-all-config, trig-preview, trig-cond-order; .syx 59923758, MAIN OS 0e1c33bc)", "result": "the eight tests of notes/66 §33 passed: the gesture and the tables, SWEEP and an LFO, six CHORD tracks with LFOs and Control All without lag, pattern changes without a click, save and load, the other mods, files on the +Drive, the official OS (\"passt, funktioniert\")"}},
-           "status": "tested"}
+           "status": "experimental"}
 }

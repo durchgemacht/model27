@@ -767,15 +767,25 @@ def expected(samples, k, sine):
     return out, front
 
 
+DIR_OPEN, DIR_NEXT, DIR_HIDDEN = 0x4007aa78, 0x4007ab26, 0x4007ecc2   # the OS's folder calls (notes/66 §36.1)
+DE_BYTES, FOLDER = 276, "/Wavetables"
+PAYLOAD = 0x43000000
+
+
 class Drive:
-    """The +Drive as the loader sees it: files by path, their inodes and ids, the index in memory; the four calls
-    answered here, each one noted."""
+    """The +Drive as the loader sees it since 0.4 (notes/66 §36): folders and files by path in the order they were
+    made, their inodes and ids, the index in memory; the OS's folder calls (open, next entry, hidden) and the two
+    file calls answered here, each one noted. A folder lists ".", ".." and then what is in it. A rename keeps the
+    inode, the id and the place in the folder, and leaves the index as it was (an id is the content's hash)."""
 
     def __init__(self, u):
-        self.u, self.files, self.calls, self.next_ino = u, {}, [], 100
+        self.u, self.files, self.dirs, self.order = u, {}, {"/": 1}, []
+        self.hidden, self.calls, self.next_ino = set(), [], 100
         u.uc.mem_map(RAM, RAM_END - RAM)
-        for va, fn in ((OPEN, self._open), (CLOSE, self._close), (ENTRY, self._entry), (READ, self._read)):
+        for va, fn in ((OPEN, self._open), (CLOSE, self._close), (ENTRY, self._entry), (READ, self._read),
+                       (DIR_OPEN, self._opendir), (DIR_NEXT, self._readdir), (DIR_HIDDEN, self._hidden)):
             u.uc.hook_add(UC_HOOK_CODE, self._wrap(fn), begin=va, end=va)
+        self.mkdir(FOLDER)
         self.mount(True)
         self.w32(FS_LOCK, 0)
         self.w32(RUNNING, TASK)
@@ -786,14 +796,35 @@ class Drive:
     def mount(self, on):
         self.w32(MOUNTED, 1 if on else 0)
 
-    def put(self, name, data):
-        self.files[name] = (self.next_ino, (hash(data) & 0x7ffffffe) | 1, data)
+    def mkdir(self, path):
+        self.dirs[path] = self.next_ino
         self.next_ino += 1
+        self.order.append(path)
+
+    def put(self, path, data):
+        self.files[path] = (self.next_ino, (hash(data) & 0x7ffffffe) | 1, data)
+        self.next_ino += 1
+        self.order.append(path)
         self.index()
 
-    def drop(self, name):
-        del self.files[name]
+    def drop(self, path):
+        del self.files[path]
+        self.order.remove(path)
         self.index()
+
+    def rmdir(self, path):
+        for p in [p for p in self.order if p == path or p.startswith(path + "/")]:
+            self.order.remove(p)
+            self.files.pop(p, None)
+            self.dirs.pop(p, None)
+        self.index()
+
+    def rename(self, old, new):
+        self.files[new] = self.files.pop(old)
+        self.order[self.order.index(old)] = new
+
+    def hide(self, path):
+        self.hidden.add(self.files[path][0])
 
     def index(self):
         pairs = sorted((idn, ino) for ino, idn, _d in self.files.values())
@@ -811,22 +842,53 @@ class Drive:
         return hook
 
     def cstr(self, a):
-        return bytes(self.u.uc.mem_read(a, 32)).split(b"\0")[0].decode("latin-1")
+        return bytes(self.u.uc.mem_read(a, 256)).split(b"\0")[0].decode("latin-1")
 
     def by_ino(self, ino):
         return next(((n, f) for n, f in self.files.items() if f[0] == ino), (None, None))
 
+    def children(self, folder):
+        """(name, inode, type) of a folder's entries, as the OS lists them: ".", "..", then by the order they came."""
+        up = folder.rsplit("/", 1)[0] or "/"
+        out = [(".", self.dirs[folder], 1), ("..", self.dirs.get(up, 1), 1)]
+        for p in self.order:
+            if p.rsplit("/", 1)[0] == folder:
+                out.append((p.rsplit("/", 1)[1], self.dirs[p] if p in self.dirs else self.files[p][0],
+                            1 if p in self.dirs else 2))
+        return out
+
     def _open(self, path, mode, h, _x):
-        p, m = self.cstr(path), self.cstr(mode)
-        self.calls.append(("open", p, m))
-        if p not in self.files:
-            return -1
-        self.u.uc.mem_write(h, struct.pack(">4I", self.files[p][0], 0, 0, 1))
-        return 0
+        self.calls.append(("open", self.cstr(path)))          # 0.3's call: 0.4 never makes it
+        return -1
 
     def _close(self, h, *_x):
-        self.calls.append(("close", struct.unpack(">I", self.u.uc.mem_read(h, 4))[0]))
+        self.calls.append(("close",))
         return 0
+
+    def _opendir(self, path, h, *_x):
+        p = self.cstr(path)
+        self.calls.append(("opendir", p))
+        if p not in self.dirs:
+            return -1
+        self.u.uc.mem_write(h, struct.pack(">4I", self.dirs[p], 0, 0, 0))
+        return 0
+
+    def _readdir(self, h, d, *_x):
+        ino, _b, _o, i = struct.unpack(">4I", self.u.uc.mem_read(h, 16))
+        folder = next(p for p, n in self.dirs.items() if n == ino)
+        kids = self.children(folder)
+        self.calls.append(("readdir", i))
+        if i >= len(kids):
+            return 0
+        name, e_ino, typ = kids[i]
+        raw = struct.pack(">IH2xIII", e_ino, typ, ino, 0, i) + name.encode("latin-1")[:255] + b"\0"
+        self.u.uc.mem_write(d, raw + bytes(DE_BYTES - len(raw)))
+        self.u.uc.mem_write(h + 12, struct.pack(">I", i + 1))
+        return 1
+
+    def _hidden(self, ino, *_x):
+        self.calls.append(("hidden", ino))
+        return 1 if ino in self.hidden else 0
 
     def _entry(self, ino, out, *_x):
         name, f = self.by_ino(ino)
@@ -847,153 +909,269 @@ class Drive:
         return len(data)
 
 
-def loader_tests(key, img, runtime, syms):
-    u = S.UI(img, runtime)
-    u.uc.mem_map(SRAM_LO, 0x20000)               # the internal SRAM as the bootstrap leaves it: the move reads it
-    u.uc.mem_write(SRAM_LO, img[0x4019b590 - E.BASE:0x401a2a50 - E.BASE])
-    u.uc.mem_write(0x80008000, img[0x401a2a50 - E.BASE:0x401aa140 - E.BASE])
-    d = Drive(u)
-    u.hooks = {GETTER: ("getter", 0x5a)}
-    for s in ("smp_hook_tick",):              # SAMPLE's own tick, with the dispatcher: not this proof's
-        if s in syms:
-            u.hooks[syms[s]] = (s, 0x5a)
-    tick = syms.get("dp_tick", syms["ct_hook_tick"])
-    r32 = lambda a: struct.unpack(">I", u.uc.mem_read(a, 4))[0]
-    slot = lambda n: r32(syms["ct_slot"] + 4 * (n - 1))
-    owner = lambda b: u.uc.mem_read(syms["ct_owner"] + b, 1)[0]
-    sine = os_sine16(img)
-    slots = stock_slots(img)
+class Loader:
+    """The UI side with the drive: the tick, and what a proof reads of the loader's state."""
 
-    def ticks(n):
-        rets, opens = [], []
+    def __init__(self, img, runtime, syms):
+        self.u = u = S.UI(img, runtime)
+        u.uc.mem_map(SRAM_LO, 0x20000)           # the internal SRAM as the bootstrap leaves it: the move reads it
+        u.uc.mem_write(SRAM_LO, img[0x4019b590 - E.BASE:0x401a2a50 - E.BASE])
+        u.uc.mem_write(0x80008000, img[0x401a2a50 - E.BASE:0x401aa140 - E.BASE])
+        self.d = Drive(u)
+        u.hooks = {GETTER: ("getter", 0x5a)}
+        for s in ("smp_hook_tick",):          # SAMPLE's own tick, with the dispatcher: not this proof's
+            if s in syms:
+                u.hooks[syms[s]] = (s, 0x5a)
+        self.syms, self.tick_va, self.insns = syms, syms.get("dp_tick", syms["ct_hook_tick"]), 0
+        self.sine = os_sine16(img)
+
+        def count(uc, addr, size, ud):
+            self.insns += 1
+        u.uc.hook_add(UC_HOOK_CODE, count, begin=PAYLOAD, end=RAM - 1)
+
+    def r32(self, a):
+        return struct.unpack(">I", self.u.uc.mem_read(a, 4))[0]
+
+    def var(self, name, i=0):
+        return self.r32(self.syms[name] + 4 * i)
+
+    def slot(self, n):
+        return self.var("ct_slot", n - 1)
+
+    def owner(self, b):
+        return self.u.uc.mem_read(self.syms["ct_owner"] + b, 1)[0]
+
+    def ticks(self, n):
+        """n ticks: per tick, the getter's answer, the drive's calls and the instructions run in the payload."""
+        out = []
         for _ in range(n):
-            d.calls.clear()
-            rets.append(u.call(tick, S.VIEW) & 0xff)
-            opens.append(sum(1 for c in d.calls if c[0] == "open"))
-        return rets, opens
+            self.d.calls.clear()
+            self.insns = 0
+            r = self.u.call(self.tick_va, S.VIEW) & 0xff
+            out.append((r, list(self.d.calls), self.insns))
+        return out
 
-    def table_ok(n, samples, k, front=None):
-        b = slot(n)
+    def table_ok(self, n, samples, k, front=None):
+        b = self.slot(n)
         if not b:
             return False
-        ptrs = struct.unpack(f">{POINTERS}I", u.uc.mem_read(b, 4 * POINTERS))
+        ptrs = struct.unpack(f">{POINTERS}I", self.u.uc.mem_read(b, 4 * POINTERS))
         want = [b + 4 * POINTERS + 4 * FRAME_LEN * s for s in range(FRAMES)]
-        frames, put_front = expected(samples, k, sine)
+        frames, put_front = expected(samples, k, self.sine)
         if list(ptrs) != [SINE] + want[1:] + [want[-1]] or (front is not None and put_front != front):
             return False
-        return all(bytes(u.uc.mem_read(p, 4 * FRAME_LEN)) == f for p, f in zip(want, frames))
+        return all(bytes(self.u.uc.mem_read(p, 4 * FRAME_LEN)) == f for p, f in zip(want, frames))
 
+
+def calls(log, kind):
+    return [c for _r, cs, _n in log for c in cs if c[0] == kind]
+
+
+def loader_tests(key, img, runtime, syms):
+    L = Loader(img, runtime, syms)
+    d, slot, P = L.d, L.slot, (lambda name: f"{FOLDER}/{name}")
+    slots = stock_slots(img)
     clip = lambda x: max(-32768, min(32767, x))
-    near = [clip(sine[m] + (3 if m % 2 else -3)) for m in range(256)] + frames_of(2, 21)
-    off = [clip(sine[m] + (5 if m == 100 else 0)) for m in range(256)] + frames_of(2, 22)
-    files = {1: (32, frames_of(32, 11)), 2: (1, frames_of(1, 12)), 3: (4, frames_of(4, 13)), 63: (2, frames_of(2, 14)),
-             10: (3, near), 11: (3, off)}
-    for n, (k, data) in files.items():
-        d.put(f"/Wavetables/{n:02d}", sample_file(data))
-    d.put("/Wavetables/05", sample_file(frames_of(2, 15), stereo=True))
-    d.put("/Wavetables/06", sample_file(frames_of(2, 16)[:300]))
-    d.put("/Wavetables/07", sample_file(frames_of(33, 17)))
-    d.put("/Wavetables/64", sample_file(frames_of(2, 23)))
+    near = [clip(L.sine[m] + (3 if m % 2 else -3)) for m in range(256)] + frames_of(2, 21)
+    off = [clip(L.sine[m] + (5 if m == 100 else 0)) for m in range(256)] + frames_of(2, 22)
     saw = [sum(math.sin(h * (2 * math.pi * m / 2048 + 0.5 * j)) / h for h in range(1, 120)) * 0.5
            for j in range(4) for m in range(2048)]
     conv, _rep = W.convert(saw)
-    files[8] = (5, conv)                       # the converter's sine, then the 4 frames
-    d.put("/Wavetables/08", W.device_bytes(conv))
-    # the first tick: the move; a. the scan after the mount
-    log, rets, opens = [], [], []
-    for _ in range(64):
-        d.calls.clear()
-        rets.append(u.call(tick, S.VIEW) & 0xff)
-        log.append(list(d.calls))
-        opens.append(sum(1 for c in d.calls if c[0] == "open"))
-    paths = [c[1] for calls in log for c in calls if c[0] == "open"]
-    closes = sum(1 for calls in log for c in calls if c[0] == "close")
-    check(paths == [f"/Wavetables/{n:02d}" for n in range(1, 64)] and opens[:63] == [1] * 63 and opens[63] == 0
-          and r32(syms["ct_scan"]) == 0 and closes == 10 and not u.bad,
-          f"{key}: L the scan: /Wavetables/01 to /63 opened in order, one a tick, each found one closed, /64 never; "
-          "the scan ends")
-    check(set(rets) == {0x5a}, f"{key}: L every tick returns the stock getter's answer")
-    ptrs = [r32(STOCK + 4 * i) for i in range(POINTERS)]
-    tags = [r32(syms["ct_tag"] + 4 * i) for i in range(FRAMES)]
-    copies_ok = all(bytes(u.uc.mem_read(ptrs[i], 4 * FRAME_LEN)) == bytes(u.uc.mem_read(slots[i - 2], 4 * FRAME_LEN))
+    # table: (frames, samples, the file's name); then the names that play nothing
+    files = {1: (32, frames_of(32, 11), "01"), 2: (1, frames_of(1, 12), "02 Saw Pad"), 3: (4, frames_of(4, 13), "03-pulse"),
+             63: (2, frames_of(2, 14), "63"), 10: (3, near, "10.wav"), 11: (3, off, "11 off"),
+             8: (5, conv, "08 Converted"), 12: (2, frames_of(2, 24), "12 Glass")}
+    for n, (_k, data, name) in files.items():
+        if n == 8:
+            d.put(P(name), W.device_bytes(conv))
+        elif n == 12:
+            d.put(P("12 Pad"), sample_file(frames_of(2, 25)))   # made first, but "12 Glass" comes first in byte order
+            d.put(P(name), sample_file(data))
+        else:
+            d.put(P(name), sample_file(data))
+    d.put(P("05 Stereo"), sample_file(frames_of(2, 15), stereo=True))
+    d.put(P("06 short"), sample_file(frames_of(2, 16)[:300]))
+    d.put(P("07 Big"), sample_file(frames_of(33, 17)))
+    for name, seed in (("64 Pad", 23), ("7 Pad", 26), ("070", 27), ("Glass 16", 28)):
+        d.put(P(name), sample_file(frames_of(2, seed)))
+    d.mkdir(P("13"))                                            # a folder named 13, a file 14 in it
+    d.put(P("13/14"), sample_file(frames_of(2, 29)))
+    d.put(P("15"), sample_file(frames_of(2, 30)))
+    d.hide(P("15"))                                             # an entry the OS leaves out of its listing
+    d.put("/17", sample_file(frames_of(2, 31)))                 # outside the folder
+    entries = len(d.children(FOLDER))
+
+    # a. the first tick: the move; the listing after the mount, then the pass (2 + 11 ticks; the listing on time comes
+    # 64 ticks after this one started, so b and c count from here)
+    log = L.ticks(20)
+    reads = calls(log, "readdir")
+    per_tick = [sum(1 for c in cs if c[0] == "readdir") for _r, cs, _n in log]
+    hidden_asked = {c[1] for c in calls(log, "hidden")}
+    numbered = {d.files[P(nm)][0] for nm in ("01", "02 Saw Pad", "03-pulse", "63", "10.wav", "11 off", "08 Converted",
+                                            "12 Pad", "12 Glass", "05 Stereo", "06 short", "07 Big", "15")}
+    entry_names = {c[1] for c in calls(log, "entry")}
+    found = {n: L.var("ct_found", n - 1) for n in range(1, 64)}
+    check([c[1] for c in calls(log, "opendir")] == [FOLDER] and not calls(log, "open") and not calls(log, "close")
+          and [c[1] for c in reads] == list(range(entries + 1)) and per_tick[:2] == [16, entries + 1 - 16]
+          and L.var("ct_listing") == 0 and L.var("ct_scan") == 0 and not L.u.bad,
+          f"{key}: L the listing: /Wavetables opened once, its {entries} entries read in order, 16 a tick, to the end; "
+          "no file opened by its path; the pass ends")
+    check(hidden_asked == numbered,
+          f"{key}: L the OS asked whether an entry is hidden only for the files whose name has a number (not for "
+          "64 Pad, 7 Pad, 070, Glass 16, the folder 13, . and ..)")
+    check({n for n, ino in found.items() if ino} == {1, 2, 3, 5, 6, 7, 8, 10, 11, 12, 63}
+          and found[12] == d.files[P("12 Glass")][0]
+          and entry_names == {P(f) for f in ("01", "02 Saw Pad", "03-pulse", "05 Stereo", "06 short", "07 Big",
+                                             "08 Converted", "10.wav", "11 off", "12 Glass", "63")},
+          f"{key}: L the names: 01, 02 Saw Pad, 03-pulse, 63, 10.wav, 11 off, 08 Converted found as their numbers; of "
+          "12 Pad and 12 Glass, 12 Glass; nothing for 64 Pad, 7 Pad, 070, Glass 16, the folder 13 and the file in it, "
+          "the hidden 15, /17 outside the folder; each file found looked at once")
+    check({r for r, _c, _n in log} == {0x5a}, f"{key}: L every tick returns the stock getter's answer")
+    ptrs = [L.r32(STOCK + 4 * i) for i in range(POINTERS)]
+    tags = [L.var("ct_tag", i) for i in range(FRAMES)]
+    copies_ok = all(bytes(L.u.uc.mem_read(ptrs[i], 4 * FRAME_LEN)) == bytes(L.u.uc.mem_read(slots[i - 2], 4 * FRAME_LEN))
                     for i in range(2, FRAMES))
-    check(r32(syms["ct_moved"]) == 1 and ptrs[0] == SINE and ptrs[1] == FRAME1 and ptrs[32] == ptrs[31]
+    check(L.var("ct_moved") == 1 and ptrs[0] == SINE and ptrs[1] == FRAME1 and ptrs[32] == ptrs[31]
           and all(STOCK + 4 * POINTERS <= p < STOCK + BUF_BYTES for p in ptrs[2:]) and copies_ok
           and tags[2:] == [STOCK] * 30,
           f"{key}: L the first tick made the move: ct_moved 1; STOCK's 33 pointers the selector's (the sine, frame 1 "
           "where the OS has it, the copies of frames 2 to 31 equal to the SRAM frames); every slot's tag STOCK")
-    check(table_ok(1, files[1][1], 32, True) and table_ok(2, files[2][1], 1, True) and table_ok(3, files[3][1], 4, True)
-          and table_ok(63, files[63][1], 2, True) and table_ok(8, conv, 5, False) and table_ok(10, near, 3, False)
-          and table_ok(11, off, 3, True),
-          f"{key}: L files 01 (32 frames), 02 (1), 03 (4), 63 (2): the OS's sine put in front; 08 (made by "
-          "tools/wavetable.py, its first frame a sine) and 10 (a sine within 3 steps): taken as they are; 11 (one sample "
-          "5 steps off): the sine put in front; every table built exactly as computed here (spread, Q31, the 257th "
-          "sample, 33 pointers with the OS's sine at 0)")
+    ok = lambda n, front=None: L.table_ok(n, files[n][1], files[n][0], front)
+    check(ok(1, True) and ok(2, True) and ok(3, True) and ok(63, True) and ok(8, False) and ok(10, False)
+          and ok(11, True) and ok(12),
+          f"{key}: L files 01 (32 frames), 02 Saw Pad (1), 03-pulse (4), 63 (2): the OS's sine put in front; 08 "
+          "Converted (made by tools/wavetable.py, its first frame a sine) and 10.wav (a sine within 3 steps): taken as "
+          "they are; 11 off (one sample 5 steps off): the sine put in front; 12 from 12 Glass; every table built "
+          "exactly as computed here")
     check(all(slot(n) == 0 for n in range(1, 64) if n not in files),
-          f"{key}: L a stereo file (05), 300 samples (06), 33 frames (07) and the missing files: empty slots")
-    _r, opens = ticks(10)
-    check(sum(opens) == 0, f"{key}: L nothing changed: no file call in 10 ticks")
+          f"{key}: L a stereo file (05), 300 samples (06), 33 frames (07), the folder 13, the hidden 15 and the numbers "
+          "without a file: empty slots")
+
+    # b. nothing changed: no call to the drive
+    log = L.ticks(10)
+    check(not any(cs for _r, cs, _n in log), f"{key}: L nothing changed: no call to the drive in 10 ticks")
+
+    # c. the listing on time, about every 2 s (at the 65th tick since the first listing started): the folder read again,
+    # no file looked at again
+    before = {n: slot(n) for n in range(1, 64)}
+    log = L.ticks(64)
+    check(len(calls(log, "opendir")) == 1 and len(calls(log, "readdir")) == entries + 1
+          and not calls(log, "entry") and not calls(log, "read") and all(slot(n) == before[n] for n in range(1, 64)),
+          f"{key}: L on time (64 ticks after the last listing): the folder listed once more; no file looked at again, "
+          "the unplayable ones neither; every slot as it was")
+
+    # d. a rename: the index stays as it was; the listing on time finds it
+    index_before = bytes(L.u.uc.mem_read(INDEX_COUNT, 8))
+    old2 = slot(2)
+    d.rename(P("02 Saw Pad"), P("04 Saw Pad"))
+    log = L.ticks(70)
+    check(bytes(L.u.uc.mem_read(INDEX_COUNT, 8)) == index_before
+          and {c[1] for c in calls(log, "read")} == {P("04 Saw Pad")} and {c[1] for c in calls(log, "entry")} == {P("04 Saw Pad")}
+          and slot(2) == 0 and L.table_ok(4, files[2][1], 1) and L.owner((old2 - buf(0)) // BUF_BYTES) == 0,
+          f"{key}: L 02 Saw Pad renamed 04 Saw Pad (the index unchanged): at the listing on time, table 4 from it, "
+          "table 2 back to the stock one, its buffer free again; only the renamed file read")
+    files[4] = (1, files[2][1], "04 Saw Pad")
+    del files[2]
+
+    # e. a file added: the index changes; every file's id looked at, only the new one read
     before = {n: slot(n) for n in files}
-    data4 = frames_of(3, 18)
-    d.put("/Wavetables/04", sample_file(data4))
-    log = []
-    for _ in range(64):
-        d.calls.clear()
-        u.call(tick, S.VIEW)
-        log.append(list(d.calls))
-    reads = {c[1] for calls in log for c in calls if c[0] == "read"}
-    frames_read = {c[1] for calls in log for c in calls if c[0] == "read" and c[2] == 64}
-    check(frames_read == {"/Wavetables/04"} and not reads & {f"/Wavetables/{n:02d}" for n in files}
-          and all(slot(n) == before[n] for n in files) and table_ok(4, data4, 3),
-          f"{key}: L a file added: a new scan; the others kept without a read (the same id); 04 loaded")
-    files[4] = (3, data4)
-    # a file replaced while its buffer is the table wanted and a voice points into it
-    old = slot(2)
+    data9 = frames_of(3, 18)
+    d.put(P("09 New"), sample_file(data9))
+    log = L.ticks(64)
+    frames_read = {c[1] for c in calls(log, "read") if c[2] == 64}
+    check(frames_read == {P("09 New")} and {c[1] for c in calls(log, "entry")} >= {P(f[2]) for f in files.values()}
+          and all(slot(n) == before[n] for n in files) and L.table_ok(9, data9, 3),
+          f"{key}: L a file added: a new listing; every file's id looked at, the others kept without a read; 09 New "
+          "loaded")
+    files[9] = (3, data9, "09 New")
+    data12 = frames_of(2, 32)
+    d.put(P("12 Aa"), sample_file(data12))
+    L.ticks(64)
+    check(L.table_ok(12, data12, 2) and L.var("ct_found", 11) == d.files[P("12 Aa")][0],
+          f"{key}: L 12 Aa added: it comes before 12 Glass in byte order, so table 12 plays it")
+    files[12] = (2, data12, "12 Aa")
+
+    # f. a file replaced while its buffer is the table wanted and a voice points into it
+    old = slot(1)
     old_b = (old - buf(0)) // BUF_BYTES
-    u.uc.mem_write(syms["ct_want"], struct.pack(">I", old))
+    L.u.uc.mem_write(syms["ct_want"], struct.pack(">I", old))
     ptr_at = E.VOICE0 + 2 * E.VSTRIDE + 120 + 176
-    u.uc.mem_write(ptr_at, struct.pack(">I", old + 4 * POINTERS + 4 * FRAME_LEN * 3))
+    L.u.uc.mem_write(ptr_at, struct.pack(">I", old + 4 * POINTERS + 4 * FRAME_LEN * 3))
     tag_at = syms["ct_tag"] + 4 * 7
-    u.uc.mem_write(tag_at, struct.pack(">I", old))
-    data2 = frames_of(2, 19)
-    d.drop("/Wavetables/02")
-    d.put("/Wavetables/02", sample_file(data2))
-    ticks(64)
-    replaced = slot(2) not in (0, old) and table_ok(2, data2, 2) and owner(old_b) == 0xff
-    u.uc.mem_write(syms["ct_want"], struct.pack(">I", STOCK))
-    ticks(2)
-    held = owner(old_b) == 0xff and r32(tag_at) == old
-    u.uc.mem_write(ptr_at, struct.pack(">I", 0))
-    ticks(1)
-    check(replaced and held and owner(old_b) == 0 and r32(tag_at) == 0,
-          f"{key}: L a file replaced: slot 2 in a new buffer, built from the new file; the old buffer stays retired while "
+    L.u.uc.mem_write(tag_at, struct.pack(">I", old))
+    data1 = frames_of(2, 19)
+    d.drop(P("01"))
+    d.put(P("01"), sample_file(data1))
+    L.ticks(64)
+    replaced = slot(1) not in (0, old) and L.table_ok(1, data1, 2) and L.owner(old_b) == 0xff
+    L.u.uc.mem_write(syms["ct_want"], struct.pack(">I", STOCK))
+    L.ticks(2)
+    held = L.owner(old_b) == 0xff and L.r32(tag_at) == old
+    L.u.uc.mem_write(ptr_at, struct.pack(">I", 0))
+    L.ticks(1)
+    check(replaced and held and L.owner(old_b) == 0 and L.r32(tag_at) == 0,
+          f"{key}: L a file replaced: table 1 in a new buffer, built from the new file; the old buffer stays retired while "
           "it is the table wanted, then while a voice points into it; then free at the next tick, the tag of the slot "
           "holding one of its frames cleared")
-    u.uc.mem_write(tag_at, struct.pack(">I", STOCK))
-    d.drop("/Wavetables/03")
-    ticks(64)
-    check(slot(3) == 0 and all(slot(n) for n in (1, 2, 4, 63)), f"{key}: L a file deleted: slot 3 empty, the others kept")
+    L.u.uc.mem_write(tag_at, struct.pack(">I", STOCK))
+    files[1] = (2, data1, "01")
+
+    # g. a file deleted
+    d.drop(P("03-pulse"))
+    L.ticks(64)
+    del files[3]
+    check(slot(3) == 0 and all(slot(n) for n in files), f"{key}: L a file deleted: table 3 empty, the others kept")
+
+    # h. the drive not mounted, then its lock held by the running task
     d.mount(False)
-    _r, opens = ticks(5)
+    log1 = L.ticks(5)
     d.mount(True)
     d.w32(FS_LOCK, TASK)
-    _r, opens2 = ticks(5)
+    log2 = L.ticks(5)
     d.w32(FS_LOCK, 0)
-    _r, opens3 = ticks(2)
-    check(sum(opens) == 0 and sum(opens2) == 0 and opens3 == [1, 1],
-          f"{key}: L the drive not mounted, then its lock held by the running task: no file call; free again after "
-          "the mount: a new scan")
-    ticks(64)
-    full = bytes(u.uc.mem_read(syms["ct_owner"], BUFFERS))
-    u.uc.mem_write(syms["ct_owner"], bytes(b if b else 0x40 for b in full))
-    data9 = frames_of(1, 20)
-    d.put("/Wavetables/09", sample_file(data9))
-    ticks(12)
-    waiting = r32(syms["ct_scan"]) == 9 and slot(9) == 0
-    u.uc.mem_write(syms["ct_owner"], full)
-    ticks(60)
-    check(waiting and table_ok(9, data9, 1) and r32(syms["ct_scan"]) == 0 and not u.bad,
-          f"{key}: L no free buffer: the scan waits on file 09; once a buffer is free, 09 is loaded and the scan ends")
+    log3 = L.ticks(2)
+    check(not any(cs for _r, cs, _n in log1 + log2) and [sum(1 for c in cs if c[0] == "opendir") for _r, cs, _n in log3] == [1, 0],
+          f"{key}: L the drive not mounted, then its lock held by the running task: no call to the drive; free again "
+          "after the mount: a new listing")
+    L.ticks(64)
+
+    # i. no free buffer: the pass waits on the table
+    full = bytes(L.u.uc.mem_read(syms["ct_owner"], BUFFERS))
+    L.u.uc.mem_write(syms["ct_owner"], bytes(b if b else 0x40 for b in full))
+    data18 = frames_of(1, 20)
+    d.put(P("18 Wait"), sample_file(data18))
+    L.ticks(40)
+    waiting = L.var("ct_scan") == 18 and slot(18) == 0
+    L.u.uc.mem_write(syms["ct_owner"], full)
+    L.ticks(60)
+    check(waiting and L.table_ok(18, data18, 1) and L.var("ct_scan") == 0 and not L.u.bad,
+          f"{key}: L no free buffer: the pass waits on table 18; once a buffer is free, 18 Wait is loaded and the pass "
+          "ends")
+
+    # j. the folder gone: every table back to the stock one
+    d.rmdir(FOLDER)
+    log = L.ticks(64)
+    check(all(slot(n) == 0 for n in range(1, 64)) and len(calls(log, "opendir")) == 1 and not calls(log, "readdir"),
+          f"{key}: L /Wavetables deleted: its opening refused, no entry read; every table back to the stock one")
+
+    # k. 63 files: how long and how much a tick, up to the end of the first pass (the listing on time follows it)
+    L = Loader(img, runtime, syms)
+    for n in range(1, 64):
+        L.d.put(P(f"{n:02d} Table {n}"), sample_file(frames_of(1, 100 + n)))
+    log = []
+    while len(log) < 80:
+        log += L.ticks(1)
+        if not L.var("ct_listing") and not L.var("ct_scan"):
+            break
+    listing = [n for _r, cs, n in log if any(c[0] == "readdir" for c in cs)]
+    loading = [n for _r, cs, n in log if any(c[0] == "read" for c in cs)]
+    check(all(L.slot(n) for n in range(1, 64)) and len(calls(log, "opendir")) == 1 and len(listing) == 5
+          and len(loading) == 63 and len(log) == 68,
+          f"{key}: L 63 files 01 Table 1 to 63 Table 63: listed in 5 ticks (65 entries, 16 a tick), then loaded one a "
+          f"tick, all 63, the pass ending at tick 68 ({len(log)})")
+    finding(f"{key}: L 63 files: at most {max(listing[1:] or [0])} instructions in the package a tick while listing (the "
+            f"first tick, with the move, {listing[0] if listing else 0}; the OS's folder calls not counted), at most "
+            f"{max(loading or [0])} while loading a table")
 
 
 # --- C. the cost, by the standard's method (STANDARD.md §6) -----------------------------------------------------------

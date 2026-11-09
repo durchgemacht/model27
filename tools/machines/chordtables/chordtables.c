@@ -24,14 +24,20 @@
    - The move, once, on the screen's tick: the stock frames copied into the RAM claim (STOCK), so that the stock
      table can come back home the same way.
    - The loader (ct_hook_tick in place of jsr 0x40076be4 at 0x400075f0, the screen's redraw, about 30 Hz; with SAMPLE
-     through the builder's tick dispatcher): the files /Wavetables/01 to /63, one per tick, once the drive is mounted
-     and again whenever the drive's file index changes. A file is a sample file (64-byte header, big-endian 16-bit),
+     through the builder's tick dispatcher). Since 0.4 (notes/66 §36) it lists the folder /Wavetables with the OS's
+     own folder calls, 16 entries a tick: a file whose name starts with two digits 01 to 63 and then no digit is that
+     table ("07", "07 Glass Pad"); of two files with one number, the name first in byte order. Then one table a tick
+     that needs the drive: a file whose id changed is read again, a number without a file goes back to the stock
+     table. It lists once the drive is mounted, again whenever the drive's file index changes (then every file's id
+     is checked), and every RELIST ticks (about 2 s), since a rename leaves the index as it was (then only what moved
+     is read). A file is a sample file (64-byte header, big-endian 16-bit),
      mono, of k x 256 samples, k = 1 to 32. Its first frame must be a sine (the OS's, within 4 steps): if it is not,
      the OS's sine goes in front of its frames (notes/66 §27.10, §28.5). The frames are spread over the 32 positions
      SWEEP reaches by linear crossfades, each 257 Q31 samples with the last equal to the first.
    - Memory: the RAM claim 0x43400000..0x43700000 holds one file as read, 71 buffers of a table each (63 tables and 8
-     spare), then the stock frames' copy. A table is published by one 32-bit write of its slot; the buffer it
-     replaces is reused once it is not the table wanted and no voice points into it.
+     spare), the stock frames' copy, then the listing's names and the folder entry it reads into. A table is published
+     by one 32-bit write of its slot; the buffer it replaces is reused once it is not the table wanted and no voice
+     points into it.
 
    The file system calls follow One-Shot's tick (tools/machines/sampler/machine/pool.c): the tick takes its own
    lock (the redraw also runs from another task) and leaves the drive alone while the running task holds the file
@@ -43,6 +49,7 @@
 typedef int32_t s32;
 typedef uint32_t u32;
 typedef int16_t s16;
+typedef uint16_t u16;
 typedef uint8_t u8;
 
 /* --- the audio side ------------------------------------------------------------------------------------------------ */
@@ -82,9 +89,17 @@ extern char ct_desc_used[];                         /* the descriptor table the 
 #define FS_MOUNTED      (*(volatile u32 *)0x40f07cf4)
 #define FS_LOCK_HOLDER  (*(void *volatile *)0x40fe6df0)
 #define RUNNING_TASK    (*(void *volatile *)0x422fef30)
-#define FS_OPEN(path, mode, h)  ((s32 (*)(const char *, const char *, u32 *))0x4007bc5e)(path, mode, h)
-#define FS_CLOSE(h)     ((s32 (*)(u32 *))0x4007bc1c)(h)
 #define FS_ENTRY(ino, h)        ((s32 (*)(u32, u32 *))0x4007de78)(ino, h)     /* {inode, id, size, -} */
+/* A folder, as the OS lists one for the Transfer protocol's 0x14 (notes/66 §36.1): open fills a handle of four words
+   (the folder's inode, block, offset, entry), nothing to close; next fills a folder entry and gives > 0, 0 at the end;
+   hidden is non-zero for an entry the OS leaves out of its own listing. Each takes the drive's lock. */
+#define DIR_OPEN(path, h)       ((s32 (*)(const char *, u32 *))0x4007aa78)(path, h)
+#define DIR_NEXT(h, d)          ((s32 (*)(u32 *, u8 *))0x4007ab26)(h, d)
+#define DIR_HIDDEN(ino)         ((s32 (*)(u32))0x4007ecc2)(ino)
+#define DE_INODE        0                           /* a folder entry (dirent2_t, 276 bytes): the entry's inode */
+#define DE_TYPE         4                           /* u16, 1 a folder */
+#define DE_NAME         20                          /* the name, ended by a zero */
+#define DE_BYTES        276
 #define FS_READ(buf, n, h)      ((s32 (*)(void *, u32, u32 *))0x4007baaa)(buf, n, h)
 #define INDEX_COUNT     (*(const volatile u32 *)0x401fb8a0)
 #define INDEX           ((const volatile u32 *)0x401fb8a4)           /* pairs {id, inode} */
@@ -112,12 +127,23 @@ extern char ct_desc_used[];                         /* the descriptor table the 
 #define MOVED           1                           /* ct_moved: the stock frames are copied, tables may come */
 #define REFUSED         0xff                        /* the stock table is not as expected: the stock table for good */
 #define SINE_STEPS      4                           /* a file's first frame within this of the OS's sine is a sine */
+#define NAME_BYTES      256                         /* a name as listed, 255 characters at most and its zero */
+#define NAMES           ((char *)STOCK + BUF_BYTES)          /* the name each table's file has in this listing */
+#define DIRENT          ((u8 *)NAMES + TABLES * NAME_BYTES)  /* the folder entry the listing reads into */
+#define LIST_STEP       16                          /* folder entries read a tick */
+#define RELIST          64                          /* ticks between two listings, about 2 s */
+#define RAM_END         0x43700000u
+#define LIST_END        (RAM + STAGE_BYTES + (BUFFERS + 1) * BUF_BYTES + TABLES * NAME_BYTES + DE_BYTES)   /* DIRENT's end */
+typedef char ram_claim_holds_it[LIST_END <= RAM_END ? 1 : -1];         /* the claim's end, at compile time */
 
 /* The state, roots of the object so that a proof finds them in the composed tweak's symbols. */
 u32 *volatile ct_slot[TABLES];                      /* table n + 1: its pointer list, or 0 */
 u32 ct_slot_id[TABLES];                             /* the id of the file it came from */
 u8 ct_owner[BUFFERS];                               /* FREE, 1 + the slot it holds, or RETIRED */
-u32 ct_scan;                                        /* 1..63: the file the tick reads next; 0: none */
+u32 ct_slot_ino[TABLES];                            /* the inode its file had when last looked at, 0: none */
+u32 ct_found[TABLES];                               /* the inode the listing found for table n + 1, 0: none */
+u32 ct_scan;                                        /* 1..63: the table the tick looks at next; 0: none */
+u32 ct_listing;                                     /* a listing is under way */
 volatile u32 ct_moved;                              /* 0, MOVED or REFUSED */
 const u32 *volatile ct_tag[FRAMES];                 /* position i (2..31): the list whose frame i its slot holds */
 const u32 *volatile ct_want;                        /* the list the voices' list was made for (STOCK, or a buffer) */
@@ -127,6 +153,9 @@ u32 ct_copies;                                      /* frames copied into the sl
 static u32 cursor;                                  /* the position tried last */
 static u32 sig_count, sig_sum;                      /* the file index when the scan started */
 static u8 seen;                                     /* a scan has started since the drive was mounted */
+static u8 full;                                     /* this pass checks every file's id (the index changed) */
+static u32 since;                                   /* ticks since the last listing started */
+static u32 dir[4];                                  /* the listing's handle */
 static volatile unsigned char busy;
 static const char long_name[] = "Wavetable", short_name[] = "WAVE";
 
@@ -592,58 +621,121 @@ static void build(u32 *buf, const s16 *src, u32 k)
 	buf[FRAMES] = buf[FRAMES - 1];
 }
 
-/* Slot n from /Wavetables/<n + 1, two digits>. 1 when the slot is done, 0 to try again at the next tick (no free
-   buffer yet). */
+/* The table a name plays as: two digits 01 to 63, then no digit ("07", "07 Glass Pad"); 0 for any other name. */
+static u32 number(const char *name)
+{
+	u32 a = (u8)name[0] - '0', b, n;
+
+	if (a > 9)
+		return 0;
+	b = (u8)name[1] - '0';
+	if (b > 9 || (u32)((u8)name[2] - '0') <= 9)
+		return 0;
+	n = 10 * a + b;
+	return n <= TABLES ? n : 0;
+}
+
+/* Negative, 0 or positive as a comes before, with or after b in byte order. */
+static s32 before(const char *a, const char *b)
+{
+	while (*a && *a == *b)
+		a++, b++;
+	return (s32)(u8)*a - (s32)(u8)*b;
+}
+
+/* A new listing of /Wavetables: nothing found yet; without the folder, every table goes back to the stock one. */
+static void start_listing(int changed)
+{
+	u32 n;
+
+	since = 0;
+	if (changed)
+		full = 1;                                   /* kept until a pass ends: an index change is never missed */
+	for (n = 0; n < TABLES; n++)
+		ct_found[n] = 0;
+	ct_scan = 0;
+	ct_listing = DIR_OPEN("/Wavetables", dir) == 0;
+	if (!ct_listing)
+		ct_scan = 1;
+}
+
+/* Up to LIST_STEP entries of the folder; at its end the tables are looked at, one a tick. */
+static void list_some(void)
+{
+	u32 k, n, ino, j;
+	const char *name = (const char *)DIRENT + DE_NAME;
+	char *keep;
+
+	for (k = 0; k < LIST_STEP; k++) {
+		if (DIR_NEXT(dir, DIRENT) <= 0) {
+			ct_listing = 0;
+			ct_scan = 1;
+			return;
+		}
+		ino = *(const u32 *)(DIRENT + DE_INODE);
+		n = number(name);
+		if (!n || !ino || *(const u16 *)(DIRENT + DE_TYPE) == 1 || DIR_HIDDEN(ino))
+			continue;
+		keep = NAMES + (n - 1) * NAME_BYTES;
+		if (ct_found[n - 1] && before(name, keep) >= 0)
+			continue;                           /* two files of one number: the name first in byte order */
+		ct_found[n - 1] = ino;
+		for (j = 0; j < NAME_BYTES - 1 && name[j]; j++)
+			keep[j] = name[j];
+		keep[j] = 0;
+	}
+}
+
+/* Table n + 1 from the file the listing found for it. 0 to try again at the next tick (no free buffer yet), 1 when
+   it needed nothing from the drive, 2 when it did. */
 static int load_one(u32 n)
 {
-	static const char dir[] = "/Wavetables/";
-	char path[sizeof dir + 2];
 	u8 head[HEADER];
-	u32 fh[4], h[4], ino, bytes, i;
+	u32 h[4], ino = ct_found[n], bytes;
 	s32 b;
 
-	for (i = 0; i < sizeof dir - 1; i++)
-		path[i] = dir[i];
-	path[i] = (char)('0' + (n + 1) / 10);
-	path[i + 1] = (char)('0' + (n + 1) % 10);
-	path[i + 2] = 0;
-	if (FS_OPEN(path, "r", fh) != 0) {
+	if (!ino) {
 		if (ct_slot[n])
-			publish(n, -1, 0);              /* gone: its patterns play the stock table */
+			publish(n, -1, 0);                  /* gone: its patterns play the stock table */
+		ct_slot_ino[n] = 0;
 		return 1;
 	}
-	ino = fh[0];
-	FS_CLOSE(fh);
+	if (!full && ct_slot_ino[n] == ino)
+		return 1;                               /* a listing on time: the same file, where it was */
+	ct_slot_ino[n] = ino;
 	if (FS_ENTRY(ino, h) != 0) {
 		publish(n, -1, 0);
-		return 1;
+		return 2;
 	}
 	if (ct_slot[n] && ct_slot_id[n] == h[1])
-		return 1;                               /* the same file: kept */
+		return 2;                               /* the same file: kept */
 	if (!read_at(ino, 0, head, HEADER)) {
 		publish(n, -1, 0);
-		return 1;
+		return 2;
 	}
 	bytes = (u32)head[4] << 24 | (u32)head[5] << 16 | (u32)head[6] << 8 | head[7];
 	if (head[1] || !bytes || bytes % (CYCLE * 2) || bytes > STAGE_BYTES || h[2] < HEADER + bytes) {
 		publish(n, -1, 0);                      /* stereo, or not k x 256 samples: no table */
-		return 1;
+		return 2;
 	}
 	b = free_buffer();
-	if (b < 0)
+	if (b < 0) {
+		ct_slot_ino[n] = 0;                     /* looked at again next time */
 		return 0;
+	}
 	if (!read_at(ino, HEADER, STAGE, bytes)) {
 		publish(n, -1, 0);
-		return 1;
+		return 2;
 	}
 	build(BUF(b), STAGE, bytes / (CYCLE * 2));
 	publish(n, b, h[1]);
-	return 1;
+	return 2;
 }
 
 void ct_tick(void)
 {
 	u32 c, s, i;
+	int r;
 
 	if (!lock())
 		return;
@@ -651,21 +743,34 @@ void ct_tick(void)
 		move();
 	reclaim();
 	if (!FS_MOUNTED)
-		seen = 0;                               /* scan again once it is mounted */
+		seen = 0;                               /* list again once it is mounted */
 	else if (drive_ok()) {
 		c = INDEX_COUNT;
 		if (c > INDEX_MAX)
 			c = INDEX_MAX;
 		for (s = 0, i = 0; i < c; i++)
 			s += INDEX[2 * i];
+		since++;
 		if (!seen || c != sig_count || s != sig_sum) {
 			sig_count = c;
 			sig_sum = s;
 			seen = 1;
-			ct_scan = 1;                    /* the files may have changed: read them again */
-		}
-		if (ct_scan && load_one(ct_scan - 1))
-			ct_scan = ct_scan < TABLES ? ct_scan + 1 : 0;
+			start_listing(1);               /* the files may have changed: list and look at every one */
+		} else if (!ct_listing && !ct_scan && since >= RELIST)
+			start_listing(0);               /* a rename changes no index: list again on time */
+		if (ct_listing)
+			list_some();
+		else
+			for (i = 0; ct_scan && i < TABLES; i++) {
+				r = load_one(ct_scan - 1);
+				if (!r)
+					break;
+				ct_scan = ct_scan < TABLES ? ct_scan + 1 : 0;
+				if (!ct_scan)
+					full = 0;
+				if (r == 2)
+					break;              /* one table a tick that needs the drive */
+			}
 	}
 	busy = 0;
 }

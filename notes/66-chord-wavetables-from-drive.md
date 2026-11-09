@@ -3053,3 +3053,170 @@ each file that was skipped, refused or written with a warning, with its reason. 
 the window at each warning and problem it drives; tried in the browser against `tools/uploader/fake-cycles.js` (a
 problem, a warning, Escape, an upload into `/Wavetables` of a table with a saw first and a file of 1000 samples, the
 phone's width, no error in the console).
+
+## 36. Names after the number: listing `/Wavetables` (research and plan, 2026-11-09)
+
+The maintainer (2026-11-08): wavetables named « Nummer vorne, dann Name », `07 Glass Pad` playing as table 7, `07`
+alone as before. Then (2026-11-09) « wird es mit namen aufwändiger die wavetables zu laden? » and « Ja, suchen »: find
+how the OS lists a folder. §4 chose fixed names so that no listing would be needed; this section finds one.
+
+### 36.1 How the OS answers `0x14`, read a folder `[FAIT]` (code reading, MAIN OS 1.13)
+
+Note: the MAIN OS file (`_scratch/cycles-chordwave/cycles-1.13-main-os.bin`, the section of SHA-256 `cc99d4f0…`) starts
+at `0x40000400`, not `0x40000000`.
+
+- **The handler** of `MidiRpcFsRawReadDirRequest` (the uploader's `0x14`) is at about `0x40088b40`. It makes a
+  `FileSystemDirectory` on its stack (`0x4007d3ba(dir, const std::string &path)`, which jumps to the `const char *`
+  version `0x4007d346`), takes the number of entries (`0x4007c8d4(dir)` = (end − begin) / 8 of a vector at `+260`), and
+  for each entry skips the ones `0x4007cf12` marks, `.` and `..` (`0x4012ddac`, `0x4012ddad`), and answers its type
+  (`D` when the entry's `+4` is 1, else `F`), size, hash and name. `0x4007d3e2(dir)` destroys it. `FileSystemDirectory`
+  (vtable `0x40112818`) is C++: a `std::string`, a vector of `shared_ptr<dirent2_t>`, a `malloc` of 276 bytes per entry.
+- **Under it, a C layer**, no heap, no C++, every call taking the drive's lock (`0x40001cc4` on `0x40fe6df0`) and giving
+  it back (`0x40001df6`), each refusing while the drive is not mounted (`0x40f07cf4`):
+  - `s32 0x4007aa78(const char *path, u32 h[4])`, open a folder: the path (255 characters at most) resolved by
+    `0x4007d454`, which must give a folder (its result `& 6 == 6`); then `h = {folder's inode, 0, 0, 0}`, 0. Else −1.
+    Nothing to close: the handle is only those four words.
+  - `void 0x4007aa66(u32 h[4])`: back to the first entry (`h[1..3] = 0`). `0x4007ab10(ino, h)`: a handle by inode.
+  - `s32 0x4007ab26(u32 h[4], dirent2_t *d)`, the next entry: the folder's inode block from the cache (`0x400798dc(ino,
+    0x20001)`), its entry count (`s16` at `+0`) against `h[3]`; at the end 0; else the entry's place (`+12 + 8 h[3]`:
+    block `>> 14`, offset `& 0x3fff`) into `h[1]`, `h[2]`, `h[3] + 1`, and `0x40079964(h, d)` fills `d`; > 0 when it
+    did.
+  - `dirent2_t`, 276 bytes (`0x114`, the `malloc` above): `+0` the entry's inode (`u32`), `+4` its type (`u16`, 1 a
+    folder), `+8` the folder's inode, `+12` block, `+16` offset, `+20` the name (its length from the entry's byte 6,
+    255 at most), ended by a zero.
+  - `0x4007ecc2(ino)`: bit 2 of the inode's byte 1; the handler leaves out an entry that has it (an entry the OS hides).
+- **The path lookup reads folders entry by entry.** `0x4007d454` rewinds a handle (`0x4007aa66`) and loops over the
+  entries of each folder of the path. So `FS_OPEN("/Wavetables/07")` reads the root's entries up to `Wavetables`, then
+  `Wavetables`' up to `07`, and all of them for a number that has no file (the loop's structure read, its cost not
+  counted).
+
+### 36.2 What names cost
+
+- **Playing: nothing.** A name is only how the loader finds the file. What it reads, builds and moves into SRAM, and
+  what CHORD plays, stay as in §31; the costs of §32.5 and §32.6 and the device tests of §33 still hold.
+- **Loading: less.** Today a scan opens 63 fixed paths, one a tick, each walking `Wavetables` from its first entry: about
+  63 × (the root's entries + `Wavetables`' entries) entries read per scan. A listing reads `Wavetables` once: about the
+  root's entries + its own. Then, as today, each file found is read only when its id changed (`ct_slot_id`).
+- **Memory:** a 16-byte handle and a 276-byte entry, static; the number → inode table for the scan, 63 words. With the
+  rule of §36.3 for two files of one number, their names too (63 × 64 bytes), in the RAM claim, which has the room
+  (§31: 2.4 MB of 3 MB).
+
+### 36.3 The design
+
+- **A name plays as table n** when it starts with two digits `01` to `63` and the next character, if any, is not a
+  digit: `07`, `07 Glass Pad`, `07-glass`, `07.wav` (a file another tool wrote with its extension). Not: `7 Glass`, `070`,
+  `64 Pad`, `00`. Folders and the entries `0x4007ecc2` hides are left out.
+- **The scan:** on a new index signature (as today, §31), the tick opens `/Wavetables` (`0x4007aa78`) and reads up to
+  16 entries a tick (`0x4007ab26`) into the table number → inode; at the end, one slot a tick as today: `FS_ENTRY` for
+  the id, the same file kept, a new one read and built, a number without a file back to the stock table. `FS_OPEN` goes.
+- **Two files with one number:** the one whose name comes first in byte order plays (`07 Glass` before `07 Pad`). The
+  Uploader warns before (below).
+- **A rename does not change the index** (an id is the content's hash, §11.3), so a renamed file would wait for the next
+  upload or delete. The Uploader renames nothing on the Cycles; Elektron Transfer may. A listing being cheap, the tick
+  lists the folder again every 2 seconds or so, and loads only what changed.
+- **The Uploader** (`docs/uploader/app.js`, `/Wavetables`): the file is written as now; a warning when the name does not
+  start with `01` to `63` and one non-digit (« not played: … »), and when the folder already holds a file of that number
+  (« … plays instead », by the rule above). Both in the window of §35.
+- **Texts:** the card, the guide (« named 01 to 63, a name may follow: 07 Glass Pad »), the test sheet.
+
+### 36.4 Steps
+
+- **N1, the loader** (`chordtables.c`, 0.4): the listing, the rule, the 2-second re-list; `FS_OPEN` out. Checks without
+  emulation, the build, the size.
+- **N2, the proof** (`test_chordtables.py` L): `Drive` answers `0x4007aa78`, `0x4007ab26` and `0x4007ecc2` from its
+  files by folder, with names: `07 Glass Pad` plays as 7; `7 Pad`, `070`, a folder `05` play nothing; two files of one
+  number; a rename picked up by the re-list; the cost of a tick with 63 files. For the maintainer (Unicorn).
+- **N3, the Uploader:** the two warnings, host tests (`page.test.js`), the browser against `fake-cycles.js`.
+- **N4, texts and device:** card, guide, test sheet, release; on the Model:Cycles: `07 Glass Pad` plays as 7, `07`
+  alone still plays, a duplicate number warned, a rename (if Transfer can) picked up.
+
+### 36.5 N1 built: the loader 0.4 (2026-11-09)
+
+The maintainer: « Ja, N1 bauen ».
+
+- **`chordtables.c`:**
+  - **The calls:** `FS_OPEN` and `FS_CLOSE` out; `DIR_OPEN` (`0x4007aa78`), `DIR_NEXT` (`0x4007ab26`), `DIR_HIDDEN`
+    (`0x4007ecc2`) in.
+  - **`number(name)`:** the rule of §36.3. On the host, the C function itself: 17 cases right (`07`, `07 Glass Pad`,
+    `07-glass`, `07.wav`, `01`, `63`, `63 x`; not `7 Glass`, `070`, `64 Pad`, `00`, `0`, an empty name, `Glass 07`,
+    `6`, `99`, `7`). `before(a, b)`, byte order.
+  - **`start_listing(changed)`:** clears `ct_found`, opens `/Wavetables`. Without the folder the pass starts at once, so
+    every table goes back to the stock one. `changed` (a new index signature) sets `full` until the pass ends.
+  - **`list_some()`:** 16 entries a tick, into `ct_found` (an inode per table) and the names in the RAM claim. Folders,
+    hidden entries and names without a number are left out. At the folder's end, the pass.
+  - **`load_one(n)`:**
+    - from `ct_found[n]`; it returns 0 (no free buffer, again next tick), 1 (nothing from the drive) or 2 (the drive);
+    - in a pass on time (`!full`), a table whose inode is the one it had (`ct_slot_ino`) is skipped;
+    - otherwise as 0.3: `FS_ENTRY` for the id, the same id kept, a new file read and built;
+    - an unplayable file stays in `ct_slot_ino`, so a pass on time does not read its header again.
+  - **`ct_tick`:**
+    - on a new signature, a listing with `full`;
+    - when idle for `RELIST` (64) ticks, a listing on time;
+    - while listing, `list_some`;
+    - in the pass, the tables in order: as many a tick as need nothing from the drive, then the first that does, as
+      in 0.3.
+  - **Memory:** the names (63 × 256) and the entry (276) after the stock frames' copy; the claim ends at
+    `0x4364cc94`, below `0x43700000`, checked at compile time (`ram_claim_holds_it`).
+- **Size:** code 4 753 bytes (0.3: 4 224), variables 1 400 bytes; the tweak alone 10 writes, 278 conflicts (as 0.3).
+- **The manifest:** 0.4, `experimental` (rule 3: new code on the device untested), the roots `ct_slot_ino`, `ct_found`
+  and `ct_listing` for the proof, the uses' reasons.
+- **Regenerated:** `36-chordtables.json`, `chordtables.o`, `tweaks.js`, `REGISTRY.md`, REF_MAINOS and REF_MODS.
+- **Checks here:** `gen_chordtables.py --check`, `gen_flasher_tweaks.py --check`, `registry.py --check`,
+  `check_overlaps.py`, `claims.py --check`: ok. `test_chordtables.py --dry`: ALL OK (the sites and chains of three
+  builds).
+  `webcompose_check.sh` on the official OS: 63/63 identical to `compose.py` (`chordtables` alone MAIN OS `6b1b2952…`,
+  with SAMPLE `8aa5757d…`). REF_MAINOS 121 combinations, REF_MODS 4 098. `webflash_smoke.sh` (synthetic OS): ALL OK.
+- **Not proven yet:** section L of `test_chordtables.py` still answers `FS_OPEN` (its `Drive`), so it fails on 0.4
+  until N2. Nothing to flash before N2 has passed.
+
+### 36.6 N2 prepared: section L of `test_chordtables.py` for 0.4 (2026-11-09)
+
+The maintainer: « Ja, N2 bauen ».
+
+- **`Drive`:**
+  - folders and files by path, in the order they were made;
+  - it answers the OS's folder calls (`0x4007aa78`, `0x4007ab26`, `0x4007ecc2`), `FS_ENTRY` and `FS_READ`;
+  - a folder lists `.`, `..`, then its entries; an entry is the OS's 276 bytes (inode, type, folder, block, offset,
+    name);
+  - a rename keeps the inode, the id and the place, and leaves the index as it was;
+  - `FS_OPEN` and `FS_CLOSE` stay hooked only to show that 0.4 never calls them.
+- **`Loader`:** the UI world of the old section, with instructions counted in the package's code each tick.
+- **The cases, in order:**
+  - a. The first tick makes the move, then the listing: `/Wavetables` opened once, its 20 entries in order, 16 then 5,
+    the pass after it. Only numbered files are asked whether they are hidden. The tables are found and built:
+    - `01`, `02 Saw Pad`, `03-pulse`, `63`, `08 Converted`, `10.wav` and `11 off` as in 0.3, and `12 Glass` of
+      `12 Pad` and `12 Glass`;
+    - nothing for `64 Pad`, `7 Pad`, `070`, `Glass 16`, the folder `13` and the file in it, the hidden `15`, `/17`;
+    - empty slots for the unplayable `05 Stereo`, `06 short` and `07 Big`.
+  - b. Nothing changed: no call in 10 ticks.
+  - c. The listing on time (the 65th tick): the folder once more, no file looked at again, not even the unplayable
+    ones.
+  - d. A rename, `02 Saw Pad` to `04 Saw Pad`, the index unchanged: at the listing on time, table 4 from it, table 2
+    back to the stock one, its buffer free; only that file read.
+  - e. A file added (`09 New`): every id looked at, only `09 New` read. Then `12 Aa`: table 12 plays it.
+  - f. A file replaced while its buffer is wanted and a voice points into it, as in 0.3.
+  - g. A file deleted.
+  - h. The drive not mounted, then its lock held: no call; then a new listing.
+  - i. No free buffer: the pass waits on table 18, then loads it.
+  - j. `/Wavetables` deleted: its opening refused, every table back to the stock one.
+  - k. 63 files `01 Table 1` to `63 Table 63`: all loaded. A finding gives the ticks and the most instructions a tick
+    while listing and while loading; the OS's own folder calls are not counted, the `Drive` answers them.
+- **Here:** the dry run ALL OK; the file compiles; no undefined name (an AST pass, pyflakes being out of reach); the
+  section itself needs Unicorn, which this sandbox cannot start (SIGILL).
+
+### 36.7 The first run of N2 (the maintainer, 2026-11-09) `[FAIT en émulation]`
+
+- **Every section passed** in all four selections (alone, SAMPLE before it, with Digital Delay, with Crush), sections 0
+  to P5 and C as before: the audio code is 0.3's. In L, cases a to j passed: the names, the hidden question, the empty
+  slots, no call in 10 ticks, the listing on time, the rename, the file added, `12 Aa`, the file replaced, the file
+  deleted, mount and lock, no free buffer, the folder deleted.
+- **Case k failed on the proof's own count.** It ran 80 ticks. The first pass ended at tick 68 (5 ticks of listing, 63
+  of loading); the listing on time, due since tick 65, came right after it, idle at last, so the window saw two
+  openings of the folder. That is the design of §36.3; the check counted the window, not the pass. The case now ticks
+  to the end of the first pass and checks: 1 opening, 5 listing ticks, 63 loading ticks, the end at tick 68, all 63
+  loaded.
+- **The findings:** at most 2 765 instructions a tick in the package while listing (2 796 with SAMPLE's dispatcher;
+  the OS's folder calls not counted: the `Drive` answers them), at most 257 605 while loading a table, `build()` as in
+  0.3.
+- **The second run** (the maintainer, 2026-11-09, `--machines chordtables`, with case k fixed): « all ok ». N1 and N2
+  are proven in emulation; on the device nothing yet (N4).
