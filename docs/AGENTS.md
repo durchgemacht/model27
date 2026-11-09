@@ -87,7 +87,9 @@ part of MAIN OS copied into SRAM are those of OS 1.13, as in this flasher's Mode
 CHORD Tables alone and on all fifteen cards, 2026-11-09); it refuses the others, Model:Samples containers among them.
 Everything runs in the browser. `tools/gen_wavetables_page.py --editor <its chordwave-editor.html>` writes the page:
 the editor as it is, with this site's title and icon, its header and nav (classes `.site-top`, `.site-brand`: the
-editor has a `.brand` of its own; no `site.css`), a footer with model27's version, and `release.js` and `site.js`.
+editor has a `.brand` of its own; no `site.css`), a footer with model27's version, and `release.js` and `site.js`;
+it hides the editor's Examples and Fill slots from a pattern (`#ex-card`, `#pat-row`, the maintainer's choice of
+09/11/2026; they stay in the DOM).
 Change the editor in its repository, rebuild it there, and run the generator again; `--check` says whether the page
 is still the editor's (the `?v=` stamp and the version in the footer aside, so a stamp bump by hand passes) and
 whether the six pages have the same nav. Light only. CHORD Tables reads CHORD's own table at run time, so with it, 0

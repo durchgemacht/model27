@@ -42,6 +42,8 @@ CSS = """
 .site-top nav a { text-decoration: none; }
 .site-top nav a:hover, .site-top nav a[aria-current="page"] { text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: .3em; }
 @media (max-width: 560px) { .site-top { padding-inline: 16px; } }
+/* not on this site (the maintainer's choice, 2026-11-09): the Examples and Fill slots from a pattern, in the DOM still */
+#ex-card, #pat-row { display: none !important; }
 """
 
 HEADER = """<header class="site-top">
