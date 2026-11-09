@@ -10,7 +10,7 @@ window.MC_RELEASES = [
   { version: "0.54", date: "2026-11-09", changes: [
     { en: "CHORD Tables reads wavetables with names: start the name with the wavetable's number, 01 to 63, and add what you like. 07 Glass Pad is wavetable 7, and 07 alone still is. Of two files with the same number, the one whose name comes first alphabetically plays. A renamed file is read within about two seconds" },
     { en: "The Uploader warns, in Wavetables, when a name does not start with 01 to 63 and when a number is already taken, saying which file plays. The files are uploaded all the same" },
-    { en: "Checked in an emulator on the OS's own code: the names, two files with one number, renaming, adding, replacing and deleting files, 63 files at once. Not yet tried on a Model:Cycles" },
+    { en: "Checked in an emulator on the OS's own code: the names, two files with one number, renaming, adding, replacing and deleting files, 63 files at once. Tested on a Model:Cycles (2026-11-09), from the command line with all fourteen other cards: a name after the number, a name without one, two files with one number and a delete, and six CHORD tracks under load; not yet flashed from this page" },
   ] },
   { version: "0.53", date: "2026-11-09", changes: [
     { en: "The Uploader shows a warning or a problem in a window over the page, which stays until you press OK. After an upload it names each file that was skipped, not uploaded or uploaded with a warning, and why. The line under the title still says what happened last" },

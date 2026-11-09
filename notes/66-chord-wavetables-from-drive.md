@@ -3289,3 +3289,10 @@ The full build of §36.9 (`.syx e38153f1…`, MAIN OS `8e0a9241…`), a new proj
   seconds, no click.
 - **All tests of 0.4 passed** on the Model:Cycles (2026-11-09), from the command line with all fourteen other cards.
   Not yet flashed from the page (the flasher is offline).
+
+### 36.11 0.4 tested on the Model:Cycles (2026-11-09)
+
+- **CHORD Tables 0.4 is `tested`** (the manifest, `tests.hardware` 0.4), on the tests of §36.10.
+- The guide's Tested and release 0.54 say so; `BUILD.md` names the file tried.
+- The flasher's card stays `experimental` until the maintainer flashes it from the page, as for 0.3. The flasher is
+  offline.

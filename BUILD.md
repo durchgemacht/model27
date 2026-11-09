@@ -284,7 +284,8 @@ python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,cho
 MAIN OS patché, `chordtables` 0.4 seul : `6b1b29521cce0222fe093b5fd3226131fdb3cc0da589e94c81bb3cc840fce04b` ; avec
 SAMPLE : `8aa5757db25279d70d819ec0e285b820c427de6a9f46bc58864ef57f9a114dea` ; avec toutes les cartes de la page (quinze,
 release 0.54 : `--machines sampler,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq --cpu --resample --transpose
---with control-all-config,trig-preview,trig-cond-order`) : `8e0a92418f6ecbd14df773a41b60f0702e2a9abe85f668740bf997a1b3a84409`.
+--with control-all-config,trig-preview,trig-cond-order`) : `8e0a92418f6ecbd14df773a41b60f0702e2a9abe85f668740bf997a1b3a84409`,
+le fichier essayé sur un Model:Cycles depuis la ligne de commande le 09/11/2026 (note 66 §36.10).
 Depuis la 0.4 (note 66 §36), le chargeur lit le dossier `/Wavetables` avec les appels de l'OS (`0x4007aa78`,
 `0x4007ab26`) : un nom qui commence par deux chiffres `01` à `63` suivis d'autre chose qu'un chiffre est cette table
 (`07 Glass Pad`). La 0.3 (les noms fixes `01` à `63`) : seule `49596b80…`, avec SAMPLE `e34b7597…`, avec les quinze
