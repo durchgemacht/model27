@@ -234,6 +234,15 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 20px; background: v
 .card-pair { display: grid; gap: 16px; align-items: start; }
 .card-pair .lab, #live-card .lab { min-width: 9ch; }
 .val { font-size: 12px; min-width: 7ch; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* Play: two buttons that say what is set (chord and root, the LFO), framed like a menu; each folds its controls
+   open in a frame under the row, one at a time, the open button inverted */
+button.menu { min-height: 32px; padding: 0 30px 0 8px; border: 2px solid var(--ink); font: 400 13px/1.2 var(--body);
+  text-transform: none; text-decoration: none; white-space: nowrap;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-size: 5px 5px, 5px 5px; background-position: calc(100% - 16px) 52%, calc(100% - 11px) 52%; background-repeat: no-repeat; }
+button.menu:hover:not(:disabled) { outline: 1px solid var(--ink); outline-offset: 1px; }
+button.menu[aria-expanded="true"] { background-color: var(--ink); color: var(--paper); }
+.fold { display: grid; gap: 10px; margin-top: -4px; padding: 10px 12px; border: 2px solid var(--ink); }
 
 /* "?": a small square; its text in a window under it, closed with ×, Escape or the same "?" */
 button.help { width: 22px; min-height: 22px; height: 22px; padding: 0; border: 2px solid var(--ink); font-size: 12px; line-height: 1;
@@ -368,8 +377,8 @@ footer p { margin: 0; max-width: 100ch; }
       <div class="file">
         <button id="btn-sort" type="button" title="Sort the filled slots from dark to bright; empty slots go to the end">Sort by brightness</button>
         <button id="btn-reverse" type="button">Reverse</button>
-        <span class="group"><button id="btn-gaps" type="button">Fill gaps</button><button type="button" class="help" aria-label="Explain" data-help="Fills each run of empty slots with in-between waves, so the sound moves evenly from the wave before the gap to the wave after it. Very different waves need more empty slots between them. Empty slots at the start begin from the sine at SWEEP 0; empty slots after the last wave stay empty.">?</button></span>
-        <span class="group"><label for="harmonics">Harmonics</label><input id="harmonics" type="range" min="10" max="40" step="1" value="15"><span id="harm-val">H15</span><button type="button" class="help" aria-label="Explain" data-help="Every wave keeps the harmonics up to this value. Fewer harmonics sound duller and softer. CHORD's original wavetable uses up to 16.">?</button></span>
+        <span class="group"><button id="btn-gaps" type="button">Fill gaps</button><button type="button" class="help" aria-label="Explain" data-help="Fills each gap of empty slots with waves in between its neighbours, so SWEEP moves evenly from the wave before the gap to the wave after it. Leave more empty slots between waves that sound very different. A gap at the start begins at the sine; empty slots after the last wave stay empty.">?</button></span>
+        <span class="group"><label for="harmonics">Harmonics</label><input id="harmonics" type="range" min="10" max="40" step="1" value="15"><span id="harm-val">H15</span><button type="button" class="help" aria-label="Explain" data-help="Sets how many harmonics each wave keeps, 15 by default (10–40). Fewer sound duller and softer. CHORD's own wavetable goes up to 16.">?</button></span>
       </div>
       <div id="slots" class="slots"></div>
     </div>
@@ -383,7 +392,7 @@ footer p { margin: 0; max-width: 100ch; }
     </div>
     <div class="step-body pool" id="side-waves" role="tabpanel" aria-labelledby="tab-waves">
       <div class="card" id="ex-card">
-        <div class="card-head"><h3>Examples</h3><button type="button" class="help" aria-label="Explain" data-help="Ready-made wavetables to start from or to compare with. Loading one replaces the table; Undo brings yours back.">?</button></div>
+        <div class="card-head"><h3>Examples</h3><button type="button" class="help" aria-label="Explain" data-help="Ready-made wavetables to start from. Load replaces your table; Undo brings it back.">?</button></div>
         <div class="card-row"><select id="ex-pick" aria-label="Example"></select><button id="btn-example" type="button">Load</button></div>
       </div>
       <div class="tabs" role="tablist" id="tabs" aria-label="Wave sources">
@@ -406,13 +415,13 @@ footer p { margin: 0; max-width: 100ch; }
         <span id="own-note" class="note" hidden>Single cycles (16–2048 samples) or wavetables (frames of 2048 samples, up to 256). You can drop files here too.</span>
       </div>
       <div class="card" id="pat-row">
-        <div class="card-head"><h3>Fill slots from a pattern</h3><button type="button" class="help" aria-label="Explain" data-help="Picks waves from this tab in an order that morphs smoothly. With fewer slots, the pattern is thinned out evenly.">?</button></div>
+        <div class="card-head"><h3>Fill slots from a pattern</h3><button type="button" class="help" aria-label="Explain" data-help="Fills the slots with waves of this tab, in an order that moves smoothly. Fewer slots leave out waves of the pattern evenly.">?</button></div>
         <div class="card-row"><label class="lab" for="pat-mode">Pattern</label><select id="pat-mode"></select></div>
         <div class="card-row"><label class="lab" for="pat-s0">Slots</label><input id="pat-s0" type="number" min="1" max="31" value="1" aria-label="First slot"><span>to</span><input id="pat-s1" type="number" min="1" max="31" value="31" aria-label="Last slot"></div>
         <div class="card-row"><button id="btn-pattern" type="button">Fill</button></div>
       </div>
       <div class="card" id="spread-row" hidden>
-        <div class="card-head"><h3>Spread a wavetable over the slots</h3><button type="button" class="help" aria-label="Explain" data-help="Spreads the file's frames over the slots. Even change in sound puts more frames where the file changes quickly, so the sweep moves evenly. To play the file backwards, enter the higher frame first.">?</button></div>
+        <div class="card-head"><h3>Spread a wavetable over the slots</h3><button type="button" class="help" aria-label="Explain" data-help="Spreads the file's frames over the slots. With even change in sound, more frames go where the file changes fast, so SWEEP moves evenly. To play the file backwards, enter the higher frame first.">?</button></div>
         <div class="card-row"><label class="lab" for="sp-file">File</label><select id="sp-file"></select></div>
         <div class="card-row"><label class="lab" for="sp-from">Frames</label><input id="sp-from" type="number" min="1" value="1" aria-label="First frame of the file"><span>to</span><input id="sp-to" type="number" min="1" value="1" aria-label="Last frame of the file"></div>
         <div class="card-row"><label class="lab" for="sp-s0">Slots</label><input id="sp-s0" type="number" min="1" max="31" value="1" aria-label="First slot"><span>to</span><input id="sp-s1" type="number" min="1" max="31" value="31" aria-label="Last slot"></div>
@@ -423,7 +432,7 @@ footer p { margin: 0; max-width: 100ch; }
         <div class="card-row"><button id="btn-spread" type="button">Spread</button></div>
       </div>
       <div class="card" id="cycles-row" hidden>
-        <div class="card-head"><h3>Put single cycles in order</h3><button type="button" class="help" aria-label="Explain" data-help="Puts each single cycle on its own slot. Smoothest path starts with the darkest wave and always goes on to the most similar one. With more waves than slots, some are skipped evenly.">?</button></div>
+        <div class="card-head"><h3>Put single cycles in order</h3><button type="button" class="help" aria-label="Explain" data-help="Puts each single cycle on a slot of its own. Smoothest path starts at the darkest wave and goes on to the most similar one each time. With more waves than slots, some are left out evenly.">?</button></div>
         <div class="card-row"><label class="lab" for="cy-order">Order</label><select id="cy-order">
           <option value="smooth" selected>smoothest path</option>
           <option value="bright">dark to bright</option>
@@ -438,13 +447,15 @@ footer p { margin: 0; max-width: 100ch; }
         <canvas id="waterfall" aria-label="The 32 frames as a wavetable, frame 0 in front"></canvas>
         <dl class="facts">
           <div><dt>Slots</dt><dd id="f-slots">–</dd></div>
-          <div><dt>Crossfade level <button type="button" class="help" aria-label="Explain" data-help="How steady the volume stays while SWEEP blends from one frame to the next. 1.00 means no dip; below 0.70 you hear it drop.">?</button></dt><dd id="f-morph">–</dd></div>
-          <div><dt>Loudness <button type="button" class="help" aria-label="Explain" data-help="How loud each frame is compared with a plain sine. Spiky waves sound quieter. A wide range means the volume changes as you sweep.">?</button></dt><dd id="f-level">–</dd></div>
-          <div><dt>Brightness <button type="button" class="help" aria-label="Explain" data-help="The highest harmonic that still clearly counts in a wave. H1 is a pure sine; the higher, the brighter.">?</button></dt><dd id="f-top">–</dd></div>
+          <div><dt>Crossfade level <button type="button" class="help" aria-label="Explain" data-help="How steady the volume stays while SWEEP moves from one wave to the next. 1.00 is no dip; below 0.70 you hear the volume drop.">?</button></dt><dd id="f-morph">–</dd></div>
+          <div><dt>Loudness <button type="button" class="help" aria-label="Explain" data-help="How loud each wave is, compared with a sine. Spiky waves sound quieter. A wide range means the volume changes as you turn SWEEP.">?</button></dt><dd id="f-level">–</dd></div>
+          <div><dt>Brightness <button type="button" class="help" aria-label="Explain" data-help="The highest harmonic that is still strong in a wave. H1 is a sine; the higher, the brighter.">?</button></dt><dd id="f-top">–</dd></div>
         </dl>
       </div>
         <div class="card" id="live-card">
-          <div class="card-head"><h3>Play</h3><button type="button" class="help" aria-label="Explain" data-help="Play live keeps playing while you move SWEEP; the LFO moves it up and down. Play sweep runs SWEEP from 0 to 127 in 8 seconds, with the LFO off. Empty slots are skipped: the sound moves straight from the wave before them to the wave after them, and stays on the last wave. On the Model:Cycles, SHAPE picks the chord and the note you play sets the root.">?</button></div>
+          <div class="card-head"><h3>Play</h3><button type="button" class="help" aria-label="Explain" data-help="Press and hold the SWEEP slider to hear the table while you move it. Hold keeps the sound on until you press Stop; while it plays, the LFO moves SWEEP up and down. Play sweep turns SWEEP from 0 to 127 in 8 seconds, with the LFO off. Empty slots are skipped, and after the last wave the sound stays on it. On the Model:Cycles, SHAPE sets the chord and the note you play sets the root.">?</button></div>
+          <div class="card-row"><button id="menu-chord" type="button" class="menu" aria-expanded="false" aria-controls="fold-chord">Minor 7 · C3</button><button id="menu-lfo" type="button" class="menu" aria-expanded="false" aria-controls="fold-lfo">LFO off</button></div>
+          <div class="fold" id="fold-chord" hidden>
           <div class="card-row"><label class="lab" for="live-chord">Chord</label><select id="live-chord">
             <option value="0,3,7,10" selected>Minor 7</option>
             <option value="0,4,7,11">Major 7</option>
@@ -457,10 +468,13 @@ footer p { margin: 0; max-width: 100ch; }
             <option value="130.81278" selected>C3</option>
             <option value="261.62557">C4</option>
           </select></div>
+          </div>
+          <div class="fold" id="fold-lfo" hidden>
+          <div class="card-row"><label class="lab" for="lfo-depth">Depth</label><input id="lfo-depth" type="range" min="0" max="64" step="1" value="0" aria-label="LFO depth"><span id="lfo-depth-val" class="val">0</span></div>
+          <div class="card-row"><label class="lab" for="lfo-rate">Rate</label><input id="lfo-rate" type="range" min="0.05" max="4" step="0.05" value="0.5" aria-label="LFO rate"><span id="lfo-rate-val" class="val">0.50 Hz</span></div>
+          </div>
           <div class="card-row"><label class="lab" for="sweep">SWEEP</label><input id="sweep" type="range" min="0" max="127" step="1" value="64"><span id="sweep-val" class="val">64</span></div>
-          <div class="card-row"><label class="lab" for="lfo-depth">LFO depth</label><input id="lfo-depth" type="range" min="0" max="64" step="1" value="0"><span id="lfo-depth-val" class="val">0</span></div>
-          <div class="card-row"><label class="lab" for="lfo-rate">LFO rate</label><input id="lfo-rate" type="range" min="0.05" max="4" step="0.05" value="0.5"><span id="lfo-rate-val" class="val">0.50 Hz</span></div>
-          <div class="card-row"><button id="btn-live" type="button" class="primary">Play live</button><button id="btn-play" type="button">Play sweep</button></div>
+          <div class="card-row"><button id="btn-live" type="button" class="primary">Hold</button><button id="btn-play" type="button">Play sweep</button></div>
         </div>
     </div>
   </section>
@@ -472,11 +486,11 @@ footer p { margin: 0; max-width: 100ch; }
     <div class="card-row"><label class="lab" for="set-name">Name</label><input id="set-name" type="text" value="my-wavetable" spellcheck="false" autocomplete="off"></div>
     <div class="card-pair">
       <div class="card">
-        <div class="card-head"><h3>Wavetable</h3><button type="button" class="help" aria-label="Explain" data-help="Saves your slots and the harmonics as a .json file. Open… brings it back here, so you can change it later.">?</button></div>
+        <div class="card-head"><h3>Wavetable</h3><button type="button" class="help" aria-label="Explain" data-help="Saves the table and its harmonics as a .json file. Open… brings it back here to change it later.">?</button></div>
         <div class="card-row"><button id="btn-save" type="button" disabled>Save wavetable</button><button id="btn-copy" type="button" hidden>Copy JSON instead</button></div>
       </div>
       <div class="card">
-        <div class="card-head"><h3>Firmware</h3><button type="button" class="help" aria-label="Explain" data-help="Your wavetable in CHORD, built here from an OS file you have: the official OS 1.13 (model-cycles_OS1.13.syx from Elektron) or a model27 build of it, which keeps all its mods. The file stays on this computer. Install the saved file like an official OS update.">?</button></div>
+        <div class="card-head"><h3>Firmware</h3><button type="button" class="help" aria-label="Explain" data-help="Puts your wavetable into CHORD, in the OS file you drop here: the official OS 1.13 (model-cycles_OS1.13.syx from Elektron) or a model27 build (Download in the flasher), which keeps all its mods. The file stays on your computer. Install the saved file like an official OS update.">?</button></div>
         <label class="drop" id="os-drop" tabindex="0">
           <span class="drop-ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M14 3H5v18h14V8z"/><path d="M14 3v5h5"/><path d="M12 11v6M9.5 14.5 12 17l2.5-2.5"/></svg></span>
           <span class="drop-t"><strong id="os-name">Drop the OS file here</strong><span id="os-hint">the official model-cycles_OS1.13.syx or a model27 build · or click to choose it</span></span>
@@ -1842,7 +1856,7 @@ const WAV = (() => {
     node.connect(gain);
     gain.connect(ctx.destination);
     live = { node, gain, st };
-    $("btn-live").textContent = "Stop live";
+    $("btn-live").textContent = "Stop";
     markPlaying();
     requestAnimationFrame(liveTick);
   }
@@ -1855,7 +1869,8 @@ const WAV = (() => {
     setTimeout(() => { node.disconnect(); gain.disconnect(); }, 80);
     if (live.st.sweep) setSweep(live.st.sweep.prev);    // stopped in mid-sweep: SWEEP back where it was
     live = null;
-    $("btn-live").textContent = "Play live";
+    heldPlay = false;
+    $("btn-live").textContent = "Hold";
     $("btn-play").textContent = "Play sweep";
     markPlaying();
     markNow(null); drawTable(null);
@@ -1869,10 +1884,30 @@ const WAV = (() => {
     requestAnimationFrame(liveTick);
   }
   function setSweep(v) { $("sweep").value = v; $("sweep-val").textContent = String(+v); }
+  const MENUS = [["menu-chord", "fold-chord"], ["menu-lfo", "fold-lfo"]];
+  // SWEEP held: the table plays while the slider is held, from pointer down to up, and stops when it is let go,
+  // unless Hold was on before. A sweep that Play sweep started alone is taken over the same way.
+  let heldPlay = false;
+  function holdSweep() {
+    if (live && !(live.st.sweep && !live.st.sweep.wasLive)) return;   // Hold is on: the slider only moves SWEEP
+    if (!live) { startLive(); if (!live) return; }
+    heldPlay = true;
+    $("btn-live").textContent = "Hold";                         // a held SWEEP is not Hold
+  }
+  function releaseSweep() { if (heldPlay) { heldPlay = false; if (live) stopLive(); } }
+  function foldMenu(open) {   // the id of the menu to open, or null to close both
+    for (const [b, f] of MENUS) { $(f).hidden = b !== open; $(b).setAttribute("aria-expanded", b === open ? "true" : "false"); }
+  }
+  function openMenu() { const m = MENUS.find(([b]) => $(b).getAttribute("aria-expanded") === "true"); return m ? m[0] : null; }
+  function menuLabels() {
+    const text = s => s.options[s.selectedIndex].text, depth = Number($("lfo-depth").value);
+    $("menu-chord").textContent = `${text($("live-chord"))} · ${text($("live-root"))}`;
+    $("menu-lfo").textContent = depth ? `LFO ${depth} · ${Number($("lfo-rate").value).toFixed(2)} Hz` : "LFO off";
+  }
   // Play sweep: the LFO off, SWEEP from 0; afterwards the sound goes on only if Play live was on before, at
   // SWEEP where it was. Moving the SWEEP slider during the sweep takes over (live goes on from there).
   function startSweep() {
-    $("lfo-depth").value = 0; $("lfo-depth-val").textContent = "0";
+    $("lfo-depth").value = 0; $("lfo-depth-val").textContent = "0"; menuLabels();
     const wasLive = !!live, prev = $("sweep").value;
     if (!wasLive) { setSweep(0); startLive(); if (!live) return; }
     live.st.sweep = { t: 0, done: false, wasLive, prev };
@@ -2267,6 +2302,8 @@ const WAV = (() => {
   $("harmonics").addEventListener("change", () => { thumbCache.clear(); changed(); });
   $("btn-play").addEventListener("click", () => (live && live.st.sweep ? endSweep() : startSweep()));
   $("sweep").addEventListener("input", () => { if (live && live.st.sweep) { live.st.sweep = null; $("btn-play").textContent = "Play sweep"; } });
+  $("sweep").addEventListener("pointerdown", holdSweep);
+  for (const type of ["pointerup", "pointercancel"]) document.addEventListener(type, releaseSweep);
   $("btn-pattern").addEventListener("click", fillPattern);
   $("btn-sort").addEventListener("click", sortTable);
   $("btn-reverse").addEventListener("click", reverseTable);
@@ -2327,6 +2364,12 @@ const WAV = (() => {
   for (const [id, fmt] of [["sweep", v => String(+v)], ["lfo-depth", v => String(+v)], ["lfo-rate", v => (+v).toFixed(2) + " Hz"]]) {
     $(id).addEventListener("input", () => { $(id + "-val").textContent = fmt($(id).value); });
   }
+  // Play's two menus: the button says what is set and folds its controls open under the row; the other one
+  // closes. The button again or Escape closes it.
+  for (const [b] of MENUS) $(b).addEventListener("click", () => foldMenu($(b).getAttribute("aria-expanded") === "true" ? null : b));
+  for (const id of ["live-chord", "live-root"]) $(id).addEventListener("change", menuLabels);
+  for (const id of ["lfo-depth", "lfo-rate"]) $(id).addEventListener("input", menuLabels);
+  menuLabels();
   $("btn-save").addEventListener("click", save);
   $("btn-copy").addEventListener("click", copy);
   $("btn-load").addEventListener("click", () => $("file-input").click());
@@ -2373,6 +2416,8 @@ const WAV = (() => {
     if (helpFor) { closeHelp().focus(); return; }
     const sheet = $("save-sheet");
     if (sheet && !sheet.hidden) { showSave(false); return; }
+    const menu = openMenu();
+    if (menu) { foldMenu(null); $(menu).focus(); return; }
     poolSel = null; pickPool(null);
   });
   const redraw = () => { paintPool(); paintSlots(); drawTable(null); };
