@@ -74,8 +74,13 @@ the page names) decodes no AIFF and no WAV of 64-bit floats, so `elektron.js` re
 the same samples as a WAV (`audioInfo`, `toWav`; release 0.57, compared byte for byte with afconvert's WAVs and in
 Chromium 152); `audioInfo` also gives each way a file fails its own message in `convert()` (compressed and how, empty,
 too long by its header, damaged, unreadable), and `tools/uploader/audiofiles.js` builds the tests' WAV and AIFF files.
-A refused file delete says what to do (`IN_USE` in `app.js`): the Cycles keeps a sample loaded on a track until it
-restarts, even after the track gets another one (tried on a Model:Cycles, 10/11/2026).
+A sample the Cycles refuses to delete no longer stops the rest (release 0.58): `deleteSelected()` collects every one,
+the folders with one in them stay, and the window names them with `lockedHelp()`'s blocks (Why, then the steps To
+delete it): once a track uses a sample the Cycles locks it, and a restart unlocks it only if no track uses it anymore
+(tried on a Model:Cycles with one SAMPLE track, 10/11/2026). The window's blocks (`help` of `show()`) are a heading and
+a sentence or steps, styled as the flasher's How to use (`.info-body h3`, `ol.howto`); more than three files
+(`ALERT_ROWS`) fold into a `<details>` that scrolls, as the flasher's "Something went wrong?". `fake-cycles.js` takes
+`locked: [paths]` to try it in a browser.
 In `/Wavetables` it applies CHORD Tables'
 rules (notes/66). The status line under the title says what happened last; a warning or a problem also opens a window
 over the page (`alertBox()`, a `<dialog>` in `index.html`), which stays until OK or Escape and names the files it is

@@ -5,7 +5,8 @@
    For tests only, never loaded by the page (docs/uploader/; this folder is not on the site): serve the repository's
    root, open /docs/uploader/ and load /tools/uploader/fake-cycles.js into it by hand (a script element or the
    console), then FakeDrive.install(opts) before pressing Connect the Cycles. opts: { mute: true (answers nothing),
-   delayMs (how long each answer takes, 15 by default) }. */
+   delayMs (how long each answer takes, 15 by default), locked: [paths] (samples it refuses to delete, without a
+   text, as a Model:Cycles does with a sample a track uses) }. */
 window.FakeDrive = (function () {
     "use strict";
     var E = window.Elektron;
@@ -80,7 +81,7 @@ window.FakeDrive = (function () {
             case E.TYPE.DELETE_FILE:
                 p = str(body, 0);
                 it = drive.get(p);
-                if (!it || it.folder || drive.get(E.parentPath(p)).protect)
+                if (!it || it.folder || drive.get(E.parentPath(p)).protect || (o.locked || []).indexOf(p) >= 0)
                     return out([0]);
                 drive.delete(p);
                 return out([1]);

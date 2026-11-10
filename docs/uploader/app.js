@@ -35,21 +35,35 @@
 
     /* The one status line, under the header: news plain, a warning dashed, a problem inverted. A warning or a problem
        also opens a window over the page, which stays until OK (the maintainer's wish of 2026-11-08: the line alone was
-       easy to miss); rows: the files it is about, { name, why }. */
-    function show(text, kind, rows) {
+       easy to miss); rows: the files it is about, { name, why }; help: blocks under them, each a short heading and a
+       sentence or two ({ h, p }) or steps ({ h, steps }), as the flasher's How to use (release 0.58). */
+    function show(text, kind, rows, help, noun) {
         $("status").textContent = text;
         $("status").className = "status" + (kind ? " " + kind : "");
         $("status").hidden = false;
         if (kind === "warn" || kind === "bad")
-            alertBox(text, kind, rows || []);
+            alertBox(text, kind, rows || [], help || [], noun || "file");
     }
 
-    var ALERT_ROWS = 12;    /* the files named in the window; the list on the page has them all */
+    /* The files the window names at once; more go into a list folded under "Show the n files" (details, as the
+       flasher's "Something went wrong?"), which scrolls (release 0.58; before, 12 and "And n more"). */
+    var ALERT_ROWS = 3;
+
+    function el(tag, cls, text) {
+        var e = document.createElement(tag);
+
+        if (cls)
+            e.className = cls;
+        if (text !== undefined)
+            e.textContent = text;
+        return e;
+    }
 
     /* The window: its title Warning, or Problem once a problem is in it; a second message while it is open goes under
-       the first. A dialog (showModal: the page behind it is inert), closed by OK or Escape. */
-    function alertBox(text, kind, rows) {
-        var d = $("alert"), body = $("alert-body"), p = document.createElement("p"), ul, li, b, why, i;
+       the first. A dialog (showModal: the page behind it is inert), closed by OK or Escape. rows, help: as show();
+       noun: what the rows are, "file" or "sample". */
+    function alertBox(text, kind, rows, help, noun) {
+        var d = $("alert"), body = $("alert-body"), ul, li, fold, sum, i;
 
         if (!state.alerting) {
             body.innerHTML = "";
@@ -59,27 +73,41 @@
         if (kind === "bad")
             d.className = "alert bad";
         $("alert-h").textContent = /\bbad\b/.test(d.className) ? "Problem" : "Warning";
-        p.textContent = text;
-        body.appendChild(p);
+        body.appendChild(el("p", "", text));
         if (rows.length) {
-            ul = document.createElement("ul");
-            for (i = 0; i < rows.length && i < ALERT_ROWS; i++) {
-                li = document.createElement("li");
-                b = document.createElement("b");
-                b.textContent = rows[i].name;
-                why = document.createElement("span");
-                why.textContent = rows[i].why;
-                li.appendChild(b);
-                li.appendChild(why);
+            ul = el("ul", "named");
+            for (i = 0; i < rows.length; i++) {
+                li = el("li");
+                li.appendChild(el("b", "", rows[i].name));
+                if (rows[i].why)            /* a locked sample: the message above says why */
+                    li.appendChild(el("span", "", rows[i].why));
                 ul.appendChild(li);
             }
-            if (rows.length > ALERT_ROWS) {
-                li = document.createElement("li");
-                li.textContent = "And " + (rows.length - ALERT_ROWS) + " more: see the list.";
-                ul.appendChild(li);
+            if (rows.length <= ALERT_ROWS)
+                body.appendChild(ul);
+            else {
+                fold = el("details", "fold");
+                sum = el("summary", "", "Show the " + plural(rows.length, noun));
+                fold.ontoggle = function () {
+                    sum.textContent = (fold.open ? "Hide" : "Show") + " the " + plural(rows.length, noun);
+                };
+                fold.appendChild(sum);
+                fold.appendChild(ul);
+                body.appendChild(fold);
             }
-            body.appendChild(ul);
         }
+        help.forEach(function (blk) {
+            var div = el("div", "blk"), list;
+
+            div.appendChild(el("h3", "", blk.h));
+            if (blk.steps) {
+                list = el("ol");
+                blk.steps.forEach(function (s) { list.appendChild(el("li", "", s)); });
+                div.appendChild(list);
+            } else
+                div.appendChild(el("p", "", blk.p));
+            body.appendChild(div);
+        });
         if (!state.alerting) {
             state.alerting = true;
             if (typeof d.showModal === "function")
@@ -288,38 +316,56 @@
         return it.writeProtected || (state.path === "/" && it.folder && it.name === "incoming");
     }
 
-    /* What to do when the Cycles keeps a sample (release 0.57). It refuses a delete without saying why. Tried on a
-       Model:Cycles on 10/11/2026: a sample loaded on a SAMPLE track was refused, also after the track got another one
-       and the pattern was saved, and after a restart while a track still used it; after a restart with no track using
-       it, it went. Most likely the OS 1.13's unlink (0x4007a5d8, reached from the 0x24 handler through 0x4007c18e and
-       0x4007a850) finds the file open: its bit in the table at 0x40fe8e10, in RAM, which only a restart clears. Which
-       code opens it is not known: neither the transfer's writer nor SAMPLE's reads leave a file open. */
-    var IN_USE = "A sample loaded on a track stays in use until the Cycles restarts, even after the track gets another " +
-                 "one. Load another sample on every track that uses it, save the pattern, restart the Cycles, then " +
-                 "delete it again";
+    /* A sample the Cycles has locked (release 0.57, in the window's blocks since 0.58). It refuses to delete it without
+       saying why. Tried on a Model:Cycles on 10/11/2026: a sample loaded on a SAMPLE track was refused, also after the
+       track got another one and the pattern was saved, and after a restart while a track still used it; after a
+       restart with no track using it, it went. Most likely the OS 1.13's unlink (0x4007a5d8, reached from the 0x24
+       handler through 0x4007c18e and 0x4007a850) finds the file open: its bit in the table at 0x40fe8e10, in RAM, which
+       only a restart clears. Which code opens it is not known: neither the transfer's writer nor SAMPLE's reads leave
+       a file open. lockedHelp: the window's blocks, for n samples. */
+    function lockedHelp(n) {
+        var it = n === 1 ? "it" : "them";
 
-    /* The Cycles deletes only an empty folder, so its contents go first, one request at a time. */
-    async function remove(path, folder) {
-        var items, m, i;
+        return [{ h: "Why", p: "Once a track uses a sample, the Cycles locks it. A restart unlocks it, but only if no " +
+                               "track uses it anymore." },
+                { h: "To delete " + it, steps: ["Load another sample on each track that uses " +
+                                                (n === 1 ? "it" : "one of them") + ".",
+                                                "Save the pattern.", "Restart the Cycles.", "Delete " + it + " again."] }];
+    }
+
+    /* The Cycles deletes only an empty folder, so its contents go first, one request at a time. A sample it refuses
+       goes into locked ({name: its path, why: the Cycles' text, or none and locked: true}) and the rest goes on; a folder
+       with one in it stays. done counts what went ({files, dirs}). True when the path is gone. */
+    async function remove(path, folder, locked, done) {
+        var items, m, i, all = true;
 
         if (folder) {
             items = await readDir(path);
             for (i = 0; i < items.length; i++)
-                await remove(E.joinPath(path, items[i].name), items[i].folder);
+                all = (await remove(E.joinPath(path, items[i].name), items[i].folder, locked, done)) && all;
+            if (!all)
+                return false;
         }
         show("Deleting " + path + "…");
         m = await send(folder ? E.TYPE.DELETE_DIR : E.TYPE.DELETE_FILE, E.pathBytes(path), 30000);
-        if (!E.replyOk(m))
-            throw new Error("the Cycles did not delete " + path + (E.replyText(m) ? ": " + E.replyText(m) : "") +
-                            (folder ? "" : ". " + IN_USE));
+        if (E.replyOk(m)) {
+            done[folder ? "dirs" : "files"]++;
+            return true;
+        }
+        if (folder)
+            throw new Error("The Cycles did not delete " + path + (E.replyText(m) ? ": " + E.replyText(m) : "") + ".");
+        locked.push(E.replyText(m) ? { name: path, why: sentence(E.replyText(m)) } : { name: path, why: "", locked: true });
+        return false;
     }
 
     function plural(n, one) { return n + " " + one + (n === 1 ? "" : "s"); }
     function sentence(s) { return s.charAt(0).toUpperCase() + s.slice(1) + "."; }
 
-    /* The selected samples and folders, after one question; the first one the Cycles refuses stops it. */
+    /* The selected samples and folders, after one question. A sample the Cycles refuses is skipped and the others go;
+       the window names every one it kept, with why and what to do (lockedHelp). */
     async function deleteSelected() {
-        var here = state.path, picked, files, dirs, question, i, items;
+        var here = state.path, picked, files, dirs, question, i, items, locked = [], done = { files: 0, dirs: 0 }, left,
+            dirsLeft, went, said;
 
         picked = state.items.filter(function (it) { return state.sel.indexOf(it.name) >= 0 && !kept(it); });
         if (!picked.length)
@@ -334,16 +380,30 @@
             return;
         try {
             for (i = 0; i < picked.length; i++)
-                await remove(E.joinPath(here, picked[i].name), picked[i].folder);
+                await remove(E.joinPath(here, picked[i].name), picked[i].folder, locked, done);
         } catch (e) {
             await listDir(here).catch(function () {});   /* show what is left */
             throw e;
         }
         items = await listDir(here);
-        picked.forEach(function (it) {
-            if (items.some(function (x) { return x.name === it.name; }))
+        left = picked.filter(function (it) { return items.some(function (x) { return x.name === it.name; }); });
+        left.forEach(function (it) {
+            var p = E.joinPath(here, it.name);
+
+            if (!locked.some(function (l) { return l.name === p || l.name.indexOf(p + "/") === 0; }))
                 throw new Error(it.name + " is still in the folder afterwards");
         });
+        if (locked.length) {
+            dirsLeft = left.filter(function (it) { return it.folder; }).length;
+            went = [done.files ? plural(done.files, "sample") : "", done.dirs ? plural(done.dirs, "folder") : ""].filter(Boolean);
+            said = (went.length ? "Deleted " + went.join(" and ") + ". " : "") +
+                   "The Cycles did not delete " + plural(locked.length, "sample") + "." +
+                   (dirsLeft ? " The folder" + (dirsLeft === 1 ? "" : "s") + " with " + (locked.length === 1 ? "it" : "them") +
+                               " stay" + (dirsLeft === 1 ? "s" : "") + " too." : "");
+            show(said, "bad", locked, locked.some(function (l) { return l.locked; }) ? lockedHelp(locked.length) : [],
+                 "sample");
+            return;
+        }
         show(picked.length === 1 ? "Deleted " + E.joinPath(here, picked[0].name) + "."
                                  : "Deleted " + plural(picked.length, "item") + " from " + here + ".", "ok");
     }

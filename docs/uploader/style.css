@@ -93,10 +93,18 @@ button,input,select{font:inherit;color:inherit}
 .alert h2{margin:0;padding-bottom:8px;border-bottom:3px dashed currentColor;font-size:20px}
 .alert.bad h2{margin:-14px -20px 0;padding:14px 20px 12px;border-bottom:0;background:var(--ink);color:var(--paper)}
 .alert-body{display:flex;flex-direction:column;gap:12px}
-.alert-body p{margin:0;font-weight:700;line-height:1.5;overflow-wrap:anywhere}
-.alert-body ul{margin:0;padding:0;list-style:none;border-top:1px solid var(--ink)}
-.alert-body li{display:flex;flex-direction:column;gap:2px;padding:6px 0;border-bottom:1px solid var(--ink);font-size:13px;line-height:1.45}
-.alert-body li b{overflow-wrap:anywhere}
+.alert-body>p{margin:0;font-weight:700;line-height:1.5;overflow-wrap:anywhere}
+/* the files it names: up to three as they are, more folded (details, as the flasher's "Something went wrong?") into a
+   list that scrolls */
+.alert-body .named{margin:0;padding:0;list-style:none;border-top:1px solid var(--ink)}
+.alert-body .named li{display:flex;flex-direction:column;gap:2px;padding:6px 0;border-bottom:1px solid var(--ink);font-size:13px;line-height:1.45}
+.alert-body .named b{overflow-wrap:anywhere}
+.alert-body .fold>summary{cursor:pointer;font-weight:700;font-size:14px}
+.alert-body .fold .named{max-height:min(240px,40vh);overflow:auto;margin-top:8px}
+/* what to do: blocks of a heading and a sentence or two, or steps, as the flasher's How to use (.info-body h3, ol.howto) */
+.alert-body .blk h3{margin:0 0 2px;font-size:13px;line-height:1.4}
+.alert-body .blk p{margin:0;font-size:14.5px;line-height:1.6;max-width:72ch}
+.alert-body .blk ol{margin:0;padding-left:1.8em;font-size:14.5px;line-height:1.6}   /* the numbers inside the box */
 .alert .btn{align-self:flex-end;min-width:120px;min-height:44px}
 
 /* the two panes: the files to upload on the left, the Cycles on the right. Quieter than the flasher's cards: the pane

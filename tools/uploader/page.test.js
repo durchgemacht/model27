@@ -225,7 +225,7 @@ const sandbox = {
     window: null,
     document: {
         getElementById: (id) => elements[id],
-        createElement: () => element(""),
+        createElement: (tag) => Object.assign(element(""), { tagName: String(tag).toUpperCase(), open: false }),
         addEventListener: () => {}
     },
     navigator: { requestMIDIAccess: async () => access },
@@ -296,10 +296,18 @@ const add = (...list) => {
 /* the window: open or not, its title, its messages (a <p> each), the files they name ("path: why"); OK closes it */
 const alertOpen = () => !elements.alert.hidden;
 const alertTitle = () => elements["alert-h"].textContent;
-const alertSaid = () => elements["alert-body"].children.filter(c => !c.children.length).map(c => c.textContent);
-const alertRows = () => elements["alert-body"].children.filter(c => c.children.length)
-    .flatMap(ul => ul.children.map(li => (li.children.length ? li.children[0].textContent + ": " + li.children[1].textContent
-                                                              : li.textContent)));
+/* its rows: in a list of class named, or folded in a details of class fold (more than three); its blocks: heading and
+   sentence, or heading and steps */
+const alertSaid = () => elements["alert-body"].children.filter(c => c.tagName === "P").map(c => c.textContent);
+const alertLists = () => elements["alert-body"].children.flatMap(c => (c.className === "named" ? [c] :
+    c.className === "fold" ? c.children.filter(x => x.className === "named") : []));
+const alertRows = () => alertLists().flatMap(ul => ul.children.map(li => li.children[0].textContent +
+                                                                   (li.children[1] ? ": " + li.children[1].textContent : "")));
+const alertFold = () => (elements["alert-body"].children.find(c => c.className === "fold") || { children: [{ textContent: "" }] })
+    .children[0].textContent;
+const alertHelp = () => elements["alert-body"].children.filter(c => c.className === "blk").map(b =>
+    [b.children[0].textContent, b.children[1].tagName === "OL" ? b.children[1].children.map(li => li.textContent)
+                                                               : b.children[1].textContent]);
 const dismiss = () => {
     elements["alert-ok"].onclick();
     check(!alertOpen(), "OK closes the window");
@@ -656,7 +664,8 @@ const uploaded = (n) => until(() => new RegExp("of " + n + " uploaded").test(ele
     check(!row("My Samples") && shown() === "/", "it leaves the list; the page stays at the root");
     check(drive.has("/Wavetables/02") && drive.has("/incoming"), "the other folders stay");
 
-    /* the Cycles refuses one: it stops there, says why, and lists what is left */
+    /* the Cycles refuses a sample a track uses (release 0.58): the others go on, the folder with it stays; one is named
+       in the window with why and the steps, in blocks */
     drive.set("/Kit", { folder: true });
     drive.set("/Kit/a", { folder: false, data: new Uint8Array(80) });
     drive.set("/Kit/b", { folder: false, data: new Uint8Array(80), inUse: true });
@@ -667,21 +676,53 @@ const uploaded = (n) => until(() => new RegExp("of " + n + " uploaded").test(ele
     click("Kit", { ctrlKey: true });
     click("Loose", { metaKey: true });
     elements["del-sel"].onclick();
-    await until(() => elements.status.className === "status bad", "the refusal ends it");
+    await until(() => elements.status.className === "status bad", "the refusal is told");
     check(asked[asked.length - 1] === "Delete 1 sample and 1 folder with everything in them from the Cycles? This cannot be undone.",
           "a mixed selection is counted: " + asked[asked.length - 1]);
-    const refusal = "the Cycles did not delete /Kit/b. A sample loaded on a track stays in use until the Cycles restarts, " +
-                    "even after the track gets another one. Load another sample on every track that uses it, save the " +
-                    "pattern, restart the Cycles, then delete it again";
-    check(elements.status.textContent === refusal, "the refusal is shown, with what to do: " + elements.status.textContent);
-    check(alertOpen() && alertTitle() === "Problem" && JSON.stringify(alertSaid()) === JSON.stringify([refusal]),
-          "and in the window: " + alertSaid());
+    const one = "Deleted 3 samples. The Cycles did not delete 1 sample. The folder with it stays too.";
+    check(elements.status.textContent === one, "the status line in short: " + elements.status.textContent);
+    const why = ["Why", "Once a track uses a sample, the Cycles locks it. A restart unlocks it, but only if no track uses it anymore."];
+    check(alertOpen() && alertTitle() === "Problem" && JSON.stringify(alertSaid()) === JSON.stringify([one]) &&
+          JSON.stringify(alertRows()) === '["/Kit/b"]' && alertFold() === "" &&
+          JSON.stringify(alertHelp()) === JSON.stringify([why, ["To delete it", ["Load another sample on each track that uses it.",
+                                                         "Save the pattern.", "Restart the Cycles.", "Delete it again."]]]),
+          "the window: what happened, the sample, why, the steps: " + JSON.stringify([alertSaid(), alertRows(), alertHelp()]));
     dismiss();
-    check(!drive.has("/Kit/a") && drive.has("/Kit/b") && drive.has("/Kit/c") && drive.has("/Kit") && drive.has("/Loose"),
-          "a went; b, what follows and Loose stay");
-    check(!!row("Kit") && shown() === "/", "the folder is still listed");
-    check(JSON.stringify(sel()) === '["Kit","Loose"]', "what is left stays selected: " + sel());
+    check(!drive.has("/Kit/a") && drive.has("/Kit/b") && !drive.has("/Kit/c") && drive.has("/Kit") && !drive.has("/Loose"),
+          "a, c and Loose went; b and its folder stay");
+    check(!!row("Kit") && !row("Loose") && shown() === "/", "the folder is still listed, Loose is not");
+    check(JSON.stringify(sel()) === '["Kit"]', "what is left stays selected: " + sel());
     check(!elements.chip.disabled && !elements["del-sel"].disabled, "the page takes clicks again");
+
+    /* five a track uses: none goes, the window folds their list under Show the 5 samples */
+    drive.set("/Many", { folder: true });
+    for (let i = 1; i <= 5; i++)
+        drive.set("/Many/s" + i, { folder: false, data: new Uint8Array(80), inUse: true });
+    elements.refresh.onclick();
+    await until(() => !!row("Many"), "Many is listed");
+    key("folder", "Escape");
+    click("Many", { metaKey: true });
+    elements["del-sel"].onclick();
+    await until(() => elements.status.className === "status bad" && /5 samples/.test(elements.status.textContent),
+                "the five are told");
+    const five = "The Cycles did not delete 5 samples. The folder with them stays too.";
+    const lists = alertLists(), fold = elements["alert-body"].children.find(c => c.className === "fold");
+    check(elements.status.textContent === five && JSON.stringify(alertSaid()) === JSON.stringify([five]),
+          "nothing deleted, five kept: " + elements.status.textContent);
+    check(alertFold() === "Show the 5 samples" && lists.length === 1 && alertRows().length === 5 &&
+          alertRows()[0] === "/Many/s1" && !elements["alert-body"].children.some(c => c.className === "named"),
+          "their list folded: " + alertFold() + " / " + alertRows().length);
+    fold.open = true;
+    fold.ontoggle();
+    check(alertFold() === "Hide the 5 samples", "open, its line says Hide: " + alertFold());
+    check(JSON.stringify(alertHelp()) === JSON.stringify([why, ["To delete them", ["Load another sample on each track that uses one of them.",
+                                                         "Save the pattern.", "Restart the Cycles.", "Delete them again."]]]),
+          "the steps for several: " + JSON.stringify(alertHelp()));
+    dismiss();
+    check(under("/Many").length === 6, "all five and the folder stay");
+    under("/Many").forEach(p => drive.delete(p));
+    under("/Kit").forEach(p => { if (p !== "/Kit") drive.delete(p); });
+    key("folder", "Escape");
 
     /* a Shift-click with nothing clicked before starts the run there */
     drive.set("/S", { folder: true });

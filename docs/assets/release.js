@@ -7,6 +7,11 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.58", date: "2026-11-10", changes: [
+    { en: "When the Cycles will not delete a sample, the Uploader's window says why and lists the steps: once a track uses a sample, the Cycles locks it, and a restart unlocks it only if no track uses it anymore" },
+    { en: "Deleting goes on past a locked sample: the others are deleted, and the window names every sample the Cycles kept. More than three fold into a list that opens with Show, in the windows for uploads too" },
+    { en: "Corrects 0.57, which said a restart unlocks a sample: on a Model:Cycles with one SAMPLE track, a sample that a track still used stayed locked after a restart" }
+  ] },
   { version: "0.57", date: "2026-11-10", changes: [
     { en: "The Uploader takes AIFF files. Chrome, Edge and Opera cannot open them, so the Uploader reads them itself and hands the browser the same sound as a WAV; a WAV of 64-bit floats goes the same way. A file saved as AIFF with a .wav name works too" },
     { en: "When a file is not uploaded, the Uploader says why and what to do: compressed (and how), empty, too long, possibly damaged, or moved or changed after you added it. Before, each of them said that the browser cannot read the audio file. A WAV or AIFF too long for SAMPLE is turned away before it is converted" },
