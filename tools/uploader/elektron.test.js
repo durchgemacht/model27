@@ -147,6 +147,152 @@ check(E.cleanName("x".repeat(80) + ".wav").length === E.NAME_MAX, "names stop at
           "letters, é (0xe9) after Z");
 }
 
+/* audio files (release 0.57): what a file is from its bytes, and the WAV the browser gets for an AIFF */
+{
+    const A = require("./audiofiles.js");
+    const kind = (bytes) => E.audioInfo(Uint8Array.from(bytes)).kind;
+    check(kind([]) === "empty", "no bytes: empty");
+    check(kind(A.ascii("fLaC\0\0\0\x22")) === "flac" && kind([...A.ascii("OggS"), ...new Array(24).fill(0), ...A.ascii("\x01vorbis")]) === "ogg" &&
+          kind([...A.ascii("OggS"), ...new Array(24).fill(0), ...A.ascii("OpusHead")]) === "opus" &&
+          kind([0, 0, 0, 0x20, ...A.ascii("ftypM4A ")]) === "m4a" && kind(A.ascii("ID3\x04\0")) === "mp3" &&
+          kind([0xff, 0xfb, 0x90, 0x64]) === "mp3" && kind([0xff, 0xf1, 0x50, 0x80]) === "aac",
+          "FLAC, OGG, Opus, M4A, MP3 with an ID3 tag or a frame, AAC (ADTS) by their first bytes");
+    check(kind(A.ascii("RIFF\0\0\0\0AVI LIST")) === "unknown" && kind(A.ascii("MThd\0\0\0\x06")) === "unknown" &&
+          kind([0x52, 1, 2]) === "unknown", "a RIFF that is no WAVE, a MIDI file, three bytes: unknown");
+
+    /* an AIFF as the forum's file: mono, 16 bits, 48 kHz; big-endian samples become little-endian */
+    const s16 = [0, 1, -1, 32767, -32768, 12345, -12345];
+    const be = s16.flatMap(v => A.be16(v & 0xffff)), le = s16.flatMap(v => A.le16(v & 0xffff));
+    let f = A.aiff({ frames: 7, data: be }), info = E.audioInfo(f), w = E.toWav(f, info), h = A.wavHeader(w);
+    check(info.kind === "aiff" && info.channels === 1 && info.rate === 48000 && info.frames === 7 && !info.compressed &&
+          !info.broken && info.layout.order === "be" && info.layout.type === "int" && info.layout.bytes === 2,
+          "AIFF 16 bits: one channel, 48000, 7 frames, big-endian: " + JSON.stringify(info));
+    check(h.riff === "RIFF" && h.wave === "WAVE" && h.fmt === "fmt " && h.fmtLen === 16 && h.data === "data" &&
+          h.size === w.length - 8 && h.tag === 1 && h.ch === 1 && h.rate === 48000 && h.byteRate === 96000 && h.align === 2 &&
+          h.bits === 16 && h.dataLen === 14 && w.length === 44 + 14 + 0, "its WAV header: PCM, 1 channel, 48000, 16 bits, 14 bytes");
+    check(w.length === 58 && same(w.slice(44), le), "its samples, little-endian, as they were");
+    check(E.framesAt(info, 48000) === 7 && E.framesAt({ frames: 441, rate: 44100 }, 48000) === 480 &&
+          E.framesAt({ frames: null, rate: 44100 }, 48000) === null && E.framesAt({ kind: "mp3" }, 48000) === null,
+          "frames at 48 kHz: as many, 441 at 44.1 kHz make 480, none known for a file without a header");
+
+    /* 8 bits: AIFF's are signed, WAV's unsigned */
+    f = A.aiff({ frames: 4, bits: 8, data: [0x00, 0x7f, 0x80, 0xff] });
+    info = E.audioInfo(f);
+    w = E.toWav(f, info);
+    check(A.wavHeader(w).bits === 8 && A.wavHeader(w).align === 1 && same(w.slice(44, 48), [0x80, 0xff, 0x00, 0x7f]) &&
+          w.length === 48, "8 bits: 0, 127, -128, -1 become 128, 255, 0, 127");
+    f = A.aiff({ frames: 3, bits: 8, data: [0x00, 0x80, 0xff] });
+    w = E.toWav(f, E.audioInfo(f));
+    check(w.length === 48 && A.wavHeader(w).dataLen === 3 && A.wavHeader(w).size === 40 && w[47] === 0,
+          "an odd number of bytes is padded, the chunk's length stays odd");
+
+    /* 24 and 32 bits, stereo, 44.1 kHz: each sample's bytes reversed */
+    f = A.aiff({ ch: 2, frames: 2, bits: 24, rate: 44100, data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] });
+    info = E.audioInfo(f);
+    w = E.toWav(f, info);
+    h = A.wavHeader(w);
+    check(info.channels === 2 && info.rate === 44100 && info.frames === 2 && h.ch === 2 && h.rate === 44100 &&
+          h.bits === 24 && h.align === 6 && h.byteRate === 44100 * 6 && same(w.slice(44), [3, 2, 1, 6, 5, 4, 9, 8, 7, 12, 11, 10]),
+          "24 bits, stereo, 44.1 kHz: " + JSON.stringify(h));
+    f = A.aiff({ ch: 3, frames: 1, bits: 32, data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] });
+    w = E.toWav(f, E.audioInfo(f));
+    check(A.wavHeader(w).ch === 3 && A.wavHeader(w).bits === 32 && same(w.slice(44), [4, 3, 2, 1, 8, 7, 6, 5, 12, 11, 10, 9]),
+          "32 bits, three channels");
+    f = A.aiff({ frames: 2, bits: 12, data: [0x12, 0x30, 0xab, 0xc0] });
+    w = E.toWav(f, E.audioInfo(f));
+    check(A.wavHeader(w).bits === 16 && same(w.slice(44), [0x30, 0x12, 0xc0, 0xab]), "12 bits in two bytes (low bits 0): as 16");
+
+    /* the rates COMM holds as an 80-bit float, the old Macintosh one too */
+    const rates = [8000, 11025, 22050, 32000, 44100, 48000, 88200, 96000, 192000, 22254.545454545];
+    const wrong = rates.filter(r => Math.abs(E.audioInfo(A.aiff({ frames: 1, data: [0, 0], rate: r })).rate - r) > 1e-6);
+    check(!wrong.length, "rates read from COMM: " + rates.join(", ") + (wrong.length ? "; wrong: " + wrong : ""));
+    f = A.aiff({ frames: 1, data: [0, 0], rate: 22254.545454545 });
+    check(A.wavHeader(E.toWav(f, E.audioInfo(f))).rate === 22255, "a rate with a fraction is rounded for the WAV");
+
+    /* AIFF-C: the types handed on, little-endian ones as they are, floats; the compressed ones named */
+    f = A.aiff({ type: "sowt", frames: 7, data: le });
+    w = E.toWav(f, E.audioInfo(f));
+    check(A.wavHeader(w).tag === 1 && same(w.slice(44), le), "AIFF-C sowt (little-endian): the bytes as they are");
+    f = A.aiff({ type: "NONE", frames: 7, data: be });
+    check(same(E.toWav(f, E.audioInfo(f)).slice(44), le), "AIFF-C NONE: as AIFF");
+    f = A.aiff({ type: "twos", frames: 7, data: be });
+    check(same(E.toWav(f, E.audioInfo(f)).slice(44), le), "AIFF-C twos: as AIFF");
+    f = A.aiff({ type: "in24", frames: 1, bits: 24, data: [1, 2, 3] });
+    check(same(E.toWav(f, E.audioInfo(f)).slice(44, 47), [3, 2, 1]), "AIFF-C in24");
+    f = A.aiff({ type: "23ni", frames: 1, bits: 32, data: [1, 2, 3, 4] });
+    check(same(E.toWav(f, E.audioInfo(f)).slice(44), [1, 2, 3, 4]), "AIFF-C 23ni (32 bits, little-endian)");
+    f = A.aiff({ type: "raw ", frames: 2, bits: 8, data: [0x00, 0xff] });
+    check(same(E.toWav(f, E.audioInfo(f)).slice(44), [0x00, 0xff]), "AIFF-C raw (8 bits, unsigned): as they are");
+    const fl = [0.5, -0.25, 1, -1, 0.1];
+    const fl32 = new DataView(new ArrayBuffer(20)), fl64 = new DataView(new ArrayBuffer(40));
+    fl.forEach((v, i) => { fl32.setFloat32(4 * i, v); fl64.setFloat64(8 * i, v); });
+    f = A.aiff({ type: "fl32", frames: 5, bits: 32, data: Array.from(new Uint8Array(fl32.buffer)) });
+    w = E.toWav(f, E.audioInfo(f));
+    check(A.wavHeader(w).tag === 3 && A.wavHeader(w).bits === 32 &&
+          fl.every((v, i) => new DataView(w.buffer).getFloat32(44 + 4 * i, true) === Math.fround(v)), "AIFF-C fl32: 32-bit floats");
+    f = A.aiff({ type: "fl64", frames: 5, bits: 64, data: Array.from(new Uint8Array(fl64.buffer)) });
+    w = E.toWav(f, E.audioInfo(f));
+    check(A.wavHeader(w).tag === 3 && A.wavHeader(w).bits === 32 && A.wavHeader(w).align === 4 && w.length === 44 + 20 &&
+          fl.every((v, i) => new DataView(w.buffer).getFloat32(44 + 4 * i, true) === Math.fround(v)),
+          "AIFF-C fl64: 64-bit floats become 32-bit ones, which the browser decodes");
+    f = A.aiff({ type: "ulaw", frames: 3, bits: 16, data: [0xff, 0x80, 0x00] });
+    w = E.toWav(f, E.audioInfo(f));
+    check(A.wavHeader(w).tag === 7 && A.wavHeader(w).bits === 8 && A.wavHeader(w).align === 1 && same(w.slice(44, 47), [0xff, 0x80, 0x00]),
+          "AIFF-C ulaw (its sample size 16): μ-law bytes in a WAV, one a sample");
+    f = A.aiff({ type: "alaw", ch: 2, frames: 1, bits: 16, data: [0xd5, 0x55] });
+    w = E.toWav(f, E.audioInfo(f));
+    check(A.wavHeader(w).tag === 6 && A.wavHeader(w).align === 2 && same(w.slice(44, 46), [0xd5, 0x55]), "AIFF-C alaw, stereo");
+    info = E.audioInfo(A.aiff({ type: "ima4", frames: 64, data: new Array(34).fill(0) }));
+    check(info.compressed && info.codec === "IMA ADPCM" && !info.layout && E.toWav(new Uint8Array(0), info) === null,
+          "AIFF-C ima4: compressed, named IMA ADPCM, not handed on");
+    info = E.audioInfo(A.aiff({ type: "XYZ\x01", frames: 1, data: [0, 0] }));
+    check(info.compressed && info.codec === "XYZ", "an unknown type: compressed, named by its printable letters: " + info.codec);
+    check(E.audioInfo(A.aiff({ type: "raw ", frames: 1, bits: 16, data: [0, 0] })).compressed, "raw of 16 bits: not handed on");
+
+    /* the file's own oddities: chunks before COMM, SSND first, an offset, cut off, no sound, no COMM */
+    f = A.aiff({ frames: 2, data: [0, 1, 0, 2], before: A.iff("NAME", A.ascii("odd")), offset: 3 });
+    check(same(E.toWav(f, E.audioInfo(f)).slice(44), [1, 0, 2, 0]), "an odd chunk before COMM (padded), SSND with an offset");
+    f = A.aiff({ frames: 2, data: [0, 1, 0, 2], ssndFirst: true });
+    check(same(E.toWav(f, E.audioInfo(f)).slice(44), [1, 0, 2, 0]), "SSND before COMM");
+    f = A.aiff({ frames: 100, data: [0, 1, 0, 2, 0, 3] });
+    info = E.audioInfo(f);
+    check(info.frames === 3 && E.toWav(f, info).length === 44 + 6, "COMM says 100 frames, the file holds 3: 3, as Chromium does with a WAV");
+    f = A.aiff({ frames: 4, data: [0, 1, 0, 2, 0, 3, 0, 4] }).slice(0, -3);
+    check(E.audioInfo(f).frames === 2, "a file cut off in its SSND: the whole frames left");
+    check(E.audioInfo(A.aiff({ frames: 0 })).frames === 0, "no frames and no SSND: no sound");
+    check(E.audioInfo(Uint8Array.from([...A.ascii("FORM"), 0, 0, 0, 4, ...A.ascii("AIFF")])).broken, "no COMM: broken");
+    check(E.audioInfo(A.aiff({ frames: 5 })).broken, "frames but no SSND: broken");
+    check(E.audioInfo(A.aiff({ frames: 1, bits: 40, data: [0, 0, 0, 0, 0] })).broken, "40-bit samples: broken");
+
+    /* WAV: most go as they are; 64-bit floats become 32-bit; the compressed ones are named */
+    info = E.audioInfo(A.wav({ data: le }));
+    check(info.kind === "wav" && info.frames === 7 && info.rate === 48000 && info.channels === 1 && !info.compressed &&
+          E.toWav(A.wav({ data: le }), info) === null, "a WAV of 16 bits: 7 frames, to the browser as it is");
+    info = E.audioInfo(A.wav({ ch: 2, bits: 24, rate: 44100, data: new Array(12).fill(0), ext: true,
+                               before: A.riff("LIST", A.ascii("odd")) }));
+    check(info.frames === 2 && info.channels === 2 && info.rate === 44100 && info.layout.type === "int" && info.layout.bytes === 3,
+          "an extensible WAV after an odd LIST chunk: 2 frames of 24 bits, stereo");
+    info = E.audioInfo(A.wav({ data: le, claim: 0xffffffff }));
+    check(info.frames === 7, "a WAV streamed without its length: the frames the file holds");
+    check(E.audioInfo(A.wav({ data: [] })).frames === 0, "a WAV without frames");
+    f = A.wav({ tag: 3, bits: 64, data: Array.from(new Uint8Array(fl64.buffer).slice(0, 40)).flatMap((_, i, a) => i % 8 ? [] : a.slice(i, i + 8).reverse()) });
+    info = E.audioInfo(f);
+    w = E.toWav(f, info);
+    check(info.layout.type === "float" && info.layout.bytes === 8 && A.wavHeader(w).tag === 3 && A.wavHeader(w).bits === 32 &&
+          fl.every((v, i) => new DataView(w.buffer).getFloat32(44 + 4 * i, true) === Math.fround(v)),
+          "a WAV of 64-bit floats becomes one of 32-bit floats");
+    info = E.audioInfo(A.wav({ tag: 0x11, bits: 4, data: new Array(16).fill(0) }));
+    check(info.compressed && info.codec === "IMA ADPCM" && E.toWav(new Uint8Array(0), info) === null, "IMA ADPCM: named");
+    info = E.audioInfo(A.wav({ tag: 2, bits: 4, data: [0, 0], ext: true }));
+    check(info.compressed && info.codec === "MS ADPCM", "MS ADPCM as an extensible WAV's subformat: named");
+    info = E.audioInfo(A.wav({ tag: 0x1234, data: [0, 0] }));
+    check(info.compressed && info.codec === "", "an unknown tag: compressed, no name");
+    check(E.audioInfo(Uint8Array.from([...A.ascii("RIFF"), 4, 0, 0, 0, ...A.ascii("WAVE")])).broken, "no fmt: broken");
+    info = E.audioInfo(A.wav({ tag: 6, bits: 8, data: [1, 2] }));
+    check(info.layout.type === "alaw" && E.toWav(A.wav({ tag: 6, bits: 8, data: [1, 2] }), info) === null, "A-law WAV: as it is");
+    check(E.framesAt(E.audioInfo(A.bigWav(1000, 44100)), 48000) === Math.ceil(1000 * 48000 / 44100), "a big WAV's frames at 48 kHz");
+}
+
 if (failures) {
     console.log(failures + " check(s) failed");
     process.exit(1);

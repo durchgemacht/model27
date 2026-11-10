@@ -288,6 +288,16 @@
         return it.writeProtected || (state.path === "/" && it.folder && it.name === "incoming");
     }
 
+    /* What to do when the Cycles keeps a sample (release 0.57). It refuses a delete without saying why. Tried on a
+       Model:Cycles on 10/11/2026: a sample loaded on a SAMPLE track was refused, also after the track got another one
+       and the pattern was saved, and after a restart while a track still used it; after a restart with no track using
+       it, it went. Most likely the OS 1.13's unlink (0x4007a5d8, reached from the 0x24 handler through 0x4007c18e and
+       0x4007a850) finds the file open: its bit in the table at 0x40fe8e10, in RAM, which only a restart clears. Which
+       code opens it is not known: neither the transfer's writer nor SAMPLE's reads leave a file open. */
+    var IN_USE = "A sample loaded on a track stays in use until the Cycles restarts, even after the track gets another " +
+                 "one. Load another sample on every track that uses it, save the pattern, restart the Cycles, then " +
+                 "delete it again";
+
     /* The Cycles deletes only an empty folder, so its contents go first, one request at a time. */
     async function remove(path, folder) {
         var items, m, i;
@@ -300,7 +310,8 @@
         show("Deleting " + path + "…");
         m = await send(folder ? E.TYPE.DELETE_DIR : E.TYPE.DELETE_FILE, E.pathBytes(path), 30000);
         if (!E.replyOk(m))
-            throw new Error("the Cycles did not delete " + path + (E.replyText(m) ? ": " + E.replyText(m) : ""));
+            throw new Error("the Cycles did not delete " + path + (E.replyText(m) ? ": " + E.replyText(m) : "") +
+                            (folder ? "" : ". " + IN_USE));
     }
 
     function plural(n, one) { return n + " " + one + (n === 1 ? "" : "s"); }
@@ -540,14 +551,70 @@
 
     /* ---- uploading --------------------------------------------------------------------------- */
 
-    /* Decoded by the browser at the Cycles' rate, its channels averaged: the 16-bit frames. */
-    async function convert(file) {
-        var ctx = new OfflineAudioContext(1, 1, E.RATE), buf, ch = [], c;
+    /* Why a file does not become a sample, one message for each way (release 0.57; before it, one for all: "the
+       browser cannot read this audio file"). said: the page's own, which upload() passes on as it is. */
+    var CALLED = { wav: "WAV", aiff: "AIFF", mp3: "MP3", flac: "FLAC", ogg: "OGG file", opus: "Opus file", m4a: "M4A",
+                   aac: "AAC file" };
+    var EXPORT = "Export it as a WAV of 16 or 24 bits";
 
-        buf = await ctx.decodeAudioData(await file.arrayBuffer());
-        for (c = 0; c < buf.numberOfChannels; c++)
-            ch.push(buf.getChannelData(c));
-        return E.toInt16(E.mixDown(ch));
+    function said(text) {
+        var e = new Error(text);
+
+        e.said = true;
+        return e;
+    }
+
+    function tooLong(bytes) { return said("too long: SAMPLE holds up to 63 MB, this is " + kb(bytes)); }
+
+    function tooLongHere() { return said("too long for the browser to convert"); }
+
+    /* After the browser could not decode it: what the file is, as far as its bytes tell. */
+    function undecodable(info) {
+        if (info.compressed)
+            return said("this WAV is compressed " + (info.codec ? "(" + info.codec + "), which" : "in a way") +
+                        " the browser cannot open. " + EXPORT);
+        if (CALLED[info.kind])
+            return said("the browser cannot open this " + CALLED[info.kind] + "; it may be damaged. " + EXPORT);
+        return said("the browser cannot open this file as audio. " + EXPORT);
+    }
+
+    /* Decoded by the browser at the Cycles' rate, its channels averaged: the 16-bit frames. An AIFF, and a WAV of
+       64-bit floats, go to the browser as the WAV it decodes (E.toWav); a WAV or an AIFF too long for SAMPLE is
+       refused before it is decoded, by its header. */
+    async function convert(file) {
+        var bytes, info, wav, n, buf, ch = [], c;
+
+        try {
+            bytes = new Uint8Array(await file.arrayBuffer());
+        } catch (e) {
+            throw e && e.name === "RangeError" ? tooLongHere()
+                : said("the file cannot be read from your computer: it was moved, changed or deleted after you added it. " +
+                       "Add it again");
+        }
+        info = E.audioInfo(bytes);
+        if (info.kind === "empty" || info.frames === 0)
+            throw said("the file is empty");
+        if (info.kind === "aiff" && info.compressed)
+            throw said("this AIFF is compressed " + (info.codec ? "(" + info.codec + "), which" : "in a way") +
+                       " the Uploader cannot open. " + EXPORT);
+        if (info.kind === "aiff" && !info.layout)
+            throw said("the Uploader cannot open this AIFF; it may be damaged. " + EXPORT);
+        n = E.framesAt(info, E.RATE);
+        if (n !== null && 2 * n > POOL)
+            throw tooLong(64 + 2 * n + 16);
+        try {
+            wav = E.toWav(bytes, info);
+            buf = await new OfflineAudioContext(1, 1, E.RATE).decodeAudioData((wav || bytes).buffer);
+        } catch (e) {
+            throw e && e.name === "RangeError" ? tooLongHere() : undecodable(info);
+        }
+        try {
+            for (c = 0; c < buf.numberOfChannels; c++)
+                ch.push(buf.getChannelData(c));
+            return E.toInt16(E.mixDown(ch));
+        } catch (e) {
+            throw e && e.name === "RangeError" ? tooLongHere() : e;
+        }
     }
 
     function unplayable(n) {
@@ -642,7 +709,7 @@
         try {
             frames = await convert(entry.file);
         } catch (e) {
-            throw new Error("the browser cannot read this audio file");
+            throw e.said ? e : said("the browser cannot open this file as audio. " + EXPORT);
         }
         data = E.sampleFile(frames, E.RATE);
         /* CHORD Tables plays this folder: a file it cannot play is not written; one it will not play as the file is
@@ -653,7 +720,7 @@
             warn = tableWarning(entry.name, frames, items);
         }
         if (data.length - 80 > POOL)
-            throw new Error("too long: SAMPLE holds up to 63 MB, this is " + kb(data.length));
+            throw tooLong(data.length);
         progress(entry, "opening");
         m = await send(E.TYPE.OPEN_WRITE, E.u32(data.length).concat(E.pathBytes(path)), 10000);
         if (!E.replyOk(m))

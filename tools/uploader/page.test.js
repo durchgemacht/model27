@@ -7,6 +7,7 @@ const path = require("path");
 const vm = require("vm");
 const DOCS = path.join(__dirname, "..", "..", "docs", "uploader");
 const E = require(path.join(DOCS, "elektron.js"));
+const A = require("./audiofiles.js");
 
 let failures = 0;
 function check(cond, what) {
@@ -102,13 +103,14 @@ function answer(m) {
         drive.set(f.path, { folder: false, data: f.data });
         return out([1]);
     }
-    /* a file marked inUse stands for the one the Cycles sometimes refuses until it restarts */
+    /* a file marked inUse stands for a sample loaded on a track, which the Cycles refuses to delete until it
+       restarts, with no text (on a Model:Cycles, 10/11/2026) */
     case E.TYPE.DELETE_FILE: {
         const p = str(body, 0), it = drive.get(p);
         if (!it || it.folder || drive.get(E.parentPath(p)).protect)
             return out([0]);
         if (it.inUse)
-            return out([0, ...E.encodeText("File in use"), 0]);
+            return out([0]);
         drive.delete(p);
         return out([1]);
     }
@@ -148,20 +150,63 @@ for (let i = 0; i < tone.length; i++)
 const table = Float32Array.from({ length: 512 }, (_, k) => (k < 256 ? 0.999 * Math.sin(2 * Math.PI * k / 256)
                                                                   : (k - 256) / 128 - 1));
 const sawFirst = Float32Array.from([...table.slice(256), ...table.slice(0, 256)]);
+/* what Chromium throws when it cannot decode */
+const refused = () => Object.assign(new Error("Unable to decode audio data"), { name: "EncodingError" });
+/* A whole WAV (one of the tests', or what the page makes of an AIFF) decoded as Chromium 152 does: PCM of 8 to 32
+   bits, 32-bit floats, A-law and μ-law (here as silence); other tags, 64-bit floats and no frames refused. Only at
+   the context's rate: the tests' files are at 48 kHz. */
+function decodeWav(b, rate) {
+    const dv = new DataView(b.buffer, b.byteOffset, b.byteLength), id = (p) => String.fromCharCode(...b.slice(p, p + 4));
+    let p = 12, fmt = -1, at = -1, len = 0;
+    while (p + 8 <= b.length) {
+        const n = dv.getUint32(p + 4, true);
+        if (id(p) === "fmt ")
+            fmt = p + 8;
+        if (id(p) === "data") {
+            at = p + 8;
+            len = Math.min(n, b.length - at);
+        }
+        p += 8 + n + (n & 1);
+    }
+    if (fmt < 0 || at < 0)
+        throw refused();
+    const tag = dv.getUint16(fmt, true), ch = dv.getUint16(fmt + 2, true), align = dv.getUint16(fmt + 12, true),
+          bits = dv.getUint16(fmt + 14, true), bytes = align / ch, n = Math.floor(len / align);
+    if (![1, 3, 6, 7].includes(tag) || (tag === 3 && bits !== 32) || !n)
+        throw refused();
+    if (dv.getUint32(fmt + 4, true) !== rate)
+        throw new Error("the stand-in decodes at the context's rate only");
+    const out = Array.from({ length: ch }, () => new Float32Array(n));
+    for (let i = 0; i < n; i++)
+        for (let c = 0; c < ch; c++) {
+            const q = at + i * align + c * bytes;
+            out[c][i] = tag === 6 || tag === 7 ? 0 : tag === 3 ? dv.getFloat32(q, true) : bytes === 1 ? (b[q] - 128) / 128 :
+                        bytes === 2 ? dv.getInt16(q, true) / 32768 : bytes === 3 ? ((b[q] | b[q + 1] << 8 | b[q + 2] << 16) << 8 >> 8) / 8388608 :
+                        dv.getInt32(q, true) / 2147483648;
+        }
+    return { numberOfChannels: ch, sampleRate: rate, length: n, getChannelData: (c) => out[c] };
+}
+let decodes = 0;
 class OfflineAudioContext {
     constructor(ch, len, rate) { this.rate = rate; }
     async decodeAudioData(buf) {
-        const kind = new Uint8Array(buf)[0];
+        const b = new Uint8Array(buf), kind = b[0];
+        decodes++;
+        if (b.length >= 44 && String.fromCharCode(...b.slice(0, 4)) === "RIFF")
+            return decodeWav(b, this.rate);
+        if (kind === 0x42)                                         /* "B": more than the browser's memory holds */
+            throw Object.assign(new Error("Array buffer allocation failed"), { name: "RangeError" });
         if (kind === 0x57)                                         /* "W": the wavetable, mono */
             return { numberOfChannels: 1, sampleRate: this.rate, length: table.length, getChannelData: () => table };
         if (kind === 0x58)                                         /* "X": the same frames, the saw first */
             return { numberOfChannels: 1, sampleRate: this.rate, length: sawFirst.length, getChannelData: () => sawFirst };
         if (kind !== 0x52)
-            throw new Error("not audio");
+            throw refused();
         return { numberOfChannels: 2, sampleRate: this.rate, length: tone.length,
                  getChannelData: (c) => (c === 0 ? tone : new Float32Array(tone.length)) };
     }
 }
+const NOT_AUDIO = "The browser cannot open this file as audio. Export it as a WAV of 16 or 24 bits.";
 function file(name, firstByte, type) {
     return { name, size: 1000, type: type === undefined ? "audio/wav" : type,
              arrayBuffer: async () => Uint8Array.from([firstByte, 1, 2]).buffer };
@@ -322,10 +367,10 @@ const uploaded = (n) => until(() => new RegExp("of " + n + " uploaded").test(ele
     check(/^done · 94 KB$/.test(fstate(0).textContent) && fstate(0).className === "state ok" && fwhy(0) === "",
           "the audio file is done: " + fstate(0).textContent);
     check(fstate(1).textContent === "failed" && fstate(1).className === "state bad" &&
-          fwhy(1) === "The browser cannot read this audio file.", "the other one fails, and says why: " + fwhy(1));
+          fwhy(1) === NOT_AUDIO, "the other one fails, and says why: " + fwhy(1));
     check(alertOpen() && alertTitle() === "Problem" && elements.alert.className === "alert bad" &&
           alertSaid()[0] === "1 of 2 uploaded to /My Samples." &&
-          JSON.stringify(alertRows()) === '["/My Samples/notes: The browser cannot read this audio file."]',
+          JSON.stringify(alertRows()) === JSON.stringify(["/My Samples/notes: " + NOT_AUDIO]),
           "a problem: the window names the file and why: " + alertTitle() + " " + alertSaid() + " " + alertRows());
     dismiss();
     check(elements.upload.textContent === "Upload 1 file → /My Samples", "the failed one is still to do: " + elements.upload.textContent);
@@ -401,6 +446,72 @@ const uploaded = (n) => until(() => new RegExp("of " + n + " uploaded").test(ele
     check(alertOpen() && alertTitle() === "Problem" && /^\/factory\/Snare: .*Write protected/.test(alertRows()[0] || ""),
           "the window shows the refusal: " + alertRows());
     dismiss();
+
+    /* formats (release 0.57): an AIFF, which Chromium does not decode, goes to it as a WAV, and so does a WAV of 64-bit
+       floats; every other way a file fails says why */
+    {
+        const bytesFile = (name, bytes, type) => ({ name, size: bytes.length, type, arrayBuffer: async () =>
+            bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.length) });
+        const why = (name) => (lrow(name).children[2].children[1] || { textContent: "" }).textContent;
+        const EXPORT = " Export it as a WAV of 16 or 24 bits.";
+        crumbs()[0].onclick();
+        await until(() => shown() === "/", "back at the root");
+        newFolder("Formats");
+        await until(() => shown() === "/Formats", "a folder for the formats is made and entered");
+        clearList();
+        /* the forum's file: an AIFF named .wav, mono, 16 bits, 48 kHz */
+        const kirche = Int16Array.from({ length: 4800 }, (_, i) => Math.round(12000 * Math.sin(2 * Math.PI * 440 * i / 48000)));
+        const f64 = new DataView(new ArrayBuffer(8 * 480));
+        for (let i = 0; i < 480; i++)
+            f64.setFloat64(8 * i, 0.5 * Math.sin(2 * Math.PI * i / 48), true);
+        add(bytesFile("Kirche.wav", A.aiff({ frames: 4800, data: Array.from(kirche).flatMap(v => A.be16(v & 0xffff)) }), "audio/wav"),
+            bytesFile("Mulaw.aifc", A.aiff({ type: "ulaw", frames: 48, data: new Array(48).fill(0xff) }), "audio/aiff"),
+            bytesFile("Double.wav", A.wav({ tag: 3, bits: 64, data: Array.from(new Uint8Array(f64.buffer)) }), "audio/wav"),
+            bytesFile("Ima4.aif", A.aiff({ type: "ima4", frames: 64, data: new Array(34).fill(0) }), "audio/aiff"),
+            bytesFile("Adpcm.wav", A.wav({ tag: 0x11, bits: 4, data: new Array(256).fill(0) }), "audio/wav"),
+            bytesFile("Nothing.wav", new Uint8Array(0), "audio/wav"),
+            bytesFile("Silent.wav", A.wav({ data: [] }), "audio/wav"),
+            bytesFile("Cut.flac", Uint8Array.from(A.ascii("fLaC\0\0\0\x22")), "audio/flac"),
+            bytesFile("Huge.mp3", Uint8Array.from([0x42, 0, 0]), "audio/mpeg"),
+            bytesFile("Twelve.wav", A.bigWav(48000 * 60 * 12), "audio/wav"),
+            { name: "Moved.wav", size: 1000, type: "audio/wav",
+              arrayBuffer: async () => { throw Object.assign(new Error("gone"), { name: "NotReadableError" }); } });
+        const before = decodes;
+        elements.upload.onclick();
+        await uploaded(11);
+        check(elements.status.textContent.indexOf("3 of 11 uploaded to /Formats.") === 0, "three of eleven: " + elements.status.textContent);
+        const got = drive.get("/Formats/Kirche"), dv = got && new DataView(got.data.buffer);
+        check(lstate("Kirche").className === "state ok" && why("Kirche") === "" && got && dv.getUint32(4) === 9600 &&
+              kirche.every((v, i) => dv.getInt16(64 + 2 * i) === v),
+              "the AIFF named .wav arrives as it was, sample for sample, without a warning: " + why("Kirche"));
+        check(lstate("Mulaw").className === "state ok" && drive.get("/Formats/Mulaw").data.length === 64 + 96 + 16,
+              "an AIFF-C of μ-law: 48 frames");
+        const d64 = drive.get("/Formats/Double"), v64 = d64 && new DataView(d64.data.buffer);
+        let worst = 0;
+        for (let i = 0; d64 && i < 480; i++)
+            worst = Math.max(worst, Math.abs(v64.getInt16(64 + 2 * i) - Math.round(0.5 * Math.sin(2 * Math.PI * i / 48) * 32768)));
+        check(lstate("Double").className === "state ok" && d64 && v64.getUint32(4) === 960 && worst <= 1,
+              "a WAV of 64-bit floats: 480 frames (off by " + worst + ")");
+        const said = {
+            "Ima4": "This AIFF is compressed (IMA ADPCM), which the Uploader cannot open." + EXPORT,
+            "Adpcm": "This WAV is compressed (IMA ADPCM), which the browser cannot open." + EXPORT,
+            "Nothing": "The file is empty.",
+            "Silent": "The file is empty.",
+            "Cut": "The browser cannot open this FLAC; it may be damaged." + EXPORT,
+            "Huge": "Too long for the browser to convert.",
+            "Twelve": "Too long: SAMPLE holds up to 63 MB, this is 65.9 MB.",
+            "Moved": "The file cannot be read from your computer: it was moved, changed or deleted after you added it. Add it again."
+        };
+        Object.keys(said).forEach(n => check(lstate(n).textContent === "failed" && why(n) === said[n] && !drive.has("/Formats/" + n),
+                                             n + ": fails, nothing written, and says: " + why(n)));
+        check(decodes - before === 6, "the browser is asked six times: not for a compressed AIFF, an empty file, one too long by " +
+              "its header or one it cannot read: " + (decodes - before));
+        check(alertOpen() && alertTitle() === "Problem" && alertRows().length === 8 &&
+              alertRows().includes("/Formats/Moved: " + said.Moved), "the window names the eight: " + alertRows().length);
+        dismiss();
+        under("/Formats").forEach(p => drive.delete(p));         /* the drive as before */
+        clearList();
+    }
 
     /* /Wavetables, which model27's CHORD Tables plays: a table whose first frame is no sine is told */
     crumbs()[0].onclick();
@@ -559,8 +670,11 @@ const uploaded = (n) => until(() => new RegExp("of " + n + " uploaded").test(ele
     await until(() => elements.status.className === "status bad", "the refusal ends it");
     check(asked[asked.length - 1] === "Delete 1 sample and 1 folder with everything in them from the Cycles? This cannot be undone.",
           "a mixed selection is counted: " + asked[asked.length - 1]);
-    check(elements.status.textContent === "the Cycles did not delete /Kit/b: File in use", "the refusal is shown: " + elements.status.textContent);
-    check(alertOpen() && alertTitle() === "Problem" && JSON.stringify(alertSaid()) === '["the Cycles did not delete /Kit/b: File in use"]',
+    const refusal = "the Cycles did not delete /Kit/b. A sample loaded on a track stays in use until the Cycles restarts, " +
+                    "even after the track gets another one. Load another sample on every track that uses it, save the " +
+                    "pattern, restart the Cycles, then delete it again";
+    check(elements.status.textContent === refusal, "the refusal is shown, with what to do: " + elements.status.textContent);
+    check(alertOpen() && alertTitle() === "Problem" && JSON.stringify(alertSaid()) === JSON.stringify([refusal]),
           "and in the window: " + alertSaid());
     dismiss();
     check(!drive.has("/Kit/a") && drive.has("/Kit/b") && drive.has("/Kit/c") && drive.has("/Kit") && drive.has("/Loose"),

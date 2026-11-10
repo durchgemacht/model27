@@ -3,7 +3,8 @@
    (app.js) and the host tests (tools/uploader/, Node).
 
    From Cycles One-Shot's upload page (github.com/durchgemacht/cycles-one-shot, uploader/, MIT,
-   text in ../flasher/LICENSE-One-Shot.txt), moved here unchanged but for this comment.
+   text in ../flasher/LICENSE-One-Shot.txt), moved here unchanged but for this comment. Since release 0.57 it
+   also tells audio files apart and reads AIFF (audioInfo, toWav).
 
    Facts used, not code: the message framing and the file commands follow ModdedTransfer
    (github.com/ktwzk/modded-transfer, WTFPL), which follows Elektroid. The Cycles answers the raw
@@ -238,6 +239,207 @@
         return out;
     }
 
+    /* ---- audio files, before the browser decodes them --------------------------------------------------------------
+       The browsers with Web MIDI (Chrome, Edge, Opera: Chromium) decode WAV, but neither AIFF nor a WAV of 64-bit
+       floats. Tried in Chromium 152 on 10/11/2026: PCM of 8 to 32 bits, 32-bit floats, A-law and μ-law, 1 to 6
+       channels, 4 to 384 kHz and a WAV cut off before its end decode; an AIFF, 64-bit floats, IMA and MS ADPCM and a
+       WAV without frames do not. So the page reads AIFF itself and hands the browser the same samples as a WAV
+       (toWav). audioInfo says what a file is from its bytes, for that and for the page's messages. */
+
+    function tag4(b, p) {
+        return p + 4 <= b.length ? String.fromCharCode(b[p], b[p + 1], b[p + 2], b[p + 3]) : "";
+    }
+
+    function le16(b, p) { return b[p] | (b[p + 1] << 8); }
+    function le32(b, p) { return (b[p] | (b[p + 1] << 8) | (b[p + 2] << 16) | (b[p + 3] << 24)) >>> 0; }
+    function be16(b, p) { return (b[p] << 8) | b[p + 1]; }
+
+    /* AIFF's rate, an 80-bit extended float: NaN when it is negative, infinite or not a number. */
+    function ext80(b, p) {
+        var e = ((b[p] & 0x7f) << 8) | b[p + 1];
+
+        if (b[p] & 0x80 || e === 0x7fff)
+            return NaN;
+        return (readU32(b, p + 2) * 4294967296 + readU32(b, p + 6)) * Math.pow(2, e - 16383 - 63);
+    }
+
+    /* The chunks of a RIFF or IFF file from p: each(id, start, length), the length cut to what the file holds. The
+       walk stops at a chunk longer than the rest of the file (cut off, or a WAV streamed without its length). */
+    function chunks(b, p, le, each) {
+        var len;
+
+        while (p + 8 <= b.length) {
+            len = le ? le32(b, p + 4) : readU32(b, p + 4);
+            each(tag4(b, p), p + 8, Math.min(len, b.length - p - 8));
+            if (len > b.length - p - 8)
+                return;
+            p += 8 + len + (len & 1);
+        }
+    }
+
+    /* The compressed formats a WAV may name, for the message when the browser cannot decode one. */
+    var WAV_CODECS = { 2: "MS ADPCM", 0x11: "IMA ADPCM", 0x31: "GSM 6.10", 0x50: "MPEG", 0x55: "MP3" };
+
+    /* AIFF-C's compression types the page hands on: byte order, kind of sample, bytes a sample (0: from the sample
+       size). The others are compressed in ways the browser cannot decode in a WAV; AIFC_CODECS names some. */
+    var AIFC_TYPES = {
+        "NONE": ["be", "int", 0], "twos": ["be", "int", 0], "sowt": ["le", "int", 0],
+        "in24": ["be", "int", 3], "in32": ["be", "int", 4], "42ni": ["le", "int", 3], "23ni": ["le", "int", 4],
+        "raw ": ["be", "uint", 1],
+        "fl32": ["be", "float", 4], "FL32": ["be", "float", 4], "fl64": ["be", "float", 8], "FL64": ["be", "float", 8],
+        "ulaw": ["be", "ulaw", 1], "ULAW": ["be", "ulaw", 1], "alaw": ["be", "alaw", 1], "ALAW": ["be", "alaw", 1]
+    };
+    var AIFC_CODECS = { "ima4": "IMA ADPCM", "MAC3": "MACE 3:1", "MAC6": "MACE 6:1", "GSM ": "GSM", "agsm": "GSM",
+                        "Qclp": "QUALCOMM PureVoice", "QDMC": "QDesign", "QDM2": "QDesign", "alac": "Apple Lossless" };
+
+    function wavInfo(b) {
+        var info = { kind: "wav", compressed: false, codec: "", frames: null, layout: null, broken: false },
+            fmt = null, data = null, tag, bytes;
+
+        chunks(b, 12, true, function (id, at, len) {
+            if (id === "fmt " && len >= 16 && !fmt)
+                fmt = { tag: le16(b, at), channels: le16(b, at + 2), rate: le32(b, at + 4), align: le16(b, at + 12),
+                        bits: le16(b, at + 14), sub: len >= 40 ? le16(b, at + 24) : 0 };
+            if (id === "data" && !data)
+                data = { at: at, len: len };
+        });
+        if (!fmt || !data || !fmt.channels || !fmt.rate || !fmt.align) {
+            info.broken = true;
+            return info;
+        }
+        info.channels = fmt.channels;
+        info.rate = fmt.rate;
+        tag = fmt.tag === 0xfffe ? fmt.sub : fmt.tag;
+        bytes = fmt.align / fmt.channels;
+        if (tag !== 1 && tag !== 3 && tag !== 6 && tag !== 7) {
+            info.compressed = true;
+            info.codec = WAV_CODECS[tag] || "";
+            return info;
+        }
+        if (bytes !== Math.floor(bytes) || bytes < 1 || bytes > 8) {
+            info.broken = true;
+            return info;
+        }
+        info.layout = { at: data.at, order: "le", bytes: bytes,
+                        type: tag === 3 ? "float" : tag === 6 ? "alaw" : tag === 7 ? "ulaw" : bytes === 1 ? "uint" : "int" };
+        info.frames = Math.floor(data.len / fmt.align);
+        return info;
+    }
+
+    function aiffInfo(b, aifc) {
+        var info = { kind: "aiff", compressed: false, codec: "", frames: null, layout: null, broken: false },
+            comm = null, ssnd = null, how, bytes;
+
+        chunks(b, 12, false, function (id, at, len) {
+            if (id === "COMM" && len >= 18 && !comm)
+                comm = { channels: be16(b, at), frames: readU32(b, at + 2), bits: be16(b, at + 6), rate: ext80(b, at + 8),
+                         type: !aifc ? "NONE" : len >= 22 ? tag4(b, at + 18) : "" };
+            if (id === "SSND" && len >= 8 && !ssnd)
+                ssnd = { at: at + 8 + readU32(b, at), len: len - 8 - readU32(b, at) };
+        });
+        if (!comm || !comm.channels || !(comm.rate >= 1)) {
+            info.broken = true;
+            return info;
+        }
+        info.channels = comm.channels;
+        info.rate = comm.rate;
+        how = AIFC_TYPES[comm.type];
+        if (!how || (how[1] === "uint" && comm.bits > 8)) {
+            info.compressed = true;
+            info.codec = AIFC_CODECS[comm.type] || comm.type.replace(/[^ -~]/g, "").trim();
+            return info;
+        }
+        if (comm.frames === 0) {                /* no sound: SSND may be missing */
+            info.frames = 0;
+            return info;
+        }
+        bytes = how[2] || Math.ceil(comm.bits / 8);
+        if (!ssnd || ssnd.len < 0 || bytes < 1 || (how[1] === "float" ? bytes !== 4 && bytes !== 8 : bytes > 4)) {
+            info.broken = true;
+            return info;
+        }
+        info.layout = { at: ssnd.at, order: how[0], type: how[1], bytes: bytes };
+        info.frames = Math.min(comm.frames, Math.floor(ssnd.len / (bytes * comm.channels)));
+        return info;
+    }
+
+    /* What a file is, from its bytes: kind "empty", "wav", "aiff", "mp3", "flac", "ogg", "opus", "m4a", "aac" or
+       "unknown". For a WAV or an AIFF also its channels, rate and frames (null when not known), compressed and the
+       codec's name ("" when unknown) for one the page cannot hand on, the samples' layout {at, order, type, bytes},
+       and broken when its header makes no sense. */
+    function audioInfo(b) {
+        var form = tag4(b, 8);
+
+        if (!b.length)
+            return { kind: "empty" };
+        if (tag4(b, 0) === "RIFF" && form === "WAVE")
+            return wavInfo(b);
+        if (tag4(b, 0) === "FORM" && (form === "AIFF" || form === "AIFC"))
+            return aiffInfo(b, form === "AIFC");
+        if (tag4(b, 0) === "fLaC")
+            return { kind: "flac" };
+        if (tag4(b, 0) === "OggS")
+            return { kind: tag4(b, 28) + tag4(b, 32) === "OpusHead" ? "opus" : "ogg" };
+        if (tag4(b, 4) === "ftyp")
+            return { kind: "m4a" };
+        if (tag4(b, 0).slice(0, 3) === "ID3")
+            return { kind: "mp3" };
+        if (b.length >= 2 && b[0] === 0xff && (b[1] & 0xf6) === 0xf0)      /* ADTS: sync, layer 0 */
+            return { kind: "aac" };
+        if (b.length >= 2 && b[0] === 0xff && (b[1] & 0xe0) === 0xe0)      /* an MPEG audio frame's sync */
+            return { kind: "mp3" };
+        return { kind: "unknown" };
+    }
+
+    /* How many frames a WAV or an AIFF becomes at another rate, as the browser resamples it; null when not known. */
+    function framesAt(info, rate) {
+        return info.frames === null || info.frames === undefined || !info.rate ? null
+            : Math.ceil(info.frames * rate / info.rate);
+    }
+
+    /* The WAV the browser decodes for an AIFF (8-bit samples made unsigned, the others little-endian, 64-bit floats
+       made 32-bit) or for a WAV of 64-bit floats; null for a file that goes to the browser as it is. info: from
+       audioInfo, with a layout. */
+    function toWav(b, info) {
+        var L = info.layout, n, bytes, size, out, dv, src, p, q, i, k;
+
+        if (!L || (info.kind === "wav" && !(L.type === "float" && L.bytes === 8)))
+            return null;
+        n = info.frames * info.channels;
+        bytes = L.type === "float" && L.bytes === 8 ? 4 : L.bytes;
+        size = n * bytes;
+        out = new Uint8Array(44 + size + (size & 1));
+        dv = new DataView(out.buffer);
+        dv.setUint32(0, 0x52494646);                                       /* RIFF */
+        dv.setUint32(4, out.length - 8, true);
+        dv.setUint32(8, 0x57415645);                                       /* WAVE */
+        dv.setUint32(12, 0x666d7420);                                      /* fmt  */
+        dv.setUint32(16, 16, true);
+        dv.setUint16(20, L.type === "float" ? 3 : L.type === "alaw" ? 6 : L.type === "ulaw" ? 7 : 1, true);
+        dv.setUint16(22, info.channels, true);
+        dv.setUint32(24, Math.round(info.rate), true);
+        dv.setUint32(28, Math.round(info.rate) * info.channels * bytes, true);
+        dv.setUint16(32, info.channels * bytes, true);
+        dv.setUint16(34, 8 * bytes, true);
+        dv.setUint32(36, 0x64617461);                                      /* data */
+        dv.setUint32(40, size, true);
+        p = L.at;
+        if (L.bytes === 8) {
+            src = new DataView(b.buffer, b.byteOffset, b.byteLength);
+            for (i = 0, q = 44; i < n; i++, p += 8, q += 4)
+                dv.setFloat32(q, src.getFloat64(p, L.order === "le"), true);
+        } else if (bytes === 1)
+            for (i = 0; i < n; i++)
+                out[44 + i] = L.type === "int" ? b[p + i] ^ 0x80 : b[p + i];
+        else if (L.order === "le")
+            out.set(b.subarray(p, p + size), 44);
+        else
+            for (i = 0, q = 44; i < n; i++, p += bytes)
+                for (k = bytes - 1; k >= 0; k--)
+                    out[q++] = b[p + k];
+        return out;
+    }
+
     /* CHORD Tables (model27, notes/66) plays the files of /Wavetables as wavetables: frames of 256 samples, the
        first one on SWEEP 0, which is a sine on the stock CHORD. Whether a table's first frame is a sine: harmonic 1
        in sine phase (0, rising), DC and every other harmonic under a thousandth of it (model27's
@@ -325,6 +527,9 @@
     exports.mixDown = mixDown;
     exports.toInt16 = toInt16;
     exports.sampleFile = sampleFile;
+    exports.audioInfo = audioInfo;
+    exports.framesAt = framesAt;
+    exports.toWav = toWav;
     exports.CYCLE = CYCLE;
     exports.TABLE_MAX = TABLE_MAX;
     exports.WAVETABLES = WAVETABLES;

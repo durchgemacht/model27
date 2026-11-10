@@ -165,7 +165,8 @@ The files and backups stay in your browser; **Export** puts them in one file. Ho
 
 The **[Uploader](https://durchgemacht.github.io/model27/uploader/)** puts audio files on the Model:Cycles' +Drive over
 USB, for SAMPLE: drop audio files or whole folders on the left, open a folder of the Cycles on the right, press
-**Upload**. Each file becomes a 48 kHz mono sample, and the folders are made on the Cycles too; rows dragged onto a
+**Upload**. Each file becomes a 48 kHz mono sample (WAV, AIFF, and what the browser decodes: MP3, FLAC, OGG, M4A), and
+a file that cannot be uploaded says why. The folders are made on the Cycles too; rows dragged onto a
 folder on the right go there. It also deletes several samples or folders in one go, and works with the official OS
 too. Close Elektron Transfer
 first. It is Cycles One-Shot's upload page, moved here.

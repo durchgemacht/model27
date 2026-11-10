@@ -7,6 +7,12 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.57", date: "2026-11-10", changes: [
+    { en: "The Uploader takes AIFF files. Chrome, Edge and Opera cannot open them, so the Uploader reads them itself and hands the browser the same sound as a WAV; a WAV of 64-bit floats goes the same way. A file saved as AIFF with a .wav name works too" },
+    { en: "When a file is not uploaded, the Uploader says why and what to do: compressed (and how), empty, too long, possibly damaged, or moved or changed after you added it. Before, each of them said that the browser cannot read the audio file. A WAV or AIFF too long for SAMPLE is turned away before it is converted" },
+    { en: "When the Cycles will not delete a sample, the Uploader says what to do: a sample loaded on a track stays in use until the Cycles restarts, even after the track gets another one. Load another sample on every track that uses it, save the pattern, restart the Cycles, then delete it again" },
+    { en: "Checked on files made by macOS in every kind of AIFF it writes: in Chromium the same samples arrive as from a WAV of the same sound. On a Model:Cycles an AIFF named .wav arrived and played in SAMPLE, and a sample that was in use could be deleted after the steps above" }
+  ] },
   { version: "0.56", date: "2026-11-09", changes: [
     { en: "The Wavetables page saves your wavetable as a file for CHORD Tables: press Save…, choose the wavetable's number under CHORD Tables, then press Save .wav. Put the file on the +Drive with the Uploader, in the folder Wavetables. With CHORD Tables on your Model:Cycles, a new wavetable needs no new firmware" },
     { en: "The file holds a sine and your 31 waves, at 48 kHz and 16 bits, its name starting with the number, such as 07 my-wavetable.wav. Checked on the files: the Uploader writes it as it is, without a warning, and CHORD Tables plays your waves as the page made them, at 16 bits. Not yet tried on a Model:Cycles" },

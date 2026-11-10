@@ -69,7 +69,14 @@ Upload sends the whole list into the folder shown; rows dragged onto a folder on
 the computer, go into that folder. Folders are made on the Cycles before what is in them (`jobs()`); a name already in
 a folder is skipped, not replaced. Each file is converted in the browser to a 48 kHz mono sample and written with the
 OS's own file commands (Transfer protocol, `0x14`-`0x16`, `0x24`,
-`0x43`-`0x45`; how they were found: Cycles One-Shot's `TECHNICAL.md`). In `/Wavetables` it applies CHORD Tables'
+`0x43`-`0x45`; how they were found: Cycles One-Shot's `TECHNICAL.md`). Chromium (Chrome, Edge and Opera, the browsers
+the page names) decodes no AIFF and no WAV of 64-bit floats, so `elektron.js` reads those itself and hands the browser
+the same samples as a WAV (`audioInfo`, `toWav`; release 0.57, compared byte for byte with afconvert's WAVs and in
+Chromium 152); `audioInfo` also gives each way a file fails its own message in `convert()` (compressed and how, empty,
+too long by its header, damaged, unreadable), and `tools/uploader/audiofiles.js` builds the tests' WAV and AIFF files.
+A refused file delete says what to do (`IN_USE` in `app.js`): the Cycles keeps a sample loaded on a track until it
+restarts, even after the track gets another one (tried on a Model:Cycles, 10/11/2026).
+In `/Wavetables` it applies CHORD Tables'
 rules (notes/66). The status line under the title says what happened last; a warning or a problem also opens a window
 over the page (`alertBox()`, a `<dialog>` in `index.html`), which stays until OK or Escape and names the files it is
 about, a second message going under the first (release 0.53, the maintainer's wish of 08/11/2026). It came from Cycles One-Shot's upload page (MIT, same author), whose old address now leads here;

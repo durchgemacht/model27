@@ -215,8 +215,9 @@ tools/ref_mainos.py           reference hashes in docs/flasher/app.js: each mod 
 tools/web*_check.*, webflash_smoke.*   checks of the web flasher against the Python build (node, jsdom)
 tools/manager/                host tests of the manager's scripts (tools/webmanager_check.sh) and fake-cycles.js, a
                               stand-in Model:Cycles for trying the page in a browser (notes/77)
-tools/uploader/               host tests of the uploader's scripts (tools/webuploader_check.sh) and fake-cycles.js, a
-                              stand-in +Drive for trying the page in a browser
+tools/uploader/               host tests of the uploader's scripts (tools/webuploader_check.sh), audiofiles.js (WAV and
+                              AIFF files built byte by byte for them) and fake-cycles.js, a stand-in +Drive for trying
+                              the page in a browser
 tools/gen_wavetables_page.py  docs/wavetables/index.html from CHORD Wave Bank's editor (the site's header, nav and
                               footer added); --check, which also compares the nav of every page
 docs/                         GitHub Pages site: index.html, flasher/, manager/ (one project per firmware, notes/77),
