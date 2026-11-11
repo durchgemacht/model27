@@ -346,7 +346,7 @@ window.MC_TWEAKS = {
   {
    "id": "ring",
    "label": "Ring (Track FX)",
-   "desc": "A ring modulator on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a sound Ring; RETRIG + SWEEP is Freq (the carrier's note, 0 to 127), RETRIG + CONTOUR is Mix (0 dry, 127 the ring alone), RETRIG + COLOR is Wave (sine to square), with p-locks, LFO and CC 74 / 71.",
+   "desc": "A ring modulator on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a sound Ring; RETRIG + SWEEP is Freq (the carrier's note, 0 to 127), RETRIG + CONTOUR is Mix (0 dry, 127 the ring alone), RETRIG + COLOR is Wave (sine to square), with p-locks, LFO and CC 74 / 71 / 75.",
    "status": "tested",
    "credit": {
     "kind": "by",
@@ -359,7 +359,7 @@ window.MC_TWEAKS = {
   {
    "id": "reso",
    "label": "Reso (Track FX)",
-   "desc": "A tuned resonator on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a sound Reso; RETRIG + SWEEP is Pitch (the MIDI note, 60 = C4), RETRIG + CONTOUR Amount (0 off), RETRIG + COLOR Tone, RETRIG + SHAPE Decay, with p-locks, LFO and CC 74 / 71.",
+   "desc": "A tuned resonator on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a sound Reso; RETRIG + SWEEP is Pitch (the MIDI note, 60 = C4), RETRIG + CONTOUR Amount (0 off), RETRIG + COLOR Tone, RETRIG + SHAPE Decay, with p-locks, LFO and CC 74 / 71 / 75 / 76.",
    "status": "tested",
    "credit": {
     "kind": "by",
@@ -372,7 +372,7 @@ window.MC_TWEAKS = {
   {
    "id": "eq",
    "label": "EQ (Track FX)",
-   "desc": "A three-band equalizer on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a sound the EQ; RETRIG + SWEEP is the Mid's frequency, RETRIG + CONTOUR its gain, RETRIG + COLOR the Low shelf, RETRIG + SHAPE the High shelf, each 12 dB either way, with p-locks, LFO and CC 74 / 71.",
+   "desc": "A three-band equalizer on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a sound the EQ; RETRIG + SWEEP is the Mid's frequency, RETRIG + CONTOUR its gain, RETRIG + COLOR the Low shelf, RETRIG + SHAPE the High shelf, each 12 dB either way, with p-locks, LFO and CC 74 / 71 / 75 / 76.",
    "status": "tested",
    "credit": {
     "kind": "by",
@@ -7989,7 +7989,7 @@ window.MC_TWEAKS = {
   },
   "fltslot": {
    "id": "fltslot",
-   "version": "0.11",
+   "version": "0.12",
    "roots": [
     "fl_post",
     "fl_run",
@@ -8686,14 +8686,14 @@ window.MC_TWEAKS = {
     "cc": [
      "0x004affff",
      "0x0047ffff",
-     "0xffffffff",
-     "0xffffffff"
+     "0x004bffff",
+     "0x004cffff"
     ],
     "nrpn": [
      "0x94",
      "0x95",
-     "0xffffffff",
-     "0xffffffff"
+     "0x96",
+     "0x97"
     ],
     "sort": [
      72,
@@ -8777,11 +8777,15 @@ window.MC_TWEAKS = {
     "midi": {
      "cc": [
       74,
-      71
+      71,
+      75,
+      76
      ],
      "nrpn": [
       "1:20",
-      "1:21"
+      "1:21",
+      "1:22",
+      "1:23"
      ]
     },
     "gestures": [

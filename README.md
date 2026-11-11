@@ -23,7 +23,7 @@ Model:Cycles over USB. Modded-Cycles has since moved to a single OS with 2.0; mo
 together, so that a new machine fits next to the others. The rules a mod follows for that are the
 **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.5), written alongside.
 
-**Status: beta, release 0.59.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers sixteen
+**Status: beta, release 0.60.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers sixteen
 cards, all of them tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
 [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples on the +Drive,
 [Control All Config](https://github.com/durchgemacht/cycles-control-all-config), **Digital Delay**, the first
@@ -39,7 +39,8 @@ any track after Volume + Dist, chosen per sound. The eighth, **Crush**, model27'
 track's sample rate and bits on two knobs. The ninth to eleventh are model27's own Track FX too: **Ring**, a ring
 modulator (the carrier's note, the mix and its wave on three knobs), **Reso**, a tuned resonator that makes a track
 ring at a pitch you set, like a plucked string or a struck tube, and **EQ**, a three-band equalizer: a Mid you can
-sweep and Low and High shelves. The twelfth, the **CPU page**, model27's own, its page built as
+sweep and Low and High shelves. The Track FX settings respond to MIDI CC 74, 71, 75 and 76, on SWEEP, CONTOUR,
+COLOR and SHAPE (75 and 76 since release 0.60). The twelfth, the **CPU page**, model27's own, its page built as
 [Model-TG](https://github.com/TinyGregAudio/Model-TG)'s System page, shows in SETTINGS how much of the Model:Cycles'
 time the sound takes, with the Track FX' and the effects' shares. The thirteenth, **RESAMPLE**, model27's own, its page and its save built as Model-TG builds its own, records a track, the main mix or USB on a page
 opened with SETTINGS + RECORD and saves the take as a sample in /recordings, named in the stock name editor, ready for

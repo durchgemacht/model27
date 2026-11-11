@@ -452,7 +452,7 @@ ALL_FEATURES = [
         "label": "Ring (Track FX)",
         "desc": "A ring modulator on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a sound Ring; "
                 "RETRIG + SWEEP is Freq (the carrier's note, 0 to 127), RETRIG + CONTOUR is Mix (0 dry, 127 the ring "
-                "alone), RETRIG + COLOR is Wave (sine to square), with p-locks, LFO and CC 74 / 71.",
+                "alone), RETRIG + COLOR is Wave (sine to square), with p-locks, LFO and CC 74 / 71 / 75.",
         # model27's own (notes/74): a Track FX through the filter slot (fltslot 0.9); bit for bit the host build of
         # the same source in emulation; on the Model:Cycles from the command line on 2026-11-01 (notes/74 §9, §10),
         # then flashed from this page (release 0.28) the same day (notes/73 §18)
@@ -468,7 +468,7 @@ ALL_FEATURES = [
         "label": "Reso (Track FX)",
         "desc": "A tuned resonator on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a sound Reso; "
                 "RETRIG + SWEEP is Pitch (the MIDI note, 60 = C4), RETRIG + CONTOUR Amount (0 off), RETRIG + COLOR "
-                "Tone, RETRIG + SHAPE Decay, with p-locks, LFO and CC 74 / 71.",
+                "Tone, RETRIG + SHAPE Decay, with p-locks, LFO and CC 74 / 71 / 75 / 76.",
         # model27's own (notes/75): a comb through the filter slot (fltslot 0.9); bit for bit the host build of the
         # same source in emulation; on the Model:Cycles from the command line on 2026-11-01 (notes/75 §12, §14),
         # then flashed from this page (release 0.28) the same day (notes/73 §18)
@@ -484,7 +484,7 @@ ALL_FEATURES = [
         "label": "EQ (Track FX)",
         "desc": "A three-band equalizer on any track, after Volume + Dist. Hold RETRIG and turn PITCH to give a sound "
                 "the EQ; RETRIG + SWEEP is the Mid's frequency, RETRIG + CONTOUR its gain, RETRIG + COLOR the Low "
-                "shelf, RETRIG + SHAPE the High shelf, each 12 dB either way, with p-locks, LFO and CC 74 / 71.",
+                "shelf, RETRIG + SHAPE the High shelf, each 12 dB either way, with p-locks, LFO and CC 74 / 71 / 75 / 76.",
         # model27's own (notes/76): the Audio EQ Cookbook's biquads on the EMAC through the filter slot (fltslot
         # 0.9); bit for bit the host build of the same source in emulation; on the Model:Cycles from the command
         # line on 2026-11-01 (notes/76 §10, §14), then flashed from this page (release 0.28) the same day (notes/73

@@ -49,10 +49,11 @@ for the test in a folder of packages of its own), on the official OS 1.13:
        to what its manifest declares (cost.emulation);
   4. the boot (T2): the OS's own builder of the parameter tables (0x4005a274), stock and through fl_boot: descriptors
      1 to n of the table the OS uses (and of the stock one) the build's rows (group 7, k 28.., 0..127, the defaults,
-     CC 74 / 71, NRPN 1:20 / 1:21, the first filter's names), descriptor 5 the type's (machine -1, k 0, no CC);
-     k 28.. -> descriptors 1.. on every machine, every other k as in the stock OS, k 0 on nothing new; CC 74 and 71
-     and NRPN 1:20 and 1:21 on them, nothing else changed; a new sound (0x400618f2) with the defaults on k 28..,
-     everything else as in the stock OS;
+     the part's CCs and NRPNs, the first filter's names), descriptor 5 the type's (machine -1, k 0, no CC);
+     k 28.. -> descriptors 1.. on every machine, every other k as in the stock OS, k 0 on nothing new; the part's CCs
+     (since fltslot 0.12: 74, 71, 75, 76) and NRPNs (1:20 to 1:23) on them, as many as the build has values, nothing
+     else changed; a new sound (0x400618f2) with the defaults on k 28.., everything else as in the stock OS; and,
+     before the selections, the part's MIDI claim equal to its values' CCs and NRPNs;
   5. the knob lookup (T2), through the vtable entry, the layer's and the stock lookup behind it (the stock one
      stubbed), on the selected track's sound with none, an id the build lacks and each filter: RETRIG + SWEEP /
      CONTOUR / COLOR / SHAPE -> descriptors 1 to 4 when that filter has the value, else 5, display only (fltslot 0.10:
@@ -779,6 +780,23 @@ def maps(u, nm):
     return pid, cc, nr
 
 
+def values_cc():
+    """(value, CC) of the part's values that carry a CC (values.cc: the CC in the high half word, 0xffff none)."""
+    return [(p, int(c, 16) >> 16) for p, c in enumerate(PART["values"]["cc"]) if int(c, 16) >> 16 != 0xffff]
+
+
+def values_nrpn():
+    """(value, NRPN as MSB << 7 | LSB) of the part's values that carry an NRPN (values.nrpn, 0xffffffff none)."""
+    return [(p, int(x, 16)) for p, x in enumerate(PART["values"]["nrpn"]) if int(x, 16) != 0xffffffff]
+
+
+def claims_test():
+    """The part's MIDI claim (claims.midi) is what its values answer: the same CCs and NRPNs, in the values' order."""
+    mid = PART["claims"]["midi"]
+    cc, nr = [c for _p, c in values_cc()], [f"{x >> 7}:{x & 127}" for _p, x in values_nrpn()]
+    check(mid["cc"] == cc and mid["nrpn"] == nr, f"the part's MIDI claim is its values': CC {cc}, NRPN {nr}")
+
+
 def boot_tests(key, base, img, runtime, syms, mans, nm):
     """base: (image, payload) of the build without its filters."""
     a, b = SH.UI(*base), SH.UI(img, runtime)
@@ -810,13 +828,14 @@ def boot_tests(key, base, img, runtime, syms, mans, nm):
     check(diff == {km: (0, v) for km, v in ours.items()},
           f"{key}: k 28..{27 + n} -> descriptors 1..{n} on the {nm} machines, every other k (k 0 too) as without the "
           f"filters ({len(diff)} differences)")
-    want_cc = {(t, c): (0, p + 1) for t in range(TRACKS) for p, c in enumerate((74, 71)[:n])}
+    ccs, nrs = [(p, c) for p, c in values_cc() if p < n], [(p, x) for p, x in values_nrpn() if p < n]
+    want_cc = {(t, c): (0, p + 1) for t in range(TRACKS) for p, c in ccs}
     diff_cc = {k: (ca[k], cb[k]) for k in ca if ca[k] != cb[k]}
-    check(diff_cc == want_cc, f"{key}: CC 74 -> descriptor 1" + (", 71 -> 2" if n > 1 else "") + " on the six tracks, "
-                              f"nothing else changed ({len(diff_cc)} differences)")
-    want_nr = {x: (0, p + 1) for p, x in enumerate((0x94, 0x95)[:n])}
+    check(diff_cc == want_cc, f"{key}: " + ", ".join(f"CC {c} -> descriptor {p + 1}" for p, c in ccs)
+                              + f" on the six tracks, nothing else changed ({len(diff_cc)} differences)")
+    want_nr = {x: (0, p + 1) for p, x in nrs}
     diff_nr = {k: (na[k], nb[k]) for k in na if na[k] != nb[k]}
-    check(diff_nr == want_nr, f"{key}: NRPN 1:20 -> descriptor 1" + (", 1:21 -> 2" if n > 1 else "")
+    check(diff_nr == want_nr, f"{key}: " + ", ".join(f"NRPN {x >> 7}:{x & 127} -> descriptor {p + 1}" for p, x in nrs)
                               + f", nothing else changed ({diff_nr})")
     same, seen = True, set()
     for m in range(nm):
@@ -1509,6 +1528,8 @@ def main():
     args = ap.parse_args()
     selections = [[i.strip() for i in s.split(",") if i.strip()] for s in args.machines] if args.machines else default_selections()
     stock = T.main_os_from_syx(args.cycles)
+    print("the part's MIDI claim")
+    claims_test()
     for ids in selections:
         key = "+".join(ids)
         copies = [(i, REF_IDS[i]) for i in ids if i in COPIES]

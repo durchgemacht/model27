@@ -573,3 +573,79 @@ Crush that differ only in Crush, `measure/` (0.5, MAIN OS `59b23039…`) and `me
 The maintainer flashed `build/crush-0.5/every-card/` (every card of the page, from the command line, MAIN OS
 `0d64b14e…`, as `REF_MAINOS`). Crush chosen with RETRIG + PITCH, Rate turned both ways, Bits turned down, then Crush
 on all six tracks at Rate −1 and Bits 95, the dearest state: « Passt » (the sound as before, no crackle, no dropout).
+
+## 21. CC 75 and 76 on COLOR and SHAPE: `fltslot` 0.12 (2026-11-11, release 0.60)
+
+A check of the MIDI CCs on 2026-11-11 (outside the repository) found the Track FX's values on SWEEP and CONTOUR on
+CC 74 / 71 and NRPN 1:20 / 1:21 since `fltslot` 0.2 (notes/72 §3), and those on COLOR and SHAPE on none: Ring's Wave,
+Reso's Tone and Decay, EQ's Low and High Gain could not be played from outside. The maintainer's decisions of the same
+day: **CC 75 / 76 and NRPN 1:22 / 1:23** for COLOR and SHAPE; no CC for the choice of the Track FX or of a pattern's
+effect for now (new code, not data); SAMPLE keeps the Cycles' CCs by knob (COLOR 16 Start, SHAPE 17 Length, SWEEP 18
+Cutoff, CONTOUR 19 Reso, DECAY 80, copied from SNARE's descriptors, `compose.py`) rather than the Model:Samples' (its
+OS 1.13's descriptor table at its `0x40109048`, read, not run: Pitch 16, Loop 17, Flip 18, Start 19, Length 20,
+Cutoff 74, Reso 71, Decay 80, which would meet the Track FX's 74 / 71 and break today's mappings).
+
+### 21.1 The OS's tables `[FAIT]`
+
+- At boot `0x4005a274` builds, from the descriptors, k → descriptor by machine (`0x4005a692`), CC → descriptor by
+  track (`0x4005a8ce`) and NRPN → descriptor (`0x4005a92e`); `fl_boot` writes descriptors 1..n before it (notes/72 §3).
+  `0x4005a8ce` looks CC 16–23 up only in the row of the track's machine, the others in the rows every machine shares:
+  a CC 20–23 on descriptors 3 and 4 (group 7, every machine) reaches nothing. The OS's builder and both lookups, run in
+  the interpreter `cfemu` with the stock rows and with candidate rows for 3 and 4: CC 75 / 76 and CC 77 / 78 each reach
+  descriptors 3 and 4 on all six tracks and every stock machine, NRPN 1:22 / 1:23 too, nothing else changes; CC 20 / 21
+  reach nothing (stock: 16–19 by machine, 20–23 nothing on every track).
+- Stock, the CCs that reach a descriptor on a track: 3, 7, 10, 12–19, 65–67, 70, 80, 102–110; on the FX channel 3, 14,
+  15, 85–88, 102–110; the NRPNs 1:26–1:30, 1:32–1:39, 3:0. Next to 74 and 71, 72, 73 and 75–79 are free and outside
+  the numbers MIDI reserves or controllers use for other things (0 / 32, 64–69, 96–101, 120–127).
+- On the Syntakt (manual OS 1.40, appendix B.4) 74 is Filter Frequency, 75 Resonance, 76 Filter Type, 77 Env. Depth,
+  78 Env. Delay, NRPN 1:20–1:23 Frequency, Resonance, Type, Env. Depth: 75 / 76 sit next to 74 as the maintainer chose,
+  with other meanings than on the Syntakt.
+- A CC's value is not scaled: the CC handler (`0x4000b568`) writes it × 256 and the setter `0x4000b274` clamps it to
+  the descriptor's range (notes/72 §1, corrected the same day); 0..32512 is the whole range.
+- An edit sends the descriptor's CC: the OS's sender (`0x4000b942`, a method of the parameter sets, `0x400fd114` and
+  three more) reads it from the stock table (`0x4005a7f8`, `0x4010dce0`), which `fl_boot` writes too `[FAIT, by
+  reading]`; RETRIG + COLOR or SHAPE now sends CC 75 or 76 where nothing went out before (§21.4).
+
+### 21.2 `fltslot` 0.12
+
+- **Data only**: in `part.json`, `values.cc` 2 and 3 `0x004bffff` / `0x004cffff` (CC 75 / 76, no LSB), `values.nrpn`
+  2 and 3 `0x96` / `0x97` (1:22 / 1:23), `claims.midi` CC 74, 71, 75, 76 and NRPN 1:20–1:23. No code: `fltslot.o` as
+  before (`gen_parts.py --check`); both composers write the rows from the manifest (`compose.py`, `composer.js`).
+- **Only builds with a third or fourth value change.** The part writes descriptors 1..n, n the most values one of the
+  build's Track FX declares: Samples and Crush 2, Ring 3, Reso and EQ 4. A build of Samples, Crush or both keeps its
+  MAIN OS; with Ring, CC 75 on COLOR; with Reso or EQ, 75 and 76. `74-ring.json`, `75-reso.json`, `76-eq.json` change
+  in the part's data block, `72-smpfilter.json` and `73-crush.json` do not.
+- On a Ring track CC 76 writes k 31, which Ring does not use: kept with the sound, not heard, as CC 74 on a track
+  without a Track FX `[HYP]` (by reading: the CC handler, `0x4000b568`, writes the descriptor's k without the knob
+  lookup that shows `---` since `fltslot` 0.10, §19).
+- Users' MIDI mappings of 75 and 76 now reach the Track FX on every track; renumbering them later would break them.
+
+### 21.3 Proven, checked
+
+- **`test_fltslot.py`**: the CCs and NRPNs it expects on descriptors 1..n come from the manifest (74 / 71 and
+  1:20 / 1:21 were written into the test before), and a first check says the part's MIDI claim is its values'.
+  `--dry` ALL OK. The full run (Unicorn), the maintainer's (2026-11-11): ALL OK.
+- **Green**: `gen_smpfilter.py`, `gen_crush.py`, `gen_ring.py`, `gen_reso.py`, `gen_eq.py` (the last three rewritten,
+  the first two the same bytes), `gen_parts.py --check`, `gen_flasher_tweaks.py --check`, `check_overlaps.py`,
+  `registry.py --check` (REGISTRY.md does not change: it lists no part's MIDI claim before notes/65 §17),
+  `claims.py --check`, `webbuild_check.sh`, `webcompose_check.sh` with the official file (identical),
+  `webflash_check.sh`, `webmanager_check.sh`, `webuploader_check.sh`, `gen_wavetables_page.py --check`,
+  `webflash_smoke.sh` with both official files (ALL PARTS OK, the 137 combinations of `REF_MAINOS`),
+  `ref_mainos.py --check`, `py_compile`.
+- **MAIN OS**: Samples alone `c422bf38…`, with SAMPLE `5dee5685…`, Crush alone `e3e6b94a…`, Samples and Crush
+  `e05c2951…`, all as with 0.11; Ring alone `5f7e2f03…`, with Samples and Crush `9fcac455…`, with the CPU page
+  `5cbc86ee…`; Reso `6ff88f34…`, `9ce86da6…`; EQ `b5f6d9d8…`, `bc55e38d…`; every card of the page (sixteen, as in
+  notes/71 §11) `dd9183af…`, built in `build/trackfx-cc-0.12/` (git-ignored) for the machine.
+
+### 21.4 On the machine (2026-11-11)
+
+The maintainer flashed `build/trackfx-cc-0.12/` (every card, MAIN OS `dd9183af…`, from the command line) and played,
+with a Web MIDI page of the session's (outside the repository) sending and showing the CCs over USB:
+
+- Reso on track 1: CC 75 and 76 on T1's channel change Tone and Decay, RETRIG + COLOR / SHAPE then show the value;
+  the same on the AUTO channel; EQ on track 2: CC 75 and 76 move Low and High Gain, track 1 unchanged; NRPN 1:22 and
+  1:23 as CC 75 and 76: « funktioniert ».
+- Out: RETRIG + COLOR, SHAPE and SWEEP send CC 75, 76 and 74 on T1 OUT's channel. Nothing came at first: TRACK
+  SETUP's MOUT was off on track 1, which the OS needs for any knob's CC (manual 9.4.2, with ENCS at I+E); with it on,
+  « funktioniert jetzt alles ».
+- Not played: Ring's CC 75 (the same rows, the same code as Reso's and EQ's).

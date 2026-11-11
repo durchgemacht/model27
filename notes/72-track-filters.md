@@ -41,8 +41,11 @@ never offered), the card's tweak `72-smpfilter.json` (`tools/gen_smpfilter.py`),
 
 - The record's XOR is the Modded-Cycles track filter's way (notes/47 §4.1, proven on the machine there): a record that
   never held the values reads 0 and loads the neutral word. A new sound gets the descriptors' defaults `[FAIT, §9, §11]`.
-- Unsigned words with a centre: the OS maps CC and the LFO onto a descriptor's minimum..maximum, as the track filter
-  did on the machine.
+- Unsigned words with a centre. A CC does not scale: the OS's CC handler (`0x4000b568`) writes the value × 256 (an LSB
+  CC, where the descriptor has one, sets the low byte to the value × 2) and the value setter `0x4000b274` clamps it to the descriptor's
+  minimum..maximum (`0x4005a65a`, notes/63 §11.2), so with 0..32512 a CC covers the whole range `[FAIT]` (code
+  reading, 2026-11-11; this said before that the OS maps CC onto minimum..maximum). The LFO's path was not read again
+  here; the track filter worked with it on the machine.
 - Sounds whose k 28–31 hold a machine's knob values (REF2's Octave, CHORD Tables' table) mean something else in a filter
   build. Neither machine is offered, and the composer refuses them with a filter (rule R1, §6).
 
@@ -85,7 +88,8 @@ never offered), the card's tweak `72-smpfilter.json` (`tools/gen_smpfilter.py`),
   filter's tag over `---`).
 - **The descriptors** `[FAIT, notes/47 §3]`: 1–4 are the OS's unused "Error" entries. `fl_boot` (at `0x4004486c`, in
   place of `jsr 0x4005a274`, then the builder) writes them as the track filter did: group 7 (every machine), k 28..,
-  0..32512, defaults 0x4000 / 0 / 0x4000 / 0x4000, CC 74 / 71, NRPN 1:20 / 1:21, the first filter's names; only as many
+  0..32512, defaults 0x4000 / 0 / 0x4000 / 0x4000, CC 74 / 71, NRPN 1:20 / 1:21 (since `fltslot` 0.12 CC 74 / 71 / 75 / 76,
+  NRPN 1:20 to 1:23, notes/73 §21), the first filter's names; only as many
   as the build's filters declare values. Into the stock table and the one the OS uses when the build adds machines.
 - **The type**: RETRIG + PITCH alone (or with MACHINES) gives descriptor 5, another "Error" entry, written as a
   display-only row: group -1 (no table, no CC, no LFO, no p-lock row), k 0, the formatter the type's name, descriptor 1's
@@ -121,7 +125,8 @@ never offered), the card's tweak `72-smpfilter.json` (`tools/gen_smpfilter.py`),
 
 ## 6. Claims, composers, flasher
 
-- **Claims** (`part.json`): k 28–31, record slots 28–31, descriptors 1–4, `plock_rows`, CC 74 / 71, NRPN 1:20 / 1:21,
+- **Claims** (`part.json`): k 28–31, record slots 28–31, descriptors 1–4, `plock_rows`, CC 74 / 71, NRPN 1:20 / 1:21
+  (since `fltslot` 0.12 CC 74 / 71 / 75 / 76, NRPN 1:20 to 1:23, notes/73 §21),
   the gestures RETRIG + SWEEP / CONTOUR / COLOR / SHAPE, RETRIG + PITCH and LFO + RETRIG + a knob. Descriptor 5 stays
   unclaimed: the claims' vocabulary (the standard's §3.1) knows 1–4. k 32's low byte and slot 18's bits 10–15 are shared
   with the layer by agreement (the claims have no bits). In a filter build the layer's claims are narrowed
