@@ -4,7 +4,7 @@ The machine was Claude's proposal of 2026-10-24, when the maintainer asked what 
 by ear in a float listening prototype over two rounds, then parked on 2026-10-24 ("FM can do all of that already"). On
 2026-10-31 the maintainer took it up again: its quality can only be judged in the emulator or on the device. The
 package: [`tools/machines/solid/`](../tools/machines/solid/), its generator [`tools/gen_solid.py`](../tools/gen_solid.py),
-its proof [`tools/emu/test_solid.py`](../tools/emu/test_solid.py) (passes, §8); no tweak, no card. Addresses:
+its proof [`tools/emu/test_solid.py`](../tools/emu/test_solid.py) (passes, §8); its tweak `71-solid.json` and the flasher's card (§12). Addresses:
 VAs of OS 1.13. Called MODAL until 2026-11-11, then **SOLID**, on the machine and in the package, its files and its
 symbols (§10).
 
@@ -27,8 +27,10 @@ symbols (§10).
 - **2026-11-11, optimized (§9):** a ringing voice about 64 % fewer instructions in the core, the same bits; the VCA
   and, without PUNCH, PUNCH no longer called. The proof's third run: ALL OK; one ringing voice 3 588 instructions a
   block (9 915 before), under TONE's 5 291; six tracks of sustained noise 1.63 × six TONE (2.7 × before).
-- **2026-11-11, on the machine (§11):** step 4, digiemu, and step 5, the device, both « passt »; tested.
-- **Open:** the CPU page and SOLID next to PERC, METAL and TONE (step 5, not reported), step 6 (§7).
+- **2026-11-11, on the machine (§11):** step 4, digiemu, and step 5, the device, both « passt »; tested. The CPU page,
+  six SOLID tracks in the stock pattern A01 with a Track FX on each and POTS: about 60 %, peaks up to 75 %.
+- **2026-11-11, the card (§12):** SOLID in the flasher, release 0.59, experimental until flashed from the page.
+- **Open:** the page's flash (§12); the Pitch drop, with a fifth knob for every machine, planned later (§7).
 
 ## 2. The sound, as settled with the maintainer
 
@@ -187,9 +189,12 @@ core, where the membrane's strike already reaches −1.5 dB of the bus and would
   the load (§6). Decided (the maintainer, 2026-11-11): 8 modes, +6 dB.
 - Not in step 3: whether the governor of the Syntakt engines (`GOV_SKIP`, test_acid_combos.py) behaves with an
   envelope that stays open; it exists only in builds with those engines.
-- **Step 4:** digiemu (the maintainer): done 2026-11-11 (§11). **Step 5:** the device: SOLID plays, done 2026-11-11
-  (§11); the CPU page's share and the comparison with PERC, METAL and TONE not reported yet. **Step 6:** Pitch drop on
-  RETRIG + SWEEP (k 30, the core reads it already, 0 for now), the card, the guide.
+- **Step 4:** digiemu (the maintainer): done 2026-11-11 (§11). **Step 5:** the device: done 2026-11-11, the CPU page
+  too (§11). **Step 6:** the card and the guide: done 2026-11-11 (§12). The Pitch drop (k 30, the core reads it
+  already, 0 for now) waits: since the Track FX (notes/73) RETRIG + SWEEP is theirs, and a value on MACHINES + a knob
+  shares k 28–31 with them (rule R1, notes/72 §6). The maintainer's idea of 2026-11-11, to be planned later: drop the
+  four values on MACHINES + a knob from the standard (only REF2 and REFC use them) and give every machine one more
+  knob instead, MACHINES + PITCH, saved apart from k 28–31.
 - The maintainer's: the held glass's slope, order 71, the picture, the defaults (the names: decided, §10).
 
 ## 8. The proof (step 3, 2026-11-11, passes)
@@ -328,4 +333,31 @@ the same file, byte for byte, after the inside's rename (§10).
 - **The device** (step 5), the steps asked for: SOLID on a track, the MACHINES page, the four popups and the
   materials over SHAPE 0 to 127. The answer: « gerätetest passt, alles gut ».
 
-Not reported: the CPU page's share with SOLID tracks, and SOLID next to PERC, METAL and TONE (§7).
+- **The CPU page** (the same build): the stock pattern A01, heavy on the CPU, all six tracks on SOLID, a Track FX on
+  every track, POTS on the delay send: about 60 % on average, peaks up to 75 % (the maintainer).
+
+## 12. The card (2026-11-11, release 0.59)
+
+The maintainer: « mach bitte erst die Card und alles weiter fertig damit ich Solid veröffentlichen kann ». As the
+other package cards (CHORD Tables, notes/66 §34):
+
+- `tools/gen_solid.py --cycles` composes SOLID alone into `tweaks/model-cycles_OS1.13/71-solid.json` (278 conflicts
+  computed); the other composed tweaks regenerated, each with one conflict more (`solid`), nothing else changed.
+- `tools/gen_flasher_tweaks.py`: the FEATURES entry after SAMPLE (`"package": "solid"`, `cat` sound, model27's own,
+  experimental) and OFFERED; `docs/flasher/tweaks.js` regenerated (sixteen cards). No excludes: SOLID goes with
+  every offered card. In the page it comes after SAMPLE in the MACHINES menu, as in the tested build.
+- `docs/flasher/app.js`: the card's texts (*Writing for users*, docs/AGENTS.md): the short, then a block per knob,
+  DECAY and GATE; its guide link `#solid`; `REF_MAINOS` and `REF_MODS` regenerated.
+- The guide: section 4 SOLID, the later ones renumbered, SOLID in every other card's list of mods it goes with.
+- Release 0.59, the stamps 2026-11-11-01, README, BUILD.md, PROVENANCE, `tools/webflash_smoke.js`.
+- The home page lists SOLID next to SAMPLE (the maintainer's choice of 2026-11-11). The texts' first sentence,
+  « plays struck sounds … and everything in between », the maintainer's choice among three.
+
+Proven: `tools/webcompose_check.sh` 68/68 identical to `compose.py`, five of them with SOLID (alone, before and
+after SAMPLE, with CHORD Tables and Crush, every package card); `tools/webflash_smoke.sh` with the official files
+ALL OK, the 137 combinations of `REF_MAINOS` built (8 194 `REF_MODS`, `app.js` 965 KB → 1.8 MB: REF_MODS doubles
+with each package card, the open point of notes/66 §34); the firmware-free checks. The page's build with all
+sixteen cards has MAIN OS `0901bf28…`, the file tested in digiemu and on the device (§11).
+
+Kept out of the user texts: comparisons with other machines (the maintainer's wish), and the word modal (the name
+was changed so as not to raise false hopes, §10).

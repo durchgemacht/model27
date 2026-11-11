@@ -23,8 +23,8 @@ Model:Cycles over USB. Modded-Cycles has since moved to a single OS with 2.0; mo
 together, so that a new machine fits next to the others. The rules a mod follows for that are the
 **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.5), written alongside.
 
-**Status: beta, release 0.55.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers fifteen
-cards, all of them tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
+**Status: beta, release 0.59.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers sixteen
+cards, fifteen of them tested on a Model:Cycles as the page builds them: the **SAMPLE** machine of
 [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples on the +Drive,
 [Control All Config](https://github.com/durchgemacht/cycles-control-all-config), **Digital Delay**, the first
 effect: a second delay for the delay slot, chosen per pattern with PATTERN + Delay Time, based on the digital delay of
@@ -47,11 +47,14 @@ SAMPLE. The fourteenth, **Transpose**, model27's own: with MACHINES held, TRIG 1
 of the TRIG keys by octaves and TRIG 8, 9, 11 and 12 make the active track jump in pitch at once, the keys' lights
 dimmed to show it. The fifteenth, **CHORD Tables**, model27's own: the CHORD machine plays your own wavetables
 from the +Drive, one for each pattern, chosen with PATTERN + SWEEP and saved with the pattern; tested on a
-Model:Cycles from the command line with all the other cards, then flashed from the page. The
+Model:Cycles from the command line with all the other cards, then flashed from the page. The sixteenth, **SOLID**,
+model27's own, a second machine: it plays struck sounds, a string, a drum skin, a marimba bar, a metal bar, a bell or
+glass and everything in between, hit by a mallet, a burst of noise or noise that goes on; tested on a Model:Cycles from the command line
+with all the other cards, experimental on the page until it is flashed from it. The
 [guide](https://durchgemacht.github.io/model27/guide/) explains them. Combining machines is proven with two internal
 reference machines: SAMPLE with the first one on a Model:Cycles; the second one, with a shortcut, and sharing the
 main screen, the knob view, the screen's tick and the browser with SAMPLE, in emulation so far, composed by the page
-as by the command line. The next machine card is the first that users will combine. The other Modded-Cycles 1.55
+as by the command line. SOLID is the first machine card that users combine with SAMPLE. The other Modded-Cycles 1.55
 mods stay buildable from the command line.
 
 > [!IMPORTANT]

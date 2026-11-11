@@ -54,6 +54,12 @@ SELECTIONS = ((["sampler"], []), (["refmachine"], []), (["sampler", "refmachine"
               (["chordtables", "transpose"], []),
               (["sampler", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu",
                 "resample", "transpose"], []),
+              # notes/71 §12: SOLID alone, with SAMPLE before and after it (machines 6 and 7), with CHORD Tables and a
+              # Track FX, and the full offered set
+              (["solid"], []), (["sampler", "solid"], []), (["solid", "sampler"], []),
+              (["solid", "chordtables", "crush"], []),
+              (["sampler", "solid", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu",
+                "resample", "transpose"], []),
               # notes/68: the effects alone, in both slots, with SAMPLE before and after them, with the shortcut layer
               # and the dispatchers (REF2, SAMPLE), and with an extension of CHORD (the stock descriptor table)
               (["digidelay"], []), (["refdelay", "refreverb"], []), (["sampler", "digidelay"], []),

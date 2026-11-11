@@ -344,6 +344,22 @@ ALL_FEATURES = [
         "package": "sampler",
     },
     {
+        "id": "solid",
+        "cat": "sound",
+        "label": "SOLID",
+        "desc": "One extra machine after Chord that plays struck sounds: eight modes struck by a mallet, a noise burst "
+                "or held noise. COLOR = Bright, SHAPE = Body (string, skin, marimba, bar, bell, glass, gliding), "
+                "SWEEP = Pickup, CONTOUR = Exciter; DECAY is how long the body rings, GATE damps it when the note ends.",
+        # model27's own (notes/71), its sound settled in a float prototype; bit for bit its host build in emulation
+        # (test_solid.py); tested on the Model:Cycles on 2026-11-11 in the maintainer's full build from the command
+        # line (notes/71 §11); experimental here until flashed from this page, as the other cards were
+        "status": "experimental",
+        "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
+        # composed in the page from its package (notes/71 §12): alone it gives 71-solid.json byte for byte, whose
+        # conflicts give its excludes
+        "package": "solid",
+    },
+    {
         "id": "chordtables",
         "cat": "sound",
         "label": "CHORD Tables",
@@ -606,7 +622,7 @@ ALL_FEATURES = [
 # model27 offers a short list of cards. The other definitions above stay as they are, for the command-line build
 # (every tweak of tweaks/ is still built by tools/build.py) and so that merges from upstream apply cleanly; a card
 # comes back into the flasher by adding its id here, once it has been reviewed against the Cycles Mod Standard.
-OFFERED = ("sampler", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample",
+OFFERED = ("sampler", "solid", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample",
            "transpose", "control-all-config", "trig-cond-order", "trig-preview")
 FEATURES = [f for f in ALL_FEATURES if f["id"] in OFFERED]
 _missing = set(OFFERED) - {f["id"] for f in FEATURES}

@@ -262,6 +262,29 @@ python3 tools/emu/test_control_all_config.py --cycles model-cycles_OS1.13.syx \
 python3 tools/build.py -i model-cycles_OS1.13.syx -t control-all-config
 ```
 
+### Machine SOLID
+
+`tweaks/model-cycles_OS1.13/71-solid.json` est produit par `tools/gen_solid.py`, qui écrit les tables des matériaux
+(`tools/machines/solid/solid_tables.h`), compile `tools/machines/solid/` (`solid.c`, `ring_cf.S`) en son objet et le
+compose seul avec `tools/compose.py` : une machine ajoutée, huit modes en virgule fixe sur l'EMAC, frappés par une
+mailloche, une bouffée de bruit ou un bruit tenu ([note 71](notes/71-solid.md), MODAL jusqu'au 11/11/2026). COLOR est
+Bright, SHAPE le corps (corde, peau, marimba, barre, cloche, verre, en glissant), SWEEP le point d'écoute, CONTOUR
+l'excitateur ; DECAY le T60 du corps (20 ms à 8 s), GATE l'étouffe à la fin de la note. La preuve tourne sur le code de
+l'OS (Unicorn), au bit près contre le build hôte du même fichier (`tools/emu/solid_ref.c`) :
+```sh
+python3 tools/gen_solid.py --cycles model-cycles_OS1.13.syx [--check]
+python3 tools/emu/test_solid.py --cycles model-cycles_OS1.13.syx [--dry] [--quick] [--modes 8,16]
+python3 tools/emu/test_compose.py --cycles model-cycles_OS1.13.syx --machines solid --machines sampler,solid
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines solid                # seule
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,solid        # avec SAMPLE
+```
+MAIN OS patché, `solid` 0.1 seule : `ded57d3e90ad4713c7e35e8d3b992cdde6c81b4e14568af714bef45e150fe609` ; avec SAMPLE :
+`b1fc28968ac77a9ae3a9bb5fe749aabb8661834931d86fad925a5f98cc2ad019` ; avec toutes les cartes de la page (seize,
+release 0.59 : `--machines sampler,solid,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq --cpu --resample
+--transpose --with control-all-config,trig-preview,trig-cond-order`) :
+`0901bf2818550e19b7483174bd772331f9ff4f6b0fb12fa2d013713d1fc9b753`, le fichier essayé dans digiemu et sur un
+Model:Cycles depuis la ligne de commande le 11/11/2026 (note 71 §11). Pas encore flashé depuis la page.
+
 ### CHORD Tables (wavetables du +Drive)
 
 `tweaks/model-cycles_OS1.13/36-chordtables.json` est produit par `tools/gen_chordtables.py`, qui compile
