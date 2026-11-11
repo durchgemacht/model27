@@ -283,7 +283,8 @@ MAIN OS patché, `solid` 0.1 seule : `ded57d3e90ad4713c7e35e8d3b992cdde6c81b4e14
 release 0.59 : `--machines sampler,solid,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq --cpu --resample
 --transpose --with control-all-config,trig-preview,trig-cond-order`) :
 `0901bf2818550e19b7483174bd772331f9ff4f6b0fb12fa2d013713d1fc9b753`, le fichier essayé dans digiemu et sur un
-Model:Cycles depuis la ligne de commande le 11/11/2026 (note 71 §11). Pas encore flashé depuis la page.
+Model:Cycles depuis la ligne de commande le 11/11/2026 (note 71 §11) ; puis flashé depuis la page le même jour
+(note 71 §12).
 
 ### CHORD Tables (wavetables du +Drive)
 

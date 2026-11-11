@@ -29,8 +29,8 @@ symbols (§10).
   block (9 915 before), under TONE's 5 291; six tracks of sustained noise 1.63 × six TONE (2.7 × before).
 - **2026-11-11, on the machine (§11):** step 4, digiemu, and step 5, the device, both « passt »; tested. The CPU page,
   six SOLID tracks in the stock pattern A01 with a Track FX on each and POTS: about 60 %, peaks up to 75 %.
-- **2026-11-11, the card (§12):** SOLID in the flasher, release 0.59, experimental until flashed from the page.
-- **Open:** the page's flash (§12); the Pitch drop, with a fifth knob for every machine, planned later (§7).
+- **2026-11-11, the card (§12):** SOLID in the flasher, release 0.59; flashed from the page the same day: tested.
+- **Open:** the Pitch drop, with a fifth knob for every machine, planned later (§7).
 
 ## 2. The sound, as settled with the maintainer
 
@@ -344,7 +344,7 @@ other package cards (CHORD Tables, notes/66 §34):
 - `tools/gen_solid.py --cycles` composes SOLID alone into `tweaks/model-cycles_OS1.13/71-solid.json` (278 conflicts
   computed); the other composed tweaks regenerated, each with one conflict more (`solid`), nothing else changed.
 - `tools/gen_flasher_tweaks.py`: the FEATURES entry after SAMPLE (`"package": "solid"`, `cat` sound, model27's own,
-  experimental) and OFFERED; `docs/flasher/tweaks.js` regenerated (sixteen cards). No excludes: SOLID goes with
+  experimental until the page's flash) and OFFERED; `docs/flasher/tweaks.js` regenerated (sixteen cards). No excludes: SOLID goes with
   every offered card. In the page it comes after SAMPLE in the MACHINES menu, as in the tested build.
 - `docs/flasher/app.js`: the card's texts (*Writing for users*, docs/AGENTS.md): the short, then a block per knob,
   DECAY and GATE; its guide link `#solid`; `REF_MAINOS` and `REF_MODS` regenerated.
@@ -358,6 +358,10 @@ after SAMPLE, with CHORD Tables and Crush, every package card); `tools/webflash_
 ALL OK, the 137 combinations of `REF_MAINOS` built (8 194 `REF_MODS`, `app.js` 965 KB → 1.8 MB: REF_MODS doubles
 with each package card, the open point of notes/66 §34); the firmware-free checks. The page's build with all
 sixteen cards has MAIN OS `0901bf28…`, the file tested in digiemu and on the device (§11).
+
+**Flashed from the page (2026-11-11)**, release 0.59 pushed, the maintainer: « passt, seiten-flash ok ». The card's
+status tested (FEATURES, `tweaks.js`): no tag; the guide's Tested line, release 0.59, README, BUILD.md,
+PROVENANCE and the manifest say so; `webflash_smoke.js` expects no tag; the stamp 2026-11-11-02.
 
 Kept out of the user texts: comparisons with other machines (the maintainer's wish), and the word modal (the name
 was changed so as not to raise false hopes, §10).

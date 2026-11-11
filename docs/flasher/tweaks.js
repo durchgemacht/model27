@@ -267,7 +267,7 @@ window.MC_TWEAKS = {
    "id": "solid",
    "label": "SOLID",
    "desc": "One extra machine after Chord that plays struck sounds: eight modes struck by a mallet, a noise burst or held noise. COLOR = Bright, SHAPE = Body (string, skin, marimba, bar, bell, glass, gliding), SWEEP = Pickup, CONTOUR = Exciter; DECAY is how long the body rings, GATE damps it when the note ends.",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "by",
     "who": "durchgemacht",

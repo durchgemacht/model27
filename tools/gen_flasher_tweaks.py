@@ -352,8 +352,8 @@ ALL_FEATURES = [
                 "SWEEP = Pickup, CONTOUR = Exciter; DECAY is how long the body rings, GATE damps it when the note ends.",
         # model27's own (notes/71), its sound settled in a float prototype; bit for bit its host build in emulation
         # (test_solid.py); tested on the Model:Cycles on 2026-11-11 in the maintainer's full build from the command
-        # line (notes/71 §11); experimental here until flashed from this page, as the other cards were
-        "status": "experimental",
+        # line (notes/71 §11), then flashed from this page (release 0.59) the same day (notes/71 §12)
+        "status": "tested",
         "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
         # composed in the page from its package (notes/71 §12): alone it gives 71-solid.json byte for byte, whose
         # conflicts give its excludes

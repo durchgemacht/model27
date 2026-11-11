@@ -10,7 +10,7 @@ window.MC_RELEASES = [
   { version: "0.59", date: "2026-11-11", changes: [
     { en: "A new machine, SOLID, plays struck sounds: a string, a drum skin, a marimba bar, a metal bar, a bell or glass, and everything in between. SHAPE chooses the body, CONTOUR what strikes it (a mallet, a burst of noise or noise that goes on), COLOR how bright it rings and SWEEP where you hear it. DECAY sets how long it rings, and GATE damps it when the note ends" },
     { en: "The popup shows each knob's name on two lines, Solid over Bright, Body, Pickup and Exciter. Six SOLID tracks in a busy pattern, each with a Track FX, and POTS on the delay take about 60 % on the CPU Page, with peaks up to 75 %" },
-    { en: "Goes with every other card. Checked in an emulator on the OS's own code, and tested on a Model:Cycles (2026-11-11) from the command line with all other cards. Experimental here until it is flashed from this page" }
+    { en: "Goes with every other card. Checked in an emulator on the OS's own code, and tested on a Model:Cycles (2026-11-11): from the command line with all other cards, then flashed from this page" }
   ] },
   { version: "0.58", date: "2026-11-10", changes: [
     { en: "When the Cycles will not delete a sample, the Uploader's window says why and lists the steps: once a track uses a sample, the Cycles locks it, and a restart unlocks it only if no track uses it anymore" },
