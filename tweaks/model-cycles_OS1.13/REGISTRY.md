@@ -11,7 +11,7 @@ Adresses : VA de l'OS 1.13 (la section 3 commence en `0x40000400`). Un mod qui v
 - Crochets sur l'OS : 130 adresses détournées, dont 79 à l'identique par des mods de familles différentes.
 - Pointeurs réécrits : 67 adresses. Écritures dans des octets 0xFF hors masques : 14 zones.
 - Charges utiles ajoutées après l'OS : 278 tweaks ; place restante au §3.
-- Declared claims (notes/65): 16 holders; the saved data in §6, the key combinations in §8, the descriptors, formatters, pictures, p-lock rows and MIDI in §9, the views in §10.
+- Declared claims (notes/65): 20 holders; the saved data in §6, the key combinations in §8, the descriptors, formatters, pictures, p-lock rows and MIDI in §9, the views in §10.
 
 ## 1. Masques de sprites libérés
 
@@ -800,10 +800,10 @@ What the writes do not show: where each mod keeps its values, in a sound's param
 | 0–22 | the OS |
 | 23–24 | model-tg, model-tg-st |
 | 25–27 | model-tg, model-tg-st; sampler (SAMPLE's sounds) |
-| 28 | lfo-plus; refmachine2 (REF2's sounds); shortcuts (part); track-filter |
-| 29 | lfo-plus; shortcuts (part); track-filter |
-| 30 | lfo-plus; refchord (CHORD's sounds); shortcuts (part); track-filter |
-| 31 | lfo-plus; shortcuts (part); track-filter |
+| 28 | fltslot (part); lfo-plus; refmachine2 (REF2's sounds); shortcuts (part); track-filter |
+| 29 | fltslot (part); lfo-plus; shortcuts (part); track-filter |
+| 30 | fltslot (part); lfo-plus; refchord (CHORD's sounds); shortcuts (part); track-filter |
+| 31 | fltslot (part); lfo-plus; shortcuts (part); track-filter |
 | 32 | lfo-plus; refmachine2 (REF2's sounds); sampler (SAMPLE's sounds); shortcuts (part) |
 
 ### Record slots (`+28 + 2 · slot` of a sound's record)
@@ -815,10 +815,10 @@ What the writes do not show: where each mod keeps its values, in a sound's param
 | 19–23 | the OS |
 | 24–26 | model-tg, model-tg-st; sampler (SAMPLE's sounds) |
 | 27 | model-tg, model-tg-st; sampler (SAMPLE's sounds); track-filter |
-| 28 | model-tg, model-tg-st; refmachine2 (REF2's sounds); shortcuts (part) |
-| 29 | model-tg, model-tg-st; shortcuts (part) |
-| 30 | lfo-plus; refchord (CHORD's sounds); shortcuts (part); track-filter |
-| 31 | lfo-plus; shortcuts (part); track-filter |
+| 28 | fltslot (part); model-tg, model-tg-st; refmachine2 (REF2's sounds); shortcuts (part) |
+| 29 | fltslot (part); model-tg, model-tg-st; shortcuts (part) |
+| 30 | fltslot (part); lfo-plus; refchord (CHORD's sounds); shortcuts (part); track-filter |
+| 31 | fltslot (part); lfo-plus; shortcuts (part); track-filter |
 
 ### Other saved bytes, and RAM outside the payloads
 
@@ -831,7 +831,9 @@ What the writes do not show: where each mod keeps its values, in a sound's param
 | chordtables | RAM `0x43400000`..`0x43700000` | tools/machines/chordtables/manifest.json |
 | chordtables | RAM `0x80001c5c`..`0x800074b4` | tools/machines/chordtables/manifest.json |
 | chordtables | RAM `0x8000cac0`..`0x8000eae0` | tools/machines/chordtables/manifest.json |
+| fxslot (part) | pattern, header +29: 3 bytes | tools/machines/fxslot/part.json |
 | lfo-plus | RAM `0x4233f000`..`0x4233f49c` | notes/56 §3 |
+| resample (part) | RAM `0x42800000`..`0x43000000` | tools/machines/resample/part.json |
 | sampler | RAM `0x43800000`..`0x46700000` | tools/machines/sampler/manifest.json |
 
 ## 7. Ce que chaque mod touche
@@ -907,6 +909,7 @@ The combinations each mod answers: the held keys, then one action, in the words 
 | FUNC + DATA-PRESS | menu:MIDI-PORTS | midi-live-both | adds the Cycles' own MIDI to THRU, or takes it away |  |
 | FUNC + PITCH | params | macro, macro-acid, macro-acid-tg, macro-tg, syntakt-*-macro (31/31), syntakt-*-macro-acid (31/31), syntakt-tg-*-macro (31/31), syntakt-tg-*-macro-acid (31/31) (MACRO's tracks) | FINE as lo-fi RATE / BITS | FINE, the fine adjust of PITCH |
 | LFO | page:LFO | lfo-plus | LFO 2, 3 and 4, then the page closes | closes the LFO page |
+| LFO + RETRIG + SWEEP/CONTOUR/COLOR/SHAPE | params | fltslot (part) | the track filter's value becomes the LFO's destination |  |
 | MACHINES | any | shortcuts (part) | on the tracks of a machine with a shortcut or a switch (on every track in a build with Transpose, since 0.6), the MACHINES list opens on the release, unless a shortcut or a switch acted | the toggle of the MACHINES list on the press (a press while it is open still closes it at once) |
 | MACHINES + COLOR | params | refmachine2 (REF2's tracks) | Octave |  |
 | MACHINES + COLOR/SHAPE/SWEEP/CONTOUR | params | shortcuts (part) | the shortcut of the track's machine |  |
@@ -918,9 +921,15 @@ The combinations each mod answers: the held keys, then one action, in the words 
 | MACHINES + PUNCH | any | sampler (SAMPLE's tracks) | Loop |  |
 | MACHINES + PUNCH/GATE | any | shortcuts (part) | the switch of the track's machine |  |
 | MACHINES + SWEEP | params | refchord (CHORD's tracks) | Wavetable |  |
+| MACHINES + TRIG 15/TRIG 16 | keys | transpose (part) | the TRIG keyboard an octave down / up, two at most, on top of KBT | plays the note on the TRIG keyboard, as without MACHINES |
+| MACHINES + TRIG 8/TRIG 9/TRIG 11/TRIG 12 | keys | transpose (part) | the active track's pitch jumps -7 / -5 / +5 / +7 semitones from its PITCH; the jump in force again: back | plays the note on the TRIG keyboard, as without MACHINES |
+| PATTERN + REVERB-SIZE/DELAY-TIME | params | fxslot (part) | the shown pattern's effect in the reverb or delay slot | the knob's edit while PATTERN is held; the pattern selection is disarmed as in the stock OS, and since 0.6 it no longer waits after PATTERN is released |
 | PATTERN + SWEEP | params | chordtables (CHORD's tracks) | the pattern's wavetable, on CHORD's tracks | disarms the pattern selection, then edits SWEEP as without PATTERN |
 | RETRIG + NOTES | any | arp | an arpeggio of the held notes when Arp is not OFF | the retrig |
+| RETRIG + PITCH | params | fltslot (part) | the sound's filter: none or one of the build's |  |
+| RETRIG + SWEEP/CONTOUR/COLOR/SHAPE | params | fltslot (part) | the track filter's values: Cutoff, Reso, Env depth, AD |  |
 | RETRIG + TRIG 1-16 | keys | chord-keys (CHORD's tracks) | the same chords, never retrigged (the note helper 0x40019e7a gets retrig -1) | the retrig |
+| SETTINGS + RECORD | any | resample (part) | opens the RESAMPLE page (RECORD on it arms, RETURN or SETTINGS + RECORD closes it) | the toggle of GRID RECORDING while SETTINGS is held (notes/79 §1) |
 | TRACK + FUNC | any | latching-mute | latches the mute mode |  |
 | TRACK + TRIG 1-6 | any | control-all-config | takes the track out of Control All, or back |  |
 | TRIG 1-16 | keys | chord-keys (CHORD's tracks) | the chords of a scale, in the Keys mode of the retrig menu | the chromatic notes of the stock KeyboardView (0x4001a0d2), on a CHORD track with Keys ON |
@@ -961,18 +970,24 @@ The stock combinations, as far as they are read:
 
 ## 9. Descriptors, formatters, pictures, p-lock rows and MIDI (declared claims, notes/65)
 
-Two mods that can be ticked together never share one of these in scopes that meet; a formatter and a picture belong to their interface object, whatever the scopes (notes/65 §12.2, STANDARD.md draft 0.8). The stock CC and NRPN map is not collected (STANDARD.md §5.5): a MIDI claim is checked against the other mods only.
+Two mods that can be ticked together never share one of these in scopes that meet; a formatter and a picture belong to their interface object, whatever the scopes (notes/65 §12.2, STANDARD.md draft 0.8). A MIDI claim is checked against the other mods and, since 2026-11-11, against the stock OS's map in the last rows, which `tools/claims.py` refuses to a mod (notes/65 §17; STANDARD.md §5.5 has no stock map yet).
 
 | claim | held by |
 |---|---|
-| descriptors 1–4 | shortcuts (part); track-filter |
+| descriptors 1–4 | fltslot (part); shortcuts (part); track-filter |
 | descriptors 10 | chordtables (CHORD's tracks) |
 | the formatter of interface object 53 | sampler (Cutoff) |
 | the picture of interface object 53 | sampler (Cutoff) |
 | the picture of interface object 54 | sampler (Reso) |
 | the p-lock rows of k ≥ 23 | lfo-plus; shortcuts (part); track-filter |
-| CC 71, 74 | track-filter |
-| NRPN 1:20, 1:21 | track-filter |
+| CC 75, 76 | fltslot (part) |
+| CC 71, 74 | fltslot (part); track-filter |
+| NRPN 1:22, 1:23 | fltslot (part) |
+| NRPN 1:20, 1:21 | fltslot (part); track-filter |
+| CC 3, 7, 10, 12–19, 65–67, 70, 80, 85–88, 93–95, 102–110 | the stock OS (Model:Cycles manual, appendix A; Solo, its descriptor 7) |
+| CC 20–23 | nothing: the machines' window, looked up in the row of the track's machine only |
+| CC 6, 38, 96–101, 120–127 | MIDI's own: data entry, (N)RPN, channel mode |
+| NRPN 1:26–1:30, 1:32–1:39, 1:100–1:103, 2:0, 2:3, 2:9, 2:12, 3:0 | the stock OS (its tables at boot, its descriptor table) |
 
 ## 10. Views (declared claims, notes/65)
 

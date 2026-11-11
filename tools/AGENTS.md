@@ -103,7 +103,8 @@ and check the writes of **every** other tweak for overlaps.
   a package's `claims` in its manifest, a part's in its `part.json`, the tweaks' in
   `tweaks/model-cycles_OS1.13/claims/claims.json`. A mod that keeps values in a sound or a pattern, answers a key
   combination, or takes a descriptor, a formatter, MIDI numbers, RAM or a view declares it there; the words of a
-  combination are the vocabulary at the top of `claims.py`. `--check` in validation. Its rules (`clashes`) compute
+  combination are the vocabulary at the top of `claims.py`. `--check` in validation. A MIDI claim may not take the
+  stock OS's CCs or NRPNs, CC 20–23 (the machines' window) or MIDI's own numbers (`OS_CC`, `OS_NRPN`, notes/65 §17). Its rules (`clashes`) compute
   conflicts in `compose.py`, in `check_overlaps.py` and, as `claimClashes`, in `docs/flasher/composer.js`: a change
   to them goes into both composers in the same commit, as for the rest of the composer.
 - `registry.py [--check] [--git REF …] [--cycles SYX]`: no firmware needed. Rewrites

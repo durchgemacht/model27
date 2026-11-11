@@ -617,3 +617,34 @@ your recommendations for all six decisions).
   shortcut against the other tweak's layer (`RETRIG + PUNCH against RETRIG + PUNCH/GATE`). `tweak_claims()` merges the
   package's whole claims with the layer's, without `beyond_shortcuts()`. No verdict changes, since the layer's slots
   clash anyway.
+
+## 17. The stock MIDI map (2026-11-11)
+
+The maintainer's decision of 2026-11-11, after the check of the MIDI CCs that gave the Track FX CC 75 / 76 (notes/73
+§21): the tools check a MIDI claim against the stock OS too, not only against the other mods. STANDARD.md §5.5 still
+leaves the stock map "to collect"; the standard is not changed, only model27's tools.
+
+- **`claims.py`**: `OS_CC`, `OS_CC_MACHINE`, `MIDI_CC`, `OS_NRPN`, and `midi_errors()`, which `own_errors()` adds:
+  what one holder may not claim, as the OS's slots (§13.1). Refused:
+  - the stock CCs: the manual's (Model:Cycles manual for OS 1.13, appendix A: 3, 7, 10, 12–19, 65–67, 70, 80, 85–88,
+    94, 95, 102–110 with 110 the LFO depth's LSB) and 93, Solo, which the OS's descriptor 7 carries `[FAIT, by
+    reading]`;
+  - CC 20–23: `0x4005a8ce` looks 16–23 up in the row of the track's machine only, so a shared value there is never
+    reached (run in the interpreter, notes/73 §21.1);
+  - MIDI's own numbers: 6 / 38 (data entry), 96–101 (increment, decrement, NRPN and RPN), 120–127 (channel mode);
+  - the stock NRPNs, which the manual does not list: 1:26–1:30 and 1:32–1:39, the ones the OS's builder of the tables
+    makes reach a descriptor (run in the interpreter, the same day), and from its descriptor table (`0x4010dce0`, read)
+    the FX's 2:0, 2:3, 2:9, 2:12, Note's 3:0 and 1:100–1:103 (Track Level, Mute, Solo, Machine Type, group -1).
+- Every holder of today passes: the only MIDI claims are the filter slot's CC 74, 71, 75, 76 and NRPN 1:20–1:23, and
+  the old track filter's CC 74 / 71 and NRPN 1:20 / 1:21. Not refused, left to the author: CCs a controller sends for
+  other things (1 modulation, 64 sustain); a keyboard on the AUTO channel would reach a mod's value on them.
+- **`registry.py`**: §9 ends with the stock map's rows (the stock CCs, the window, MIDI's own, the stock NRPNs). The
+  holders are now every part that declares claims, not the shortcut layer alone: the filter slot (`fltslot`, its CCs,
+  descriptors, slots and gestures), the effect slots (`fxslot`, the pattern's header bytes 29–31 and PATTERN + a knob),
+  RESAMPLE's and Transpose's parts (their RAM and key combinations). Those were missing from §6, §8 and §9; the
+  offered cards carry them. 20 holders (16 before).
+- **Self-test**: two new cases (the refused numbers, each with its reason; the Track FX's allowed). Four cases had
+  failed since the shortcut layer's 0.5 (notes/63 §25), which claims the pattern's p-lock rows the filter slot dropped
+  in its 0.11: lfo-plus × the layer, SAMPLE × the track filter, SAMPLE's tweak × REF2's (its slice of three no longer
+  the layer's four) and `claim_conflicts`. The computed side is right, each clash now also names the p-lock rows; the
+  expectations are updated, as in §16. The self-test is ALL OK again.

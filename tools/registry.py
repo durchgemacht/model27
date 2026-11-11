@@ -93,8 +93,9 @@ def names(ids, by_id, extra=None):
 
 def claim_holders(by_id):
     """The holders of declared claims among these tweaks, as (label, claims in claims.to_json form, source): the
-    entries of claims/claims.json, each package whose tweak is here, and the shortcut layer, which the builds whose
-    machines declare a shortcut carry."""
+    entries of claims/claims.json, each package whose tweak is here, and each of the builder's parts that declares
+    claims (the shortcut layer, the filter slot, the effect slots, RESAMPLE's and Transpose's parts), which the builds
+    of these tweaks carry."""
     pkgs = cl.packages()
     out = []
     for e in json.loads(cl.CLAIMS_FILE.read_text(encoding="utf-8"))["entries"]:
@@ -105,9 +106,9 @@ def claim_holders(by_id):
         c = cl.resolve(cl.package_claims(m, pkgs), cl.own_scope(m)) if pid in by_id else None
         if c:                                            # a package that claims something
             out.append((pid, c, f"tools/machines/{pid}/manifest.json"))
-    part = cl.parts().get("shortcuts")
-    if part and part.get("claims"):
-        out.append(("shortcuts (part)", cl.part_claims(part), "tools/machines/shortcuts/part.json"))
+    for pid, part in cl.parts().items():
+        if part.get("claims"):
+            out.append((f"{pid} (part)", cl.part_claims(part), f"tools/machines/{pid}/part.json"))
     return sorted(out)
 
 
@@ -198,8 +199,9 @@ def claims_lines(holders):
     p("## 9. Descriptors, formatters, pictures, p-lock rows and MIDI (declared claims, notes/65)")
     p("")
     p("Two mods that can be ticked together never share one of these in scopes that meet; a formatter and a picture "
-      "belong to their interface object, whatever the scopes (notes/65 §12.2, STANDARD.md draft 0.8). The stock CC and NRPN map is not collected "
-      "(STANDARD.md §5.5): a MIDI claim is checked against the other mods only.")
+      "belong to their interface object, whatever the scopes (notes/65 §12.2, STANDARD.md draft 0.8). A MIDI claim is "
+      "checked against the other mods and, since 2026-11-11, against the stock OS's map in the last rows, which "
+      "`tools/claims.py` refuses to a mod (notes/65 §17; STANDARD.md §5.5 has no stock map yet).")
     p("")
     p("| claim | held by |")
     p("|---|---|")
@@ -234,6 +236,16 @@ def claims_lines(holders):
             rows["; ".join(sorted(labels))].append(x)
         for hs, xs in sorted(rows.items()):
             p(f"| {kind.upper()} {', '.join(str(x) for x in sorted(xs, key=order))} | {hs} |")
+    window = [n for n in cl.OS_CC_MACHINE if n not in cl.OS_CC]
+    p(f"| CC {cl._ranges(cl.OS_CC).replace('-', '–')} | the stock OS (Model:Cycles manual, appendix A; Solo, its descriptor 7) |")
+    p(f"| CC {cl._ranges(window).replace('-', '–')} | nothing: the machines' window, looked up in the row of the track's machine only |")
+    p(f"| CC {cl._ranges(cl.MIDI_CC).replace('-', '–')} | MIDI's own: data entry, (N)RPN, channel mode |")
+    by_msb = collections.defaultdict(list)
+    for msb, lsb in cl.OS_NRPN:
+        by_msb[msb].append(lsb)
+    nrpn = ", ".join(f"{msb}:{r.replace('-', f'–{msb}:')}" for msb in sorted(by_msb)
+                     for r in cl._ranges(by_msb[msb]).split(", "))
+    p(f"| NRPN {nrpn} | the stock OS (its tables at boot, its descriptor table) |")
     p("")
     p("## 10. Views (declared claims, notes/65)")
     p("")

@@ -348,6 +348,27 @@ def holders():
 OS_SOUND = range(0, 23)                         # k 0-22: the stock parameters
 OS_RECORD = set(range(0, 24)) - {18}            # record slots 0-23, but 18, which the OS saves into k 0 and drops
 
+# The stock OS's MIDI numbers, which a mod may not claim (notes/65 §17). The CCs: the manual's (Model:Cycles manual
+# for OS 1.13, appendix A), and Solo, which the OS's descriptor 7 carries. The NRPNs, which the manual does not list:
+# those the OS's own builder of the tables (0x4005a274) makes reach a descriptor, run in an interpreter (notes/73
+# §21.1), and those the descriptor table (0x4010dce0, read) gives the FX parameters and the rows of group -1.
+OS_CC = {3: "Note", 7: "Volume + Dist", 10: "Pan", 12: "Delay Send", 13: "Reverb Send", 14: "Chance", 15: "Swing",
+         16: "Color", 17: "Shape", 18: "Sweep", 19: "Contour", 65: "Pitch", 66: "Punch", 67: "Gate",
+         70: "Machine Selection", 80: "Decay Time", 85: "Delay Time", 86: "Delay Feedback", 87: "Reverb Size",
+         88: "Reverb Tone", 93: "Solo", 94: "Mute", 95: "Track level", 102: "LFO Speed", 103: "LFO Multiplier",
+         104: "LFO Fade In/Out", 105: "LFO Destination", 106: "LFO Waveform", 107: "LFO Start Phase", 108: "LFO Reset",
+         109: "LFO Depth", 110: "LFO Depth, LSB"}
+OS_CC_MACHINE = range(16, 24)                   # 0x4005a8ce looks these up in the row of the track's machine only:
+                                                # 16-19 are every machine's knobs, 20-23 reach no shared value
+MIDI_CC = {6: "Data Entry", 38: "Data Entry, LSB", 96: "Data Increment", 97: "Data Decrement", 98: "NRPN, LSB",
+           99: "NRPN, MSB", 100: "RPN, LSB", 101: "RPN, MSB", **{n: "a channel mode message" for n in range(120, 128)}}
+OS_NRPN = {(1, 26): "Amp Decay", (1, 27): "Volume + Dist", (1, 28): "Delay Send", (1, 29): "Reverb Send",
+           (1, 30): "Pan", (1, 32): "LFO Speed", (1, 33): "LFO Multiplier", (1, 34): "LFO Fade In/Out",
+           (1, 35): "LFO Destination", (1, 36): "LFO Waveform", (1, 37): "LFO Start Phase", (1, 38): "LFO Trig Mode",
+           (1, 39): "LFO Depth", (1, 100): "Track Level", (1, 101): "Mute", (1, 102): "Solo", (1, 103): "Machine Type",
+           (2, 0): "Delay Time", (2, 3): "Delay Feedback", (2, 9): "Reverb Size", (2, 12): "Reverb Tone",
+           (3, 0): "Note"}
+
 
 def to_json(c):
     """normalize()'s claims as lists of lists; an atom as [held keys joined by "+", action]; empty types left out."""
@@ -545,8 +566,27 @@ def stock_atoms():
              {("+".join(sorted(h)), a) for h, a in atoms(s["combo"])}) for s in STOCK]
 
 
+def midi_errors(midi):
+    """What one holder may not claim in MIDI: the stock OS's CCs and NRPNs, the machines' window CC 16-23, the
+    numbers MIDI keeps for (N)RPN, data entry and the channel mode messages (notes/65 §17)."""
+    errors = []
+    for n in midi.get("cc", []):
+        if n in OS_CC:
+            errors.append(f"CC {n}: the OS's own ({OS_CC[n]})")
+        elif n in OS_CC_MACHINE:
+            errors.append(f"CC {n}: in the machines' window 16-23, which reaches only a machine's own values")
+        elif n in MIDI_CC:
+            errors.append(f"CC {n}: MIDI's own ({MIDI_CC[n]})")
+    for x in midi.get("nrpn", []):
+        key = tuple(int(v) for v in x.split(":"))
+        if key in OS_NRPN:
+            errors.append(f"NRPN {x}: the OS's own ({OS_NRPN[key]})")
+    return errors
+
+
 def own_errors(c):
-    """What one holder may not claim: the OS's own slots, and a stock combination without "replaces"."""
+    """What one holder may not claim: the OS's own slots, a stock combination without "replaces", and the stock OS's
+    MIDI numbers (midi_errors)."""
     errors = []
     k = sorted({n for n, _s in c.get("sound_slots", []) if n in OS_SOUND})
     if k:
@@ -561,7 +601,7 @@ def own_errors(c):
             if situations_meet(g["situation"], situation) and {tuple(x) for x in g["atoms"]} & stock:
                 errors.append(f"{g['combo']} takes the stock {combo} ({meaning}) without saying what it replaces")
                 break
-    return errors
+    return errors + midi_errors(c.get("midi", {}))
 
 
 def package_claims(m, pkgs=None):
@@ -953,8 +993,9 @@ def self_test():
     case("lfo-plus × the track filter: k 28-31, record slots 30-31, the p-lock rows",
          clashes(real["lfo-plus"], real["track-filter"]) == ["k 28-31", "record slots 30-31",
                                                               "the p-lock rows of k >= 23"])
-    case("lfo-plus × the shortcut layer: k 28-32 (k 32 since the switches), record slots 30-31",
-         clashes(real["lfo-plus"], layer) == ["k 28-32", "record slots 30-31"])
+    case("lfo-plus × the shortcut layer: k 28-32 (k 32 since the switches), record slots 30-31, the p-lock rows (the "
+         "layer's since its 0.5, notes/63 §25)",
+         clashes(real["lfo-plus"], layer) == ["k 28-32", "record slots 30-31", "the p-lock rows of k >= 23"])
     case("the track filter × the shortcut layer: record slot 18 too, since the switches",
          "record slots 18, 30-31" in clashes(real["track-filter"], layer))
     case("lfo-plus × REF2's tweak, which carries the layer: a clash",
@@ -971,16 +1012,16 @@ def self_test():
          clashes(real["sampler"], real["model-tg"]) == [
              "k 25-27", "record slots 24-29",
              "MACHINES + COLOR/SHAPE/SWEEP/CONTOUR against MACHINES + DECAY/SWEEP/CONTOUR"])
-    case("SAMPLE × the track filter: record slot 27, the layer's k 28-31, record slots 18, 30-31, descriptors, and "
-         "since the key map both MACHINES + knobs",
+    case("SAMPLE × the track filter: record slot 27, the layer's k 28-31, record slots 18, 30-31, descriptors, the "
+         "p-lock rows (since the layer's 0.5), and since the key map both MACHINES + knobs",
          clashes(real["sampler"], real["track-filter"]) == [
-             "k 28-31", "record slots 18, 27, 30-31", "descriptors 1-4",
+             "k 28-31", "record slots 18, 27, 30-31", "descriptors 1-4", "the p-lock rows of k >= 23",
              "MACHINES + COLOR/SHAPE/SWEEP/CONTOUR against MACHINES + COLOR/SHAPE/SWEEP/CONTOUR"])
     case("REF2 × arp: no clash (RETRIG + NOTES is another atom)", not clashes(real["refmachine2"], real["arp"]))
     smp, ref2c = (resolve(package_claims(pkgs[p], pkgs), own_scope(pkgs[p])) for p in ("sampler", "refmachine2"))
     case("SAMPLE × REF2, each on its machine: no clash", not clashes(smp, ref2c))
     case("SAMPLE's tweak × REF2's: the slots of the layer each carries",
-         clashes(real["sampler"], real["refmachine2"])[:3] == clashes(layer, layer))
+         clashes(real["sampler"], real["refmachine2"])[:len(clashes(layer, layer))] == clashes(layer, layer))
     octave, tune = (j({"gestures": [{"combo": "MACHINES + COLOR", "situation": "params", "meaning": x}]}, "package")
                     for x in ("Octave", "Tune"))
     case("two machines' MACHINES + COLOR do not clash", not clashes(resolve(octave, "a"), resolve(tune, "b")))
@@ -1027,6 +1068,15 @@ def self_test():
     case("MACHINES + COLOR and RETRIG + PITCH: no stock meaning", not own_errors(
         j({"gestures": [{"combo": "MACHINES + COLOR", "situation": "params"},
                         {"combo": "RETRIG + PITCH", "situation": "params"}]})))
+    # the stock MIDI map (notes/65 §17): the manual's CCs, the machines' window, MIDI's own numbers, the OS's NRPNs
+    case("refused: CC 7, 16, 20, 99 and 120, NRPN 1:26 and 3:0",
+         own_errors(j({"midi": {"cc": [7, 16, 20, 99, 120], "nrpn": ["1:26", "3:0"]}})) == [
+             "CC 7: the OS's own (Volume + Dist)", "CC 16: the OS's own (Color)",
+             "CC 20: in the machines' window 16-23, which reaches only a machine's own values",
+             "CC 99: MIDI's own (NRPN, MSB)", "CC 120: MIDI's own (a channel mode message)",
+             "NRPN 1:26: the OS's own (Amp Decay)", "NRPN 3:0: the OS's own (Note)"])
+    case("the Track FX's CC 71, 74, 75 and 76, NRPN 1:20 to 1:23: allowed",
+         not own_errors(j({"midi": {"cc": [74, 71, 75, 76], "nrpn": ["1:20", "1:21", "1:22", "1:23"]}})))
     ref2 = pkgs["refmachine2"]
     case("a build of REF2 and the layer: no clash", not check_build(build_holders([ref2], sc_part)))
     case("a build of SAMPLE, REF2 and the layer: no clash",
@@ -1046,7 +1096,7 @@ def self_test():
          texts == ["TRACK + TRIG 2-4", "TRIG 1-16 + PAGE", "LFO"])
     case("claim_conflicts names the tweak and its reasons",
          claim_conflicts(build_holders([ref2], sc_part), {"lfo-plus": real["lfo-plus"], "arp": real["arp"]})
-         == {"lfo-plus": ["k 28, 32", "k 28-32", "record slots 30-31"]})
+         == {"lfo-plus": ["k 28, 32", "k 28-32", "record slots 30-31", "the p-lock rows of k >= 23"]})
     return fails
 
 
