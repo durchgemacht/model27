@@ -27,7 +27,8 @@ symbols (§10).
 - **2026-11-11, optimized (§9):** a ringing voice about 64 % fewer instructions in the core, the same bits; the VCA
   and, without PUNCH, PUNCH no longer called. The proof's third run: ALL OK; one ringing voice 3 588 instructions a
   block (9 915 before), under TONE's 5 291; six tracks of sustained noise 1.63 × six TONE (2.7 × before).
-- **Open:** step 4, digiemu (§7).
+- **2026-11-11, on the machine (§11):** step 4, digiemu, and step 5, the device, both « passt »; tested.
+- **Open:** the CPU page and SOLID next to PERC, METAL and TONE (step 5, not reported), step 6 (§7).
 
 ## 2. The sound, as settled with the maintainer
 
@@ -186,8 +187,9 @@ core, where the membrane's strike already reaches −1.5 dB of the bus and would
   the load (§6). Decided (the maintainer, 2026-11-11): 8 modes, +6 dB.
 - Not in step 3: whether the governor of the Syntakt engines (`GOV_SKIP`, test_acid_combos.py) behaves with an
   envelope that stays open; it exists only in builds with those engines.
-- **Step 4:** digiemu (the maintainer). **Step 5:** the device. **Step 6:** Pitch drop on RETRIG + SWEEP (k 30, the
-  core reads it already, 0 for now), the card, the guide.
+- **Step 4:** digiemu (the maintainer): done 2026-11-11 (§11). **Step 5:** the device: SOLID plays, done 2026-11-11
+  (§11); the CPU page's share and the comparison with PERC, METAL and TONE not reported yet. **Step 6:** Pitch drop on
+  RETRIG + SWEEP (k 30, the core reads it already, 0 for now), the card, the guide.
 - The maintainer's: the held glass's slope, order 71, the picture, the defaults (the names: decided, §10).
 
 ## 8. The proof (step 3, 2026-11-11, passes)
@@ -313,3 +315,17 @@ Then, the same day, the inside renamed too: the package `tools/machines/solid/` 
 and the symbols (`solid_update`, `solid_render`, `solid_block`, `solid_ring2`, `SOLID_MODES`, `SOLID_HOST`). The
 proofs' runs above ran with the old names (the id `modal`); the float prototype keeps its name, outside the
 repository.
+
+## 11. On the machine (2026-11-11)
+
+**Tested on the Model:Cycles (2026-11-11).** The build: SOLID next to SAMPLE with every card of the maintainer's local
+build (`compose.py --machines sampler,solid,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq --cpu --resample
+--transpose --with control-all-config,trig-preview,trig-cond-order`), 0.1e, `.syx` `824a9188…`, MAIN OS `0901bf28…`;
+the same file, byte for byte, after the inside's rename (§10).
+
+- **digiemu** (step 4): the MACHINES page and the four popups, the names on two lines: « passt ». (Before, with 0.1c,
+  "Brightness" cut, §10.)
+- **The device** (step 5), the steps asked for: SOLID on a track, the MACHINES page, the four popups and the
+  materials over SHAPE 0 to 127. The answer: « gerätetest passt, alles gut ».
+
+Not reported: the CPU page's share with SOLID tracks, and SOLID next to PERC, METAL and TONE (§7).
