@@ -649,3 +649,5 @@ with a Web MIDI page of the session's (outside the repository) sending and showi
   SETUP's MOUT was off on track 1, which the OS needs for any knob's CC (manual 9.4.2, with ENCS at I+E); with it on,
   « funktioniert jetzt alles ».
 - Not played: Ring's CC 75 (the same rows, the same code as Reso's and EQ's).
+- **From the page** (release 0.60, after the push of `3553218`): every card ticked, flashed, Reso on track 1, CC 75 and
+  76 on T1's channel: « geflasht, passt ».

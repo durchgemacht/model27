@@ -9,7 +9,7 @@
 window.MC_RELEASES = [
   { version: "0.60", date: "2026-11-11", changes: [
     { en: "The Track FX settings on COLOR and SHAPE respond to MIDI CC 75 and 76 (NRPN 1:22 and 1:23), as the ones on SWEEP and CONTOUR do to CC 74 and 71: Ring's Wave, Reso's Tone and Decay, EQ's Low Gain and High Gain. With MOUT on in TRACK SETUP, turning them sends those CCs" },
-    { en: "Checked in an emulator on the OS's own code: CC 75 and 76 reach those settings on all six tracks and with every machine, and nothing else changes. Builds with only Samples or Crush stay as they were. Tested on a Model:Cycles (2026-11-11) from the command line, with Reso and EQ: the CCs and NRPNs in, on a track's channel and on the AUTO channel, and the CCs out" }
+    { en: "Checked in an emulator on the OS's own code: CC 75 and 76 reach those settings on all six tracks and with every machine, and nothing else changes. Builds with only Samples or Crush stay as they were. Tested on a Model:Cycles (2026-11-11) from the command line, with Reso and EQ: the CCs and NRPNs in, on a track's channel and on the AUTO channel, and the CCs out. Then flashed from this page with every card, the same day" }
   ] },
   { version: "0.59", date: "2026-11-11", changes: [
     { en: "A new machine, SOLID, plays struck sounds: a string, a drum skin, a marimba bar, a metal bar, a bell or glass, and everything in between. SHAPE chooses the body, CONTOUR what strikes it (a mallet, a burst of noise or noise that goes on), COLOR how bright it rings and SWEEP where you hear it. DECAY sets how long it rings, and GATE damps it when the note ends" },
