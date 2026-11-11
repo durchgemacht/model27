@@ -195,6 +195,8 @@ tools/machines/transpose/     Transpose, a part (notes/80): MACHINES + TRIG 15 /
                               with the shortcut layer, whose 0.6 makes MACHINES a held key on every track; compose.py
                               --transpose, tools/gen_transpose.py composes it alone into 81-transpose.json, the flasher's
                               Transpose card (composer.js transposeLayer); tools/emu/test_transpose.py proves it
+tools/machines/solid/         SOLID (notes/71): model27's own modal resonator machine, eight modes in fixed point on the
+                              EMAC; tools/gen_solid.py writes its tables and its object; not offered yet (no tweak, no card)
 tools/emu/                    Unicorn emulation of the OS: test_<mod>.py proofs, mcengine.py, emac.py, syntakt.py
 tools/gen_flasher_tweaks.py   FEATURES list -> docs/flasher/tweaks.js (generated); a machine card embeds its package and
                               the registrar's frame, composed in the page (notes/61)

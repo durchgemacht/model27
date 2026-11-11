@@ -191,6 +191,11 @@ def voice_loop(stock, builds, blocks):
     out = {code: {} for code in plays}
     for key, (tweak, img, runtime, added) in builds.items():
         for m in added:
+            if m["code"] not in plays and m["code"] != "sampler":
+                # a machine with a proof of its own (SOLID: test_solid.py, which also maps the OS's BSS above
+                # 0x40800000 for the velocity's gain and sets that gain); this loop has nothing to judge it by
+                print(f"        {key}: {m['name']} (machine {m['index']}) not played here: its own proof plays it")
+                continue
             e = engine(img, runtime, tweak)
             x = play(e, 0, m["index"], [k[2] for k in m["knobs"]], m["decay"], blocks)
             if m["code"] in plays:
