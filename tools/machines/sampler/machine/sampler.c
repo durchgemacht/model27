@@ -83,6 +83,17 @@ static struct {
     int32_t from, at;                           /* the Start of its trig, 0..SMP_SPAN, and its frame */
 } knobs[6];
 static int16_t scratch[SMP_SCRATCH];
+/* The pad held while the PRESET browser marks a sample (since 0.16): the track's trigs of its own sound play the
+   marked sample, its locks' sounds their own; the note that plays the marked sample goes back to the track's sample,
+   at the same place, once the pad is let go or nothing is marked any more, out over one block and in over the next as
+   a cut does. */
+volatile uint8_t smp_pad_held[6];
+static uint8_t marked[6];                       /* the note plays the marked sample, by a held pad */
+static uint8_t swap_out[6], swap_in[6];         /* let go: out over this block, back in over the next */
+static struct {
+    const smp_slot *sl;                         /* the track's sample, 0 if it is not loaded */
+    int32_t start, end;                         /* its window as Start and Length give it now */
+} swap_to[6];
 /* The decimator reads 8 frames of history and then the block at 96 kHz; it fills the history in
    itself from the voice's state (v+0x318) and stores it back. */
 static int32_t buf[8 + SMP_BLOCK2X];
@@ -143,16 +154,67 @@ static uint32_t mul_q16(uint32_t a, uint32_t b)
     return ((ah * bh) << 16) + ah * bl + al * bh + ((al * bl) >> 16);
 }
 
+#define SOUND_MACHINE 38                        /* sound: the machine (pool.c's MACHINE_AT) */
+#define KIT_SOUND(kit, t) ((kit) + KIT_SOUNDS + 100 * (t))     /* a kit's track sound, as the audio side plays it */
+
+/* The id of the sample the PRESET browser marks for track t, the active track; 0 otherwise. The marked sound is one
+   of the OS's two preview buffers (*0x40fb5a04), the other one being the one it fills next. */
+static uint32_t marked_for(int t)
+{
+    const char *s;
+    uint32_t id;
+
+    if (ACTIVE_TRACK != t)
+        return 0;
+    s = PREVIEW_SOUND;
+    if (!s || (unsigned char)s[SOUND_MACHINE] != SAMPLE_MACHINE)
+        return 0;
+    id = smp_sound_id(s);
+    return id & 1 ? id : 0;
+}
+
+/* The same while the pad of track t is held; 0 otherwise. */
+static uint32_t held_mark(int t)
+{
+    return smp_pad_held[t] ? marked_for(t) : 0;
+}
+
+/* The pad of track t was just pressed (hooks.S, smp_pad_on, after the OS's note): whether its note gets its
+   note-off at once, so that the sequencer's trigs reach the track while the pad is held. Only while the PRESET
+   browser marks a sample for this track, the active one; any other pad note stays held, as on the stock OS. */
+int smp_pad_frees(int t)
+{
+    return t >= 0 && t < 6 && held_mark(t) != 0;
+}
+
+/* A TRIG key of track t was just pressed in CHROMATIC mode (hooks.S, smp_hook_key_on, after the OS's note): the
+   same note-off at once, so that the track's trigs play on, in the track's own sample, and cut the key's note, as
+   the maintainer asked (2026-11-12). The key is not noted as held: its trigs never take the marked sample. */
+int smp_key_frees(int t)
+{
+    return t >= 0 && t < 6 && marked_for(t) != 0;
+}
+
 /* A trig: play the sample the note's sound names, from COLOR's start for SHAPE's length; the
    Model:Samples' rule (0x400a62dc): the end at Start + Length, at most the sample's end. flags:
-   SMP_LOOP, SMP_REVERSE. */
+   SMP_LOOP, SMP_REVERSE. While the pad is held (held_mark), a trig of the track's own sound plays the marked sample
+   instead, as the Model:Samples does, and is the note that goes back at the let-go (marked); a lock's sound (another
+   one) keeps its own, and a note played live (the pad's own, a TRIG key's) already carries the marked sound
+   (CUR_SND 0, 0x4005910e) and plays it out, as a preset under the cursor does. */
 static void start(int t, char *v, const char *p, int flags)
 {
     const uint16_t *k = (const uint16_t *)(TARGETS(t) + 52);   /* k 26/27: the sample's id */
-    const smp_slot *sl = smp_find((uint32_t)k[0] << 16 | k[1]);
+    const char *snd = (const char *)CUR_SND(t), *kit = PLAY_KIT;
+    uint32_t id = (uint32_t)k[0] << 16 | k[1], held = held_mark(t);
+    const smp_slot *sl;
     int32_t *state = DECIMATOR_STATE(v);
     int32_t from, to, i;
 
+    marked[t] = held && id != held && snd && kit && snd == KIT_SOUND(kit, t);
+    if (marked[t])
+        id = held;
+    swap_out[t] = swap_in[t] = 0;
+    sl = smp_find(id);
     if (!sl) {                                  /* none, or not loaded yet: silence */
         voices[t].active = 0;
         return;
@@ -206,6 +268,69 @@ int smp_voices_use(const void *lo, const void *hi)
     return 0;
 }
 
+/* f frames into a sample at from_q16 (its rate / 48 kHz) as frames of one at to_q16: the same time, without 64 bits. */
+static int32_t same_time(int32_t f, uint32_t to_q16, uint32_t from_q16)
+{
+    uint32_t a = (uint32_t)f, r;
+
+    if (!to_q16 || !from_q16 || to_q16 == from_q16)
+        return f;
+    r = (to_q16 << 4) / (from_q16 >> 8 ? from_q16 >> 8 : 1);    /* to / from, Q12 */
+    return (int32_t)((a >> 12) * r + (((a & 0xfff) * r) >> 12));
+}
+
+/* The pad let go (or nothing marked): the voice that plays the marked sample goes on in the track's, at the frame of
+   the same time, in the window Start and Length give it there; silent if the track's sample is not loaded. */
+static void swap(int t)
+{
+    smp_voice *sv = &voices[t];
+    const smp_slot *sl = swap_to[t].sl;
+    int32_t len = sv->end - sv->start, s0 = swap_to[t].start, e0 = swap_to[t].end, r, at;
+
+    if (!sv->active || !sl || len <= 0) {
+        sv->active = 0;
+        return;
+    }
+    if (e0 > sl->frames)
+        e0 = sl->frames;
+    if (s0 >= e0) {
+        sv->active = 0;
+        return;
+    }
+    r = sv->pos % len;
+    at = same_time(sv->reverse ? sv->end - 1 - r : sv->start + r, sl->rate_q16, rates[t]);
+    if (at < s0)
+        at = s0;
+    if (at > e0 - 1)
+        at = e0 - 1;
+    smp_trigger(sv, sl->pcm, sl->frames, s0, e0, (sv->reverse ? SMP_REVERSE : 0) | (sv->loop ? SMP_LOOP : 0));
+    sv->pos = sv->reverse ? e0 - 1 - at : at - s0;
+    sv->fade_in = SMP_FADE;                     /* the block's ramp brings it in */
+    knobs[t].at = s0;
+    rates[t] = sl->rate_q16;
+}
+
+/* The note plays the marked sample and the pad is no longer held (or nothing is marked): the track's sample and its
+   window, for the swap at the end of this block's render. */
+static void let_go(int t, const char *p)
+{
+    const char *kit = PLAY_KIT;
+    const smp_slot *sl = kit ? smp_find(smp_sound_id(KIT_SOUND(kit, t))) : 0;
+    int32_t from, to;
+
+    marked[t] = 0;
+    swap_out[t] = 1;
+    swap_to[t].sl = sl;
+    if (!sl)
+        return;
+    from = knobs[t].loop ? span(p, 0x16) : knobs[t].from;
+    to = from + span(p, 0x18);
+    if (to > SMP_SPAN)
+        to = SMP_SPAN;
+    swap_to[t].start = share(sl->frames, from);
+    swap_to[t].end = share(sl->frames, to);
+}
+
 void sampler_update(int32_t pmod, char *v, const char *p)
 {
     int t = track_of(v);
@@ -216,6 +341,7 @@ void sampler_update(int32_t pmod, char *v, const char *p)
     if (V32(MARK_OFF) != MARK) {                /* first block since the track changed machine */
         sv->active = 0;
         cut[t] = 0;
+        marked[t] = swap_out[t] = swap_in[t] = 0;
         smp_filter_reset(&filters[t]);
         V32(MARK_OFF) = MARK;
     }
@@ -249,6 +375,8 @@ void sampler_update(int32_t pmod, char *v, const char *p)
     smp_set_ratio(sv, mul_q16(ratio_of(n - ROOT), rates[t] ? rates[t] : 1u << 16));
     if (sv->active && !V32(0x34) && !V32(0x38))  /* not around a trig, which starts it anew */
         follow(t, sv, p);
+    if (marked[t] && sv->active && !V32(0x34) && !V32(0x38) && !held_mark(t))
+        let_go(t, p);
     /* the filter follows SWEEP and CONTOUR, smoothed by the OS like every knob */
     smp_filter_set(&filters[t], P16(0x1a), P16(0x1c));
 }
@@ -271,7 +399,8 @@ void sampler_render(int32_t *out, char *v)
             smp_filter_run(fl, out);
         return;
     }
-    in = V32(0x38) && cut[t];                   /* this block's note cut one that still sounded */
+    in = (V32(0x38) && cut[t]) || swap_in[t];  /* this block's note cut one that still sounded, or was swapped */
+    swap_in[t] = 0;
     cut[t] = V32(0x34) && sv->active;           /* this block's trig cuts the voice: the VCA takes it out */
     smp_render(sv, buf + 8, scratch);
     DECIMATE(v, buf, out);
@@ -280,6 +409,13 @@ void sampler_render(int32_t *out, char *v)
     if (in)                                     /* in from silence over the block, frame i at i / 32 */
         for (i = 0; i < SMP_BLOCK; i++)
             out[i] = out[i] / SMP_BLOCK * i;
+    if (swap_out[t]) {                          /* out to silence over the block, then the track's sample */
+        for (i = 0; i < SMP_BLOCK; i++)
+            out[i] = out[i] / SMP_BLOCK * (SMP_BLOCK - 1 - i);
+        swap_out[t] = 0;
+        swap(t);
+        swap_in[t] = sv->active;
+    }
     PUNCH(out, v);
     smp_filter_run(fl, out);
 }

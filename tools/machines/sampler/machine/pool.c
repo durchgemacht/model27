@@ -119,6 +119,9 @@ static int read_at(uint32_t ino, uint32_t pos, void *buf, uint32_t n)
 
 /* --- the browser and the sound records ------------------------------------------------------- */
 
+/* Both ways the browser reads a file come here (hooks.S): opening it (smp_hook_open) and resting the cursor on it
+   (smp_hook_preview). A sample file on a SAMPLE track gives the track's sound naming that file instead of a preset;
+   the OS then loads it into the track, or marks it for the pad and the TRIG keys, as it does with a preset. */
 int smp_browser_open(void **result, const uint32_t *h, int32_t track)
 {
     unsigned char head[HEADER];
@@ -234,11 +237,13 @@ static void scan_kit(const char *kit)
         note(kit + KIT_POOL + SOUND_SIZE * i);
 }
 
-/* Every sound that could be played: the kits of the 96 patterns, the kit the audio side plays, and
-   the tracks' live sounds. */
+/* Every sound that could be played: the kits of the 96 patterns, the kit the audio side plays, the
+   tracks' live sounds, and the sound the browser marks for the pad and the TRIG keys (a sample under its
+   cursor, smp_browser_open), so that it loads while the cursor rests on it and is freed once the cursor
+   moves on or the browser closes. */
 static void scan_kits(void)
 {
-    const char *kit = PLAY_KIT;
+    const char *kit = PLAY_KIT, *marked = PREVIEW_SOUND;
     int n;
 
     for (n = 0; n < KITS; n++)
@@ -251,6 +256,11 @@ static void scan_kits(void)
         if (s)
             note(s);
     }
+    if (marked)
+        note(marked);
+    else                                        /* nothing marked: no pad counts as held for it (a lost let-go) */
+        for (n = 0; n < 6; n++)
+            smp_pad_held[n] = 0;
 }
 
 /* After the browser loads a sound into a track the track keeps the same sound object, so the audio

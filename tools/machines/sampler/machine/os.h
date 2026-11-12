@@ -53,6 +53,14 @@ static inline char *os_sound(int t)
 /* The kit the audio side plays (0x800017e4, set by its kit message at 0x40058ddc), apart from the 96:
    the working copy of the current pattern's kit. Its pool holds the sounds that sound locks play. */
 #define PLAY_KIT            (*(char *volatile *)0x800017e4)
+/* The sound the PRESET browser marks for the next notes played live on the active track, the pad's and the TRIG
+   keys' (notes/46 §2 of model27): 0x40081bd6 writes it after the cursor's preview (0x400a63ac) has copied the sound
+   into one of the OS's two 100-byte buffers, 0 when nothing is marked (another entry, the browser closed); the note
+   carries it in its event (0x40081860), and the audio side plays it as the note's sound (0x40058a0a). */
+#define PREVIEW_SOUND       (*(char *volatile *)0x40fb5a04)
+/* The active track as the notes played live see it (0x40081760 compares a note's track with it before it carries the
+   marked sound; model27's notes/46 §2). */
+#define ACTIVE_TRACK        (*(const volatile int32_t *)0x40a700c4)
 
 /* --- the file system on the +Drive ------------------------------------------------------------ */
 /* Set once the file system is mounted (0x40f07cf4; its calls check it). */

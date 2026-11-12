@@ -1,7 +1,8 @@
 /* Sample memory of SAMPLE: the samples its sounds name, loaded from the +Drive.
 
    The UI side (smp_ui_tick, about 30 times a second, never two at once) finds every SAMPLE sound in
-   the 96 kits and their pools, loads the samples they name and frees those nothing names any more.
+   the 96 kits and their pools, the tracks' and the one the browser marks for the pad and the TRIG keys,
+   loads the samples they name and frees those nothing names any more.
    It is the only writer of the slot table. The audio side only looks up READY slots (smp_find): a
    slot becomes READY once its data is complete, and stops being READY before its memory is reused,
    so neither side ever sees the other's half-done work.
@@ -87,5 +88,14 @@ void smp_after_load(char *sound, const char *record);
 
 /* From the bridge (sampler.c): does a voice play from memory in [lo, hi)? */
 int smp_voices_use(const void *lo, const void *hi);
+
+/* The pads held, by track (sampler.c): set and cleared by the pads' own note functions (hooks.S), cleared by the tick
+   while the browser marks nothing. */
+extern volatile uint8_t smp_pad_held[6];
+
+/* From the bridge (sampler.c): the pad of track t was just pressed; nonzero when its note gets its note-off at once
+   (hooks.S), so the sequencer's trigs reach the track while it is held. */
+int smp_pad_frees(int t);
+int smp_key_frees(int t);                       /* a TRIG key's note too (hooks.S, smp_hook_key_on) */
 
 #endif

@@ -7,6 +7,12 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.61", date: "2026-11-11", changes: [
+    { en: "SAMPLE (Cycles One-Shot 0.16): while the cursor in the PRESET menu rests on a sample, the track's pad plays it, as it plays a preset there, and outside GRID RECORDING mode the TRIG keys too. It plays with the track's settings, as on the Model:Samples, and the sequencer keeps playing the track's own sample, also while a TRIG key is held; its next trig cuts the key's note" },
+    { en: "Hold the pad, and the track's trigs play that sample too, with their notes and parameter locks; steps with their own sample keep it. Let go, and a trig that plays it goes back to the track's sample at once, at the same place, as on the Model:Samples; the pad's own note plays out" },
+    { en: "A sample loads while the cursor rests on it and goes again when the cursor moves on or the menu closes. Until it has loaded it stays silent, a long one for a moment" },
+    { en: "Not yet tested on a Model:Cycles: SAMPLE is marked experimental until then" }
+  ] },
   { version: "0.60", date: "2026-11-11", changes: [
     { en: "The Track FX settings on COLOR and SHAPE respond to MIDI CC 75 and 76 (NRPN 1:22 and 1:23), as the ones on SWEEP and CONTOUR do to CC 74 and 71: Ring's Wave, Reso's Tone and Decay, EQ's Low Gain and High Gain. With MOUT on in TRACK SETUP, turning them sends those CCs" },
     { en: "Checked in an emulator on the OS's own code: CC 75 and 76 reach those settings on all six tracks and with every machine, and nothing else changes. Builds with only Samples or Crush stay as they were. Tested on a Model:Cycles (2026-11-11) from the command line, with Reso and EQ: the CCs and NRPNs in, on a track's channel and on the AUTO channel, and the CCs out. Then flashed from this page with every card, the same day" }

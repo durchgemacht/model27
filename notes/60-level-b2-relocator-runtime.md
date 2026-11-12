@@ -636,3 +636,157 @@ half-finished step never blocks a build.
   `test_cpu.py` and `test_resample.py`, whose selections hold SAMPLE or the layer, run by the maintainer on the release's code (2026-11-06): ALL OK (540, 139 and 181 checks) `[FAIT en émulation]`. On a Model:Cycles, flashed
   over USB, ten steps as the work was built, the last ones with this pin's files (SAMPLE alone `49ac6238…`, every card
   `a503f081…`): notes/63 §32. The card stays `tested`.
+
+## 24. One-Shot 0.16 pinned: the sample under the browser's cursor on the pad and the TRIG keys, and with the pad held on the trigs (2026-11-11, 12)
+
+- **The request** (the maintainer, 2026-11-11, from the feasibility check of that day): hear a sample in the PRESET
+  browser before opening it. Decided with the maintainer: **as the Model:Cycles does with its presets**. While the
+  cursor rests on a sample file of a SAMPLE track, the pad of the active track and the TRIG keys in CHROMATIC mode
+  play that sample; the sequencer keeps playing the track's own sound. **With the track's settings** (Start, Length,
+  the filter, Loop, Reverse), **as the Model:Samples does**: the maintainer heard it in digiemu with the official
+  Model:Samples OS (2026-11-12). (The Model:Cycles plays a preset under the cursor with the preset's own settings; a
+  sample file has none.) **Silent until the file has loaded.** History: the first build played with the track's settings on an answer the maintainer had skipped, not
+  given; asked again, they chose SAMPLE's defaults (the OS's own new sound, `0x40061866(sound, -, machine)`, whose
+  descriptor lookup the added machines' build opens for SAMPLE, `0x4005a6a6`), built on 2026-11-11; after hearing the
+  Model:Samples they went back to the first build (2026-11-12), rebuilt byte for byte (the same hashes).
+- **The pad held** (the maintainer, 2026-11-12, after the first proof ran; each point asked on its own): while the
+  pad of the track the browser is open for is held (only that pad), the track's trigs play the marked sample, with
+  everything the step has (note, velocity, length, trig condition, parameter locks); steps with a sample lock keep
+  their own; the marked sample not loaded yet, they stay silent; let go, the note that plays the marked sample goes
+  on in the track's sample at once, at the same place (the Model:Samples in digiemu, heard by the maintainer); the
+  browser closed with the pad held does as a let-go. The TRIG keys keep their stock way: the sequencer plays the
+  track's sample, its next trig cuts the note a TRIG key played (one voice a track), and while a TRIG key is held the
+  track's trigs pause, on every machine (the maintainer in digiemu, with KICK, 2026-11-12).
+- **The Model:Samples** `[FAIT, read in its OS 1.13, not run]`: its browser's key handler `0x400a40e0` takes a pad
+  only for the browser's track (`+664`, the key's track from `0x4011257c`); the press puts the file under the cursor
+  into the sample slot the track's sound uses (`0x4000fdc4`, the slot's former content kept at `+10792 + 16 t`), the
+  let-go puts it back (`0x400a4330`). A step with a sample lock names another slot, so it keeps its sample; any other
+  track on the same slot would play the marked one too (SAMPLE switches by track). No code puts the slot back when
+  the browser closes with the pad held; its next opening clears the held mask (`0x400a4896`) `[HYP: the marked
+  sample then stays on the track, as if loaded]`; SAMPLE does as a let-go instead (the maintainer).
+- **What the OS does** `[FAIT]` (notes/46 §2, §3.1): the cursor's preview `0x400a63ac` reads the entry as a preset
+  (`jsr 0x400a3052` at `0x400a6426`); a sound read is copied into one of two 100-byte buffers (`0x40058504`,
+  `0x4008f1f0`) and marked (`0x40081bd6`, `*0x40fb5a04`). A note played live on the active track (source `0x40`: the
+  pads, `0x4001d08e`, and the TRIG keys in keyboard mode, `0x40019edc`) carries the mark at +52 of its event
+  (`0x40081860`), the audio side copies its 66 bytes of parameters into `0x800015ae + 66 t` (`0x40058a0a`) and clears
+  the note's sound after it (`0x4005910e`); the sequencer's trigs never carry it. A sample file fails the preset
+  reader's size check (48..160 bytes), so on SAMPLE 0.15 nothing was marked and the pad played the track's sample;
+  the reader had opened the file first and left its "open" bit on (§3.1).
+- **What changed upstream**: One-Shot 0.16 (commit `a376832`, tag `v0.16`; the "lock holds" work once
+  numbered 0.16, parked on One-Shot's branch `lock-holds` and model27's `sampler-0.16-lock-holds`, gets another number
+  if it is taken up):
+  - `machine/hooks.S`: `smp_hook_preview` at `0x400a6426` (point `browser.preview`), the same call as the open's
+    hook, with the browser in a2 itself (`+664` the track; at `0x400a6602` a2 points at it). It calls
+    the open's `smp_browser_open`: on a SAMPLE track a sample file (more than 160 bytes, an odd id, a header SAMPLE
+    plays) gives the track's sound naming the file in k 25..27, which the OS copies and marks as it does a preset;
+    otherwise `jmp 0x400a3052`, as before. The file is not opened, so a SAMPLE track no longer leaves the bit of §3.1
+    on.
+  - `machine/pool.c`: the tick notes the marked sound (`PREVIEW_SOUND`, `*0x40fb5a04`, `machine/os.h`) next to the
+    kits' and the tracks', so its sample loads while it is marked and is freed once it is not (the cursor moved on, the
+    browser closed: `0x400a40e4` marks 0), as soon as no voice plays it. A marked SAMPLE preset names its sample too
+    and now loads it `[HYP: that the preset reader's sound goes through SAMPLE's record load, as a loaded preset does]`.
+  - The pads (`machine/hooks.S`, point `pad.note`): the Model:Cycles' pads play and end their notes through
+    `0x4001d05e(view, track, note, velocity, speed)` and `0x4001d0fc(view, track, note)`, each called only by the
+    pads' handler `0x4001d180` (vtable entry `0x4010025c`; the held note at `+88 + 4 t` of its view) `[FAIT]`; the
+    TRIG keys play theirs elsewhere (`0x40019edc`, `0x40019cb4`), the only other callers of note on and off. Their
+    first 6 bytes (`lea -16(sp),sp ; moveq #5,d1` and `lea -12(sp),sp ; moveq #5,d0`) become `jsr smp_hook_pad_on` /
+    `smp_hook_pad_off`, which set or clear `smp_pad_held[t]`, do those two instructions and go on (d0, d1 and a1 free
+    there). No tweak or part writes those bytes. The tick clears the flags while nothing is marked.
+  - **The held pad's note-off at once** (2026-11-12): in digiemu the held pad's track played nothing, and a held pad
+    mutes its track on KICK too (the maintainer). `[FAIT, read in the OS 1.13, not run]`: the audio side's event loop
+    keeps, by track, the rank and the note of the note that holds it (`0x40fe4c9c + 4 t`, `0x40fe4cb4 + 4 t`); it
+    drops a note of a lower rank (`0x40058e4e`); the sequencer's notes are rank 1 (`+12` of the message,
+    `0x40054b7e`), the notes played live rank 2 (`0x4005894a`, from `0x4008171e` and `0x4008145e`); a note-off frees
+    the track only with the same rank and note (`0x40058f4c`), and ends the gate (`0x400588c8`, `0x40058530`). The
+    Model:Samples' browser takes the pad of its track itself (the key counted as used, so its pads' own functions
+    `0x4001e7b6` / `0x4001e854` do not run) and sends the note's note-off right after its note-on (`0x400a3fac`,
+    then `0x400a4088`); its sequencer itself not read. SAMPLE does the same: `smp_hook_pad_on` now runs the rest of
+    `0x4001d05e` as a subroutine on a copy of its five arguments (its tail call into the recording, `0x4008273c`,
+    writes over them), then, when `smp_pad_frees(track)` (`machine/sampler.c`: the pad noted as held, the active
+    track, a SAMPLE sound with a sample's id marked) says so, calls `0x4008145e(track, note, 0x40)`, what
+    `0x4001d0fc` sends, without its end of a live recording (`0x400827a8`). Consequences: the track's trigs reach it
+    while the pad is held; with GATE on the pad's own note no longer holds (it fades with DECAY); the release's
+    note-off is dropped by the event loop (the rank of the sequencer's note that holds the track, or 0, against 2),
+    the counts of held notes stop at 0 (`0x40fb57ec`), and with MIDI out on the device gets a second note-off; a
+    live recording still starts at the press and ends at the release. Any other pad note, the TRIG keys and presets
+    under the cursor stay stock. 152 bytes more of code.
+  - **The TRIG keys' note-off at once** (2026-11-12, the maintainer: with a TRIG key held the track's trigs paused, as on
+    every machine of the stock OS, heard in digiemu; asked for since the start: "wenn man trigs nutzt, muss das momentan
+    auf dem track geladene sample trotzdem ganz normal weiterspielen"): the keys' note function in CHROMATIC mode,
+    `0x40019e7a(view, track, note, velocity, speed)`, called only by the keyboard's handler (`0x40019f6e`), begins with
+    the pad's two instructions (`lea -16(sp),sp ; moveq #5,d0`), so `smp_hook_key_on` (point `key.note`) does as the
+    pad's hook: the rest as a subroutine on a copy of the arguments, then, when `smp_key_frees(track)` (a SAMPLE sound
+    with a sample's id marked for the active track; no pad noted as held) says so, `0x4008145e(track, note, 0x40)`,
+    what the key's note-off `0x40019c84` sends. The track's trigs play on in the track's own sample (the key is not a
+    held pad) and the next one cuts the key's note; the release's note-off is dropped as the pad's. No card writes
+    there (Transpose replaces the keyboard view's handler, `0x4001a0d2`, which still calls `0x40019e7a`). 140 writes,
+    48 552 bytes added.
+  - The audio side (`machine/sampler.c`): at a trig, with the pad of the active track (`*0x40a700c4`) held and a
+    SAMPLE sound marked, a note whose sound is the played kit's track sound (`CUR_SNDS[t]` = `*0x800017e4 + 28 +
+    100 t`, the event loop's own choice) plays the marked sample's id instead; a lock's sound is another pointer and
+    keeps its own; a note played live (the pad's own, a TRIG key's) already carries the marked sound and plays it out, as a preset under the cursor does (the Model:Samples in digiemu with the sequencer stopped, heard by the maintainer, 2026-11-12; the first build sent the held pad's own note back too, heard as wrong the same day). A note that took the marked sample's place is remembered (not one of a track whose own sample is the marked one); every block,
+    once the pad is let go or nothing is marked, its block is ramped out to silence, the voice re-triggered on the
+    track's sample at the frame of the same time (rates scaled, the window as Start and Length give it there), and
+    the next block ramped in, as a cut does.
+  - Before the pad: `start()` reads the note's sample in the 66-byte copy, which the OS fills from the
+    marked sound for a preview note, and the switches there too when the note's sound is 0 (One-Shot 0.11).
+- **`[HYP]` the tick while the browser is open**: SAMPLE's tick is the screen's redraw (`0x400075f0` in `0x400075da`,
+  called from `0x40007e92`, `0x40076ff4`, `0x40084522`), which takes the screen object and asks its root view
+  (`+64`) whether to draw; nothing there depends on which view is on top. Read, not run: the device decides it (the
+  marked sample must play after a moment, and must not stay silent).
+- **Costs**: one slot of 128 and the file's memory in the 47 MB pool while it is marked; a 64-byte read of the
+  header each time the cursor stops on a sample file (the stock OS reads a whole preset there). Loading is SAMPLE's
+  as before, 128 KiB a tick (computed, not measured: about 0.3 s for 10 s of mono, 3 s for 60 s of stereo). The pad
+  held adds no voice: the track's one voice plays the marked sample instead of its own; per trig a few tests, per
+  block one, and at a let-go one re-trigger. Measured by the proof's step 6, the payload of SAMPLE playing a note in
+  instructions per block (Unicorn, run by the maintainer, 2026-11-12): 3 034 on 0.15 (HEAD's pin), 3 042 on 0.16
+  (+8), 3 063 with the pad held (+29; 3 070 before the let-go was narrowed to a trig's note), 3 625 in the one block it is let go (+591, the re-trigger and the two ramps),
+  of 108 225 a block: 0.03 % while held, 0.55 % once `[FAIT en émulation]` (before the note-off at once, which runs in
+  the interface's task, not the audio's; the run with it to follow). Only one track at a time (the
+  browser's). The CPU page can show only the playing without the pad: it and the browser are never open together,
+  and PEAK counts from the page's opening `[À FAIRE: the device]`.
+- **Here**: `machine/hooks.S`, `os.h`, `pool.c`, `pool.h` and `sampler.c` copied from One-Shot 0.16, every file of
+  `tools/machines/sampler/` One-Shot's; the manifest's version, name, description, source, the hook and the kept
+  symbol, and the two pad hooks; `gen_sampler.py` pinned on v0.16. 139 writes (three more), 282 conflicts as before, 40 384 bytes of code and
+  tables, 62 344 of variables, 48 168 bytes added to the image (with the note-off at once 40 536 and 48 320; with the pad's own note playing out 40 448 and 48 232). Conflicts with the cards of `OFFERED`: none (no card
+  writes `0x400a6426`; Model-TG's sample preview does, and conflicts with SAMPLE already). The card goes back to
+  `experimental` until the device test.
+- **Hashes** (MAIN OS, with the pad's own note playing out and the TRIG keys' note-off at once; the build of the note-off alone: SAMPLE alone `0f4f9373…`, every card `fd6f3f56…`, `.syx` `5da2ce6f…`, One-Shot's MAIN OS `0d2004ed…`): SAMPLE alone `37117f68…`, with SOLID `ff513be6…`, with CHORD
+  Tables `19d700b5…`, with both effects `109c5582…`, with Samples `d2abae2b…`, with RESAMPLE `b6e4b02c…`, with
+  Transpose `8f2eb904…`, with the CPU page `12b24422…`, every card of the page `ab2666d0…` (the file for digiemu and
+  the device, `.syx` `234f709f…`; the build before the note-off, `cac9bdc4…`, `.syx` `7330c88f…`, is the one tried in
+  digiemu). The smoke test's pins: 140 writes and 48 552 bytes in the log line, the Model:Samples packings
+  `30fa4ef8…` (`_smp-os`) and `b7b46a48…` (`_cyc-os`), computed apart from the page with `mods_for_samples.py` on the composed SAMPLE alone. One-Shot's own image: MAIN OS `64f6d76c…`, `.syx` `7a2eb3c0…`.
+- The card's text (a block for the pad and the TRIG keys in the PRESET menu), the guide's SAMPLE section (the version,
+  a step, the Samples line, the Tested line), README, release 0.61, stamp `2026-11-11-05`; PROVENANCE.md names the
+  tag.
+- **Tested**: One-Shot's host tests with and without the switches (`test_pad_hold`: the held pad's trigs, a lock's
+  own, another track, nothing marked, not loaded, the let-go at the same frame with its ramps, the browser closed, a
+  TRIG key's note and the held pad's own playing out at the let-go, a trig of a track whose own sample is marked left
+  alone, the tick forgetting the pads; nine deliberate faults caught; `test_pad_frees` with `smp_key_frees`, two more; `test_preview`: the track's sound marked with the
+  file, its Start, Length and Loop among them, loaded, silent before,
+  played, kept while a voice plays it, freed after, the cursor moving on while a file loads, a project's sample
+  shared, another machine's preset ignored; a deliberate fault caught), under ASan and UBSan too (only the known
+  messages). Unicorn, `tools/emu/test_sampler_preview.py` (the cursor, the note, the tick and the voice, stock against
+  SAMPLE alone and next to REF2), run by the maintainer: ALL OK on 2026-11-12 `[FAIT en émulation]`. Its first run
+  failed twice on the bench, not on SAMPLE: its preset read marks nothing, on the stock OS as well, so the sequence
+  sample → sample → preset now compares the preset with the stock OS, and the tick's test of another machine's preset
+  puts that preset in the buffer itself, as the OS would. That run was before the pad held; with it the proof grows
+  the sites of the two pad hooks, step 5 (the real pad note functions: the held pad's trigs, a lock's own, the
+  let-go at the same place, the browser closed) and step 6 (the cost, alone only), run by the maintainer: ALL OK on
+  2026-11-12, alone and next to REF2 `[FAIT en émulation]`. With the note-off at once the proof grows its step 5
+  through the audio side's own event loop (nothing marked: the held pad's track drops a sequencer's note; marked: the
+  note-off sent once, the track free, the sequencer's note plays the marked sample, the release's note-off dropped
+  with or without a sequencer's note since, a live recording started at the press and ended at the release), run
+  by the maintainer: ALL OK on 2026-11-12, alone and next to REF2 `[FAIT en émulation]`; `test_pad_frees` on the host (four deliberate faults caught). digiemu with the
+  build before (`7330c88f…`, 2026-11-12): the pad and the TRIG keys play the marked sample in their pitches, the
+  sequencer the track's, a TRIG key tapped is cut by the next trig and a held one pauses the track's trigs (stock, KICK
+  too): « passt »; the held pad's track silent (above), hence the note-off. digiemu with the build of the note-off (`5da2ce6f…`, 2026-11-12): pressing or holding the pad plays the marked sample and
+  the trigs reach the track: « funktioniert jetzt korrekt »; but with the sequencer stopped the pad's own note went back to
+  the track's sample at the let-go (no new attack, the track's sample ringing on), which the Model:Samples does not do
+  (its pad's note plays out, pressed or held; heard by the maintainer in digiemu with the official OS the same day).
+  Rebuilt with the pad's own note playing out (above). The same day the maintainer recalled the TRIG keys: in Test 3 of
+  the build of the note-off a held TRIG key paused the track's trigs (taken then for stock behaviour and left), against
+  the request; rebuilt with the keys' note-off at once (above); the proof grows its engine tests by the key (nothing
+  marked: holds its track; marked: note-off once, the track free, a sequencer's note plays the track's own sample, the
+  release's note-off dropped): **ALL OK** (the maintainer, 2026-11-12) `[FAIT en émulation]`. digiemu with this build (the maintainer, 2026-11-12): « passt, habe schon alles getestet » `[FAIT en émulation]`; the device: `[À FAIRE]`.

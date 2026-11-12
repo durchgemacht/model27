@@ -330,12 +330,14 @@ ALL_FEATURES = [
         "cat": "sound",
         "label": "SAMPLE machine (Cycles One-Shot)",
         "desc": "One extra machine after Chord: a one-shot sampler for samples on the +Drive. Pick the sample in the "
-                "PRESET browser (FUNC + MACHINE); it is saved with the sound. COLOR = Start, SHAPE = Length, "
+                "PRESET browser (FUNC + MACHINE); it is saved with the sound. While the cursor rests on a sample, "
+                "the pad and the TRIG keys play it; hold the pad and the track's trigs play it too. COLOR = Start, SHAPE = Length, "
                 "SWEEP = a DJ-style filter (lowpass / off / highpass), CONTOUR = Reso; the main screen "
                 "shows the waveform with the start and end marked.",
         # tested on the Model:Cycles on 2026-10-22, flashed from this page alone and from the command line next to
-        # the reference machine (notes/60 §12-13)
-        "status": "tested",
+        # the reference machine (notes/60 §12-13), up to One-Shot 0.15; experimental again with 0.16 (the browser's
+        # preview, notes/60 §24) until the maintainer has tried it on the machine
+        "status": "experimental",
         "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/cycles-one-shot"},
         "license": "LICENSE-One-Shot",
         # composed in the page from its package (notes/61): alone it gives 27-sampler.json byte for byte. Its

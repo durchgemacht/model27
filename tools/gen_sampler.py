@@ -5,7 +5,7 @@ added machine of the Model:Cycles.
   - 27-sampler.json: 7th machine, after the 6 stock ones.
 
 The code is Cycles One-Shot's (durchgemacht, MIT: tools/machines/sampler/LICENSE, copied next to the tweaks as
-LICENSE-One-Shot), taken as is from https://github.com/durchgemacht/cycles-one-shot at tag v0.15 (UPSTREAM_COMMIT below; 0.8 made the
+LICENSE-One-Shot), taken as is from https://github.com/durchgemacht/cycles-one-shot at tag v0.16 (UPSTREAM_COMMIT below; 0.8 made the
 patch points SAMPLE_MACHINE and DESC_START symbols behind CM_SYMBOLS in pool.h and view.c, and gave each assembly
 file a section of its own, for builders like this one; 0.9 split the bar above the waveform into the pattern's
 number and the sample's name; 0.10 puts a column on the left with the pattern's number, the track's number and its
@@ -15,7 +15,9 @@ Length turns, its locks marked, and so takes NoteVelocityView's draw too; 0.13 l
 that plays: once, Length moves its end; a loop takes its end at once and its start from the next seam; 0.14 shows
 the Model:Samples' own pictures for Cutoff and Reso in the knob view, the frames the OS builds at boot anyway; 0.15
 plays Loop and Reverse locked per step by the shortcut layer's 0.5, shows a held step's switches in the right half of
-the screen, the track's pan in the column, and moves a pan on an odd value onto the even one next to it), with
+the screen, the track's pan in the column, and moves a pan on an odd value onto the even one next to it; 0.16 lets the pad
+and the TRIG keys play a sample file the browser's cursor rests on, as they play a preset there, loads it in the
+background, and with the pad held lets the track's trigs play it too, as the Model:Samples does), with
 the same paths as there: src/ the sound core
 (6-tap polyphase interpolation at 96 kHz, the Model:Samples' filter), machine/ the bridge to the voice loop, the
 sample memory (loaded from the +Drive, chosen in the PRESET browser, saved with the sound), the waveform view and
@@ -27,7 +29,8 @@ official file; the descriptor table is copied at build time from YOUR file ("cyc
 The tweak is SAMPLE alone as tools/compose.py composes it, and so as the web flasher builds it (notes/61), as
 tools/gen_refmachine.py makes REF2's. The mechanics are MACRO's and ACID's (notes/43, notes/54): the same moved
 tables, the same place in the payload (0x43000000), the same detours, but assembled once as the registrar runtime and
-fed a parameter block per build (notes/60). SAMPLE's own hooks follow, from the manifest: the browser's file open, the
+fed a parameter block per build (notes/60). SAMPLE's own hooks follow, from the manifest: the browser's file open and
+its cursor's preview, the pads' note on and off, the
 sound record save (two versions) and load, the screen's redraw, and the draw methods of the main screen, of the
 knob view and of NoteVelocityView (vtable entries). Since 0.11 SAMPLE declares the two switches, so the builder's shortcut layer comes with it
 (notes/63 §16): the press, the LEDs, and k 32 saved in record slot 18, with SAMPLE's record wrappers chained behind the
@@ -72,8 +75,8 @@ LICENSE_OUT = DEV / "LICENSE-One-Shot"
 SRC = HERE / "machines" / "sampler"
 
 UPSTREAM = "https://github.com/durchgemacht/cycles-one-shot"
-UPSTREAM_TAG, UPSTREAM_COMMIT = "v0.15", "b5020bb5d2abf6a374444900aab2824406887def"
-VERSION = "0.15"
+UPSTREAM_TAG, UPSTREAM_COMMIT = "v0.16", "a376832"
+VERSION = "0.16"
 
 POOL = (0x43800000, 0x46700000)
 # The build recipe (sources, flags, defines, patch points, symbols to keep) is the manifest's,
@@ -133,6 +136,10 @@ def build_tweak(img, check=False):
             "track's number and pan and its level, the sample's name with L and R while the switches are on, and the",
             "waveform with the start and end marked; while a trig is held, the right half shows whether that step plays",
             "LOOP and REV (notes/63 §30). FUNC + LEVEL/DATA's pan lands on even values on SAMPLE's tracks (§31).",
+            "While the browser's cursor rests on a sample file, the pad and the TRIG keys play it with the track's",
+            "settings, as the Model:Samples does (0x400a6426), once it has loaded in the background; with the pad",
+            "held (0x4001d05e, 0x4001d0fc) the track's trigs play it too, and let go, the note goes on in the track's",
+            "sample at the same place (notes/60 §24).",
             "Code of Cycles One-Shot %s (durchgemacht, MIT, %s, %s), copied as is into tools/machines/sampler/,"
             % (VERSION, UPSTREAM, "tag " + UPSTREAM_TAG if UPSTREAM_TAG else "commit " + UPSTREAM_COMMIT[:7]),
             "compiled once with CM_SYMBOLS and SMP_SWITCHES into sampler.o and placed by tools/relocate.py (notes/60).",
