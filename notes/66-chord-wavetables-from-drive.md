@@ -955,8 +955,8 @@ The reason should be in the CHORD Wave Bank's README.
 
 - **In its README:** "Frame 0, the sine, is shared with other parts of the OS and stays." Its TECHNICAL.md adds
   that CHORD's selector gives any index outside 1–32 the sine at `0x8000eee4`, and that code outside CHORD reads the
-  same sine (`0x400a7b4e`, `0x400aa334`). The Wave Bank rewrites the OS's frames in place, so it cannot replace that
-  one, and SWEEP 0 is the sine in every set it builds.
+  same sine (`0x400a7b4e`, `0x400aa334`: the reset of a track's voice and KICK, §37.1). The Wave Bank rewrites the
+  OS's frames in place, so it cannot replace that one, and SWEEP 0 is the sine in every set it builds.
 - **Its editor** builds on that. Its table has 31 slots on SWEEP 4 to 124 ("SWEEP 0 is a sine"). "Fill gaps"
   starts from the sine. The phase check warns "The volume dips when sweeping into frame …", from the sine into
   frame 1 too (`coherence(SINE_SPEC, …)`). It does not test whether frame 0 is a sine, since its user cannot change
@@ -2230,7 +2230,7 @@ The maintainer: « 2. verstehe ich nicht », « rest wie empfohlen », and on 4 
 - **4: the first frame is always a sine.** The maintainer: the first waveform must always be a sine, since the
   system uses it for something else too; the converter already sees to it; an internal check that puts a sine in
   when in doubt would be good.
-  - The reason, from the CHORD Wave Bank (§16.1): the OS's sine at `0x8000eee4` is read by other code too. CHORD
+  - The reason, from the CHORD Wave Bank (§16.1): the OS's sine at `0x8000eee4` is read by other code too (§37.1). CHORD
     Tables never writes it, so that use is safe either way. The rule keeps SWEEP 0 a sine on every table.
   - **Position 0 is the OS's sine**, read where the OS has it, in SRAM. Position 1 is read in SDRAM, positions 2–31
     in the 30 slots. This is the stock table's own layout (§19.1), and it replaces the "positions 0 and 1 in SDRAM"
@@ -3305,3 +3305,87 @@ The full build of §36.9 (`.syx e38153f1…`, MAIN OS `8e0a9241…`), a new proj
   `webflash_smoke.js` (no tag expected), the guide's Tested (« then flashed from this page »), release 0.54's line and
   a line in release 0.55, README, `BUILD.md`.
 - The firmware is unchanged: the same package 0.4, the same MAIN OS as §36.10.
+
+## 37. Who uses the OS's sine, and how CHORD mixes its two frames `[FAIT]` (code reading, MAIN OS 1.13, 2026-11-12)
+
+The maintainer's questions of 2026-11-12: what the OS uses the sine for, which index is "any other" in the
+selector, and whether a frame ever plays alone. §16.1 and §28 only said that code outside CHORD reads the sine
+(`0x400a7b4e`, `0x400aa334`); this names it. Disassembly of `_scratch/cycles-chordwave/cycles-1.13-main-os.bin`
+(VMA `0x40000400`).
+
+### 37.1 The sine `0x8000eee4`
+
+- 257 Q31 samples in SRAM (the image's `0x401a9934`, copied at boot, §28), not in CHORD's table. A byte search for
+  `8000eee4` finds exactly **three** places in MAIN OS (code that computes the address would not show up):
+
+| Where | Function | What it does with the sine |
+|---|---|---|
+| `0x400a807a` | CHORD's selector `0x400a8060` | any index outside 1–32 gets the sine (§37.2) |
+| `0x400a7b4e` | the reset of a track's voice `0x400a7ab8(v)` | points the wave pointers of the voice's four operators (`+168`, `+172`, `+176`, `+180`, the operators 120 bytes apart) at the sine |
+| `0x400aa334` | KICK's update `0x400aa08c` (entry 0 of `update` `0x40118628`, notes/14 §2) | puts the sine on three of its four operators: `+168`/`+172`, `+288`/`+292`, `+528`/`+532` |
+
+- **The reset** runs for the six voices at start-up (`0x4005974c`: `0x42308828 + 0x31c · t`, t = 0..5) and in the
+  voice loop `0x400a7d4a` whenever a track's machine changes (`0x400a7dd2`: the machine, mapped by `0x40118640` and
+  limited to 0–5, against the voice's `+4`). The sine is the voices' default before a machine sets its own waves.
+- **KICK's operators** read this sine, three of four. Its fourth (`+408`/`+412`) gets `0x8000eae0`, the wave just
+  before the sine in memory: mostly the fundamental (harmonics 1–5 at 0.75, 0.13, 0.06, 0.04, 0.02 of full scale,
+  peak 0.71). How KICK mixes its four operators, and which of them makes the body of the kick, was not followed.
+- **METAL's update** `0x400aa49c` puts `0x8000f2e8`, the wave just after the sine in memory, on its operators
+  `+288` and `+528` (`0x400aa558`, `0x400aa5e4`): harmonics 1, 4 and 7 (0.29, 0.39, 0.24).
+- **In memory** the waves follow one another without a gap, 1 028 bytes each: CHORD's last SRAM frame (`0x8000e6dc`)
+  ends at `0x8000eae0`, then come `0x8000eae0`, the sine `0x8000eee4` and `0x8000f2e8`. "Next to it" means only
+  that: none of the three is among the 32 pointers of CHORD's table `0x40118590` (checked).
+- **Every stock machine plays the sine** (checked 2026-11-12, the maintainer's question about SNARE, PERC and TONE):
+  - The shared engine's operators (notes/14 §2.5) all read their wave at `+168` of the operator (`v + 120 j`):
+    `0x400a8204`, `0x400a835e`, `0x400a8adc`, `0x400a8fc2`, and CHORD's `0x400a8722`, which reads `+172` too. None
+    reads `+288`, `+408` or `+528` for itself: those are `+168` of operators 1 to 3.
+  - The reset sets `+168` of all four operators to the sine (its loop `0x400a7b20..0x400a7bd6`, `a1` + 120, four
+    passes). In the engine (`0x400a7000..0x400ac000`) only five places write the operators' `+168` again: the reset
+    (`0x400a7b52`), CHORD's setup (`0x400a80c4`), KICK's update (`0x400aa342..0x400aa360`), METAL's
+    (`0x400aa558`, `0x400aa5e4`) and PERC's (`0x400aa9da`). The other writes at those offsets in MAIN OS belong to
+    other objects (constructors at `0x400dd02e`, `0x400dd1e4`, the UI).
+  - So, by machine (the operators its render calls, and the wave each reads):
+
+| Machine | Operators rendered | Wave of each |
+|---|---|---|
+| KICK `0x400aa3c4` | 0 (`0x400a8adc`), 1–3 (`0x400a8204`) | 0, 1, 3 the sine; 2 `0x8000eae0` |
+| SNARE `0x400ab6e8` | 0 (`0x400a8adc`), 1–3 (`0x400a8204`) | all four the sine (SNARE writes none) |
+| METAL `0x400aa712` | 0, 1, 3 (`0x400a8204`), 2 (`0x400a8adc`) | 0 and 2 the sine; 1 and 3 `0x8000f2e8` |
+| PERC `0x400aacc2` | 0–3 (`0x400a8204`, a loop) | 0 `0x4012024c`; 1–3 the sine |
+| TONE `0x400aa930` | 0 (`0x400a8fc2`), 1 (`0x400a835e`) | both the sine (TONE writes none) |
+| CHORD `0x400ab24c` | 0–3 (`0x400a8722`) | CHORD's frames; the sine as frame A at SWEEP 0–3 |
+
+  - PERC's own wave `0x4012024c` (`#1074922060` at `0x400aa9b8`) lies in the part of MAIN OS that stays in DDR, next
+    to the pointer tables, not in SRAM and not in CHORD's table: 257 Q31 samples, full scale, harmonics 1, 5 and 9
+    (0.75, 0.19, 0.06).
+  - This says which wave each operator reads, not how much of it is heard: how a machine routes its operators
+    (carrier or modulator, levels) was not followed.
+  - The earlier line here, "TONE's render writes `+168`", was wrong: the range read ran past TONE's render into
+    PERC's update, which holds that write.
+- **For CHORD Tables:** it never writes `0x8000eee4`, so every machine and the reset keep their sine whatever the
+  tables hold. The rule "a file's first frame is a sine" (§28.5) protects nothing in the OS: position 0 is always the OS's
+  sine (`buf[0] = SINE` in `build()`), whatever the file. It only makes a file's frames fall one to one on the 32
+  positions, and when the file has no sine, a sine goes in front.
+
+### 37.2 Which index is "any other"
+
+- `0x400a8080` reads SWEEP (8.8 at `p + 0x1a`): index = SWEEP >> 10 = SWEEP / 4, 0 to 31; crossfade =
+  (SWEEP & 1023) << 21. It asks the selector for index and index + 1.
+- The selector subtracts 1 and compares unsigned with 31: 1 to 32 give table entries 0 to 31, anything else the
+  sine. Index + 1 is always 1 to 32, so with SWEEP 0–127 "anything else" is **index 0 only**: frame A for SWEEP
+  0–3. The check also keeps any other value from reading past the table. Whether an LFO can take SWEEP below 0 was
+  not checked.
+
+### 37.3 A frame alone
+
+- CHORD's operator `0x400a8722(j, v)`, called by the render `0x400ab24c` for j = 0..3 (the voice at
+  `v + 120 j`), mixes frame A (`+168`) with the weight `0x7F000000` − crossfade (kept at `+160`) and frame B (`+172`)
+  with the crossfade (`+164`), from `+156`. When the weights change it ramps them over the block (the step is the
+  difference >> 5, 32 samples). A change of index (`+184` against the previous `+188`) takes one of three paths,
+  up by one, down by one, or a jump, and fades from the previous pair (`+176`, `+180`): the transition of §29.4.
+- **At SWEEP 4·k** the crossfade is 0: frame k plays alone, with no share of frame k + 1. SWEEP 0 is the sine
+  alone, SWEEP 124–127 frame 31 alone (index 32 repeats 31). The full weight `0x7F000000` is 0.992 (−0.07 dB) of
+  full scale, the same for every frame.
+- After a change, the frame is alone from the next block on, once the ramp is through. This holds for the knob's
+  value; whether a parameter lock's slide gives values between 4·k and 4·k + 1 was not checked. With an LFO on
+  SWEEP two frames are nearly always mixed.

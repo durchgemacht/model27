@@ -128,6 +128,12 @@ Intégration **par étapes** :
 | `0x400a967a` | **PUNCH** (gain x4 saturé + enveloppe type compresseur) |
 | `0x400a7e6c` | fin commune des `update` : hauteur → incréments des 4 opérateurs |
 
+- **La forme d'onde de chaque opérateur** (opérateur j à `voix + 120 j`) est lue par son pointeur `+168` ; les cinq
+  opérateurs ci-dessus le lisent tous. La remise à zéro `0x400a7ab8` (au boot et à chaque changement de machine) le
+  met sur le **sinus `0x8000eee4`** pour les quatre. Seuls KICK (op2 `0x8000eae0`), METAL (op1 et op3 `0x8000f2e8`),
+  PERC (op0 `0x4012024c`, en DDR) et CHORD (ses frames) en posent un autre : SNARE et TONE ne jouent que le sinus.
+  `[FAIT]`, lecture du code 2026-11-12, détail et adresses dans notes/66 §37.1.
+
 - Le **SNARE d'origine** chaîne ces briques ainsi : op1 module op2 et op3 ; op0 (rétroaction, bruit) module op3.
   - op2 passe par un filtre puis la 2ᵉ enveloppe ; op3 par un filtre puis l'enveloppe d'ampli.
   - Mélange, puis PUNCH.
