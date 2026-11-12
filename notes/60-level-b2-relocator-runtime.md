@@ -744,7 +744,7 @@ half-finished step never blocks a build.
   of 108 225 a block: 0.03 % while held, 0.55 % once `[FAIT en émulation]` (before the note-off at once, which runs in
   the interface's task, not the audio's; the run with it to follow). Only one track at a time (the
   browser's). The CPU page can show only the playing without the pad: it and the browser are never open together,
-  and PEAK counts from the page's opening `[À FAIRE: the device]`.
+  and PEAK counts from the page's opening; on the device the page showed CPU and PEAK as with release 0.60 (the maintainer, 2026-11-12) `[FAIT]`.
 - **Here**: `machine/hooks.S`, `os.h`, `pool.c`, `pool.h` and `sampler.c` copied from One-Shot 0.16, every file of
   `tools/machines/sampler/` One-Shot's; the manifest's version, name, description, source, the hook and the kept
   symbol, and the two pad hooks; `gen_sampler.py` pinned on v0.16. 139 writes (three more), 282 conflicts as before, 40 384 bytes of code and
@@ -789,4 +789,4 @@ half-finished step never blocks a build.
   the build of the note-off a held TRIG key paused the track's trigs (taken then for stock behaviour and left), against
   the request; rebuilt with the keys' note-off at once (above); the proof grows its engine tests by the key (nothing
   marked: holds its track; marked: note-off once, the track free, a sequencer's note plays the track's own sample, the
-  release's note-off dropped): **ALL OK** (the maintainer, 2026-11-12) `[FAIT en émulation]`. digiemu with this build (the maintainer, 2026-11-12): « passt, habe schon alles getestet » `[FAIT en émulation]`; the device: `[À FAIRE]`.
+  release's note-off dropped): **ALL OK** (the maintainer, 2026-11-12) `[FAIT en émulation]`. digiemu with this build (the maintainer, 2026-11-12): « passt, habe schon alles getestet » `[FAIT en émulation]`. The device, flashed from the command line with every card (the maintainer, 2026-11-12, « gerät geflasht, tests 5 bis 7 passen »): a long stereo sample silent for a moment, then played (the tick runs with the browser open: the `[HYP]` above holds); the pad, the TRIG keys, the held pad's trigs, the let-go and a locked step as in digiemu, scrolling through many files without a hang, the browser closed with the pad held as a let-go; the CPU page as before `[FAIT]`. Flashed from the page: `[À FAIRE]`.

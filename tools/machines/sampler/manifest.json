@@ -86,7 +86,7 @@
  "cost": {
   "emulation": {"status": "not measured with mcengine.py; One-Shot's README states about 800 instructions per track and block for the filter alone",
                "preview": "One-Shot 0.16, tools/emu/test_sampler_preview.py (Unicorn, 2026-11-12), the payload of SAMPLE playing a note, instructions per block: 3034 on 0.15, 3042 on 0.16, 3063 with the pad held, 3625 in the one block it is let go, with the pad's and the TRIG keys' note-off at once (notes/60 §24)"},
-  "device": {"status": "not measured"}
+  "device": {"status": "the CPU page on a Model:Cycles (the maintainer, 2026-11-12): CPU and PEAK as with release 0.60 while a SAMPLE track plays; the held pad is not measurable there (the browser and the page are never open together)"}
  },
  "stock_behaviour": {
   "changes": ["the filter runs inside the machine, before Volume + Dist; the Model:Samples has it after",
