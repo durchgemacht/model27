@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.62", date: "2026-11-13", changes: [
+    { en: "SAMPLE (Cycles One-Shot 0.17): the previewed sample follows the knobs. While a sample is marked in the PRESET menu, the copy of the track's sound that the pad and the TRIG keys play takes the knobs' values as you turn them (Start, Length, the filter, DECAY, Loop and Reverse too); before, it kept the values from the moment the sample was marked, so a knob turned with the menu open did nothing for the next note" },
+    { en: "Checked on the host and in an emulator on the OS's own code. Not yet tested on a Model:Cycles: SAMPLE is marked experimental until then" }
+  ] },
   { version: "0.61", date: "2026-11-11", changes: [
     { en: "SAMPLE (Cycles One-Shot 0.16): while the cursor in the PRESET menu rests on a sample, the track's pad plays it, as it plays a preset there, and outside GRID RECORDING mode the TRIG keys too. It plays with the track's settings, as on the Model:Samples, and the sequencer keeps playing the track's own sample, also while a TRIG key is held; its next trig cuts the key's note" },
     { en: "Hold the pad, and the track's trigs play that sample too, with their notes and parameter locks; steps with their own sample keep it. Let go, and a trig that plays it goes back to the track's sample at once, at the same place, as on the Model:Samples; the pad's own note plays out" },

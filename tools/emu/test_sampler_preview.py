@@ -34,7 +34,8 @@ note) is written as the OS writes it; test_sample_preview.py §4 runs that event
      -) is silent on a preview note until the ticks have read it all (one for its header, five of 128 KiB), then a
      preview note plays it and a normal note the track's own; with nothing marked (0x40081bd6(0), as the browser's
      close) and no voice on it, it is freed: a preview note with the old buffer is silent, and marking it again takes
-     the ticks again. The cursor moving on before a file is complete: the next one loads and plays. A marked preset
+     the ticks again. A knob turned while the cursor rests on the file: the marked copy takes the track's value at
+     the next tick (One-Shot 0.17), its key and the rest kept. The cursor moving on before a file is complete: the next one loads and plays. A marked preset
      of another machine makes the tick call nothing of the file system. The tick returns the getter's answer.
   5. The pad held (0x4001d05e and 0x4001d0fc, the pads' own note functions, SAMPLE's hooks at their entries; the TRIG
      keys' 0x40019e7a and 0x40019c84 in the engine tests, the key's note-off at once too, its trigs the track's own): run
@@ -558,6 +559,21 @@ def tick_tests(key, img, runtime, tweak, smp, syms):
           f"{key}: the marked file (600 064 bytes) silent on a preview note until it is all read: it plays after "
           f"{n} ticks (one for its header, five of 128 KiB; level {levels[-1]:.3g}); a normal note then plays the "
           f"track's own (level {own2:.3g})")
+    # the marked copy follows the track's knobs (SAMPLE's refresh_mark, One-Shot 0.17): Start (k 11, +42) turned after
+    # the cursor arrived on the file; the sample's key and the rest stay
+    live = KIT + 28 + 100 * TRACK
+    r.uc.mem_write(live + 42, struct.pack(">H", 50 << 8))
+    before = r.mem(armed, 100)
+    r.tick()
+    after = r.mem(armed, 100)
+    r.uc.mem_write(live + 42, snd[42:44])            # the knob back
+    r.tick()
+    back = r.mem(armed, 100)
+    check(before[42:44] == snd[42:44] and after[42:44] == struct.pack(">H", 50 << 8) and after[70:76] == snd[70:76]
+          and after[:42] == snd[:42] and after[44:70] == snd[44:70] and after[76:] == snd[76:] and back == snd
+          and r.clean(),
+          f"{key}: Start turned while the cursor rests on the file: the marked copy still {before[42] >> 0} before "
+          f"the tick, the track's {after[42]} after it, its sample and the rest as before; turned back, as before")
     r.call(MARK, 0, sr=0x2000)                         # the browser closes (0x400a40e4): nothing marked
     for _ in range(2):
         r.tick()

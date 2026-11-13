@@ -23,10 +23,10 @@ Model:Cycles over USB. Modded-Cycles has since moved to a single OS with 2.0; mo
 together, so that a new machine fits next to the others. The rules a mod follows for that are the
 **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.5), written alongside.
 
-**Status: beta, release 0.61.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers sixteen
-cards, all of them tested on a Model:Cycles as the page builds them: the
+**Status: beta, release 0.62.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers sixteen
+cards, all of them tested on a Model:Cycles as the page builds them but SAMPLE's 0.17, experimental until then: the
 **SAMPLE** machine of [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples
-on the +Drive (since 0.61 the pad and the TRIG keys play the sample under the PRESET browser's cursor, and with the pad held the
+on the +Drive (since 0.61 the pad and the TRIG keys play the sample under the PRESET browser's cursor, since 0.62 with the knobs as you turn them, and with the pad held the
 track's trigs too),
 [Control All Config](https://github.com/durchgemacht/cycles-control-all-config), **Digital Delay**, the first
 effect: a second delay for the delay slot, chosen per pattern with PATTERN + Delay Time, based on the digital delay of

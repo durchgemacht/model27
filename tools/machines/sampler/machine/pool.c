@@ -39,6 +39,8 @@ static int16_t ov_lo[SLOTS][SMP_COLUMNS], ov_hi[SLOTS][SMP_COLUMNS];
 static uint32_t generation;             /* scans of the kits so far */
 static uint32_t live_id[6];             /* what each track's live sound named at the last tick */
 static uint32_t pv_src[SOUND_SIZE / 4]; /* the sound the browser hands to the OS */
+static const char *pv_mark;             /* the OS's preview buffer that holds a copy of pv_src, 0 if none does */
+static int32_t pv_track;                /* the track whose sound pv_src copies */
 static volatile uint32_t retry_id;      /* a file chosen in the browser: try it again if it failed */
 
 /* --- names ----------------------------------------------------------------------------------- */
@@ -141,6 +143,7 @@ int smp_browser_open(void **result, const uint32_t *h, int32_t track)
         return 0;
     for (i = 0; i < SOUND_SIZE; i++)            /* the track's sound, naming the file */
         ((char *)pv_src)[i] = s[i];
+    pv_track = track;
     key = (uint16_t *)((char *)pv_src + KEY_AT);
     key[0] = (uint16_t)h[0];
     key[1] = (uint16_t)(h[1] >> 16);
@@ -527,12 +530,44 @@ static int lock(void)
 #endif
 }
 
+/* The marked sound follows the track's knobs. The OS copies the sound the browser hands out (pv_src) into one of its
+   two preview buffers and marks it; a preview note then takes its 66 parameter bytes from that copy (0x40058a0a, after
+   every preview note, 0x4005910e), so without this the pad would play the knobs as they were when the cursor arrived
+   on the file (a knob turned meanwhile reaches a note that already plays, 0x40059534 writes the voice's target, but
+   not the next one). While the marked sound is that copy (the same bytes when first seen, then the same buffer), its
+   parameters but the sample's key take the track's sound's, every tick; a preset marked (another content) is left
+   alone, as are its name and the rest. */
+static void refresh_mark(void)
+{
+    const char *m = PREVIEW_SOUND, *s;
+    int i;
+
+    if (m != pv_mark) {
+        pv_mark = 0;
+        if (m) {
+            for (i = 0; i < SOUND_SIZE && m[i] == ((const char *)pv_src)[i]; i++)
+                ;
+            if (i == SOUND_SIZE)
+                pv_mark = m;
+        }
+    }
+    if (!pv_mark)
+        return;
+    s = os_sound(pv_track);
+    if (!s || !is_sample(s))
+        return;
+    for (i = 20; i < 20 + 66; i++)
+        if (i < KEY_AT || i >= KEY_AT + 6)
+            ((char *)pv_mark)[i] = s[i];
+}
+
 void smp_ui_tick(void)
 {
     smp_view_install();
     if (!lock())
         return;
     generation++;
+    refresh_mark();
     take_retry();
     scan_kits();
     refresh_live();

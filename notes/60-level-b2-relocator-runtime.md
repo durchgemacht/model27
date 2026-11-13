@@ -730,6 +730,20 @@ half-finished step never blocks a build.
     the next block ramped in, as a cut does.
   - Before the pad: `start()` reads the note's sample in the 66-byte copy, which the OS fills from the
     marked sound for a preview note, and the switches there too when the note's sound is 0 (One-Shot 0.11).
+- **0.17: the marked copy follows the knobs** (2026-11-12/13, the maintainer: with the browser open, the knobs no longer
+  changed the previewed sample). `[FAIT, read in the OS 1.13]`: the audio side's parameter write `0x40059534(value,
+  track, k)` (reached from `0x4000e348` / `0x4000e3e2`) puts the word straight into the voice's targets, `0x800015ae +
+  66 t + 2 k` (track 6: the FX page at +204), and clears `CUR_SNDS[t]` when the track's note sound is not the kit's;
+  so a knob turned reaches a note that already plays, preview note included. But the sound the browser hands out
+  (`smp_browser_open`: a copy of `os_sound(track)` naming the file) is copied again by the OS into its preview buffer,
+  and every preview note takes its 66 bytes from there (`0x40058a0a`, since `0x4005910e` clears the note's sound after
+  each one): the next note played the knobs as they were when the cursor arrived. One-Shot 0.17 (`pool.c`,
+  `refresh_mark`, in the tick): the tick remembers which preview buffer holds the copy it handed out (the same 100
+  bytes when first seen, then that pointer; the OS's two buffers take turns, so a new mark is a new pointer) and,
+  while it is marked, writes the track's sound's k 0..32 but the key (k 25..27) into it; a preset marked (another
+  content) is left alone; the cursor arriving on a file again makes a fresh copy, recognised again. No hook, no
+  write: 8 more bytes of variables. Host: `test_preview` (a knob turned, the copy before and after a tick, a preset
+  left alone, the cursor back on the file), two deliberate faults caught. The proof's tick test grows the knob: **ALL OK** (the maintainer, 2026-11-13) `[FAIT en émulation]`. digiemu starts; on a Model:Cycles, flashed from the command line with every card (the maintainer, 2026-11-13, « passt »): a note after SHAPE turned down is short, after SWEEP turned filtered, the held pad's trigs follow SHAPE at once `[FAIT]`. Flashed from the page: `[À FAIRE]`. The card goes back to `experimental` until the device test. **Hashes 0.17** (MAIN OS): SAMPLE alone `e5db2aef…`, with both effects `a5ecc06d…`, every card of the page `6b88b851…` (the file for digiemu and the device, `.syx` `bb82036a…`); 140 writes, 48 756 bytes added; the smoke test's pins 140 / 48 756, the Model:Samples packings `f5980224…` (`_smp-os`) and `89c1e6e4…` (`_cyc-os`); One-Shot's own image MAIN OS `89c72c29…`, `.syx` `8be4c42f…`; with SOLID `f7b26b90…`, with CHORD Tables `e4d22760…`, with Samples `242fe9b1…`, with RESAMPLE `878d0560…`, with Transpose `5a4d375f…`, with the CPU page `6be5db32…` (`ref_mainos.py`, 137 combinations).
 - **`[HYP]` the tick while the browser is open**: SAMPLE's tick is the screen's redraw (`0x400075f0` in `0x400075da`,
   called from `0x40007e92`, `0x40076ff4`, `0x40084522`), which takes the screen object and asks its root view
   (`+64`) whether to draw; nothing there depends on which view is on top. Read, not run: the device decides it (the
