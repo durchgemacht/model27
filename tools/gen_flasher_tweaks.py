@@ -337,9 +337,9 @@ ALL_FEATURES = [
         # tested on the Model:Cycles on 2026-10-22, flashed from this page alone and from the command line next to
         # the reference machine (notes/60 §12-13), up to One-Shot 0.15; experimental again with 0.16 (the browser's
         # preview, notes/60 §24): tried on the machine from the command line with every card and then flashed from
-        # this page (2026-11-12, notes/60 §24); experimental again with 0.17 (the previewed sample follows the knobs,
-        # notes/60 §24) until the maintainer has tried it on the machine
-        "status": "experimental",
+        # this page (2026-11-12, notes/60 §24); 0.17 (the previewed sample follows the knobs, notes/60 §24) tried on the
+        # machine from the command line and then flashed from this page (2026-11-13)
+        "status": "tested",
         "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/cycles-one-shot"},
         "license": "LICENSE-One-Shot",
         # composed in the page from its package (notes/61): alone it gives 27-sampler.json byte for byte. Its

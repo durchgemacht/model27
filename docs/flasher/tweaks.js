@@ -253,7 +253,7 @@ window.MC_TWEAKS = {
    "id": "sampler",
    "label": "SAMPLE machine (Cycles One-Shot)",
    "desc": "One extra machine after Chord: a one-shot sampler for samples on the +Drive. Pick the sample in the PRESET browser (FUNC + MACHINE); it is saved with the sound. While the cursor rests on a sample, the pad and the TRIG keys play it; hold the pad and the track's trigs play it too. COLOR = Start, SHAPE = Length, SWEEP = a DJ-style filter (lowpass / off / highpass), CONTOUR = Reso; the main screen shows the waveform with the start and end marked.",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "by",
     "who": "durchgemacht",
