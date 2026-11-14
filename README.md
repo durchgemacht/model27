@@ -129,9 +129,13 @@ own, and a build has either machine values or filters ([notes/72](notes/72-track
   that from the manifests and the mods themselves.
 - **The processor is shared and not measured by the builder.** How many heavy machines run on six tracks at once is
   a matter of listening.
-- **One project per build.** A track remembers a machine's slot, not the machine itself, and the added machines take
-  their slots in the order they are ticked. For easy, hassle-free experimenting with different combinations, make a
-  separate project on the Model:Cycles for each build ([notes/64](notes/64-projects-and-machines.md)).
+- **A project for each set of machines.** A track remembers a machine's slot, not the machine itself, and the added
+  machines take their slots in the order of the cards. With other machine cards ticked, a track plays whichever
+  machine now has its slot, with the same knob values; a slot no machine has plays CHORD. To keep your sounds as they
+  are, keep projects on the Model:Cycles for each set of machine cards, as many as you like. Effects, Track FX and
+  the other mods can come and go in the same project: an effect, a Track FX or a CHORD Tables wavetable keeps its
+  number in every build, a build without it plays the stock effect, no Track FX or CHORD's own wavetable, and the
+  other mods keep nothing in the project ([notes/64](notes/64-projects-and-machines.md)).
 
 ## What goes in first
 
@@ -158,14 +162,11 @@ own, and a build has either machine values or filters ([notes/72](notes/72-track
 Everything runs in your browser: your files are never uploaded anywhere. **Before you flash**, back up your projects
 and samples with Elektron Transfer.
 
-## A project per firmware: the Manager
+## Switching firmware
 
-A project made on one firmware plays other machines on the next, so changing firmware usually means a new project
-each time. The **[Manager](https://durchgemacht.github.io/model27/manager/)** keeps one project per firmware: add the
-`.syx` files you flash (the official OS, the builds you download from the flasher, any build for the Model:Cycles),
-then **Switch** backs up the project the Cycles plays, flashes the other firmware over USB, brings that firmware's
-project back and checks it, and says which slot to save it in. You stop the sequencer and press YES on the Cycles.
-The files and backups stay in your browser; **Export** puts them in one file. How it works: [notes/77](notes/77-manager.md).
+A project belongs to the firmware it was made on: on another firmware its tracks can play other machines, and saving
+it there can lose what that firmware doesn't know. Save the project you work on before you flash, and after the flash
+load a project made on the new firmware, or start a new one, before you play or save anything.
 
 ## Samples onto the +Drive: the Uploader
 
@@ -202,8 +203,8 @@ Details in [`BUILD.md`](BUILD.md) and [`FLASH.md`](FLASH.md) (both in French, in
 <summary><b>Going back to the official firmware</b></summary>
 
 Build nothing: send your official OS file the way you installed it. Before that, set any track that uses an added
-machine (MACRO, ACID, a Syntakt engine, SAMPLE or the Model-TG Sampler) back to one of the six original machines:
-a project that still names a machine the official OS does not have can freeze its MACHINES page.
+machine (MACRO, ACID, a Syntakt engine, SAMPLE, SOLID or the Model-TG Sampler) back to one of the six original
+machines: a project that still names a machine the official OS does not have can freeze its MACHINES page.
 
 </details>
 
