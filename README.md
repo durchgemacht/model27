@@ -53,7 +53,10 @@ from the +Drive, one for each pattern, chosen with PATTERN + SWEEP and saved wit
 Model:Cycles from the command line with all the other cards, then flashed from the page. The sixteenth, **SOLID**,
 model27's own, a second machine: it plays struck sounds, a string, a drum skin, a marimba bar, a metal bar, a bell or
 glass and everything in between, hit by a mallet, a burst of noise or noise that goes on; tested on a Model:Cycles from the command line
-with all the other cards, then flashed from the page. The
+with all the other cards, then flashed from the page. The seventeenth, **Perform Kit**, model27's own: with SETTINGS
+held, PATTERN switches a mode in which a pattern change keeps the presets, the track levels and the delay and
+reverb settings as they are; nothing is kept unless the pattern is saved. Tested on a Model:Cycles from the command
+line, alone and with all the other cards; experimental until flashed from the page. The
 [guide](https://durchgemacht.github.io/model27/guide/) explains them. Combining machines is proven with two internal
 reference machines: SAMPLE with the first one on a Model:Cycles; the second one, with a shortcut, and sharing the
 main screen, the knob view, the screen's tick and the browser with SAMPLE, in emulation so far, composed by the page

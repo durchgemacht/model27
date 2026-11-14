@@ -458,7 +458,7 @@ def web_part(pid):
     for key in ("sites", "shortcut", "slots", "track", "release", "load", "init", "early", "late", "formatter_sites",
                 "int_format", "cost", "post", "boot", "keys", "lfo", "conv", "knob", "ptab", "record", "values", "type",
                 "formats", "most", "probe", "row", "order", "mix", "key", "code", "ram", "ring_bytes", "conv_bytes",
-                "shift"):
+                "shift", "main"):
         if key in p:                         # the effect slots' (notes/68) and the filter slot's besides the shortcut
             out[key] = p[key]                # layer's and dispatchers' 
     if "claims" in p:                        # notes/65: what the part claims, in tools/claims.py's to_json form
@@ -1435,7 +1435,7 @@ def transpose_layer(img, part, at, code_end, sc_data, n=None):
 
 
 def perform_layer(img, part, at, code_end, rss=None, mans=(), syms_of=None, dispatch=None):
-    """Perform Kit of this build (tools/machines/perform/, the plan of 2026-11-14, step P1): the sequencer's four writes
+    """Perform Kit of this build (tools/machines/perform/, notes/81): the sequencer's four writes
     of the playing kit (0x40054d6a, 0x40055510, 0x4005571e, 0x40055c62) go through the part's pk_seq_*, the start of
     the interface's kit selection (0x4000f36a, 8 bytes) to pk_ui, the first instruction of PatternGridView's PATTERN
     case (0x40020ad0) to pk_pattern. SETTINGS' state: without RESAMPLE in the build (rss None) the key event's code

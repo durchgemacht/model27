@@ -59,7 +59,7 @@ function cardsOf(w, key) {
         own[c[k].id] = own[c[k].tg] = { f, engines: c.engines, also: cardsOfKey(k) };
     }
     else if (f.package) own[f.package] = { f };   // a machine card (notes/61): a composed key names each package
-    else if (f.part) own[f.part] = { f };         // the CPU page's, RESAMPLE's and Transpose's cards (notes/78 to 80): in a composed key
+    else if (f.part) own[f.part] = { f };         // the CPU page's, RESAMPLE's, Transpose's and Perform Kit's cards (notes/78 to 81): in a composed key
     else {
       for (const v of f.variants) own[v.id] = { f, variant: v.id };
       for (const [k, v] of Object.entries(f.versions || {}))     // MACRO with ACID: both cards
@@ -231,7 +231,7 @@ async function main() {
     const trs = cards.find((f) => f.id === "transpose") || {};
     const ct = cards.find((f) => f.id === "chordtables") || {}, sol = cards.find((f) => f.id === "solid") || {};
     check(ids.join() === "control-all-config,trig-preview,trig-cond-order"
-      && cards.map((f) => f.id).join() === "control-all-config,trig-preview,sampler,solid,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq,cpu,resample,transpose,trig-cond-order"
+      && cards.map((f) => f.id).join() === "control-all-config,trig-preview,sampler,solid,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq,cpu,resample,transpose,perform,trig-cond-order"
       && cpu.part === "cpu" && !cpu.package && !cpu.variants && rsm.part === "resample" && !rsm.package && !rsm.variants
       && trs.part === "transpose" && !trs.package && !trs.variants
       && smp.package === "sampler" && !smp.variants && sol.package === "solid" && !sol.variants
@@ -240,13 +240,13 @@ async function main() {
       && pots.package === "pots" && !pots.variants && sf.package === "smpfilter" && !sf.variants
       && cr.package === "crush" && !cr.variants && fx3.every((f) => f.package === f.id && !f.variants)
       && Object.keys(w.MC_TWEAKS.packages).join() === "sampler,solid,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq"
-      && Object.keys(w.MC_TWEAKS.parts || {}).join() === "shortcuts,dispatch,fxslot,fltslot,cpu,resample,transpose"
+      && Object.keys(w.MC_TWEAKS.parts || {}).join() === "shortcuts,dispatch,fxslot,fltslot,cpu,resample,transpose,perform"
       && w.MC_TWEAKS.registrar && w.MC_TWEAKS.registrar.schema === "model27-registrar-frame/0.1"
       && !cards.some((f) => f.engines || f.needs) && !w.MC_TWEAKS.tweaks.some((x) => x.append && x.append.syntakt),
-      "MC_TWEAKS: model27's sixteen cards, Control All Config, Trig preview and Trig conditions (their tweaks), SAMPLE and " +
+      "MC_TWEAKS: model27's seventeen cards, Control All Config, Trig preview and Trig conditions (their tweaks), SAMPLE and " +
       "SOLID (machine cards), CHORD Tables (a package on the stock CHORD, notes/66), " +
       "Digital Delay and POTS (effect cards), Samples, Crush, Ring, Reso and EQ (Track FX cards): their packages, the registrar's frame and the " +
-      "parts, composed in the page, the CPU page, RESAMPLE and Transpose (part cards, composed with them), " +
+      "parts, composed in the page, the CPU page, RESAMPLE, Transpose and Perform Kit (part cards, composed with them), " +
       "nothing that needs the Syntakt OS: " + ids.join());
     check(/build \d{4}-/.test(text(doc, "build-stamp")), "version stamp shown");
     const srcs = [...doc.querySelectorAll("script[src]")].map((x) => x.getAttribute("src"));
@@ -258,7 +258,7 @@ async function main() {
     // display order: by section (Sounds & machines, Sequencer, then Live playing), FEATURES order inside a section;
     // the build keeps FEATURES order (checked in 1b)
     const feats = [...doc.querySelectorAll("#features input[type=checkbox]")].map((c) => c.id);
-    check(feats.join() === "feat-sampler,feat-solid,feat-digidelay,feat-pots,feat-smpfilter,feat-crush,feat-ring,feat-reso,feat-eq,feat-chordtables,feat-resample,feat-trig-preview,feat-trig-cond-order,feat-control-all-config,feat-transpose,feat-cpu",
+    check(feats.join() === "feat-sampler,feat-solid,feat-digidelay,feat-pots,feat-smpfilter,feat-crush,feat-ring,feat-reso,feat-eq,feat-chordtables,feat-resample,feat-trig-preview,feat-trig-cond-order,feat-control-all-config,feat-transpose,feat-perform,feat-cpu",
       "16 feature rows, by section: " + JSON.stringify(feats));
     const KIND = { sampler: "machine", solid: "machine", digidelay: "effect", pots: "effect", smpfilter: "filter", crush: "filter",
       ring: "filter", reso: "filter", eq: "filter" };   // CHORD Tables, a package on the stock CHORD: in Mods (notes/66 §34)
@@ -271,7 +271,7 @@ async function main() {
     check(doc.getElementById("drop3-wrap").hidden, "no Syntakt drop zone: no card needs the Syntakt OS");
     const credits = [...doc.querySelectorAll("#features .credit a")].map((a) => a.href);
     const creditOf = (id) => [...doc.querySelectorAll(`#mod-${id} .credit a`)].map((a) => a.href);
-    check(credits.length === 23
+    check(credits.length === 24
       && creditOf("sampler")[0] === "https://github.com/durchgemacht/cycles-one-shot" && /\/LICENSE-One-Shot\.txt$/.test(creditOf("sampler")[1])
       && creditOf("smpfilter")[0] === "https://github.com/durchgemacht/cycles-one-shot" && /\/LICENSE-One-Shot\.txt$/.test(creditOf("smpfilter")[1])
       && creditOf("digidelay")[0] === "https://github.com/gialloinfuso/PPPCCC-M-S-Mods"
@@ -282,11 +282,11 @@ async function main() {
       && /\/LICENSE-elektron-model-tweaks\.txt$/.test(creditOf("trig-preview")[1])
       && creditOf("pots").join() === "https://github.com/durchgemacht/model27" && !doc.querySelector("#features label .credit")
       && creditOf("trig-cond-order").join() === "https://github.com/durchgemacht/model27"
-      && ["solid", "chordtables", "crush", "ring", "reso", "eq", "transpose"].every((i) => creditOf(i).join() === "https://github.com/durchgemacht/model27")
+      && ["solid", "chordtables", "crush", "ring", "reso", "eq", "transpose", "perform"].every((i) => creditOf(i).join() === "https://github.com/durchgemacht/model27")
       && creditOf("cpu")[0] === "https://github.com/TinyGregAudio/Model-TG" && /\/LICENSE-Model-TG\.txt$/.test(creditOf("cpu")[1])
       && creditOf("resample")[0] === "https://github.com/TinyGregAudio/Model-TG" && /\/LICENSE-Model-TG\.txt$/.test(creditOf("resample")[1]),
       "each card credits its author (outside its label: the link doesn't tick it), with a link to the MIT license of the code it carries (SAMPLE and " +
-      "Samples both One-Shot's, the CPU page and RESAMPLE Model-TG's); POTS, Trig conditions, SOLID, CHORD Tables, Crush, Ring, Reso, EQ and Transpose, " +
+      "Samples both One-Shot's, the CPU page and RESAMPLE Model-TG's); POTS, Trig conditions, SOLID, CHORD Tables, Crush, Ring, Reso, EQ, Transpose and Perform Kit, " +
       "model27's own, link the model27 repository: " +
       JSON.stringify(credits));
     const list = [...doc.querySelectorAll("#credits-list a")].map((a) => a.textContent);
@@ -422,6 +422,17 @@ async function main() {
       && doc.querySelectorAll('input[name="var-resample"]').length === 0 && !doc.querySelector("#mod-resample .tag"),
       `RESAMPLE alone ${rsAlone}; with SAMPLE ${rsSmp} and the CPU page ${rsCpu}, one composed tweak; with Control All ` +
       `Config and Trig Preview ${rsTp}, no clash; in Mods; no sub-choice; its guide link; tested, so no tag`);
+    // Perform Kit: a part card too, composed with the others, its id last (notes/81)
+    box("feat-perform").click(); await wait(5);
+    const pkAlone = chosen();
+    box("feat-sampler").click(); await wait(5);
+    const pkSmp = chosen();
+    const pkOn = box("feat-perform").checked && !doc.querySelector("#features .say.clash");
+    for (const i of ["sampler", "perform"]) { box("feat-" + i).click(); await wait(5); }
+    check(pkAlone === "perform" && pkSmp === "sampler+perform" && pkOn && !chosen().length
+      && doc.querySelector('#grp-mod #feat-perform') && doc.querySelector('#features a[href$="#perform"]')
+      && doc.querySelectorAll('input[name="var-perform"]').length === 0,
+      `Perform Kit alone ${pkAlone}; with SAMPLE ${pkSmp}, one composed tweak; in the Mods section, with its guide link`);
     // Transpose: a part card too, composed with the machine cards, the CPU page and RESAMPLE, its id last (notes/80)
     box("feat-transpose").click(); await wait(5);
     const trAlone = chosen();
@@ -473,14 +484,14 @@ async function main() {
       && !doc.querySelector("#mod-solid .tag"),
       `SOLID alone ${solAlone}; with SAMPLE ${solSmp}; with CHORD Tables, Digital Delay, Crush and Transpose ${solFx}, one ` +
       `composed tweak, no clash; in Machines; no sub-choice; its guide link; tested, so no tag`);
-    const every = ["sampler", "solid", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample", "transpose", "control-all-config", "trig-cond-order", "trig-preview"];
+    const every = ["sampler", "solid", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample", "transpose", "perform", "control-all-config", "trig-cond-order", "trig-preview"];
     for (const i of every) { box("feat-" + i).click(); await wait(5); }
     const fxAll = chosen();
     const fxAllOn = every.every((i) => box("feat-" + i).checked) && !doc.querySelector("#features .say.clash");
     for (const i of every) { box("feat-" + i).click(); await wait(5); }
-    check(fxAll === "control-all-config,trig-preview,sampler+solid+chordtables+digidelay+pots+smpfilter+crush+ring+reso+eq+cpu+resample+transpose,trig-cond-order"
+    check(fxAll === "control-all-config,trig-preview,sampler+solid+chordtables+digidelay+pots+smpfilter+crush+ring+reso+eq+cpu+resample+transpose+perform,trig-cond-order"
       && fxAllOn && !chosen().length,
-      `every card ticked: ${fxAll}, SOLID, CHORD Tables, the five Track FX, the CPU page, RESAMPLE and Transpose in one composed tweak, no clash`);
+      `every card ticked: ${fxAll}, SOLID, CHORD Tables, the five Track FX, the CPU page, RESAMPLE, Transpose and Perform Kit in one composed tweak, no clash`);
     // Trig conditions: a tweak card, after the composed tweak of the machine and effect cards in the build
     box("feat-trig-cond-order").click(); await wait(5);
     const tcoAlone = chosen();
@@ -525,7 +536,7 @@ async function main() {
     // English only: no language switch; the cards by their names, their credits and guide links
     const names = [...doc.querySelectorAll("#features .nm")].map((e) => e.textContent);
     check(!doc.querySelector(".lang") && doc.documentElement.lang === "en" && /new tricks/.test(text(doc, "h1s"))
-      && names.join() === "SAMPLE,SOLID,Digital Delay,POTS,LP/HP Filter,Crush,Ring,Reso,EQ,CHORD Tables,RESAMPLE,Trig Preview,Trig Condition Order,Control All Config,Transpose,CPU Page"
+      && names.join() === "SAMPLE,SOLID,Digital Delay,POTS,LP/HP Filter,Crush,Ring,Reso,EQ,CHORD Tables,RESAMPLE,Trig Preview,Trig Condition Order,Control All Config,Transpose,Perform Kit,CPU Page"
       && /by drumkilla/.test(text(doc, "features")) && /by durchgemacht/.test(text(doc, "features"))
       && doc.querySelector('#features a[href$="#control-all"]') && doc.querySelector('#features a[href$="#sampler"]'),
       "English only, no language switch; the cards by their names: " + names.join());
@@ -1000,13 +1011,15 @@ async function main() {
     const needsSt = (key) => /sdvintage|syntakt/.test(key);
     const offered = Object.keys(app.REF_MAINOS).filter((k) => REAL_ST || !needsSt(k));
     // the machine cards: one entry per non-empty set of them, in card order (the tweak tools/compose.py composes), and
-    // each set with the CPU page, RESAMPLE and Transpose, "cpu", "resample", "transpose" last, and those alone (notes/78 to 80)
+    // each set with the CPU page, RESAMPLE, Transpose and Perform Kit, "cpu", "resample", "transpose", "perform" last, and
+    // those alone (notes/78 to 81)
     const mc = w.MC_TWEAKS.features.filter((f) => f.package).map((f) => f.package);
     const cpus = w.MC_TWEAKS.features.some((f) => f.part === "cpu") ? [[], ["cpu"]] : [[]];
     const rsms = w.MC_TWEAKS.features.some((f) => f.part === "resample") ? [[], ["resample"]] : [[]];
     const trss = w.MC_TWEAKS.features.some((f) => f.part === "transpose") ? [[], ["transpose"]] : [[]];
-    const sets = [...Array(1 << mc.length).keys()].flatMap((k) => cpus.flatMap((c) => rsms.flatMap((r) => trss.map((x) =>
-      mc.filter((_, i) => (k >> i) & 1).concat(c, r, x))))).filter((s) => s.length).map((s) => s.join("+"));
+    const pfss = w.MC_TWEAKS.features.some((f) => f.part === "perform") ? [[], ["perform"]] : [[]];
+    const sets = [...Array(1 << mc.length).keys()].flatMap((k) => cpus.flatMap((c) => rsms.flatMap((r) => trss.flatMap((x) =>
+      pfss.map((y) => mc.filter((_, i) => (k >> i) & 1).concat(c, r, x, y)))))).filter((s) => s.length).map((s) => s.join("+"));
     check(Object.keys(app.REF_MODS).length === w.MC_TWEAKS.tweaks.length + sets.length
       && w.MC_TWEAKS.tweaks.every((x) => app.REF_MODS[x.id] && /^[0-9a-f]{64}$/.test(app.REF_MODS[x.id].w)
         && !!x.append === /^[0-9a-f]{64}$/.test(app.REF_MODS[x.id].p || ""))

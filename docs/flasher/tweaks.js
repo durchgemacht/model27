@@ -424,6 +424,19 @@ window.MC_TWEAKS = {
    "part": "transpose"
   },
   {
+   "id": "perform",
+   "label": "Perform Kit",
+   "desc": "SETTINGS + PATTERN switches a mode in which a pattern change keeps the presets, the track levels and the delay and reverb settings as they are; a checkered stripe at the left edge of the screen shows it. Nothing is kept unless the pattern is saved.",
+   "status": "experimental",
+   "credit": {
+    "kind": "by",
+    "who": "durchgemacht",
+    "repo": "durchgemacht/model27"
+   },
+   "cat": "live",
+   "part": "perform"
+  },
+  {
    "id": "trig-cond-order",
    "label": "Trig conditions, A:B before the percentages",
    "desc": "A trig held + CHANCE goes FILL ... !1st, then 1:2 ... 8:8, then 1% ... 99%, and the five dots under the value follow that order. A trig keeps the same condition as on the stock OS.",
@@ -13442,6 +13455,681 @@ window.MC_TWEAKS = {
       "scope": "all",
       "meaning": "the TRIG keyboard an octave down / up, two at most, on top of KBT",
       "replaces": "plays the note on the TRIG keyboard, as without MACHINES"
+     }
+    ]
+   }
+  },
+  "perform": {
+   "id": "perform",
+   "version": "0.4",
+   "roots": [
+    "pk_seq_d0",
+    "pk_seq_d2",
+    "pk_seq_fp",
+    "pk_ui",
+    "pk_pattern",
+    "pk_code",
+    "pk_ser",
+    "pk_ksave",
+    "pk_kload",
+    "pk_drop",
+    "pk_off_paste",
+    "pk_off_cut",
+    "pk_off_clear",
+    "pk_main"
+   ],
+   "patch_points": [
+    {
+     "symbol": "pk_data",
+     "kind": "perform_data"
+    },
+    {
+     "symbol": "pk_held",
+     "kind": "perform_held"
+    }
+   ],
+   "data": {
+    "size": 8516,
+    "on": 0,
+    "home": 1,
+    "left1": 2,
+    "which": 3,
+    "taken": 4,
+    "held": 5,
+    "buf": 8,
+    "buf_bytes": 696,
+    "temp": 1400,
+    "temp_bytes": 12,
+    "big": 1420,
+    "view": 1412,
+    "next": 1416
+   },
+   "bundle": {
+    "code": "4fefffec48d7030342c12f4100102f004eb900000000588f222f001044c14cd703034fef001423c040a788884e754fefffec48d7030342c12f4100102f024eb900000000588f222f001044c14cd703034fef001423c240a788884e754fefffec48d7030342c12f4100102f164eb900000000588f222f001044c14cd703034fef001423d640a788884e754e56ffec2f0a2f024ab940fe41786700009a486efff4240e0682fffffff02f2e00082f024eb9400f980c4878009c4eb9400802e04fef00102d40ffec4a8067602f022f004eb9400747c0487800104eb9400802e0204070012140000421400008202effec20bc400fbf402d48fffc2140000c2d40fff84eb9400d09742f004eb9400060d842a7486efff82f004eb94007700e486efffc4eb9400cf23c4fef00202f024eb9400f7d5c588f242effe4246effe84e5e4e751239000000002f0a2f024a01674671b90000000074017381b5805381c2fc1bb6c0fc02b80681409c9c8022412440d5fc00000000200a204a0680000002b422d8b08866fa42002041316a02b402b413c000000000241f245f4e754fefffe848d7007c2f6f001c001440c4200400800000070046c04eb90000000077b90000000073b9000000003403c2fc02b806810000000020012041c4fc1bb60680000002b40682409c9c80224222d8b08866fa4200204143e802b42042315102b413c0000000002f39800017e44eb94005950e46c44eb9400cf86642a72f0342822040486800744eb9400d1f984fef00102002e68841f9000000007207c282d1c0162805787001e3a87983030467204680c083114005784eb9400cf8662f02487800012f004eb94001002c4fef000c52827060b08266ba2039000000004a80670a2f004eb940076082588f4aaf0014660a4cd7007c4fef00184e754cd7007c41f9000000002f48001c4fef00184ef9000000004fefffe82f032f024a3900000000673e206f0024b1fc409c9c7f633220080680bf6363800c80000a643f62222200243c00001bb64c42100130012f410010c0fc1bb622000681409c9c80b288670a241f261f4fef00184e751239000000001f41001b7381b2af001067e42f40000c2f4100084eb900000000143900000000206f0024222f0008202f000c0680409c9f34324274012609b5832f43001c77833403c4fc02b82242d3fc000000002f49001422d8b08866fa206f0024c2fc1bb643e802b4206f0014315102b4226f00242041d1fc409c9c8020010680409c9f342f48001422d8b08866fa226f0014102f001b41e902b4226f0024335002b443ef001f41ef0013241f528013c000000000261f13d10000000013d0000000004fef00184e754feffff42f024a3900000000670000824a3900000000677840c1200100800000070046c04a39000000006762103900000000675a718075b9000000005380c4fc1bb6c0fc1bb62042d1fc409c9c802240d3fc409c9c802f48000c2f49000820490680409c9f34226f000c22d8b08866fa206f000843e802b4206f000c315102b42f4100044eb900000000222f000446c1241f4fef000c4e75207900000000598f4a88670c2f2f000c2f2f000c4e90508f202f000823c0000000004a390000000067144eb9400cf9a82f004eb94006b704588f4a006704588f4e75206f000c226800104a8967f07001b0a800046ce82028000806800000001f2200ea812e81721fb2806cd22017b0a8000c6eca41f10c002008204920fcaaaaaaaab1c066f64280206f000c22005280d2a8000c207c5555555523881c00b097679c206f000c22005280d2a8000c207c5555555523881c00b09766cc6080518f2f024a3900000000660000b04eb9400cfd0e2f004eb94006a96c588f2400705fb0826500009040c02f40000800800000070046c071b900000000223c00001bb64c021800c0fc02b82041d1fc409c9c802f4800040680000000000681409c9f34224022d8b28866fa226f000413c20000000041e902b422404200335002b413c000000000700113c000000000202f000846c02039000000004a80670a2f004eb940076082588f4879000000004eb900000000588f241f508f4e75487800014eb900000000588f241f508f4e754a390000000066024e7542a74eb900000000588f4e75420041f90000000013c00000000013c0000000004218b1fc0000000066f62039000000004a80670a2f004eb940076082588f4e754fefffdc48d71cfc266f0028760349f900000000203c0000000040c5220500810000070046c11839000000001e141c3900000000123900000000241446c54a07670000ac7984c8fc1bb62044d1fc409c9c80b1cb671e79864a06670000925384c8fc1bb62044d1fc409c9c80b1cb667e7801b981738141f9000000002248244bc2fc02b806810000000022dab3fc0000000066f643eb1bb433d100000000224120d9b1c066fa204143e802b433d10000000040c1280100840000070046c44a3900000000670e2814b982028200ffffff4a82672646c153834a836600ff3e203c000000004cd71cfc4fef00244e75200b4cd71cfc4fef00244e7546c1203c0000000060e0518f2f024a39000000006742705fb0af0010653a73b900000000b2af0010662e7460b4af0014672c40c02f40000400800000070046c04a3900000000670a71b900000000b2806730202f000446c0241f508f4e757007c081e6892041d1fc000000001228057824007001e5a8808111400578241f508f4e75223c00001bb64c01080073b900000000c2fc02b82040d1fc409c9c802f4800080680409c9f34068100000000224122d8b08866fa226f0008202f000441e902b42241335002b446c0608c518f4a3900000000673c4a2f001767367060b0af0010672e73b900000000b2af000c662240c02e8000800000070046c04a3900000000670a71b900000000b2806708201746c0508f4e75223c00001bb64c01080073b900000000c2fc02b82040d1fc409c9c802f4800040680409c9f34068100000000224122d8b08866fa226f0004201741e902b42241335002b446c060b44a3900000000663a2f2f00044eb9400724a0588f4a8067284878000d4eb94007faf4588f4a8066084a39000000006710700113c0000000004eb90000000070014e752f2f00044eb940072470588f4a8067ec420013c000000000700160e24eb9000000004feffff448d7001c4ef94000f3722f024eb900000000588f4a80660847f9400cf9a84e75588f76014ef9400212c6206f0004700db0a8000c660c7001c0a8001013c0000000002028000c4e7500002f2f00084eb900000000588f2f4000084fefffe448d77c0c4ef94005b2b62f022f044eb900000000508f4fefffe448d77c0c4ef94005b2b62f2f000c2f2f000c2f2f000c4eb94005d0804fef000c2f002f002f032f024eb9000000004fef000c201f4e754eb9000000004e56fff82f0b4ef94000eb1800004eb9000000004e56ffc448d73c7c4ef940010c824eb9000000004e56ffc448d73c7c4ef9400119144eb9000000004e56ffb4122e00134ef940011a86506572666f726d204b6974204f464600506572666f726d204b6974204f4e00",
+    "relocs": [
+     [
+      322,
+      "pk_data",
+      2
+     ],
+     [
+      336,
+      "pk_data",
+      3
+     ],
+     [
+      368,
+      "pk_data",
+      8
+     ],
+     [
+      400,
+      "pk_data",
+      2
+     ],
+     [
+      438,
+      "code",
+      320
+     ],
+     [
+      444,
+      "pk_data",
+      1
+     ],
+     [
+      450,
+      "pk_data",
+      3
+     ],
+     [
+      462,
+      "pk_data",
+      8
+     ],
+     [
+      510,
+      "pk_data",
+      0
+     ],
+     [
+      562,
+      "pk_data",
+      0
+     ],
+     [
+      628,
+      "pk_data",
+      1412
+     ],
+     [
+      668,
+      "code",
+      2556
+     ],
+     [
+      682,
+      "code",
+      138
+     ],
+     [
+      696,
+      "pk_data",
+      0
+     ],
+     [
+      776,
+      "pk_data",
+      1
+     ],
+     [
+      802,
+      "code",
+      320
+     ],
+     [
+      808,
+      "pk_data",
+      3
+     ],
+     [
+      854,
+      "pk_data",
+      8
+     ],
+     [
+      952,
+      "pk_data",
+      2
+     ],
+     [
+      960,
+      "pk_data",
+      3
+     ],
+     [
+      966,
+      "pk_data",
+      1
+     ],
+     [
+      984,
+      "pk_data",
+      0
+     ],
+     [
+      994,
+      "pk_data",
+      2
+     ],
+     [
+      1014,
+      "pk_data",
+      0
+     ],
+     [
+      1022,
+      "pk_data",
+      2
+     ],
+     [
+      1032,
+      "pk_data",
+      1
+     ],
+     [
+      1110,
+      "code",
+      320
+     ],
+     [
+      1130,
+      "pk_data",
+      1416
+     ],
+     [
+      1158,
+      "pk_data",
+      1412
+     ],
+     [
+      1164,
+      "pk_data",
+      0
+     ],
+     [
+      1324,
+      "pk_data",
+      0
+     ],
+     [
+      1374,
+      "pk_data",
+      3
+     ],
+     [
+      1406,
+      "pk_data",
+      8
+     ],
+     [
+      1430,
+      "pk_data",
+      1
+     ],
+     [
+      1448,
+      "pk_data",
+      2
+     ],
+     [
+      1456,
+      "pk_data",
+      0
+     ],
+     [
+      1468,
+      "pk_data",
+      1412
+     ],
+     [
+      1488,
+      "code",
+      2572
+     ],
+     [
+      1494,
+      "code",
+      138
+     ],
+     [
+      1512,
+      "code",
+      410
+     ],
+     [
+      1526,
+      "pk_data",
+      0
+     ],
+     [
+      1538,
+      "code",
+      410
+     ],
+     [
+      1550,
+      "pk_data",
+      1400
+     ],
+     [
+      1556,
+      "pk_data",
+      0
+     ],
+     [
+      1562,
+      "pk_data",
+      2
+     ],
+     [
+      1570,
+      "pk_data",
+      1412
+     ],
+     [
+      1578,
+      "pk_data",
+      1412
+     ],
+     [
+      1614,
+      "pk_data",
+      0
+     ],
+     [
+      1620,
+      "pk_data",
+      2112
+     ],
+     [
+      1638,
+      "pk_data",
+      1
+     ],
+     [
+      1646,
+      "pk_data",
+      2
+     ],
+     [
+      1652,
+      "pk_data",
+      3
+     ],
+     [
+      1718,
+      "pk_data",
+      1420
+     ],
+     [
+      1732,
+      "pk_data",
+      8
+     ],
+     [
+      1740,
+      "pk_data",
+      8512
+     ],
+     [
+      1752,
+      "pk_data",
+      8512
+     ],
+     [
+      1772,
+      "pk_data",
+      2112
+     ],
+     [
+      1790,
+      "pk_data",
+      0
+     ],
+     [
+      1822,
+      "pk_data",
+      1420
+     ],
+     [
+      1852,
+      "pk_data",
+      1420
+     ],
+     [
+      1864,
+      "pk_data",
+      0
+     ],
+     [
+      1880,
+      "pk_data",
+      1
+     ],
+     [
+      1914,
+      "pk_data",
+      0
+     ],
+     [
+      1922,
+      "pk_data",
+      1
+     ],
+     [
+      1952,
+      "pk_data",
+      0
+     ],
+     [
+      1990,
+      "pk_data",
+      3
+     ],
+     [
+      2018,
+      "pk_data",
+      8
+     ],
+     [
+      2056,
+      "pk_data",
+      0
+     ],
+     [
+      2078,
+      "pk_data",
+      1
+     ],
+     [
+      2102,
+      "pk_data",
+      0
+     ],
+     [
+      2110,
+      "pk_data",
+      1
+     ],
+     [
+      2138,
+      "pk_data",
+      3
+     ],
+     [
+      2166,
+      "pk_data",
+      8
+     ],
+     [
+      2200,
+      "pk_data",
+      4
+     ],
+     [
+      2240,
+      "pk_held",
+      0
+     ],
+     [
+      2250,
+      "pk_data",
+      4
+     ],
+     [
+      2256,
+      "code",
+      1318
+     ],
+     [
+      2284,
+      "pk_data",
+      4
+     ],
+     [
+      18,
+      "code",
+      686
+     ],
+     [
+      64,
+      "code",
+      686
+     ],
+     [
+      110,
+      "code",
+      686
+     ],
+     [
+      2294,
+      "code",
+      976
+     ],
+     [
+      2316,
+      "code",
+      2198
+     ],
+     [
+      2364,
+      "pk_data",
+      5
+     ],
+     [
+      2382,
+      "code",
+      1598
+     ],
+     [
+      2412,
+      "code",
+      1858
+     ],
+     [
+      2464,
+      "code",
+      2052
+     ],
+     [
+      2478,
+      "code",
+      1546
+     ],
+     [
+      2498,
+      "code",
+      1524
+     ],
+     [
+      2518,
+      "code",
+      1524
+     ],
+     [
+      2538,
+      "code",
+      1524
+     ]
+    ],
+    "symbols": {
+     "pk_seq_d0": [
+      "code",
+      0
+     ],
+     "pk_seq_d2": [
+      "code",
+      46
+     ],
+     "pk_seq_fp": [
+      "code",
+      92
+     ],
+     "pk_ui": [
+      "code",
+      2292
+     ],
+     "pk_pattern": [
+      "code",
+      2312
+     ],
+     "pk_code": [
+      "code",
+      2344
+     ],
+     "pk_ser": [
+      "code",
+      2376
+     ],
+     "pk_ksave": [
+      "code",
+      2406
+     ],
+     "pk_kload": [
+      "code",
+      2432
+     ],
+     "pk_drop": [
+      "code",
+      2476
+     ],
+     "pk_off_paste": [
+      "code",
+      2496
+     ],
+     "pk_off_cut": [
+      "code",
+      2516
+     ],
+     "pk_off_clear": [
+      "code",
+      2536
+     ],
+     "pk_main": [
+      "code",
+      1128
+     ]
+    },
+    "bss": 0
+   },
+   "sites": {
+    "seq_queued": {
+     "at": "0x40054d6a",
+     "stock": "23c040a78888",
+     "op": "jsr",
+     "symbol": "pk_seq_d0"
+    },
+    "seq_stop": {
+     "at": "0x40055510",
+     "stock": "23d640a78888",
+     "op": "jsr",
+     "symbol": "pk_seq_fp"
+    },
+    "seq_chain": {
+     "at": "0x4005571e",
+     "stock": "23d640a78888",
+     "op": "jsr",
+     "symbol": "pk_seq_fp"
+    },
+    "seq_set": {
+     "at": "0x40055c62",
+     "stock": "23c240a78888",
+     "op": "jsr",
+     "symbol": "pk_seq_d2"
+    },
+    "ui": {
+     "at": "0x4000f36a",
+     "stock": "4feffff448d7001c",
+     "op": "jmp",
+     "symbol": "pk_ui"
+    },
+    "pattern": {
+     "at": "0x40020ad0",
+     "stock": "47f9400cf9a8",
+     "op": "jsr",
+     "symbol": "pk_pattern"
+    },
+    "ser": {
+     "at": "0x4005b2ae",
+     "stock": "4fefffe448d77c0c",
+     "op": "jmp",
+     "symbol": "pk_ser"
+    },
+    "ksave": {
+     "at": "0x400100ba",
+     "stock": "4eb94005b2ae",
+     "op": "jsr",
+     "symbol": "pk_ksave"
+    },
+    "kload": {
+     "at": "0x400107a4",
+     "stock": "4eb94005d080",
+     "op": "jsr",
+     "symbol": "pk_kload"
+    },
+    "drop": {
+     "at": "0x4000eb12",
+     "stock": "4e56fff82f0b",
+     "op": "jmp",
+     "symbol": "pk_drop"
+    },
+    "paste": {
+     "at": "0x40010c7a",
+     "stock": "4e56ffc448d73c7c",
+     "op": "jmp",
+     "symbol": "pk_off_paste"
+    },
+    "cut": {
+     "at": "0x4001190c",
+     "stock": "4e56ffc448d73c7c",
+     "op": "jmp",
+     "symbol": "pk_off_cut"
+    },
+    "clear": {
+     "at": "0x40011a7e",
+     "stock": "4e56ffb4122e0013",
+     "op": "jmp",
+     "symbol": "pk_off_clear"
+    },
+    "code": {
+     "at": "0x4007240c",
+     "stock": "206f00042028",
+     "op": "jmp",
+     "symbol": "pk_code",
+     "unless": "resample"
+    }
+   },
+   "order": 82,
+   "main": {
+    "vtable": "0x400ffe30",
+    "stock_ptr": "0x4001b22a",
+    "symbol": "pk_main"
+   },
+   "claims": {
+    "gestures": [
+     {
+      "combo": "SETTINGS + PATTERN",
+      "atoms": [
+       [
+        "SETTINGS",
+        "PATTERN"
+       ]
+      ],
+      "situation": "any",
+      "scope": "all",
+      "meaning": "switches the Perform Kit mode on and off",
+      "replaces": "arms the pattern selection, as PATTERN without SETTINGS"
      }
     ]
    }

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Proof of Perform Kit, steps P1 to P3 (tools/machines/perform/, the plan of 2026-11-14,
-_scratch/perform-kit/plan.md): the switch, the pattern change and what is saved, on the OS's own code, the stock OS
+"""Proof of Perform Kit, steps P1 to P3 (tools/machines/perform/, notes/81): the switch, the pattern change and what is saved, on the OS's own code, the stock OS
 and the build side by side.
 
   1. the build, alone, with RESAMPLE and with the offered cards: the fifteen writes (fourteen with RESAMPLE, which holds the

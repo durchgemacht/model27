@@ -94,7 +94,7 @@ def names(ids, by_id, extra=None):
 def claim_holders(by_id):
     """The holders of declared claims among these tweaks, as (label, claims in claims.to_json form, source): the
     entries of claims/claims.json, each package whose tweak is here, and each of the builder's parts that declares
-    claims (the shortcut layer, the filter slot, the effect slots, RESAMPLE's and Transpose's parts), which the builds
+    claims (the shortcut layer, the filter slot, the effect slots, RESAMPLE's, Transpose's and Perform Kit's parts), which the builds
     of these tweaks carry."""
     pkgs = cl.packages()
     out = []

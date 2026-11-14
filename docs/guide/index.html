@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-11-13-02">
-<link rel="stylesheet" href="../assets/guide.css?v=2026-11-13-02">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-14-01">
+<link rel="stylesheet" href="../assets/guide.css?v=2026-11-14-01">
 <script>try{var t=localStorage.getItem("mc-theme")}catch(e){}if(t)document.documentElement.setAttribute("data-theme",t)</script>
 </head>
 <body data-page="guide">
@@ -57,6 +57,7 @@
         <li><a href="#cpu">CPU Page</a></li>
         <li><a href="#resample">RESAMPLE</a></li>
         <li><a href="#transpose">Transpose</a></li>
+        <li><a href="#perform">Perform Kit</a></li>
         <li><a href="#mods-on-samples">Mods on a Model:Samples</a></li>
         <li><a href="#samples">Samples OS</a></li>
         <li><a href="#stock">Back to stock</a></li>
@@ -434,8 +435,34 @@
         </dl>
       </section>
 
+      <section id="perform">
+        <h2><span class="n">19</span>Perform Kit</h2>
+        <p class="by">model27's own · MIT license</p>
+        <p class="lede">Keeps your presets, track levels, delay and reverb as they are when you change patterns, so a set can move through its patterns on the sounds you have been shaping.</p>
+        <ol>
+          <li>Press and hold <b>SETTINGS</b> and press <b>PATTERN</b>. The screen says Perform Kit ON, and a checkered stripe shows at the left edge of the screen.</li>
+          <li>Turn the knobs, change presets, play. Then change patterns as always. The new pattern's trigs, parameter locks and preset locks play, on the presets you left.</li>
+          <li>To keep what you hear in the pattern you are in, press and hold <b>FUNC</b> + <b>SETTINGS</b> for a second and save the pattern.</li>
+          <li>Press and hold <b>SETTINGS</b> and press <b>PATTERN</b> again. The screen says Perform Kit OFF, the stripe goes, and the pattern plays its own presets, each track from its next trig.</li>
+        </ol>
+        <dl class="facts">
+          <div><dt>What stays</dt><dd>the presets of the six tracks with their machine, parameters, LFO and sends, the six track levels, and DELAY TIME, the delay's feedback, REVERB SIZE and the reverb's tone.</dd></div>
+          <div><dt>What changes</dt><dd>the trigs, their parameter locks and preset locks, the tempo, the length and the scale: the pattern you change to.</dd></div>
+          <div><dt>The pattern you started in</dt><dd>is not changed. When you switch the mode off there, it plays as it did before you switched the mode on.</dd></div>
+          <div><dt>Saving</dt><dd>only Save Pattern (<b>FUNC</b> + <b>SETTINGS</b> held, or the CONFIG menu) keeps what you hear, in the pattern you are in. Save Project and switching the Model:Cycles off save every pattern's own presets. Reload Pattern (<b>FUNC</b> + <b>PATTERN</b> held) brings the saved pattern back and leaves the mode on.</dd></div>
+          <div><dt>Temporary save</dt><dd><b>FUNC</b> + <b>SETTINGS</b> and <b>FUNC</b> + <b>PATTERN</b> work as always while the mode is on. Once you switch it off, a temporary reload brings back the pattern's own presets, not what you saved temporarily in the mode.</dd></div>
+          <div><dt>Effects and wavetables</dt><dd>with the effect cards and <a href="#chord-tables">CHORD Tables</a>, which delay and reverb a pattern uses (<b>PATTERN</b> + DELAY TIME or REVERB SIZE) and its CHORD wavetable (<b>PATTERN</b> + SWEEP) belong to the pattern. The mode keeps the settings of the delay and the reverb, not the choice: set it in every pattern you play.</dd></div>
+          <div><dt>Paste, clear, load</dt><dd>pasting a pattern, clearing all of a pattern's data and loading another project switch the mode off. The screen shows the OS's own message; the stripe goes.</dd></div>
+          <div><dt>The stripe</dt><dd>shows on the main screen, also on <a href="#sampler">SAMPLE</a>'s. It hides while a value is shown.</dd></div>
+          <div><dt>SETTINGS</dt><dd>press PATTERN within a second. Held longer, SETTINGS asks whether to save the project, as it always does. Letting go of SETTINGS after PATTERN does not open the CONFIG menu.</dd></div>
+          <div><dt>Not saved</dt><dd>the mode itself: the Model:Cycles starts with it off.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHORD Tables, the effects, the Track FX, the CPU Page, RESAMPLE, Transpose, Trig conditions, Trig Preview and Control All Config.</dd></div>
+          <div><dt>Experimental</dt><dd>checked in an emulator on the OS's own code: every write of the sequencer, the screen and the saving against the stock OS. Tested on a Model:Cycles from the command line (2026-11-14), alone and with every card: the switch, pattern changes, preset locks, saving and reloading a pattern, saving the project, switching off inside the mode, paste, clear and loading a project. Not yet flashed from this page. Not tried: a pattern chain, and clearing only the sequence with FUNC + PLAY, while the mode is on.</dd></div>
+        </dl>
+      </section>
+
       <section id="mods-on-samples">
-        <h2><span class="n">19</span>Mods on a Model:Samples</h2>
+        <h2><span class="n">20</span>Mods on a Model:Samples</h2>
         <p class="lede">A Model:Samples can run the Model:Cycles OS with the same mods as a Model:Cycles. Whatever the machine, the flasher always installs the Model:Cycles OS. With the <a href="#sampler">SAMPLE</a> machine ticked, it can play the samples already on the +Drive (not yet tried on a Model:Samples).</p>
         <ol>
           <li>Back up your samples and projects with Elektron Transfer, then close Transfer.</li>
@@ -459,7 +486,7 @@
       </section>
 
       <section id="samples">
-        <h2><span class="n">20</span>Samples OS</h2>
+        <h2><span class="n">21</span>Samples OS</h2>
         <p class="lede">The Model:Cycles starts as a Model:Samples: you load and play your own samples, managed with Elektron Transfer.</p>
         <p>The <a href="../flasher/?samples">flasher, in its Samples OS tab</a>, puts the official Model:Samples OS inside your Model:Cycles firmware file:</p>
         <dl class="layers fig">
@@ -493,13 +520,13 @@
       </section>
 
       <section id="stock">
-        <h2><span class="n">21</span>Back to stock</h2>
+        <h2><span class="n">22</span>Back to stock</h2>
         <p><b>Back to the official firmware</b>, under the cards of the <a href="../flasher/">flasher</a>, sends your OS file unchanged, over USB, like a normal update. It is also a good rehearsal before a first mod: it checks the cable and the setup without changing anything.</p>
         <p>With the SAMPLE machine, first set your SAMPLE tracks back to an original machine (Kick to Chord): the official OS doesn't have SAMPLE, and a project that still names it can freeze its MACHINES page.</p>
       </section>
 
       <section id="recovery">
-        <h2><span class="n">22</span>Recovery</h2>
+        <h2><span class="n">23</span>Recovery</h2>
         <p class="lede">If the Model:Cycles no longer starts, its startup menu can always reinstall the OS: it lives in an area that updates never write.</p>
         <figure class="fig">
           <div data-device data-scenes="func @logo | func,mainvol | s4 @READY TO/>RECEIVE" data-ms="1300"></div>
@@ -513,7 +540,7 @@
       </section>
 
       <section id="trouble">
-        <h2><span class="n">23</span>Troubleshooting</h2>
+        <h2><span class="n">24</span>Troubleshooting</h2>
         <div class="faq">
           <details>
             <summary>Nothing happens on the Model:Cycles screen</summary>
@@ -579,8 +606,8 @@
   </div>
 </footer>
 
-<script src="../assets/release.js?v=2026-11-13-02"></script>
-<script src="../assets/cycles.js?v=2026-11-13-02"></script>
-<script src="../assets/site.js?v=2026-11-13-02"></script>
+<script src="../assets/release.js?v=2026-11-14-01"></script>
+<script src="../assets/cycles.js?v=2026-11-14-01"></script>
+<script src="../assets/site.js?v=2026-11-14-01"></script>
 </body>
 </html>

@@ -146,6 +146,7 @@ class Cards:
         cpu = ["cpu"] if any(f.get("part") == "cpu" for f in self.features if f["id"] in sel) else []
         cpu += ["resample"] if any(f.get("part") == "resample" for f in self.features if f["id"] in sel) else []
         cpu += ["transpose"] if any(f.get("part") == "transpose" for f in self.features if f["id"] in sel) else []
+        cpu += ["perform"] if any(f.get("part") == "perform" for f in self.features if f["id"] in sel) else []
         first = next((f for f in self.features if f["id"] in sel and (f.get("package") or f.get("part"))), None)
         for f in self.features:
             if f["id"] not in sel or self.root(f, sel):        # « joins » : dans la version de sa carte hôte
@@ -229,16 +230,18 @@ def blocks(cycles, syntakt):
     cpus = (False, True) if any(f.get("part") == "cpu" for f in tw["features"]) else (False,)
     rsms = (False, True) if any(f.get("part") == "resample" for f in tw["features"]) else (False,)
     trss = (False, True) if any(f.get("part") == "transpose" for f in tw["features"]) else (False,)
+    pfss = (False, True) if any(f.get("part") == "perform" for f in tw["features"]) else (False,)   # Perform Kit (notes/81)
     composed = []
     for r in range(0, len(machines) + 1):
         for ids in itertools.combinations(machines, r):
             for cpu in cpus:
                 for rsm in rsms:
                     for trs in trss:
-                        if ids or cpu or rsm or trs:
-                            with contextlib.redirect_stdout(io.StringIO()):
-                                composed.append(compose.compose(stock, list(ids), cpu=cpu, resample=rsm,
-                                                                transpose=trs)[0])
+                        for pfs in pfss:
+                            if ids or cpu or rsm or trs or pfs:
+                                with contextlib.redirect_stdout(io.StringIO()):
+                                    composed.append(compose.compose(stock, list(ids), cpu=cpu, resample=rsm,
+                                                                    transpose=trs, perform=pfs)[0])
     by_id.update({t["id"]: t for t in composed})
 
     mods = []

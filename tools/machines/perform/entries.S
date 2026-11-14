@@ -1,4 +1,4 @@
-/* The entries of Perform Kit, with perform.c (the plan of 2026-11-14, _scratch/perform-kit/plan.md): a part the
+/* The entries of Perform Kit, with perform.c (notes/81-perform-kit.md): a part the
  * composer adds to a build when its card is ticked. Built once by tools/gen_parts.py into perform.o and placed by
  * tools/relocate.py like a package; the composer writes the data block right after it and resolves pk_data, the
  * block's address, and pk_held, the byte that says SETTINGS' last event was down, as patch points. Addresses are VAs

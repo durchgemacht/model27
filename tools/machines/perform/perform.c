@@ -1,5 +1,5 @@
-/* Perform Kit, a part of model27's builder, with entries.S (the plan of 2026-11-14, _scratch/perform-kit/plan.md; the
- * note's number is fixed when it moves into notes/). Addresses are VAs of OS 1.13. Steps P1 (the switch and the
+/* Perform Kit, a part of model27's builder, with entries.S (notes/81-perform-kit.md).
+ * Addresses are VAs of OS 1.13. Steps P1 (the switch and the
  * pattern change) and P2 / P3 (saving, loading, the temp slot, paste, clear and another project).
  *
  * With the mode on, a pattern change keeps the sounds as they are, tweaked: the six track sounds, the six levels and

@@ -555,6 +555,23 @@ ALL_FEATURES = [
         "part": "transpose",
     },
     {
+        "id": "perform",
+        "cat": "live",
+        "label": "Perform Kit",
+        "desc": "SETTINGS + PATTERN switches a mode in which a pattern change keeps the presets, the track levels and "
+                "the delay and reverb settings as they are; a checkered stripe at the left edge of the screen shows "
+                "it. Nothing is kept unless the pattern is saved.",
+        # model27's own (notes/81): the sequencer's writes, the kit selection, the serializer, the saves and loads,
+        # the popup and the mark proven in emulation; tested on the Model:Cycles from the command line on 2026-11-14
+        # (notes/81 §9: alone, every step of saving; with every card, the mark and the switch). Experimental until
+        # flashed from this page
+        "status": "experimental",
+        "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
+        # a part composed in the page with the machines, effects, Track FX, the CPU page, RESAMPLE and Transpose
+        # ticked: alone it gives 82-perform.json byte for byte, whose conflicts give its excludes
+        "part": "perform",
+    },
+    {
         "id": "trig-cond-order",
         "cat": "seq",
         "label": "Trig conditions, A:B before the percentages",
@@ -627,7 +644,7 @@ ALL_FEATURES = [
 # (every tweak of tweaks/ is still built by tools/build.py) and so that merges from upstream apply cleanly; a card
 # comes back into the flasher by adding its id here, once it has been reviewed against the Cycles Mod Standard.
 OFFERED = ("sampler", "solid", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample",
-           "transpose", "control-all-config", "trig-cond-order", "trig-preview")
+           "transpose", "perform", "control-all-config", "trig-cond-order", "trig-preview")
 FEATURES = [f for f in ALL_FEATURES if f["id"] in OFFERED]
 _missing = set(OFFERED) - {f["id"] for f in FEATURES}
 if _missing:

@@ -584,6 +584,29 @@ rechargement du pattern remet les sauts à 0 (note 80 §5.5) ; avec la 0.2 : `ad
 avec les quatorze cartes, la 0.3 avec les quatorze cartes et les deux rechargements) ; puis flashé depuis la page le
 même jour (« passt »).
 
+### Perform Kit
+
+`tweaks/model-cycles_OS1.13/82-perform.json` is written by `tools/gen_perform.py`, which composes alone, with
+`tools/compose.py --perform`, the builder's part `perform` (`tools/machines/perform/`, its object built by
+`tools/gen_parts.py`): SETTINGS + PATTERN switches a mode in which a pattern change keeps the six track sounds, the six
+levels and the four effect values (bytes 0..693 of the kit, copied at the sequencer's four writes of the playing kit);
+the kit serializer hands out the pattern's own bytes, so nothing is saved until the pattern is; a popup and a
+checkerboard stripe on the main screen show the mode ([note 81](notes/81-perform-kit.md)). In a build with RESAMPLE
+the part reads RESAMPLE's SETTINGS byte; behind its mark is the main draw the build has otherwise (the stock one,
+SAMPLE's, or the dispatcher's). The proof runs on the OS's own code (Unicorn), the logic also on the host:
+```sh
+python3 tools/gen_perform.py --cycles model-cycles_OS1.13.syx [--check]
+python3 tools/emu/test_perform.py --cycles model-cycles_OS1.13.syx [--dry]
+(cd tools/machines/perform && cc -std=c99 -Wall -Wextra -Werror -DPK_HOST -o /tmp/test_perform test_perform.c && /tmp/test_perform)
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --perform                           # alone
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler --perform        # with SAMPLE
+```
+Patched MAIN OS, `perform` alone: `65a6f2a90c664cfd29c8c375ec1c6ddf376fa46ec63f0614215e6a17c9d96b17`; with every card of
+the page (seventeen, release 0.63: `--machines sampler,solid,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq
+--cpu --resample --transpose --perform --with control-all-config,trig-preview,trig-cond-order`):
+`d91ef5bf0372dff894a1fa6250cdd18a46e49e05a46e64b12f47ba9776d2ca37`. Tested on a Model:Cycles from the command line on
+2026-11-14 (note 81 §9 to §10.1: alone, every step of saving; with every card, the switch and the mark).
+
 ### Trig Cond dans un autre ordre
 
 `tweaks/model-cycles_OS1.13/80-trig-cond-order.json` est produit par `tools/gen_trig_cond_order.py`, qui assemble

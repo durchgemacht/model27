@@ -195,6 +195,15 @@ tools/machines/transpose/     Transpose, a part (notes/80): MACHINES + TRIG 15 /
                               with the shortcut layer, whose 0.6 makes MACHINES a held key on every track; compose.py
                               --transpose, tools/gen_transpose.py composes it alone into 81-transpose.json, the flasher's
                               Transpose card (composer.js transposeLayer); tools/emu/test_transpose.py proves it
+tools/machines/perform/       Perform Kit, a part (notes/81): SETTINGS + PATTERN (PatternGridView's PATTERN case, 0x40020ad0)
+                              switches a mode in which the sequencer's four writes of the playing kit copy bytes 0..693 of
+                              the kit into the kit of the pattern about to play; the kit serializer's start (0x4005b2ae)
+                              hands out the pattern's own bytes, so nothing is saved until the pattern is; a popup and a
+                              checkerboard stripe after any main draw (MainScreenView's draw slot 0x400ffe30, the draw the
+                              build would have there behind it) show the mode; compose.py --perform,
+                              tools/gen_perform.py composes it alone into 82-perform.json, the flasher's Perform Kit card
+                              (composer.js performLayer); tools/emu/test_perform.py proves it, test_perform.c its logic
+                              on the host
 tools/machines/solid/         SOLID (notes/71): model27's own modal resonator machine, eight modes in fixed point on the
                               EMAC; tools/gen_solid.py writes its tables and its object and composes it alone into 71-solid.json, the
                               flasher's SOLID card; tools/emu/test_solid.py proves it
@@ -238,7 +247,7 @@ CONTRIBUTING.md               terms for outside contributions, and how a machine
 
 Follow the shape of the last ones (tempo-max: commits `5997b4a`, `14fb9fa`, `6e592bc`; trig-hold, arp). In order:
 
-1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 80 is the last) with the
+1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 81 is the last) with the
    user's request and its source, the OS code involved (addresses, `[FAIT]`/`[HYP]`), the design, free space used and
    conflicts with other tweaks. Add a row to `notes/README.md`. See `notes/AGENTS.md`.
 2. **Write the generator** `tools/gen_<mod>.py` (and sources under `tools/machines/<mod>/` if it has code). It reads
