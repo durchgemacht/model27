@@ -1434,6 +1434,54 @@ def transpose_layer(img, part, at, code_end, sc_data, n=None):
     return blob, out, writes, taken, info
 
 
+def perform_layer(img, part, at, code_end, rss=None):
+    """Perform Kit of this build (tools/machines/perform/, the plan of 2026-11-14, step P1): the sequencer's four writes
+    of the playing kit (0x40054d6a, 0x40055510, 0x4005571e, 0x40055c62) go through the part's pk_seq_*, the start of
+    the interface's kit selection (0x4000f36a, 8 bytes) to pk_ui, the first instruction of PatternGridView's PATTERN
+    case (0x40020ad0) to pk_pattern. SETTINGS' state: without RESAMPLE in the build (rss None) the key event's code
+    accessor (0x4007240c) goes to the part's pk_code and pk_held is the part's own byte; with RESAMPLE, which holds the
+    accessor, the write is left out and pk_held is RESAMPLE's set_held. Since the part's 0.2 also the start of the kit
+    serializer (0x4005b2ae), the kit's save to a slot (0x400100ba) and its load from one (0x400107a4), the function the
+    project functions call (0x4000eb12) and the starts of pattern paste and clear (0x40010c7a, 0x4001190c,
+    0x40011a7e): every site of part.json. The data block after the part's code is zero.
+    Returns (blob, symbols, writes, the sites taken, info)."""
+    d, sites = part["data"], part["sites"]
+    path = object_path(part)
+    if not path.is_file():
+        sys.exit(f"!! {path} is missing: run tools/gen_parts.py")
+    roots = part["build"]["roots"]
+    lay = relocate.layout(path.read_bytes(), roots[0], roots[1], roots[2:], part["id"])
+    data_at = align4(at + len(lay["code"]))
+    if data_at + d["size"] > code_end:
+        sys.exit(f"!! Perform Kit ends at {data_at + d['size']:#x}, past {code_end:#x}")
+    if rss:
+        held = rss[4]["data_at"] + load_part("resample")["data"]["set_held"]
+    else:
+        held = data_at + d["held"]
+    values = {"perform_data": data_at, "perform_held": held}
+    pps = part["build"]["patch_points"]
+    code, syms, _ = relocate.apply(lay, at, at, code_end, {pp["symbol"]: values[pp["kind"]] for pp in pps})
+    blob = code + bytes(data_at - at - len(code)) + bytes(d["size"])
+    writes, taken = [], set()
+    for key, s in sites.items():
+        if rss and s.get("unless") == "resample":       # RESAMPLE's rs_code keeps SETTINGS' state for both
+            continue
+        va, old = int(s["at"], 16), bytes.fromhex(s["stock"])
+        if img[va - BASE:va - BASE + len(old)] != old:
+            sys.exit(f"!! {va:#x}: {old.hex()} expected, {img[va - BASE:va - BASE + len(old)].hex()} found")
+        new = bytes.fromhex({"jmp": "4ef9", "jsr": "4eb9"}[s["op"]]) + g7.be32(syms[s["symbol"]])
+        if (len(old) - len(new)) % 2 or len(old) < len(new):
+            sys.exit(f"!! {va:#x}: {len(old)} bytes for {len(new)}")
+        new += bytes.fromhex("4e71") * ((len(old) - len(new)) // 2)
+        writes.append({"off": va - BASE, "old": old.hex(), "new": new.hex()})
+        taken.add(va)
+    out = {r: syms[r] for r in roots}
+    out.update({pp["symbol"]: values[pp["kind"]] for pp in pps})
+    info = dict(id=part["id"], code_at=at, code=len(code), data_at=data_at, data=d["size"], held=held,
+                held_by="resample" if rss else "perform")
+    return blob, out, writes, taken, info
+
+
 def fl_cost(filters):
     """The filter slot's load, from the filters' declared cost.emulation (instructions per track and block): six
     tracks on the dearest state of the dearest filter, {dearest, steady, share}, or {missing: [ids]} when a filter
@@ -1554,7 +1602,7 @@ def computed_conflicts(writes, ram, declared, tweaks=None, at=None):
 
 
 def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime", compare_b1=False, against=None,
-            against_claims=None, diag_filters=False, cpu=False, resample=False, transpose=False, transpose_n=None):
+            against_claims=None, diag_filters=False, cpu=False, resample=False, transpose=False, transpose_n=None, perform=False):
     """Builds the tweak for the machines named in ids, in that order. relocator: "python" places each
     package's committed object with tools/relocate.py (no toolchain), "ld" compiles and links it as B1 did;
     compare_ld does both and compares them byte for byte (the proof of the relocator). registrar: "runtime" writes
@@ -1567,8 +1615,9 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     recorder (tools/machines/resample/), also without any package; the id then ends with "+resample". transpose: with
     Transpose (tools/machines/transpose/), also without any package, always with the shortcut layer, MACHINES a held
     key on every track; the id then ends with "+transpose"; transpose_n: its dimming's period in cycles of 1 ms, a test
-    build's (default: the part's, 4). Returns (tweak, info)."""
-    if not ids and not cpu and not resample and not transpose:
+    build's (default: the part's, 4). perform: with Perform Kit (tools/machines/perform/), also without any package;
+    the id then ends with "+perform". Returns (tweak, info)."""
+    if not ids and not cpu and not resample and not transpose and not perform:
         sys.exit("!! name at least one package")
     if len(ids) != len(set(ids)):
         sys.exit("!! a package is named twice")
@@ -1699,14 +1748,20 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             trs = transpose_layer(img, load_part("transpose"), at, gs.STUBS, layer[1]["sc_data"], transpose_n)
             blobs.append((at, trs[0]))
             code_cursor = at + len(trs[0])
+        pks = None                           # Perform Kit; SETTINGS' state from RESAMPLE's byte when that part is in
+        if perform:
+            at = align4(code_cursor)
+            pks = perform_layer(img, load_part("perform"), at, gs.STUBS, rss)
+            blobs.append((at, pks[0]))
+            code_cursor = at + len(pks[0])
         chains = chain_sites(mans)           # the packages' chain hooks (notes/66 §30.2), in front of the parts
         if chains:
-            extras = [x for x in (layer, dispatch, fxs, fls, cpus, rss, trs) if x]
+            extras = [x for x in (layer, dispatch, fxs, fls, cpus, rss, trs, pks) if x]
             nexts = {va: chain_next(u, extras) for va, (_m, u) in chains.items()}
 
             def unchained(x):                # a part's writes at those sites go; its entries stay, reached through
                 return x and (x[0], x[1], [w for w in x[2] if w["off"] + BASE not in chains], x[3], x[4])
-            layer, dispatch, fxs, fls, cpus, rss, trs = map(unchained, (layer, dispatch, fxs, fls, cpus, rss, trs))
+            layer, dispatch, fxs, fls, cpus, rss, trs, pks = map(unchained, (layer, dispatch, fxs, fls, cpus, rss, trs, pks))
             for mid in dict.fromkeys(m["id"] for m, _u in chains.values()):
                 m = next(x for x in mans if x["id"] == mid)
                 code_at, bss_at, values, n, end = placed_at[mid]
@@ -1746,10 +1801,10 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                 writes, append = writes1, append1
     skip = ((layer[3] if layer else set()) | (dispatch[3] if dispatch else set()) | (fxs[3] if fxs else set())
             | (fls[3] if fls else set()) | (cpus[3] if cpus else set()) | (rss[3] if rss else set())
-            | (trs[3] if trs else set())) - set(chains)   # a chain hook takes its site in front of the part's
+            | (trs[3] if trs else set()) | (pks[3] if pks else set())) - set(chains)   # a chain hook takes its site in front of the part's
     for m in mans:
         writes += package_writes(m, img, syms_of[m["id"]], skip)
-    for extra in (layer, dispatch, fxs, fls, cpus, rss, trs):
+    for extra in (layer, dispatch, fxs, fls, cpus, rss, trs, pks):
         if extra:
             writes += extra[2]
     writes.sort(key=lambda x: x["off"])
@@ -1760,7 +1815,8 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     declared = {c["with"] for m in mans for c in m.get("compat", {}).get("conflicts_declared", [])}
     if layer:                                # what the shortcut layer declares (none since notes/65 C2: computed)
         declared |= {c["with"] for c in part.get("conflicts_declared", [])}
-    tid = "+".join(ids + (["cpu"] if cpu else []) + (["resample"] if resample else []) + (["transpose"] if transpose else []))
+    tid = "+".join(ids + (["cpu"] if cpu else []) + (["resample"] if resample else []) + (["transpose"] if transpose else [])
+                   + (["perform"] if perform else []))
     holders = cl.build_holders(mans, part if layer else None)    # notes/65: the claims, rules 2 and 3
     if fxs:                                  # the effect slots' claims (the pattern header's bytes, notes/68 §14)
         fxc = cl.part_claims(load_part("fxslot"))
@@ -1776,6 +1832,9 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     if trs:                                  # Transpose's claims (MACHINES + TRIG keys in keyboard mode)
         trc = cl.part_claims(load_part("transpose"))
         holders.append(("transpose", trc, trc, True))
+    if pks:                                  # Perform Kit's claims (SETTINGS + PATTERN)
+        pkc = cl.part_claims(load_part("perform"))
+        holders.append(("perform", pkc, pkc, True))
     load = fx_cost(effects, load_part("fxslot")) if fxs else {}
     for point, c in load.items():             # notes/68 §17: a slot's dearest effect past FX_REFUSE is refused
         if c.get("steady", 0) > FX_REFUSE:
@@ -1797,9 +1856,10 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
     tweak = {
         "id": tid,
         "order": min([m["order"] for m in mans] + [load_part(p)["order"] for p, on in (("cpu", cpu), ("resample", resample),
-                                                                                       ("transpose", transpose)) if on]),
+                                                                                       ("transpose", transpose),
+                                                                                       ("perform", perform)) if on]),
         "name": " + ".join([m["name"] for m in mans] + (["CPU page"] if cpu else []) + (["RESAMPLE"] if resample else [])
-                           + (["Transpose"] if transpose else [])),
+                           + (["Transpose"] if transpose else []) + (["Perform Kit"] if perform else [])),
         "description": [
             f"Composed by tools/compose.py (notes/59): {', '.join(placed(p) for p in info_pkgs) or 'no package'},",
         ] + ([
@@ -1814,13 +1874,15 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             "payload or in a claimed RAM range, or declared claims that clash (tools/claims.py, notes/65).",
         ] + [f"{m['id']}: {m['name']}" for m in mans] + ([f"cpu: {load_part('cpu')['name']}"] if cpu else [])
           + ([f"resample: {load_part('resample')['name']}"] if resample else [])
-          + ([f"transpose: {load_part('transpose')['name']}"] if transpose else []),
+          + ([f"transpose: {load_part('transpose')['name']}"] if transpose else [])
+          + ([f"perform: {load_part('perform')['name']}"] if perform else []),
         "device": "Model:Cycles",
         "os": "1.13",
         "section": 3,
         "version": "+".join([m["version"] for m in mans] + ([load_part("cpu")["version"]] if cpu else [])
                             + ([load_part("resample")["version"]] if resample else [])
-                            + ([load_part("transpose")["version"]] if transpose else [])),
+                            + ([load_part("transpose")["version"]] if transpose else [])
+                            + ([load_part("perform")["version"]] if perform else [])),
         "conflicts": sorted(conflicts),
         "writes": writes,
         "append": append,
@@ -1874,11 +1936,22 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                                        f"the panel interrupt's LED step 0 (0x40059dea, a period of {ti['n']} ms); "
                                        f"the shortcut layer's data at {ti['sc_data']:#x}, MACHINES a held key on every track.")
         tweak["symbols"].update({k: f"{v:#x}" for k, v in trs[1].items()})
+    if pks:
+        pi = pks[4]
+        tweak["description"].insert(6, f"With Perform Kit (tools/machines/perform/) at {pi['code_at']:#x}, its data at "
+                                       f"{pi['data_at']:#x}: the sequencer's writes of the playing kit (0x40054d6a, "
+                                       f"0x40055510, 0x4005571e, 0x40055c62), the interface's kit selection "
+                                       f"(0x4000f36a), PATTERN's case (0x40020ad0), the kit serializer's start "
+                                       f"(0x4005b2ae), the kit's save and load (0x400100ba, 0x400107a4), the project "
+                                       f"replaced (0x4000eb12), pattern paste and clear (0x40010c7a, 0x4001190c, "
+                                       f"0x40011a7e); SETTINGS' state at {pi['held']:#x}, "
+                                       f"kept by {pi['held_by']}.")
+        tweak["symbols"].update({k: f"{v:#x}" for k, v in pks[1].items()})
     info = dict(pay=pay, end=bss_cursor, image=sum(n for _, n in append["pack"]), packages=info_pkgs,
                 part=layer[4] if layer else None, dispatch=dispatch[4] if dispatch else None,
                 fx=fxs[4] if fxs else None, fx_lines=lines, fx_load=load, filters=fls[4] if fls else None,
                 fl_load=fl_load, cpu=cpus[4] if cpus else None, resample=rss[4] if rss else None,
-                transpose=trs[4] if trs else None,
+                transpose=trs[4] if trs else None, perform=pks[4] if pks else None,
                 claims=dict(by_claims={i: w for i, w in sorted(by_claims.items()) if i != tid},
                             declared_only=sorted(declared - by_bytes - set(by_claims) - {tid}),
                             views=cl.claim_views(holders, others)))
@@ -1971,6 +2044,7 @@ def main():
     ap.add_argument("--cpu", action="store_true", help="with the CPU page (notes/78), also without --machines")
     ap.add_argument("--resample", action="store_true", help="with the RESAMPLE recorder, also without --machines")
     ap.add_argument("--transpose", action="store_true", help="with Transpose (MACHINES + TRIG keys), also without --machines")
+    ap.add_argument("--perform", action="store_true", help="with Perform Kit (SETTINGS + PATTERN), also without --machines")
     ap.add_argument("--transpose-n", type=int, default=None,
                     help="Transpose's dimming period in ms (a test build; default the part's, 4), never offered")
     args = ap.parse_args()
@@ -1981,7 +2055,7 @@ def main():
     ids = [i.strip() for i in args.machines.split(",") if i.strip()]
     tweak, info = compose(img, ids, args.relocator, args.compare_ld, args.registrar, args.compare_b1,
                           diag_filters=args.diag_filters, cpu=args.cpu, resample=args.resample, transpose=args.transpose,
-                          transpose_n=args.transpose_n)
+                          transpose_n=args.transpose_n, perform=args.perform)
     for p in info["packages"]:
         what = (f"effect {p['fx_id']} of the {p['slot']} slot" if p.get("slot")
                 else f"filter {p['filter_id']}" if p.get("filter_id")
@@ -2033,6 +2107,10 @@ def main():
         p = info["transpose"]
         print(f"  {p['id']:12s} code {p['code']} bytes at {p['code_at']:#x}, data {p['data']} bytes at {p['data_at']:#x}, "
               f"the shortcut layer's data at {p['sc_data']:#x}, a dimming period of {p['n']} ms")
+    if info["perform"]:
+        p = info["perform"]
+        print(f"  {p['id']:12s} code {p['code']} bytes at {p['code_at']:#x}, data {p['data']} bytes at {p['data_at']:#x}, "
+              f"SETTINGS' state at {p['held']:#x}, kept by {p['held_by']}")
     print(f"  tweak {tweak['id']}: {len(tweak['writes'])} writes, payload {info['pay']:#x}..{info['end']:#x}, "
           f"{info['image']} bytes added to the image, {len(tweak['conflicts'])} conflicts computed")
     ci = info["claims"]
