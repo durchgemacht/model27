@@ -3,7 +3,10 @@
 material gliding from string to glass on SHAPE. Its sound was settled by ear in a float listening prototype (three
 rounds with the maintainer, outside the repo); tools/machines/solid/solid.c is its fixed point.
 
-This generator writes the package's tables (tools/machines/solid/solid_tables.h) and compiles its committed object
+This generator writes the package's tables (tools/machines/solid/solid_tables.h), its own pictures
+(tools/machines/solid/solid_pictures.c: the MACHINES page's card, its pixels set by solid_card.c, and icon, the track
+icon, the icons from the 1-bit files in tools/machines/solid/pictures/, notes/71 §13) and compiles its committed
+object
 (tools/machines/solid/solid.o, ld -r of the sources: notes/60 §2). With --cycles it also composes the machine alone
 through tools/compose.py, which places that object with tools/relocate.py as any build does, into
 tweaks/model-cycles_OS1.13/71-solid.json: the card's build alone, which the web flasher composes in the page (its
@@ -30,6 +33,11 @@ sys.path.insert(0, str(HERE))
 
 PKG = HERE / "machines" / "solid"
 TABLES = PKG / "solid_tables.h"
+PICTURES = PKG / "solid_pictures.c"
+# SOLID's own pictures (notes/71 §13): the MACHINES page's card (its pixels set on the screen's tick, solid_card.c)
+# and icon, the track icon of the preset dialogs; the icons drawn for it in 1 bit (light = lit) and kept in the OS's
+# sprite layout, as the 1-Bit Editor saves them
+RUNTIME_PICTURES = {"card": "solid_card_px"}
 
 SR = 48000
 BLOCK = 32
@@ -196,6 +204,14 @@ def tables():
     return "\n".join(out) + "\n"
 
 
+def pictures():
+    """solid_pictures.c: the three pictures as the OS's Bitmaps, their table (solid_pictures, the registrar's pictures
+    pointer: card, icon, track icon), a mask per picture on its own rows (tools/machine_pictures.py)."""
+    import machine_pictures as mp
+    return mp.sprites_c("solid", ["/* SOLID's own pictures (tools/gen_solid.py from tools/machines/solid/pictures/, "
+                                  "notes/71 §13). Generated:", "   do not edit."], PKG, RUNTIME_PICTURES)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cycles", help="official model-cycles_OS1.13.syx: also compose the machine alone")
@@ -204,6 +220,7 @@ def main():
     args = ap.parse_args()
     import gen_macro as gm             # noqa: E402
     bad = bool(gm.emit(TABLES, tables(), args.check))
+    bad |= bool(gm.emit(PICTURES, pictures(), args.check))
     if not args.tables_only:
         import compose                 # noqa: E402
         m = compose.load_manifest("solid")

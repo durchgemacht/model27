@@ -211,7 +211,7 @@ def save_tests(key, stock, img, runtime):
 # --- 6. the tick ----------------------------------------------------------------------------------------------------
 def tick_tests(key, img, runtime, syms, added):
     u = S.UI(img, runtime)
-    tick_of = {"sampler": "smp_hook_tick", "refmachine2": "ref2_hook_tick"}
+    tick_of = {"sampler": "sample_hook_tick", "refmachine2": "ref2_hook_tick"}
     others = [(syms[tick_of[m["code"]]], tick_of[m["code"]]) for m in sorted(added, key=lambda m: m["index"])
               if m["code"] in tick_of]          # the other machines' ticks, in machine order
     u.hooks = {GETTER: ("getter", 0x5a)}

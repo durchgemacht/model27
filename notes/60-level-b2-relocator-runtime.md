@@ -804,3 +804,45 @@ half-finished step never blocks a build.
   the request; rebuilt with the keys' note-off at once (above); the proof grows its engine tests by the key (nothing
   marked: holds its track; marked: note-off once, the track free, a sequencer's note plays the track's own sample, the
   release's note-off dropped): **ALL OK** (the maintainer, 2026-11-12) `[FAIT en émulation]`. digiemu with this build (the maintainer, 2026-11-12): « passt, habe schon alles getestet » `[FAIT en émulation]`. The device, flashed from the command line with every card (the maintainer, 2026-11-12, « gerät geflasht, tests 5 bis 7 passen »): a long stereo sample silent for a moment, then played (the tick runs with the browser open: the `[HYP]` above holds); the pad, the TRIG keys, the held pad's trigs, the let-go and a locked step as in digiemu, scrolling through many files without a hang, the browser closed with the pad held as a let-go; the CPU page as before `[FAIT]`. Then flashed from the page with every card the same day (the maintainer: « Von der Seite ») `[FAIT]`: the card is `tested`.
+
+## 25. A machine's own pictures in the runtime (2026-11-13, notes/71 §13)
+
+The machine entry's last long (`.long 0` in §5.1) is now `pictures`: 0, or a package's table of three sprite pointers
+(the MACHINES page's card and icon, the track icon), each 0 for the stock sprite of `image`. `shown` gave way to
+`own_sprite`, `stock_sprite`, `sprite_of` and `bounded_sprite`; `small_icon` returns at `0x400a4dec` with the sprite;
+three entries more, `main_icon` (`0x4001b68c`), `preset_icon_a` (`0x400a40a2`) and `preset_icon_b` (`0x400a4fac`),
+in place of the three bounds `moveq #5` → `#1` of §5 (B1 keeps them). The runtime: 950 bytes, 14 entries. A machine
+without pictures behaves as before on the MACHINES page and the small icon, and shows its `image` instead of SNARE's
+at the three other places. Details, contracts and proofs: notes/71 §13.
+
+### 25.1 SAMPLE's own pictures (2026-11-14)
+
+The maintainer (2026-11-14) wanted SAMPLE's pictures next: a waveform, « ist generischer » than an object. Drawn with
+them over three rounds (outside the repo): a single line ringing out, four periods, a soft attack and an even stroke
+(round 3, C2, chosen 2026-11-14). The card: `CLASS:SAMPLE`, `STYLE:ANY`, STR 3, DEX 5, MAG 2 (K2, chosen the same day).
+
+- **model27's, not Cycles One-Shot's**: `tools/machines/sampler/pictures/sample_icon_34x34.bin`,
+  `sample_small_25x22.bin` (the OS's sprite layout, as the 1-Bit Editor saves it); `gen_sampler.py` writes
+  `sample_pictures.c` from them with `tools/machine_pictures.py` (`gen_solid.py` writes `solid_pictures.c` with it too,
+  byte for byte as before); `sample_card.c` sets the card's pixels once on the screen's tick. The manifest compiles both
+  with One-Shot's sources, keeps `sample_pictures` and `sample_hook_tick`, and names the table in the machine use's
+  `"pictures"`.
+- **The tick**: `screen.tick` (`0x400075f0`) goes to `sample_hook_tick`, which sets the card once and then returns
+  One-Shot's `smp_hook_tick(view)`: One-Shot's code is untouched. The proofs that name SAMPLE's tick follow it
+  (`test_views`: the dispatcher calls `sample_hook_tick`; `test_refchord`, `test_chordtables`: it is stubbed with
+  One-Shot's). `test_sampler_preview` still calls `smp_hook_tick` itself.
+- **Sizes**: `sampler.o`'s 91 sections of 0.17 are byte for byte the same (`.comment` aside), 13 sections more
+  (the pictures, the cells, the tick); code and tables 40 972 → 42 576 bytes, variables + 388 (the card's 96 words);
+  SAMPLE alone 48 880 → 50 484 bytes added; 140 writes and 282 conflicts as before. The sound is unchanged.
+- **Proven here** `[FAIT en émulation]`: `gen_sampler --check`, `gen_solid --check`, the other generators unchanged;
+  `compose.py --compare-ld --compare-b1` for `sampler`, `sampler,solid`, `solid,sampler`, `sampler,refmachine2`;
+  `tools/webcompose_check.sh` with the official file; `check_overlaps`, `registry`, `claims --check --self-test`,
+  `gen_flasher_tweaks --check`, `py_compile`. In the scratch ColdFire interpreter (cfemu): the four picture sites hand
+  the draw SAMPLE's own sprites (machine 6 and 7, with SOLID), and `sample_hook_tick` sets the card pixel for pixel as
+  chosen (25 912 instructions, once), then reaches `smp_hook_tick`. `REF_MAINOS` and `REF_MODS` regenerated; every card of the page:
+  MAIN OS `b7b50e9a…`, equal to its `REF_MAINOS`; the smoke test's pins 140 / 50 484, the Model:Samples packings
+  `d51ccf82…` (`_smp-os`) and `d7a34c7a…` (`_cyc-os`); `webflash_smoke.sh` with the official files: ALL PARTS OK. Unicorn (`test_compose`, `test_views`,
+  `test_sampler_preview`, `test_refchord`, `test_chordtables`): ALL OK (the maintainer, 2026-11-14).
+- **Tested** (2026-11-14, release 0.63, with SOLID's, notes/71 §13.5): in digiemu with every card, the MACHINES page
+  (the card and the waveform) and the SAVE PRESET and RENAME PRESET windows (the waveform); the same file on a
+  Model:Cycles from the command line.

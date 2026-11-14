@@ -218,6 +218,11 @@ def load_manifest(mid):
                 sys.exit(f"!! {mid}: chain names the symbol the package reads as the entry behind it")
             if "vtable" not in u and ("hook" not in u or u["hook"]["op"] != "jsr"):
                 sys.exit(f"!! {mid}: a chain is a jsr hook or a vtable entry, the entry behind it called like the site")
+    if m["_machine"] and "pictures" in m["_machine"]:     # a machine's own pictures (notes/71 §13)
+        pic = m["_machine"]["pictures"]
+        if not isinstance(pic, str) or pic not in m["build"].get("keep", []):
+            sys.exit(f"!! {mid}: pictures names the symbol of the machine's three sprite pointers (card 48 x 33, icon "
+                     "34 x 34, track icon 25 x 22; 0 for the stock one of image), kept in build.keep")
     if any(u["point"] == "memory.sram" for u in m["uses"]) and not m["_stock"]:
         sys.exit(f"!! {mid}: memory.sram is the SRAM the OS gives a stock machine: only an extension of that machine "
                  "may take it (notes/66 §19.5)")
@@ -543,10 +548,20 @@ def parameter_block(fr, machines):
         e[0:4] = bytes([first + i, m["image"], 76 + 5 * i, 76 + 5 * i - 51])
         e[4:8] = g7.be32(lay["recs"] + 0x60 * i)      # rec
         e[8:12] = g7.be32(m.get("knob_hook", 0))      # knob_hook
+        e[12:16] = g7.be32(m.get("pictures", 0))      # pictures (notes/71 §13)
         out += e
     if len(out) > rt["regs_header"] + rt["entry_size"] * rt["max_machines"]:
         sys.exit("!! parameter block too big")
     return bytes(out)
+
+
+# The three places that draw a machine's picture outside the MACHINES page and the small icon, bounded by the OS to the
+# six stock pictures: the main screen's icon (MainScreenView's draw) and the two preset dialogs' track icons. Each jumps
+# into the runtime, which draws an added machine's own picture or the stock one of its image (notes/71 §13); B1
+# (gen_macro.added_machine) still writes SNARE's bound at ICON_BOUNDS, inside the same blocks.
+ICON_JUMPS = ((0x4001b68c, "e0804a806c04", "main_icon"), (0x400a40a2, "b2806c047005", "preset_icon_a"),
+              (0x400a4fac, "b2806c047005", "preset_icon_b"))
+ICON_BOUNDS = (0x4001b69c, 0x400a40a6, 0x400a4fb0)
 
 
 def frame(img, reg, n):
@@ -611,8 +626,8 @@ def frame(img, reg, n):
         w(0x400a26a2, bytes.fromhex("7850428545f9"), jmp(entries["marks"]))
     else:
         moveq(0x400a26e8, img[0x400a26e8 - BASE + 1], nm, 0x70)
-    for va in (0x4001b69c, 0x400a40a6, 0x400a4fb0):
-        moveq(va, 5, 1, 0x70)
+    for va, old, sym in ICON_JUMPS:           # the main screen's icon and the preset dialogs' (notes/71 §13)
+        w(va, bytes.fromhex(old), jmp(entries[sym]))
     for va, old, sym in jumps:
         w(va, bytes.fromhex(old), jmp(entries[sym]))
     for va, old, sym in g7.CALLS:
@@ -832,8 +847,12 @@ def compare_b1_(reg, writes, append, writes1, append1):
     into the detours (g7.JUMPS, g8.JUMPS8, g7.CALLS, the marks jump) and the boot stub (its segment table), the
     same payload parts except the STUBS part, the same reloc, size, source and destination. Exits on a difference."""
     sites = {va - BASE for va, _o, _s in g7.JUMPS + g8.JUMPS8 + g7.CALLS} | {0x400a26a2 - BASE, gx.CAVE - BASE}
-    w0 = {w["off"]: (w["old"], w["new"]) for w in writes if w["off"] not in sites}
-    w1 = {w["off"]: (w["old"], w["new"]) for w in writes1 if w["off"] not in sites}
+    icons = {va - BASE for va, _o, _s in ICON_JUMPS} | {va - BASE for va in ICON_BOUNDS}
+    w0 = {w["off"]: (w["old"], w["new"]) for w in writes if w["off"] not in sites | icons}
+    w1 = {w["off"]: (w["old"], w["new"]) for w in writes1 if w["off"] not in sites | icons}
+    if ({w["off"] for w in writes} & icons != {va - BASE for va, _o, _s in ICON_JUMPS}
+            or {w["off"] for w in writes1} & icons != {va - BASE for va in ICON_BOUNDS}):
+        sys.exit("!! compare-b1: the icon sites: the runtime jumps at them, B1 bounds them (notes/71 §13)")
     if w0 != w1:
         bad = sorted(set(w0) ^ set(w1) | {k for k in w0 if k in w1 and w0[k] != w1[k]})
         sys.exit(f"!! compare-b1: writes differ at {[hex(BASE + k) for k in bad][:8]}")
@@ -1632,7 +1651,8 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                               for k in mc["knobs"])
                 machines.append(dict(name=mc["name"], image=mc["image"], decay=mc["decay_default"], knobs=knobs,
                                      update=syms[m["build"]["symbols"]["update"]],
-                                     render=syms[m["build"]["symbols"]["render"]]))
+                                     render=syms[m["build"]["symbols"]["render"]],
+                                     pictures=syms[mc["pictures"]] if "pictures" in mc else 0))
             blobs.append((code_at, blob))
             syms_of[m["id"]] = syms
             fx = m["_effect"]

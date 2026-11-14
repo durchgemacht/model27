@@ -365,3 +365,116 @@ PROVENANCE and the manifest say so; `webflash_smoke.js` expects no tag; the stam
 
 Kept out of the user texts: comparisons with other machines (the maintainer's wish), and the word modal (the name
 was changed so as not to raise false hopes, §10).
+
+## 13. Its own pictures (2026-11-12, 13)
+
+The maintainer (2026-11-12): « ich überlege custom grafiken und animation hinzuzufügen. momentan nutzt SOLID einfach die
+irgendeiner stock machine ». First the machine's pictures; the knob pictures (the animations) later, with Chladni
+figures as a candidate for BODY (the maintainer's choice of round 2).
+
+### 13.1 Where the OS draws a machine `[FAIT]`
+
+Each stock machine has three sprites, each out of a stock vector of six (28-byte Bitmaps, constructor `0x40070172`:
++0 vtable `0x401173c8`, +4 width, +8 height, +12 32-bit words a column, +16 pixels, +20 mask, +24 a byte it clears);
+the draw `0x40071da4(bitmap, sprite, x, y, centred)` reads +4 to +20 and writes `dest ^= (dest ^ pixel) & mask`, whole
+words, so a mask is set on the sprite's own rows only (the stock ones: `ffffffff 80000000` a column for 33 rows,
+`ffffffff c0000000` for 34, `fffffc00` for 22).
+
+| Picture | Vector | Where | SOLID before |
+|---|---|---|---|
+| card 48 × 33 (CLASS, STYLE, STR/DEX/MAG) | `*0x40fe32cc` | MACHINES page, left (`drum_icons`) | PERC's (image 3) |
+| icon 34 × 34 | `*0x40fe384c` | MACHINES page, right (`drum_icons`) | PERC's |
+| icon 34 × 34 | `*0x40fe384c` | **the main screen**, left half at (32, 32) (`0x4001b68c..0x4001b6ac` in MainScreenView's draw `0x4001b22a`) | **SNARE's**: the composer bounded it to 1 |
+| track icon 25 × 22 | `*0x40fe37f0` | a preset dialog (`small_icon`, `0x400a4d68`) | PERC's |
+| track icon 25 × 22 | `*0x40fe37f0` | the preset dialogs next to "Rename Preset" and "Save Preset" (`0x400a40a2..0x400a40c2`, `0x400a4fac..0x400a4fcc`) | **SNARE's**, the same bound |
+
+No code reaches into the three bounded blocks from outside (the whole disassembly searched). The main screen fills its
+left half lit (`0x4001b2da`), draws the icon, then inverts the half (`0x4001b80c`): the icon is likely shown inverted
+there, as the stock ones are `[HYP]`, digiemu says.
+
+The knob pictures (48 × 22) of COLOR, SHAPE, SWEEP and CONTOUR are read by six drawing functions, likely the same four
+sequences for every stock machine; SOLID's knobs share SNARE's objects 51 to 54 (notes/60), and SAMPLE already takes the
+pictures of 53 and 54 there (notes/60 §22): the animations need the registrar to give each machine its own, later.
+
+### 13.2 The pictures
+
+Drawn with the maintainer over seven rounds (outside the repo, `_scratch/solid-graphics/`): a ball behind a pillar,
+both shaded with the 4 × 4 Bayer matrix from white to almost black, a round highlight on the ball with no single dark
+dot in its white (levels 13 to 15 of 16 read as a face there), the pillar's white ending early on an even ramp
+(round 7, C3, chosen 2026-11-13). The card: `CLASS:PERC`, `STYLE:MODAL`, STR 3, DEX 5, MAG 3.
+
+### 13.3 The design
+
+- **The registrar** (`registrar.S`, runtime 826 → 950 bytes, 14 entries): the machine entry's last long, 0 until
+  now, is `pictures`: 0, or a table of three sprite pointers (card, icon, track icon), each 0 for the stock sprite of
+  `image`. `own_sprite` (machine, which → an added machine's own sprite, or the stock one of its image), `stock_sprite`,
+  `sprite_of` (stock machines unbounded, the MACHINES page's) and `bounded_sprite` (stock machines as the OS bounds
+  them: 0 below, above 5 SNARE's, as before). `drum_icons` and `small_icon` use them (`small_icon` now returns at
+  `0x400a4dec` with the sprite, an unknown machine still CHORD's as before); three new entries, `main_icon`,
+  `preset_icon_a`, `preset_icon_b`, jump in at the three bounded blocks (`compose.ICON_JUMPS`, 6-byte `jmp` over
+  `e0804a806c04` and `b2806c047005`) in place of the three `moveq #5` → `#1` the composer wrote (`ICON_BOUNDS`, still
+  B1's: `--compare-b1` takes both as the runtime's sites). Registers as the OS leaves them there: d0 the sprite, d0
+  d1 a0 a1 free (the draw follows), d2 kept; `drum_icons` returns d4 = the icon and a2 = the draw as before.
+- **The manifest**: the `machine` use's `"pictures"` names the symbol of the table, kept in `build.keep`
+  (`load_manifest` checks it); `compose.py` and its twin `composer.js` write its address at the entry's +12.
+- **SOLID**: `tools/machines/solid/pictures/solid_icon_34x34.bin`, `solid_small_25x22.bin` (the OS's sprite layout,
+  as the 1-Bit Editor saves it); `gen_solid.py` writes them into `solid_pictures.c` (three Bitmaps, a mask each on its
+  own rows, the table `solid_pictures`), a source of the object; the card's pixels are set once on the screen's tick
+  (`solid_card.c`, `solid_hook_tick` on `screen.tick`, through the dispatchers next to SAMPLE). The object's 28 other
+  sections are byte for byte those of 0.1e: the sound is unchanged.
+- **Other builds**: every build with an added machine gets the new runtime (new hashes). A machine without pictures
+  now shows the stock picture of its `image` at the three bounded places instead of SNARE's: REF on the main screen
+  (TONE's); SAMPLE and REF2 draw their own main screen (`view.main`), so only their preset dialogs change (TONE's).
+
+### 13.4 Proven `[FAIT en émulation]`, here
+
+- `compose.py --compare-ld --compare-b1`: SOLID alone, `sampler,solid`, `sampler,refmachine` identical to `ld`,
+  identical to B1 but the detour sites; `tools/webcompose_check.sh` with the official file: `composer.js` identical to
+  `compose.py` in every selection (SOLID alone, before and after SAMPLE, with the other cards).
+- The payload as the boot hook leaves it: SOLID's three sprites are Bitmaps with the vtable, 48 × 33, 34 × 34, 25 × 22,
+  masks on their rows, the icons' pixels equal to the files.
+- The four sites run in the scratch ColdFire interpreter (cfemu) on the patched MAIN OS and the payload, to the draw:
+  stock machines 0 to 5 as the stock OS, SOLID its own sprites, SAMPLE and REF their image, a machine the build does
+  not have SNARE's (main screen, preset dialogs) or CHORD's (small icon).
+- `gen_registrar --check`, the composed tweaks regenerated (`27-sampler`, `28-refmachine`, `29-refmachine2`,
+  `71-solid`: the three bounds gone, the three jumps, the runtime's entries moved, the conflicts unchanged), the
+  others unchanged; `check_overlaps`, `registry`, `claims --check --self-test`, the web checks.
+  `relocate_6ch.py --check` fails on main as well (not this change).
+- `REF_MAINOS` and `REF_MODS` regenerated (`ref_mainos.py`, 137 combinations, 8 194 mods); `tools/webflash_smoke.sh`
+  with the official files: ALL PARTS OK, after its fixed values followed the new runtime (SAMPLE composed in the page:
+  48 676 bytes added instead of 48 552; the Model:Samples files of `build.py -t sampler` through
+  `mods_for_samples.py`: `ea60f48a…` and `28e759f7…`, the page and the Python agreeing).
+- On SAMPLE 0.17 (release 0.62, main `7f62956`, 2026-11-14): the same regenerated over it (`27-sampler`: 48 880 bytes
+  added instead of 0.17's 48 756, the other tweaks unchanged); the smoke test's pins 140 / 48 880, the Model:Samples
+  packings `6dccb657…` (`_smp-os`) and `fa4c6309…` (`_cyc-os`). Every card of the page: MAIN OS `5f9cb884…`, equal to
+  its `REF_MAINOS` (the file for digiemu and the device, `.syx` `b392d75f…`); `webflash_smoke.sh` with the official
+  files: ALL PARTS OK.
+- **`tools/emu/test_compose.py --machines solid --machines sampler,solid --machines sampler,refmachine`: ALL OK**
+  (Unicorn, the maintainer, 2026-11-13, before the card's tick and SAMPLE 0.17): the MACHINES page, the small icon, the main screen's and the preset dialogs'
+  icons, the sprites' contents, the runtime against B1 for the machines without pictures.
+
+- **`tools/emu/test_solid.py`: ALL OK** (Unicorn, the maintainer, 2026-11-13, the same build): the registrar's checks with SOLID's own
+  pictures (its start-up reads them from the block), the tracks identical to SOLID alone and the six stock machines
+  to the stock OS, the sequencer, the level and the cost unchanged (3 588 instructions a block, six ringing 51 589).
+  The checks' text said PERC for SOLID's MACHINES page while comparing with its own pictures: the text fixed after.
+
+- digiemu, the MACHINES page with every card (the build of 2026-11-13, the card set on the tick; the maintainer,
+  2026-11-14: « passt ») `[FAIT en émulation]`: the card and SOLID's icon.
+
+### 13.5 Tested (2026-11-14), release 0.63
+
+The build with SAMPLE's own pictures too (notes/60 §25.1): every card of the page, MAIN OS `b7b50e9a…`, `.syx`
+`ba08106d…`.
+
+- Unicorn, the maintainer: `test_compose` (`solid`; `sampler,solid`; `sampler,refmachine`), `test_solid`,
+  `test_sampler_preview`, `test_views`, `test_refchord`, `test_chordtables`: ALL OK.
+- digiemu, the maintainer (« passt » each): the main screen, SOLID's icon in the same colours as KICK's (§13.1's
+  `[HYP]`: drawn as the stock icons are); SAVE PRESET and RENAME PRESET of a SOLID preset, its track icon; SAMPLE's
+  MACHINES page, its card and the waveform; SAVE PRESET and RENAME PRESET of a SAMPLE preset, the waveform.
+- On a Model:Cycles, the same file from the command line: the MACHINES page, SOLID's card and icon (« passt »). The
+  maintainer then set the pictures tested (« dann setzt das alles auf getestet »): the main screen and the preset
+  dialogs as in digiemu, the same code. Not flashed from the page.
+
+### 13.6 Left to do
+
+- The knob pictures: parked (the maintainer, 2026-11-14); SOLID's knobs keep SNARE's pictures for now.

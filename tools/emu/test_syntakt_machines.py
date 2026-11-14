@@ -166,12 +166,17 @@ def screens(stock, patched, payload):
         shown = {x["index"]: x["image"] for x in ADDED}.get(m, m)
         full = ["repère"] * NM
         full[m] = "repère plein"
-        ok &= not bp and tp == [NAMES[m]] and ip == [0x92000000 + 28 * shown, 0x92100000 + 28 * shown] and mp == full
+        want = [0x92000000 + 28 * shown, 0x92100000 + 28 * shown]
+        pics = {x["index"]: x.get("pics") for x in ADDED}.get(m)
+        if pics:                            # ses propres images (notes/71 §13) : la carte, l'icône
+            want = [pics[0] or want[0], pics[1] or want[1]]
+        ok &= not bp and tp == [NAMES[m]] and ip == want and mp == full
         if m < 6:
             ok &= ts == tp and is_ == ip
         else:
             ok &= ts == ["Error"] and is_ == []
-        print(f"        machine {m} : stock {ts} | modifié {tp}, image de la machine {shown}, repère plein {mp.index('repère plein') + 1}/{len(mp)}")
+        img_ = "ses propres images" if pics else f"image de la machine {shown}"
+        print(f"        machine {m} : stock {ts} | modifié {tp}, {img_}, repère plein {mp.index('repère plein') + 1}/{len(mp)}")
     # position des repères : dans l'écran (128 px)
     u = UI(patched, payload)
     xs = []
@@ -195,7 +200,7 @@ def screens(stock, patched, payload):
     rows = sorted(set(ys))
     if NM > gs.MARKS_ROW:
         ok &= min(x for x, _ in xs) >= 64 and rows == sorted(gs.MARKS["y"]) and ys[:gs.MARKS_ROW] == [gs.MARKS["y"][0]] * gs.MARKS_ROW
-    imgs = ", ".join(f"{m['name']} -> {NAMES[m['image']].upper()}" for m in ADDED)
+    imgs = ", ".join(f"{m['name']} -> " + ("its own" if m.get("pics") else NAMES[m['image']].upper()) for m in ADDED)
     check(ok, f"écran MACHINES : {NM} noms, images ({imgs}), {NM} repères de x = {min(x for x, _ in xs)} à "
               f"{max(x2 for _, x2 in xs)}, sur {len(rows)} ligne(s) (les 7 premiers à y = {ys[0]}, en haut ; y monte)")
 
@@ -351,8 +356,13 @@ def small_icon(stock, patched, payload):
             u.uc.emu_start(0x400a4dc4, t7.STOP, count=100_000)
             got[name, m] = [(args[1] - 0x92200000) // 28 for k, args in u.calls if k == "image"]
     ok = all(got["stock", m] == got["modifié", m] for m in (0, 3, 5, NM))
-    ok &= all(got["modifié", m["index"]] == [m["image"]] for m in ADDED)
-    icons = ", ".join(f"{m['name']} -> {NAMES[m['image']].upper()} {got['modifié', m['index']]}" for m in ADDED)
+    ok &= all(got["modifié", m["index"]] == [m["image"]] for m in ADDED if not (m.get("pics") or [0, 0, 0])[2])
+    for m in ADDED:                         # ses propres images (notes/71 §13) : la petite icône est la sienne
+        if (m.get("pics") or [0, 0, 0])[2]:
+            ok &= got["modifié", m["index"]] == [(m["pics"][2] - 0x92200000) // 28]
+    icons = ", ".join(f"{m['name']} -> " + (f"its own {m['pics'][2]:#x}" if (m.get("pics") or [0, 0, 0])[2]
+                                             else f"{NAMES[m['image']].upper()} {got['modifié', m['index']]}")
+                      for m in ADDED)
     check(ok, f"petite icône : 0..5 identiques, {icons}")
 
 

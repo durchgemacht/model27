@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.63", date: "2026-11-14", changes: [
+    { en: "SOLID and SAMPLE have their own pictures. On the MACHINES page, SOLID shows its own card and a ball behind a pillar instead of Perc's, SAMPLE its own card and a waveform instead of Tone's. The main screen and the preset dialogs show them too. The sound is unchanged" },
+    { en: "Checked in an emulator on the OS's own code and in digiemu with every card (2026-11-14): the MACHINES page, the main screen and the SAVE PRESET and RENAME PRESET windows. Then on a Model:Cycles from the command line with every card the same day: the MACHINES page" }
+  ] },
   { version: "0.62", date: "2026-11-13", changes: [
     { en: "SAMPLE (Cycles One-Shot 0.17): the previewed sample follows the knobs. While a sample is marked in the PRESET menu, the copy of the track's sound that the pad and the TRIG keys play takes the knobs' values as you turn them (Start, Length, the filter, DECAY, Loop and Reverse too); before, it kept the values from the moment the sample was marked, so a knob turned with the menu open did nothing for the next note" },
     { en: "Checked on the host and in an emulator on the OS's own code, then on a Model:Cycles from the command line with every card (2026-11-13): a note after SHAPE turned is short, after SWEEP turned filtered, the held pad's trigs follow the knob at once. Then flashed from this page with every card the same day" }
