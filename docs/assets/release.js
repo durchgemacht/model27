@@ -12,8 +12,8 @@ window.MC_RELEASES = [
     { en: "Checked in an emulator on the OS's own code and in digiemu with every card (2026-11-14): the MACHINES page, the main screen and the SAVE PRESET and RENAME PRESET windows. Then on a Model:Cycles from the command line with every card the same day: the MACHINES page" }
   ] },
   { version: "0.63", date: "2026-11-14", changes: [
-    { en: "New card, Perform Kit: press and hold SETTINGS and press PATTERN, and a pattern change keeps your presets, track levels, delay and reverb as they are. The new pattern's trigs, parameter locks and preset locks play on them. A checkered stripe at the left edge of the screen shows that the mode is on" },
-    { en: "Nothing is kept unless you save the pattern (FUNC + SETTINGS held): switching the mode off, Save Project and switching the Model:Cycles off leave every pattern with its own presets. Which delay and reverb a pattern uses and its CHORD wavetable still change with the pattern" },
+    { en: "New card, Perform Kit: press and hold SETTINGS and press PATTERN, and a pattern change no longer changes the sound. Only the sequence changes: the next pattern's trigs and locks play on the sounds you have right now. A checkered stripe at the left edge of the screen shows that the mode is on" },
+    { en: "Nothing is kept unless you save the pattern (FUNC + SETTINGS held): switching the mode off, Save Project and switching the Model:Cycles off leave every pattern with the sound it had before the mode. Which delay and reverb a pattern uses and its CHORD wavetable still change with the pattern" },
     { en: "Checked in an emulator on the OS's own code, then on a Model:Cycles from the command line, alone and with every card, then flashed from this page (2026-11-14)" }
   ] },
   { version: "0.62", date: "2026-11-13", changes: [

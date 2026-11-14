@@ -10990,17 +10990,18 @@ const FEAT = {
         "their octave. Nothing is saved, and the preset's PITCH stays as you set it."],
     ] },
   perform: { label: "Perform Kit",
-    short: "Keeps your presets, track levels, delay and reverb as they are when you change patterns.",
+    short: "Change patterns without changing the sound: the next pattern's trigs play on the sounds you have right now.",
     desc: [
       ["", "Press and hold [SETTINGS] and press [PATTERN] to switch the mode on, and again to switch it off. The screen " +
         "says Perform Kit ON or OFF. While the mode is on, a checkered stripe shows at the left edge of the screen."],
-      ["Changing patterns", "Change patterns as always. The new pattern's trigs, parameter locks and preset locks " +
-        "play. The presets of the six tracks, the track levels and the delay and reverb settings stay as you left them."],
-      ["Switching it off", "Switch the mode off to hear the pattern's own presets again, each track from its next " +
-        "trig. What you changed while the mode was on is gone, unless you saved the pattern."],
-      ["Save Pattern", "Press and hold [FUNC] + [SETTINGS] for a second and save the pattern. The pattern keeps what " +
-        "you hear, also after you switch the mode off. Save Project and switching the Model:Cycles off save every " +
-        "pattern's own presets instead."],
+      ["Changing patterns", "Normally every pattern brings its own sounds. With the mode on, only the sequence " +
+        "changes: the next pattern's trigs and locks play on the six tracks as they sound now, with their levels, " +
+        "delay and reverb. What you tweak carries on from pattern to pattern."],
+      ["Switching it off", "Switch the mode off and the pattern sounds as it was saved again, each track from its " +
+        "next trig. What you changed while the mode was on is gone, unless you saved the pattern."],
+      ["Save Pattern", "Press and hold [FUNC] + [SETTINGS] for a second and save the pattern. From then on the " +
+        "pattern you are in sounds like this, also with the mode off. Without Save Pattern nothing is kept: Save " +
+        "Project and switching the Model:Cycles off store every pattern with the sound it had before the mode."],
       ["Reload Pattern", "Press and hold [FUNC] + [PATTERN] for a second and reload the pattern. You hear the " +
         "pattern as it was saved. The mode stays on."],
       ["Temporary save", "[FUNC] + [SETTINGS] and [FUNC] + [PATTERN] save and reload temporarily, as always. What you " +
@@ -11009,8 +11010,6 @@ const FEAT = {
         "and reverb a pattern uses ([PATTERN] + DELAY TIME or REVERB SIZE) and its CHORD wavetable ([PATTERN] + SWEEP) " +
         "belong to the pattern: set them in every pattern you play."],
       ["Paste, clear, load", "Pasting or clearing a pattern and loading another project switch the mode off."],
-      ["[SETTINGS]", "Press [PATTERN] within a second. Held longer, [SETTINGS] asks whether to save the project, as it " +
-        "always does."],
     ] },
   "trig-cond-order": { label: "Trig Condition Order",
     short: "On CHANCE, the A:B conditions come before the percentages.",

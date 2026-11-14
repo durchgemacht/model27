@@ -558,9 +558,9 @@ ALL_FEATURES = [
         "id": "perform",
         "cat": "live",
         "label": "Perform Kit",
-        "desc": "SETTINGS + PATTERN switches a mode in which a pattern change keeps the presets, the track levels and "
-                "the delay and reverb settings as they are; a checkered stripe at the left edge of the screen shows "
-                "it. Nothing is kept unless the pattern is saved.",
+        "desc": "SETTINGS + PATTERN switches a mode in which a pattern change no longer changes the sound: the next "
+                "pattern's trigs play on the sounds you have right now; a checkered stripe at the left edge of the "
+                "screen shows it. Nothing is kept unless the pattern is saved.",
         # model27's own (notes/81): the sequencer's writes, the kit selection, the serializer, the saves and loads,
         # the popup and the mark proven in emulation; tested on the Model:Cycles from the command line on 2026-11-14
         # (notes/81 §9: alone, every step of saving; with every card, the mark and the switch), then
