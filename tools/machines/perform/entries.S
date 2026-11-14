@@ -2,7 +2,8 @@
  * composer adds to a build when its card is ticked. Built once by tools/gen_parts.py into perform.o and placed by
  * tools/relocate.py like a package; the composer writes the data block right after it and resolves pk_data, the
  * block's address, and pk_held, the byte that says SETTINGS' last event was down, as patch points. Addresses are VAs
- * of OS 1.13.
+ * of OS 1.13. MainScreenView's draw slot (vtable entry 0x400ffe30) goes to perform.c's pk_main directly, a C function
+ * in the OS's ABI.
  *
  *   pk_seq_d0, pk_seq_d2, pk_seq_fp  jsr from the four writes of the playing kit, each 6 bytes, in the sequencer:
  *            0x40054d6a  move.l d0,0x40a78888   the queued pattern's turn, in the interrupt 0x40054c1e

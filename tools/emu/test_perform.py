@@ -3,7 +3,7 @@
 _scratch/perform-kit/plan.md): the switch, the pattern change and what is saved, on the OS's own code, the stock OS
 and the build side by side.
 
-  1. the build, alone, with RESAMPLE and with the offered cards: the fourteen writes (thirteen with RESAMPLE, which holds the
+  1. the build, alone, with RESAMPLE and with the offered cards: the fifteen writes (fourteen with RESAMPLE, which holds the
      key code accessor), each over its stock bytes; pk_held the part's own byte or RESAMPLE's set_held; the data block
      zero; every other write and the payload before the part's code as in the build without it; the tweaks that write
      at its sites among the conflicts;
@@ -39,6 +39,12 @@ and the build side by side.
   10. the popup: with the views up, the switch builds the OS's popup as RESAMPLE's save does: the string of "Perform
      Kit ON" or "Perform Kit OFF", 0x9c bytes, the popup's constructor on them, the holder (0x400fbf40, 1, 1, the
      popup), presented on the views' target, the reference and the string dropped; before the views are up, none.
+  11. the mark on the main screen, through MainScreenView's draw slot (0x400ffe30): the draw behind it called once
+     with the same arguments, as the stock slot calls the stock draw; the stack and d2-d7/a2-a6 kept; the view kept;
+     with the mode on and no value window the two leftmost columns of the bitmap hold the checkerboard (0xaaaaaaaa,
+     0x55555555), every other word as the draw behind left it; with the mode off or a value window open no word
+     changes; a switch asks the kept view for a redraw. Section 1 also composes the part with SAMPLE (its own main
+     draw behind the mark) and with SAMPLE and REF2 (the dispatcher behind it).
 
 Unicorn's JIT stops with SIGILL in a sandbox that forbids generated code: run it in a normal terminal.
 
@@ -65,6 +71,7 @@ PART = compose.load_part("perform")
 DATA, SITES = PART["data"], PART["sites"]
 OFFERED = ["sampler", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq"]
 SELECTIONS = [("perform", [], {}), ("resample+perform", [], {"resample": True}),
+              ("sampler+perform", ["sampler"], {}), ("sampler+refmachine2+perform", ["sampler", "refmachine2"], {}),
               ("offered+cpu+resample+transpose+perform", OFFERED, {"cpu": True, "resample": True, "transpose": True})]
 BOOT_SITES = {0x400004b2, 0x400b1106, 0x4016cae8}   # the payload's boot: the hook, the stub's mask and its sprite
 KITS, KIT_SIZE, HEAD, NKITS = 0x409c9c80, 7094, 694, 96
@@ -80,6 +87,7 @@ BUF, RET = 0x93e30000, 0x93e40000
 VIEWS_UP, STRING, NEW, POPUP, VIEWS, TARGET, PRESENT, DROP, STRING_DROP = (
     0x40fe4178, 0x400f980c, 0x400802e0, 0x400747c0, 0x400d0974, 0x400060d8, 0x4007700e, 0x400cf23c, 0x400f7d5c)
 POPUP_HOLDER_VT, VIEWS_OBJ, TARGET_OBJ = 0x400fbf40, 0x93e60000, 0x93e70000
+MAIN_SLOT, MAIN_DRAW, VALUE_SHOWN, NEEDS_REDRAW, BITMAP = 0x400ffe30, 0x4001b22a, 0x4006b704, 0x40076082, 0x93e90000
 K_PATTERN, K_SETTINGS = 3, 13
 OBJ, VT, H_BOUND, PROJ, VIEW, EVENT = 0x93e00000, 0x93e01000, 0x93e02000, 0x93a00000, 0x93e10000, 0x93d10000
 
@@ -116,10 +124,21 @@ def build_tests(key, w, wo, resample):
         check(x is not None and x["old"] == old and x["new"] == new,
               f"{key}: {name} {va:#x} {old} -> {s['op']} {s['symbol']} ({syms[s['symbol']]:#x})"
               + (" and a nop" if len(new) > 12 else ""))
+    x = by.get(MAIN_SLOT)
+    ours.add(MAIN_SLOT)
+    check(x is not None and x["old"] == f"{MAIN_DRAW:08x}" and x["new"] == f"{syms['pk_main']:08x}",
+          f"{key}: MainScreenView's draw slot {MAIN_SLOT:#x}: {MAIN_DRAW:#x} -> pk_main ({syms['pk_main']:#x})")
     pay = compose.gs.PAY_ALONE
-    block = runtime[pi["data_at"] - pay:pi["data_at"] - pay + DATA["size"]]
+    block = bytearray(runtime[pi["data_at"] - pay:pi["data_at"] - pay + DATA["size"]])
+    nxt = struct.unpack_from(">I", block, DATA["next"])[0]
+    block[DATA["next"]:DATA["next"] + 4] = bytes(4)
+    behind = int(wo[0]["writes"][[w_["off"] + compose.BASE for w_ in wo[0]["writes"]].index(MAIN_SLOT)]["new"], 16) \
+        if wo is not None and MAIN_SLOT in [w_["off"] + compose.BASE for w_ in wo[0]["writes"]] else MAIN_DRAW
+    check(nxt == behind == pi["main_next"],
+          f"{key}: the draw behind the mark ({pi['main_behind']}, {nxt:#x}) is what the build without Perform Kit has "
+          "in the slot")
     check(len(block) == DATA["size"] and not any(block) and syms["pk_data"] == pi["data_at"],
-          f"{key}: the data block at {pi['data_at']:#x}, {DATA['size']} bytes, zero")
+          f"{key}: the data block at {pi['data_at']:#x}, {DATA['size']} bytes, zero but for that address")
     if resample:
         want = info["resample"]["data_at"] + compose.load_part("resample")["data"]["set_held"]
         who = "RESAMPLE's set_held"
@@ -133,7 +152,7 @@ def build_tests(key, w, wo, resample):
     else:
         bw = {x["off"] + compose.BASE: x for x in wo[0]["writes"]}
         diff = sorted(a for a in set(by) | set(bw) if by.get(a) != bw.get(a))
-        check(set(diff) <= ours | BOOT_SITES and not ours & set(bw),
+        check(set(diff) <= ours | BOOT_SITES and not (ours - {MAIN_SLOT}) & set(bw),
               f"{key}: every other write as in the build without Perform Kit ({len(by)} writes; differing "
               f"{', '.join(map(hex, diff))})")
         n = pi["code_at"] - pay
@@ -163,6 +182,7 @@ class Model:
         self.on = self.home = self.left1 = self.which = self.taken = 0
         self.buf = [bytearray(DATA["buf_bytes"]), bytearray(DATA["buf_bytes"])]
         self.temp = set()
+        self.view = self.next = 0
         self.big = bytes(DATA["size"] - DATA["big"])
 
     def head(self, n):
@@ -238,7 +258,8 @@ class Model:
         for n in self.temp:
             bits[n >> 3] |= 1 << (n & 7)
         return (bytes([self.on, self.home, self.left1, self.which, self.taken, held, 0, 0])
-                + bytes(self.buf[0]) + bytes(self.buf[1]) + bytes(bits) + (self.big if big is None else big))
+                + bytes(self.buf[0]) + bytes(self.buf[1]) + bytes(bits) + struct.pack(">II", self.view, self.next)
+                + (self.big if big is None else big))
 
 
 def rig(img, runtime=None):
@@ -257,6 +278,7 @@ def pattern_bytes():
 def load(u, m, da, held=0):
     u.uc.mem_write(KITS, bytes(m.kits))
     if da:
+        m.next = u.u32(da + DATA["next"])             # the composer's: the draw behind the mark
         u.uc.mem_write(da, m.block(held))
 
 
@@ -764,6 +786,67 @@ def popup_tests(key, stock, w):
         pat_case(b, 0, extra=dict(hooks))
 
 
+# --- 11. the mark on the main screen ------------------------------------------------------------------------------
+PIXELS = BITMAP + 0x100
+
+
+def main_draw(u, shown):
+    """MainScreenView's draw through its slot, the draw behind it stubbed: (the calls of that draw, the bitmap's words
+    after, the stack and the registers kept)."""
+    import test_shortcuts as SH
+    words = [0x10000 + i for i in range(128 * 2)]
+    u.uc.mem_write(BITMAP, struct.pack(">IiiiI", 0, 128, 64, 2, PIXELS))
+    u.uc.mem_write(PIXELS, struct.pack(">256I", *words))
+    u.hooks = {MAIN_DRAW: ("behind", 0), UI_STATE: ("ui", 0x93a20000), VALUE_SHOWN: ("shown", shown)}
+    u.calls.clear()
+    vals = SH.sentinels(u)
+    u.call(u.u32(MAIN_SLOT), VIEW, BITMAP)
+    ok = [u.uc.reg_read(r) & 0xffffffff for r in SH.KEPT] == vals and u.sp_ok and not u.bad
+    return ([a[:2] for n, a in u.calls if n == "behind"], list(struct.unpack(">256I", u.uc.mem_read(PIXELS, 1024))),
+            words, ok)
+
+
+def mark_tests(key, stock, w):
+    tweak, info, img, runtime = w
+    da = info["perform"]["data_at"]
+    a, b = rig(stock), rig(img, runtime)
+    fresh = pattern_bytes()
+    same = drawn = kept_view = True
+    for on in (0, 1):
+        for shown in (0, 1):
+            ra = main_draw(a, shown)
+            m = Model(fresh)
+            if on:
+                m.toggle(3)
+            load(b, m, da)
+            rb = main_draw(b, shown)
+            m.view = VIEW
+            same &= ra[0] == rb[0] == [(VIEW, BITMAP)] and ra[3] and rb[3] and ra[1] == ra[2]
+            want = list(rb[2])
+            if on and not shown:
+                want[0:2], want[2:4] = [0xaaaaaaaa] * 2, [0x55555555] * 2
+            drawn &= rb[1] == want
+            kept_view &= state(b, da) == (bytes(m.kits), m.block())
+    check(same, f"{key}: {MAIN_SLOT:#x}: the draw behind called once with (view, bitmap), as the stock slot calls the "
+                "stock draw; the stack and d2-d7/a2-a6 kept, no access outside memory")
+    check(drawn, f"{key}: the mode on and no value window: columns 0 and 1 hold the checkerboard (0xaaaaaaaa, "
+                 "0x55555555), every other word as the draw behind left it; the mode off or a value window open: "
+                 "no word changes")
+    check(kept_view, f"{key}: the view kept in the data block, nothing else changed")
+    m = Model(fresh)
+    load(b, m, da)
+    m.view = VIEW
+    b.uc.mem_write(da, m.block())
+    b.uc.mem_write(PLAY_KIT, struct.pack(">I", kit(3)))
+    b.hold(K_SETTINGS, True)
+    asked = True
+    for _ in range(2):                                # on, then off
+        pat_case(b, 1, extra={NEEDS_REDRAW: ("redraw", 0)})
+        asked &= [c[:1] for n, c in b.calls if n == "redraw"] == [(VIEW,)]
+        pat_case(b, 0)
+    check(asked, f"{key}: the switch, on and off: the kept view asked for a redraw once")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cycles", required=True, help="official model-cycles_OS1.13.syx")
@@ -786,7 +869,8 @@ def main():
                                          ("the kit's save to a slot", ksave_tests),
                                          ("the kit's load from a slot", kload_tests),
                                          ("another project, pattern paste and clear", entry_tests),
-                                         ("the popup", popup_tests)), 2):
+                                         ("the popup", popup_tests),
+                                         ("the mark on the main screen", mark_tests)), 2):
             print(f"{n}. {title}")
             for key in ("perform", "resample+perform"):
                 fn(key, stock, builds[key])

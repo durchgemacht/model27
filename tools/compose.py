@@ -1434,7 +1434,7 @@ def transpose_layer(img, part, at, code_end, sc_data, n=None):
     return blob, out, writes, taken, info
 
 
-def perform_layer(img, part, at, code_end, rss=None):
+def perform_layer(img, part, at, code_end, rss=None, mans=(), syms_of=None, dispatch=None):
     """Perform Kit of this build (tools/machines/perform/, the plan of 2026-11-14, step P1): the sequencer's four writes
     of the playing kit (0x40054d6a, 0x40055510, 0x4005571e, 0x40055c62) go through the part's pk_seq_*, the start of
     the interface's kit selection (0x4000f36a, 8 bytes) to pk_ui, the first instruction of PatternGridView's PATTERN
@@ -1443,7 +1443,11 @@ def perform_layer(img, part, at, code_end, rss=None):
     accessor, the write is left out and pk_held is RESAMPLE's set_held. Since the part's 0.2 also the start of the kit
     serializer (0x4005b2ae), the kit's save to a slot (0x400100ba) and its load from one (0x400107a4), the function the
     project functions call (0x4000eb12) and the starts of pattern paste and clear (0x40010c7a, 0x4001190c,
-    0x40011a7e): every site of part.json. The data block after the part's code is zero.
+    0x40011a7e): every site of part.json. Since its 0.4 MainScreenView's draw slot (vtable entry 0x400ffe30) goes to
+    the part's pk_main, which calls the draw the build would have there otherwise and then paints its mark: the
+    dispatcher's when it holds the slot (dispatch; its write there is left out by the caller), the one package's that
+    takes the slot (mans, syms_of; left out through the sites taken), else the stock draw; its address is the data
+    block's next. The rest of the data block after the part's code is zero.
     Returns (blob, symbols, writes, the sites taken, info)."""
     d, sites = part["data"], part["sites"]
     path = object_path(part)
@@ -1461,8 +1465,26 @@ def perform_layer(img, part, at, code_end, rss=None):
     values = {"perform_data": data_at, "perform_held": held}
     pps = part["build"]["patch_points"]
     code, syms, _ = relocate.apply(lay, at, at, code_end, {pp["symbol"]: values[pp["kind"]] for pp in pps})
-    blob = code + bytes(data_at - at - len(code)) + bytes(d["size"])
-    writes, taken = [], set()
+    mv = part["main"]
+    slot, stock_draw = int(mv["vtable"], 16), int(mv["stock_ptr"], 16)
+    if g7.refs32(img, stock_draw) != [slot]:
+        sys.exit(f"!! references to {stock_draw:#x}: {[hex(r) for r in g7.refs32(img, stock_draw)]}")
+    users = [(m, u["vtable"]) for m in mans for u in m["uses"] if "vtable" in u and int(u["vtable"]["at"], 16) == slot]
+    if dispatch and slot in dispatch[3]:                # two packages share the slot: the dispatcher behind pk_main
+        behind, nxt = "dispatch", next(dispatch[1][s_["symbol"]] for s_ in load_part("dispatch")["sites"].values()
+                                       if "vtable" in s_ and int(s_["vtable"], 16) == slot)
+    elif users:                                         # one package takes it: its own draw behind pk_main
+        if len(users) > 1:
+            sys.exit(f"!! {slot:#x}: {[m['id'] for m, _ in users]} take it without the dispatcher")
+        m, vt = users[0]
+        behind, nxt = m["id"], syms_of[m["id"]][vt["symbol"]]
+    else:
+        behind, nxt = "stock", stock_draw
+    block = bytearray(d["size"])
+    struct.pack_into(">I", block, d["next"], nxt)
+    blob = code + bytes(data_at - at - len(code)) + bytes(block)
+    writes = [{"off": slot - BASE, "old": g7.be32(stock_draw).hex(), "new": g7.be32(syms[mv["symbol"]]).hex()}]
+    taken = {slot}
     for key, s in sites.items():
         if rss and s.get("unless") == "resample":       # RESAMPLE's rs_code keeps SETTINGS' state for both
             continue
@@ -1478,7 +1500,7 @@ def perform_layer(img, part, at, code_end, rss=None):
     out = {r: syms[r] for r in roots}
     out.update({pp["symbol"]: values[pp["kind"]] for pp in pps})
     info = dict(id=part["id"], code_at=at, code=len(code), data_at=data_at, data=d["size"], held=held,
-                held_by="resample" if rss else "perform")
+                held_by="resample" if rss else "perform", main_slot=slot, main_next=nxt, main_behind=behind)
     return blob, out, writes, taken, info
 
 
@@ -1751,9 +1773,12 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
         pks = None                           # Perform Kit; SETTINGS' state from RESAMPLE's byte when that part is in
         if perform:
             at = align4(code_cursor)
-            pks = perform_layer(img, load_part("perform"), at, gs.STUBS, rss)
+            pks = perform_layer(img, load_part("perform"), at, gs.STUBS, rss, mans, syms_of, dispatch)
             blobs.append((at, pks[0]))
             code_cursor = at + len(pks[0])
+            if dispatch and pks[4]["main_slot"] in dispatch[3]:      # the main draw's slot is pk_main's: the
+                dispatch = (dispatch[0], dispatch[1],                # dispatcher is called from there
+                            [w_ for w_ in dispatch[2] if w_["off"] + BASE != pks[4]["main_slot"]], dispatch[3], dispatch[4])
         chains = chain_sites(mans)           # the packages' chain hooks (notes/66 §30.2), in front of the parts
         if chains:
             extras = [x for x in (layer, dispatch, fxs, fls, cpus, rss, trs, pks) if x]
@@ -1944,7 +1969,8 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                                        f"(0x4000f36a), PATTERN's case (0x40020ad0), the kit serializer's start "
                                        f"(0x4005b2ae), the kit's save and load (0x400100ba, 0x400107a4), the project "
                                        f"replaced (0x4000eb12), pattern paste and clear (0x40010c7a, 0x4001190c, "
-                                       f"0x40011a7e); SETTINGS' state at {pi['held']:#x}, "
+                                       f"0x40011a7e), MainScreenView's draw slot (0x400ffe30, behind it "
+                                       f"{pi['main_behind']} at {pi['main_next']:#x}); SETTINGS' state at {pi['held']:#x}, "
                                        f"kept by {pi['held_by']}.")
         tweak["symbols"].update({k: f"{v:#x}" for k, v in pks[1].items()})
     info = dict(pay=pay, end=bss_cursor, image=sum(n for _, n in append["pack"]), packages=info_pkgs,
@@ -2110,7 +2136,8 @@ def main():
     if info["perform"]:
         p = info["perform"]
         print(f"  {p['id']:12s} code {p['code']} bytes at {p['code_at']:#x}, data {p['data']} bytes at {p['data_at']:#x}, "
-              f"SETTINGS' state at {p['held']:#x}, kept by {p['held_by']}")
+              f"SETTINGS' state at {p['held']:#x}, kept by {p['held_by']}; the main draw behind its mark: "
+              f"{p['main_behind']} at {p['main_next']:#x}")
     print(f"  tweak {tweak['id']}: {len(tweak['writes'])} writes, payload {info['pay']:#x}..{info['end']:#x}, "
           f"{info['image']} bytes added to the image, {len(tweak['conflicts'])} conflicts computed")
     ci = info["claims"]

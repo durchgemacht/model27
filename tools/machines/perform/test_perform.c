@@ -20,7 +20,47 @@ static uint32_t changed_n, changed_calls, audio_calls, masked_at_audio;
 static uint8_t *changed_obj, *audio_kit;
 static int failed, checks;
 
-static uint32_t temp_calls, temp_seen[8], temp_own, popups;
+static uint32_t temp_calls, temp_seen[8], temp_own, popups, redraws, next_calls;
+static void *redraw_view, *next_view, *next_bitmap;
+static uint32_t screen[128 * 2];
+static pk_bitmap bitmap = {0, 128, 64, 2, screen};
+uint32_t host_value_shown;
+
+void host_redraw(void *view)
+{
+	redraw_view = view;
+	redraws++;
+}
+
+static void host_next(void *view, void *b)
+{
+	uint32_t i;
+
+	next_view = view;
+	next_bitmap = b;
+	next_calls++;
+	for (i = 0; i < 128 * 2; i++)                   /* the draw behind: every word its own value */
+		screen[i] = 0x10000u + i;
+}
+
+static int stripe_is(int there)
+{
+	uint32_t i;
+
+	for (i = 0; i < 128 * 2; i++) {
+		uint32_t want = 0x10000u + i;
+
+		if (there && i < 2)
+			want = 0xaaaaaaaau;
+		if (there && i >= 2 && i < 4)
+			want = 0x55555555u;
+		if (screen[i] != want)
+			return 0;
+	}
+	return 1;
+}
+
+void pk_main(void *view, void *bitmap);
 static const char *popup_text;
 
 void popup(const char *text)
@@ -78,7 +118,8 @@ static void reset(void)
 	memset(&pk_data, 0, sizeof pk_data);
 	pk_held = 0;
 	host_key_held = host_pattern = host_masked = 0;
-	changed_calls = audio_calls = temp_calls = temp_own = popups = 0;
+	changed_calls = audio_calls = temp_calls = temp_own = popups = redraws = next_calls = 0;
+	host_value_shown = 0;
 	popup_text = "";
 	host_play_kit = KIT(0);
 }
@@ -288,10 +329,50 @@ int main(void)
 	CHECK(popups == 2 && !strcmp(popup_text, "Perform Kit OFF"), "off: the popup");
 	pk_toggle();
 	pk_off_c();
-	CHECK(popups == 4 && !strcmp(popup_text, "Perform Kit OFF"), "paste or clear: the popup");
+	CHECK(popups == 3 && !strcmp(popup_text, "Perform Kit ON") && !pk_data.on, "paste or clear: the mode off, no popup");
 	pk_off_c();
 	pk_drop_c();
-	CHECK(popups == 4, "the mode off already, another project: no popup");
+	CHECK(popups == 3, "the mode off already, another project: no popup");
+
+	/* 15. the mark on the main screen */
+	reset();
+	pk_data.next = host_next;                       /* the composer's */
+	pk_main(host_project + 8, &bitmap);
+	CHECK(next_calls == 1 && next_view == host_project + 8 && next_bitmap == &bitmap && stripe_is(0),
+	      "the mode off: the draw behind, called with the same arguments, and nothing else");
+	host_pattern = 2;
+	pk_toggle();
+	CHECK(redraws == 1 && redraw_view == host_project + 8, "on: the main view asked for a redraw");
+	pk_main(host_project + 8, &bitmap);
+	CHECK(next_calls == 2 && stripe_is(1), "the mode on: the draw behind, then the stripe over columns 0 and 1");
+	host_value_shown = 1;
+	pk_main(host_project + 8, &bitmap);
+	CHECK(next_calls == 3 && stripe_is(0), "a value window open: the draw behind only");
+	host_value_shown = 0;
+	bitmap.width = 1;
+	pk_main(host_project + 8, &bitmap);
+	bitmap.width = 128;
+	bitmap.stride = 1;
+	pk_main(host_project + 8, &bitmap);
+	bitmap.stride = 2;
+	bitmap.data = 0;
+	pk_main(host_project + 8, &bitmap);
+	bitmap.data = screen;
+	CHECK(stripe_is(0), "a bitmap too narrow, too short a column, or without data: no stripe");
+	pk_toggle();
+	CHECK(redraws == 2, "off: a redraw");
+	pk_main(host_project + 8, &bitmap);
+	CHECK(stripe_is(0), "the mode off again: no stripe");
+	pk_toggle();
+	pk_off_c();
+	CHECK(redraws == 4, "paste or clear: a redraw");
+	pk_toggle();
+	pk_drop_c();
+	CHECK(redraws == 6, "another project: a redraw");
+	pk_data.next = 0;
+	pk_data.on = 1;
+	pk_main(host_project + 8, &bitmap);
+	CHECK(next_calls == 7, "no draw behind: none called");
 
 	printf("%s, %d checks\n", failed ? "FAILED" : "ALL OK", checks);
 	return failed != 0;

@@ -20,7 +20,14 @@
  *     kit's change notice (0x400d1f98), which refreshes the interface and the kit's mirror.
  * The switch shows the OS's popup, "Perform Kit ON" or "Perform Kit OFF" (popup, as RESAMPLE's save.c and the OS's
  * own 0x4000d750 show one: 0x400747c0 on 0x9c bytes, its holder 0x400fbf40, presented on the views' target); paste
- * and clear, which switch the mode off, show it too. Nothing shows the mode after the popup is gone (step P5).
+ * and clear, which switch the mode off, do not: the OS shows its own message right after.
+ * While the mode is on, the main screen shows it, whoever draws it (pk_main, in MainScreenView's draw slot, vtable
+ * entry 0x400ffe30, stock 0x4001b22a): pk_main calls the draw the build would have there otherwise (next, written by
+ * the composer: the stock draw, a machine's own main draw as SAMPLE's, or the dispatcher's), then paints a
+ * checkerboard stripe over the two leftmost columns, the screen's full height, straight into the bitmap (as the
+ * OS's fill 0x40070dea reads it: +4 width, +8 height, +12 the words a column, +16 the data, a column's words one
+ * after the other, a row's bit 31 - (row & 31)); not while a value window is open, when the stock draw draws
+ * nothing. A switch asks the main view, kept from its last draw, for a redraw (0x40076082).
  * SETTINGS + PATTERN switches (pk_pattern_c, from pk_pattern at 0x40020ad0, PatternGridView's PATTERN case): with
  * SETTINGS held, PATTERN's press toggles the mode and is taken, with its repeats and its release, so the pattern
  * selection is not armed. SETTINGS is held when isKeyHeld(13) says so or its last event does (pk_held, a byte the
@@ -52,7 +59,9 @@
  *   +5 held  SETTINGS' last event was down (pk_code)
  *   +8 buf   two buffers of 696 bytes
  *   +1400 temp  a bit per pattern temp-saved inside the mode
- *   +1412 big   a kit, for the serializer's copy
+ *   +1412 view  the main view, from its last draw
+ *   +1416 next  the main draw behind pk_main, written by the composer
+ *   +1420 big   a kit, for the serializer's copy
  *
  * License: MIT (LICENSE next to this file). */
 #include <stdint.h>
@@ -65,6 +74,8 @@ typedef struct {
 	uint8_t on, home, left1, which, taken, held, pad[2];
 	uint8_t buf[2][696];
 	uint8_t temp[12];
+	void *view;
+	void (*next)(void *, void *);
 	uint8_t big[7096];
 } pk_t;
 
@@ -95,6 +106,9 @@ extern volatile uint8_t pk_held;
 #define TARGET(v) ((void *(*)(void *))0x400060d8)(v)
 #define PRESENT(t, pair, x) ((void (*)(void *, void *, uint32_t))0x4007700e)(t, pair, x)
 #define DROP(ref) ((void (*)(void *))0x400cf23c)(ref)
+#define NEEDS_REDRAW(v) ((void (*)(void *))0x40076082)(v)
+#define UI_STATE() ((void *(*)(void))0x400cf9a8)()
+#define VALUE_SHOWN() (((char (*)(void *))0x4006b704)(UI_STATE()) != 0)   /* a value window is open */
 
 /* The OS's popup with this text, as tools/machines/resample/save.c shows one. */
 static void popup(const char *text)
@@ -206,9 +220,49 @@ void pk_ui_c(void)
 	irq_back(sr);
 }
 
+/* The main screen is drawn again, with or without the mark. */
+static void redraw(pk_t *D)
+{
+	if (D->view)
+		NEEDS_REDRAW(D->view);
+}
+
+/* A bitmap as the OS's drawing reads it (0x40070dea). */
+typedef struct {
+	uint32_t head;
+	int32_t width, height, stride;              /* stride: the words of a column */
+	uint32_t *data;
+} pk_bitmap;
+
+#define STRIPE 2                                    /* columns */
+
+/* The checkerboard stripe over the leftmost columns: column x's words alternate from bit 31 or bit 30. */
+static void stripe(pk_bitmap *b)
+{
+	int32_t words = (b->height + 31) >> 5, x, i;
+
+	if (!b->data || b->width < STRIPE || words < 1 || words > b->stride)
+		return;
+	for (x = 0; x < STRIPE; x++)
+		for (i = 0; i < words; i++)
+			b->data[x * b->stride + i] = x & 1 ? 0x55555555u : 0xaaaaaaaau;
+}
+
+/* MainScreenView's draw (vtable entry 0x400ffe30): the draw behind it, then the stripe while the mode is on. */
+void pk_main(void *view, void *bitmap)
+{
+	pk_t *D = &pk_data;
+
+	if (D->next)
+		D->next(view, bitmap);
+	D->view = view;
+	if (D->on && !VALUE_SHOWN())
+		stripe(bitmap);
+}
+
 /* The mode off: home's own bytes back, the audio side and the interface told, then the temp slot's kits of the
- * patterns temp-saved inside the mode saved again, with their own bytes. */
-static void mode_off(pk_t *D)
+ * patterns temp-saved inside the mode saved again, with their own bytes; say: with the popup. */
+static void mode_off(pk_t *D, uint32_t say)
 {
 	uint32_t sr, n;
 
@@ -225,7 +279,9 @@ static void mode_off(pk_t *D)
 			D->temp[n >> 3] &= (uint8_t)~(1u << (n & 7u));
 			TEMP_KIT_SAVE(PROJECT(), 1, n);
 		}
-	popup("Perform Kit OFF");
+	redraw(D);
+	if (say)
+		popup("Perform Kit OFF");
 }
 
 /* The mode on or off. */
@@ -235,7 +291,7 @@ void pk_toggle(void)
 	uint32_t sr, n;
 
 	if (D->on) {
-		mode_off(D);
+		mode_off(D, 1);
 		return;
 	}
 	n = PLAYING_PATTERN(SEQ_STATE());
@@ -247,6 +303,7 @@ void pk_toggle(void)
 	D->left1 = 0;
 	D->on = 1;
 	irq_back(sr);
+	redraw(D);
 	popup("Perform Kit ON");
 }
 
@@ -254,7 +311,7 @@ void pk_toggle(void)
 void pk_off_c(void)
 {
 	if (pk_data.on)
-		mode_off(&pk_data);
+		mode_off(&pk_data, 0);                      /* the OS shows its own message right after */
 }
 
 /* entries.S's pk_drop: the project is being replaced; no kit is written. */
@@ -267,6 +324,7 @@ void pk_drop_c(void)
 	D->left1 = 0;
 	for (i = 0; i < sizeof D->temp; i++)
 		D->temp[i] = 0;
+	redraw(D);
 }
 
 /* entries.S's pk_ser, the start of the kit serializer: the kit to serialize, big for home's and the pattern left's,

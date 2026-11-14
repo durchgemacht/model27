@@ -1,10 +1,10 @@
 {
  "schema": "model27-part/0.1",
  "id": "perform",
- "version": "0.3",
+ "version": "0.4",
  "order": 82,
  "name": "Perform Kit: with the mode on (SETTINGS + PATTERN), a pattern change keeps the sounds as they are, tweaked",
- "description": "A part of model27's builder, not a machine (the plan of 2026-11-14, _scratch/perform-kit/plan.md): built once into perform.o by tools/gen_parts.py, added by tools/compose.py to a build when its card is ticked (compose.py --perform), with or without packages. Steps P1 to P3: the switch, the pattern change, and what is saved. The copy way: the OS goes on playing and editing the active pattern's kit, and the part moves bytes 0..693 of the kit (the six track sounds, the six levels, the four effect values; not the pool of lock sounds) into the kit of the pattern that is about to play, at the sequencer's four writes of the playing kit (0x40054d6a, 0x40055510, 0x4005571e, 0x40055c62), keeps that pattern's own bytes, and gives the pattern left its own bytes back at the start of the interface's kit selection (0x4000f36a). SETTINGS + PATTERN switches the mode: PatternGridView's PATTERN case (0x40020ad0) takes PATTERN's press with SETTINGS held. Mode off puts the active pattern's own bytes back, clears what the audio side cached (0x4005950e) and sends the kit's change notice (0x400d1f98). SETTINGS is held when isKeyHeld(13) says so or its last event does: the key event's code accessor (0x4007240c) goes to pk_code, or, in a build with RESAMPLE, which holds the accessor, the composer points the part at RESAMPLE's byte. Since 0.2 (steps P2 and P3) nothing of the mode is saved until the pattern is: the start of the kit serializer (0x4005b2ae) hands it the pattern's own bytes for the active pattern's kit (Save Project, the backup at power off, the mirror, a SysEx dump); Save Pattern (0x400100ba, the project's slot) makes the tweaked bytes the pattern's own and saves them, a temp save saves them and notes the pattern; Reload Pattern from the project (0x400107a4) makes the loaded kit the pattern's own; mode off saves the noted patterns' kits to the temp slot again with their own bytes; pattern paste and clear (0x40010c7a, 0x4001190c, 0x40011a7e) switch the mode off first, another project (0x4000eb12) drops it. Since 0.3 the switch shows the OS's popup, Perform Kit ON or Perform Kit OFF; paste and clear, which switch the mode off, show it too.",
+ "description": "A part of model27's builder, not a machine (the plan of 2026-11-14, _scratch/perform-kit/plan.md): built once into perform.o by tools/gen_parts.py, added by tools/compose.py to a build when its card is ticked (compose.py --perform), with or without packages. Steps P1 to P3: the switch, the pattern change, and what is saved. The copy way: the OS goes on playing and editing the active pattern's kit, and the part moves bytes 0..693 of the kit (the six track sounds, the six levels, the four effect values; not the pool of lock sounds) into the kit of the pattern that is about to play, at the sequencer's four writes of the playing kit (0x40054d6a, 0x40055510, 0x4005571e, 0x40055c62), keeps that pattern's own bytes, and gives the pattern left its own bytes back at the start of the interface's kit selection (0x4000f36a). SETTINGS + PATTERN switches the mode: PatternGridView's PATTERN case (0x40020ad0) takes PATTERN's press with SETTINGS held. Mode off puts the active pattern's own bytes back, clears what the audio side cached (0x4005950e) and sends the kit's change notice (0x400d1f98). SETTINGS is held when isKeyHeld(13) says so or its last event does: the key event's code accessor (0x4007240c) goes to pk_code, or, in a build with RESAMPLE, which holds the accessor, the composer points the part at RESAMPLE's byte. Since 0.2 (steps P2 and P3) nothing of the mode is saved until the pattern is: the start of the kit serializer (0x4005b2ae) hands it the pattern's own bytes for the active pattern's kit (Save Project, the backup at power off, the mirror, a SysEx dump); Save Pattern (0x400100ba, the project's slot) makes the tweaked bytes the pattern's own and saves them, a temp save saves them and notes the pattern; Reload Pattern from the project (0x400107a4) makes the loaded kit the pattern's own; mode off saves the noted patterns' kits to the temp slot again with their own bytes; pattern paste and clear (0x40010c7a, 0x4001190c, 0x40011a7e) switch the mode off first, another project (0x4000eb12) drops it. Since 0.3 the switch shows the OS's popup, Perform Kit ON or Perform Kit OFF; paste and clear, which switch the mode off, show it too. Since 0.4 the main screen shows the mode, whoever draws it: MainScreenView's draw slot (vtable entry 0x400ffe30) goes to pk_main, which calls the draw the build would have there otherwise (the stock one, a machine's own or the dispatcher's; the composer writes it into the data block) and then paints a checkerboard stripe over the two leftmost columns while the mode is on; paste and clear no longer call the popup.",
  "license": "MIT",
  "build": {
   "sources": [
@@ -45,7 +45,8 @@
    "pk_drop",
    "pk_off_paste",
    "pk_off_cut",
-   "pk_off_clear"
+   "pk_off_clear",
+   "pk_main"
   ],
   "patch_points": [
    {
@@ -146,7 +147,7 @@
   }
  },
  "data": {
-  "size": 8508,
+  "size": 8516,
   "on": 0,
   "home": 1,
   "left1": 2,
@@ -157,7 +158,9 @@
   "buf_bytes": 696,
   "temp": 1400,
   "temp_bytes": 12,
-  "big": 1412
+  "big": 1420,
+  "view": 1412,
+  "next": 1416
  },
  "claims": {
   "gestures": [
@@ -168,5 +171,10 @@
     "replaces": "arms the pattern selection, as PATTERN without SETTINGS"
    }
   ]
+ },
+ "main": {
+  "vtable": "0x400ffe30",
+  "stock_ptr": "0x4001b22a",
+  "symbol": "pk_main"
  }
 }
