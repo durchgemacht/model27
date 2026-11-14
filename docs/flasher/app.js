@@ -17484,7 +17484,7 @@ const features = () => (window.MC_TWEAKS && window.MC_TWEAKS.features) || [];
 const featById = (id) => features().find((f) => f.id === id);
 function selOf(f) {
   return selection[f.id] || (selection[f.id] = f.engines ? { on: false, engines: [] }
-    : f.package || f.part ? { on: false } : { on: false, variant: f.variants[0].id });
+    : f.package || f.part ? { on: true } : { on: true, variant: f.variants[0].id });   // every card starts ticked
 }
 const label = (f) => featText(f.id, "label", f.label);
 // a mod without a short text shows the first sentence of its description (cut to 2 lines by the CSS); the name the

@@ -151,7 +151,7 @@ function fakeDevice(opts, reply) {
   return dev;
 }
 
-async function load({ midi = true, ports = true, inputs = true, busy = false, secure = true, lang = "en", devName = "Elektron Model:Cycles", device = {}, query = "" } = {}) {
+async function load({ midi = true, ports = true, inputs = true, busy = false, secure = true, lang = "en", devName = "Elektron Model:Cycles", device = {}, query = "", untick = true } = {}) {
   const errors = [];
   const vc = new VirtualConsole();
   vc.on("jsdomError", (e) => errors.push("jsdomError: " + ((e.detail && e.detail.message) || e.message || e)));
@@ -190,6 +190,12 @@ async function load({ midi = true, ports = true, inputs = true, busy = false, se
   await wait(300);
   // on a busy machine the scripts can take more than 300 ms to load
   for (let i = 0; i < 200 && !(dom.window.MCFlasherApp && dom.window.MC_TWEAKS && dom.window.MCBuilder); i++) await wait(50);
+  // the page starts with every card ticked; the checks below start from none, so untick them (re-query: re-rendered)
+  for (let i = 0; untick && i < 100; i++) {
+    const on = dom.window.document.querySelector('#features input[id^="feat-"]:checked:not(:disabled)');
+    if (!on) break;
+    on.click(); await wait(5);
+  }
   return { dom, w: dom.window, doc: dom.window.document, errors, sent, dev, listeners,
     access: () => access, devOut: () => devOut, devIn: () => devIn };
 }
@@ -297,6 +303,13 @@ async function main() {
       "credits section links Modded-Cycles' MIT license and model27's third-party notices: " + JSON.stringify(lic));
     const box = (id) => doc.getElementById(id);
     const chosen = () => w.MCFlasherApp.chosenTweaks().map((x) => x.id).join();
+    {   // a fresh page: every card ticked, without a clash
+      const f = await load({ untick: false });
+      const boxes = [...f.doc.querySelectorAll('#features input[id^="feat-"]')];
+      check(boxes.length === 17 && boxes.every((x) => x.checked) && !f.doc.querySelector("#features .say.clash") && !f.errors.length,
+        `a fresh page has every card ticked: ${boxes.filter((x) => x.checked).length} of ${boxes.length}`);
+      f.dom.window.close();
+    }
     // the two cards go together: no exclusion between them, both stay ticked, FEATURES order in the build
     box("feat-sampler").click(); await wait(5);
     const smpAlone = chosen();
