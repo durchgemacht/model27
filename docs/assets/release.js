@@ -7,6 +7,11 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.65", date: "2026-11-14", changes: [
+    { en: "The flasher page has a new footer: links to the site's pages and to the project, and a receipt that names the people whose work model27 is built on, from the reverse-engineering of the firmware to the sound of MACRO and ACID. model27 takes no money: every name on the receipt is a link to that person" },
+    { en: "The credits below it are now called Credits & licenses, otherwise unchanged. The firmware is unchanged" },
+    { en: "Checked in a browser on a computer and at phone width (2026-11-14)" }
+  ] },
   { version: "0.64", date: "2026-11-14", changes: [
     { en: "SOLID and SAMPLE have their own pictures. On the MACHINES page, SOLID shows its own card and a ball behind a pillar instead of Perc's, SAMPLE its own card and a waveform instead of Tone's. The main screen and the preset dialogs show them too. The sound is unchanged" },
     { en: "Checked in an emulator on the OS's own code and in digiemu with every card (2026-11-14): the MACHINES page, the main screen and the SAVE PRESET and RENAME PRESET windows. Then on a Model:Cycles from the command line with every card the same day: the MACHINES page" }

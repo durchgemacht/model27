@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-11-14-06">
-<link rel="stylesheet" href="style.css?v=2026-11-14-06">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-14-07">
+<link rel="stylesheet" href="style.css?v=2026-11-14-07">
 <!-- the flasher is in English only (2026-10-31), and light only for now: its dark theme (style.css) waits for a
      second pass, so the page pins the light one and hides the switch; the other pages keep their own theme -->
 <script>document.documentElement.setAttribute("data-theme","light")</script>
@@ -19,7 +19,7 @@
 <body data-page="flasher">
 <script>
   // Version stamp: an old date means the browser serves a cached copy -> hard reload.
-  window.MC_BUILD = "2026-11-14-06";
+  window.MC_BUILD = "2026-11-14-07";
   window.addEventListener("error", function (e) {
     var b = document.getElementById("errbar");
     if (!b) return;
@@ -261,27 +261,94 @@
   </details>
 </main>
 
+<!-- footer (2026-11-14): brand and links on the left, the receipt in a third (who did the hard part, each name a link:
+     to where they take support, checked on 2026-11-14, otherwise their GitHub), then the credits, disclaimer, version -->
 <footer class="foot">
   <div class="wrap">
-    <p><span data-i18n="privacy">Your firmware file never leaves your computer. Nothing is uploaded, no firmware is provided.</span>
-      <span data-i18n-html="links"></span></p>
+    <div class="foot-grid">
+      <div class="foot-main">
+        <div class="foot-brand">
+          <a class="foot-mark" href="../">model27</a>
+          <p class="foot-claim">Mods for the Elektron Model:Cycles, installed from your browser.</p>
+          <p class="foot-promise" data-i18n="privacy">Your firmware file never leaves your computer. Nothing is uploaded, no firmware is provided.</p>
+        </div>
+        <nav class="foot-col" aria-labelledby="foot-site">
+          <p class="foot-h" id="foot-site">Site</p>
+          <ul>
+            <li><a href="./" aria-current="page">Flasher</a></li>
+            <li><a href="../uploader/">Uploader</a></li>
+            <li><a href="../wavetables/">Wavetables</a></li>
+            <li><a href="../guide/">Guide</a></li>
+          </ul>
+        </nav>
+        <nav class="foot-col" aria-labelledby="foot-project">
+          <p class="foot-h" id="foot-project">Project</p>
+          <ul>
+            <li><a href="../#version">What's new</a></li>
+            <li><a href="https://github.com/durchgemacht/model27" target="_blank" rel="noopener">Source code</a></li>
+            <li><a href="https://github.com/durchgemacht/model27/blob/main/LICENSE" target="_blank" rel="noopener">License (MIT)</a></li>
+            <li><a href="https://github.com/durchgemacht/model27/blob/main/THIRD-PARTY-NOTICES.md" target="_blank" rel="noopener">Third-party notices</a></li>
+            <li><a href="https://github.com/18nelli18/Modded-Cycles" target="_blank" rel="noopener">Modded-Cycles</a></li>
+          </ul>
+        </nav>
+      </div>
+      <aside class="foot-og" aria-label="Who did the hard part">
+        <div class="rc" id="rc">
+          <p class="rc-c rc-b">*** Do not ***<br>buy me a coffee</p>
+          <p class="rc-c rc-s">model27 flasher<br><span id="rc-now">—</span> · order #0027<br>cashier: nobody<br>served by: the community</p>
+          <hr>
+          <div class="rc-hd"><span>qty item</span><span>by</span></div>
+          <ul class="rc-items">
+            <li><span>1 reverse-engineering</span><i class="rc-lead"></i><a class="rc-n" href="https://github.com/mxldyn" target="_blank" rel="noopener">mxldyn</a></li>
+            <li><span>1 firmware container</span><i class="rc-lead"></i><a class="rc-n" href="https://github.com/mischa85" target="_blank" rel="noopener">mischa85</a></li>
+            <li><span>1 the whole base</span><i class="rc-lead"></i><a class="rc-n" href="https://ko-fi.com/18nelli" target="_blank" rel="noopener">18nelli18</a></li>
+            <li><span>1 USB transfer</span><i class="rc-lead"></i><a class="rc-n" href="https://liberapay.com/dagargo" target="_blank" rel="noopener">dagargo</a></li>
+            <li><span>1 mtlib &amp; tweaks</span><i class="rc-lead"></i><a class="rc-n" href="https://www.donationalerts.com/r/wdak" target="_blank" rel="noopener">drumkilla</a></li>
+            <li><span>1 Model-TG</span><i class="rc-lead"></i><a class="rc-n" href="https://github.com/TinyGregAudio" target="_blank" rel="noopener">TinyGregAudio</a></li>
+            <li><span>1 Digital Delay</span><i class="rc-lead"></i><a class="rc-n" href="https://ko-fi.com/pppccc" target="_blank" rel="noopener">gialloinfuso</a></li>
+            <li><span>1 6-ch USB audio</span><i class="rc-lead"></i><a class="rc-n" href="https://github.com/scottmetoyer" target="_blank" rel="noopener">scottmetoyer</a></li>
+            <li><span>1 MACRO synthesis</span><i class="rc-lead"></i><a class="rc-n" href="https://github.com/pichenettes" target="_blank" rel="noopener">Émilie Gillet</a></li>
+            <li><span>1 ACID filter</span><i class="rc-lead"></i><a class="rc-n" href="https://github.com/RobinSchmidt" target="_blank" rel="noopener">Robin Schmidt</a></li>
+          </ul>
+          <hr>
+          <div class="rc-row"><span>Their work</span><i class="rc-lead"></i><span>priceless</span></div>
+          <div class="rc-row"><span>model27's share</span><i class="rc-lead"></i><span>0.00</span></div>
+          <div class="rc-row"><button type="button" class="rc-tip" id="rc-tip">Tip</button><i class="rc-lead"></i><span>disabled</span></div>
+          <div class="rc-print" id="rc-print" aria-live="polite"></div>
+          <hr class="rc-dbl">
+          <div class="rc-total"><span>Total due<br>to model27</span><b>0.00</b></div>
+          <div class="rc-stamp" id="rc-stamp" aria-hidden="true">Paid in full<br>by the community</div>
+          <hr>
+          <div class="rc-row rc-sm"><span>Payment</span><i class="rc-lead"></i><span>open source</span></div>
+          <div class="rc-row rc-sm"><span>Change</span><i class="rc-lead"></i><span>pull requests</span></div>
+          <hr>
+          <p class="rc-c">Want to pay someone?<br>Pay them. Every name is a link.</p>
+          <div class="rc-bar" aria-hidden="true"></div>
+          <p class="rc-c rc-num" aria-hidden="true">0 270000 000027</p>
+          <p class="rc-c rc-s">No refunds: it was free.<br>Thank you, come again<br>(with a pull request)</p>
+        </div>
+      </aside>
+    </div>
     <details class="credits" id="credits">
-      <summary id="hcr" data-i18n="credits">Credits</summary>
+      <summary id="hcr" data-i18n="credits">Credits &amp; licenses</summary>
       <p data-i18n="credits_intro">This flasher stands on the shoulders of these projects, none of which includes firmware:</p>
       <ul id="credits-list"></ul>
       <p data-i18n-html="credits_license">model27 is built on Modded-Cycles, released under the <a href="https://github.com/18nelli18/Modded-Cycles/blob/main/LICENSE" target="_blank" rel="noopener">MIT license</a>; model27's changes are under the same license. Third-party code keeps its own license and Elektron's firmware is not covered.</p>
     </details>
-    <p>Flasher <span data-rel="version">1.0</span> · <a href="../#version">what's new</a> · <a href="../guide/">guide</a> <span id="build-stamp"></span></p>
+    <div class="foot-bottom">
+      <p data-i18n-html="links">Not affiliated with Elektron. Model:Cycles, Model:Samples and Syntakt are Elektron products.</p>
+      <p class="foot-ver">Flasher <span data-rel="version">1.0</span> <span id="build-stamp"></span></p>
+    </div>
   </div>
 </footer>
 
 <!-- ?v= : same version stamp as MC_BUILD, so a browser never mixes a new page with cached old scripts -->
-<script src="../assets/release.js?v=2026-11-14-06"></script>
-<script src="../assets/site.js?v=2026-11-14-06"></script>
-<script src="builder.js?v=2026-11-14-06"></script>
-<script src="composer.js?v=2026-11-14-06"></script>
-<script src="tweaks.js?v=2026-11-14-06"></script>
-<script src="flasher.js?v=2026-11-14-06"></script>
-<script src="app.js?v=2026-11-14-06"></script>
+<script src="../assets/release.js?v=2026-11-14-07"></script>
+<script src="../assets/site.js?v=2026-11-14-07"></script>
+<script src="builder.js?v=2026-11-14-07"></script>
+<script src="composer.js?v=2026-11-14-07"></script>
+<script src="tweaks.js?v=2026-11-14-07"></script>
+<script src="flasher.js?v=2026-11-14-07"></script>
+<script src="app.js?v=2026-11-14-07"></script>
 </body>
 </html>

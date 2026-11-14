@@ -11,6 +11,9 @@
   --card-foot:#cde3ef;     /* a card's foot (author, Details); none in the dark theme */
   --head-bg:#2b2c2d;       /* the headline's block; the dark theme inverts it */
   --check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%230b0c0e'/%3E%3C/svg%3E");   /* a ticked box: a pixel check in the ink */
+  /* the footer receipt's torn edges, top and bottom: the card's tone, an ink line (dark theme: its own pair) */
+  --zig-top:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 11L8 2L16 11V12H0Z' fill='%23e6ebf1'/%3E%3Cpath d='M0 11L8 2L16 11' fill='none' stroke='%230b0c0e' stroke-width='3'/%3E%3C/svg%3E");
+  --zig-bot:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 0H16V1L8 10L0 1Z' fill='%23e6ebf1'/%3E%3Cpath d='M0 1L8 10L16 1' fill='none' stroke='%230b0c0e' stroke-width='3'/%3E%3C/svg%3E");
   --casing:var(--paper);
   --well:var(--paper);
   --line:var(--ink);
@@ -36,10 +39,14 @@
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){color-scheme:dark;--ink:#d7dbe0;--paper:#0b0c0e;--card:var(--paper);--card-foot:transparent;--head-bg:var(--ink);
-    --check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%23d7dbe0'/%3E%3C/svg%3E")}
+    --check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%23d7dbe0'/%3E%3C/svg%3E");
+    --zig-top:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 11L8 2L16 11V12H0Z' fill='%230b0c0e'/%3E%3Cpath d='M0 11L8 2L16 11' fill='none' stroke='%23d7dbe0' stroke-width='3'/%3E%3C/svg%3E");
+    --zig-bot:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 0H16V1L8 10L0 1Z' fill='%230b0c0e'/%3E%3Cpath d='M0 1L8 10L16 1' fill='none' stroke='%23d7dbe0' stroke-width='3'/%3E%3C/svg%3E")}
 }
 :root[data-theme="dark"]{color-scheme:dark;--ink:#d7dbe0;--paper:#0b0c0e;--card:var(--paper);--card-foot:transparent;--head-bg:var(--ink);
-  --check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%23d7dbe0'/%3E%3C/svg%3E")}
+  --check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%23d7dbe0'/%3E%3C/svg%3E");
+  --zig-top:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 11L8 2L16 11V12H0Z' fill='%230b0c0e'/%3E%3Cpath d='M0 11L8 2L16 11' fill='none' stroke='%23d7dbe0' stroke-width='3'/%3E%3C/svg%3E");
+  --zig-bot:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 0H16V1L8 10L0 1Z' fill='%230b0c0e'/%3E%3Cpath d='M0 1L8 10L16 1' fill='none' stroke='%23d7dbe0' stroke-width='3'/%3E%3C/svg%3E")}
 
 body{font:400 15px/1.6 var(--f);-webkit-font-smoothing:auto}
 ::selection{background:var(--ink);color:var(--paper)}
@@ -307,15 +314,75 @@ details.trouble{margin-top:22px;font-size:14px}
 .find .clr{position:absolute;right:0;top:0;width:44px;height:44px;padding:0;border:0;background:none;color:inherit;font:20px/1 var(--f);cursor:pointer}
 .found{margin:0 0 12px;font-size:14px}
 
-/* footer: privacy, credits (folded), version */
-.foot{margin-top:56px;padding:24px 0 40px;border-top:3px solid var(--ink);font-size:13px;color:var(--ink)}
-.foot .wrap{flex-direction:column;gap:10px}
+/* footer (redesign of 2026-11-14): the brand, the site's and the project's links, and the receipt in a third; then the
+   credits (folded), the disclaimer and the version. site.css styles .foot, .foot .wrap, .foot p and .foot nav:
+   overridden here, the page's own rules two classes deep where they beat .foot p */
+.foot{margin-top:72px;padding:40px 0 28px;border-top:3px solid var(--ink);font-size:13.5px;line-height:1.6;color:var(--ink)}
+.foot .wrap{display:block}
 .foot p{max-width:none}
-.credits{max-width:72ch}
-.credits summary{font-weight:700}
-.credits p{margin:8px 0}
-.credits ul{margin:8px 0;padding-left:1.2em}
+.foot-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:40px;align-items:start}
+.foot-main{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr) minmax(0,1fr);gap:28px 32px}
+.foot-mark{display:inline-block;margin-left:-8px;padding:7px 8px;background:var(--head-bg);color:var(--paper);
+  font:700 22px/1 var(--f);text-transform:uppercase;text-decoration:none}
+.foot .foot-claim{margin:16px 0 0;max-width:34ch;font-size:15px;font-weight:700;line-height:1.45}
+.foot .foot-promise{margin:16px 0 0;max-width:44ch;padding-left:10px;border-left:6px solid var(--ink)}
+.foot .foot-col{display:block}
+.foot .foot-h{margin:4px 0 12px;padding-bottom:8px;border-bottom:3px solid var(--ink);font-size:13px;font-weight:700;line-height:1;
+  text-transform:uppercase}
+.foot-col ul{list-style:none;margin:0;padding:0}
+.foot-col li{margin:0 0 7px}
+.foot-col a{font-weight:700;text-decoration:none}
+.foot-col a:hover,.foot-col a[aria-current="page"]{text-decoration:underline;text-decoration-thickness:3px}
+.credits{margin-top:36px;padding-top:14px;border-top:3px dashed var(--ink)}
+.credits summary{font-weight:700;text-transform:uppercase;cursor:pointer}
+.foot .credits p{margin:8px 0;max-width:80ch}
+.credits ul{margin:8px 0;padding-left:1.2em;max-width:80ch}
 .credits li{margin:.25em 0}
+.foot-bottom{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 24px;margin-top:18px;padding-top:14px;
+  border-top:3px solid var(--ink);font-size:12.5px}
+.foot-ver{font-weight:700;text-transform:uppercase}
+
+/* the receipt: who did the hard part, each name a link (to where they take support, or their GitHub); TIP prints a
+   line per press and the stamp lands once in view (wireReceipt() in app.js); the page reads the same without them */
+.rc{position:relative;margin:12px 0;padding:16px 14px 18px;background:var(--card);border-left:3px solid var(--ink);
+  border-right:3px solid var(--ink);font-size:12px;line-height:1.55;text-transform:uppercase;filter:drop-shadow(4px 4px 0 var(--ink))}
+.rc::before,.rc::after{content:"";position:absolute;left:-3px;right:-3px;height:12px;background-repeat:repeat-x;background-size:16px 12px}
+.rc::before{top:-11px;background-image:var(--zig-top)}
+.rc::after{bottom:-11px;background-image:var(--zig-bot)}
+.rc hr{margin:12px 0;border:0;border-top:2px dashed var(--ink)}
+.rc hr.rc-dbl{border-top:5px double var(--ink)}
+.rc .rc-c{margin:0;text-align:center}
+.rc .rc-b{font-size:15px;font-weight:700;line-height:1.3}
+.rc .rc-s{margin-top:6px;font-size:11px}
+.rc-hd{display:flex;justify-content:space-between;margin:0 0 2px;font-size:10.5px;font-weight:700}
+.rc-items{list-style:none;margin:0;padding:0}
+.rc-items li,.rc-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 6px;padding:1px 0}
+.rc-lead{flex:1;min-width:10px;border-bottom:2px dotted var(--ink);transform:translateY(-4px)}
+.rc-items a{font-weight:700;text-transform:none}
+.rc-row{font-weight:700}
+.rc .rc-sm{font-size:11px;font-weight:400}
+.rc-tip{padding:0;border:0;background:none;color:inherit;font:inherit;font-weight:700;text-transform:uppercase;
+  text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:.22em;cursor:pointer}
+.rc-tip:hover{text-decoration-thickness:4px}
+.rc-print div{font-weight:700;text-transform:none}
+.rc-total{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;font-size:14px;font-weight:700;line-height:1.25}
+.rc-total b{font-size:22px;line-height:1}
+.rc-stamp{width:max-content;margin:14px auto 2px;padding:4px 8px;border:3px solid var(--ink);font:700 11px/1.25 var(--f);
+  text-align:center;transform:rotate(-6deg)}
+.rc-stamp.slam{animation:rc-slam .36s steps(4)}
+@keyframes rc-slam{0%{transform:rotate(-6deg) scale(1.9);opacity:0}100%{transform:rotate(-6deg) scale(1);opacity:1}}
+.rc-bar{width:80%;height:34px;margin:14px auto 6px;background:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 4px,
+  var(--ink) 4px 7px,transparent 7px 8px,var(--ink) 8px 9px,transparent 9px 12px,var(--ink) 12px 15px,transparent 15px 17px)}
+.rc .rc-num{font-size:11px;letter-spacing:.2em}
+.rc-n{margin:0 -2px;padding:0 2px}
+.rc.hl .rc-n{animation:rc-blink .9s step-end 2}
+@keyframes rc-blink{0%{background:var(--ink);color:var(--paper)}33%{background:transparent;color:var(--ink)}
+  66%{background:var(--ink);color:var(--paper)}100%{background:transparent;color:var(--ink)}}
+
+@media (max-width:900px){
+  .foot-grid{grid-template-columns:minmax(0,1fr)}
+  .foot-og{max-width:460px}
+}
 
 @media (max-width:620px){
   .fl-head{padding:4rem 0}
@@ -327,8 +394,11 @@ details.trouble{margin-top:22px;font-size:14px}
   .step-body{padding:14px}
   .num{width:44px;min-height:44px}
   .bar{gap:3px}
+  .foot-main{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .foot-brand{grid-column:1/-1}
 }
 @media (prefers-reduced-motion:reduce){
   .btn{transition:none}
   .btn:hover{transform:none}
+  .rc-stamp.slam,.rc.hl .rc-n{animation:none}
 }

@@ -10685,7 +10685,7 @@ const T = {
   pace_hint: "Classic method only. 1.4 by default: raise it to 2.0 if the transfer stalls.",
   download: "Download the .syx",
   download_hint: "to drop onto <b>Elektron Transfer</b> (just as fast), or to keep.",
-  credits: "Credits",
+  credits: "Credits & licenses",
   credits_intro: "This flasher stands on the shoulders of these projects, none of which includes firmware:",
   credits_license: `model27 is built on <a href="${UPSTREAM}" target="_blank" rel="noopener">Modded-Cycles</a>, released under the <a href="${UPSTREAM}/blob/main/LICENSE" target="_blank" rel="noopener">MIT license</a>; model27's changes are under the same license. Third-party code keeps its own license and Elektron's firmware is not covered: see the <a href="${REPO}/blob/main/THIRD-PARTY-NOTICES.md" target="_blank" rel="noopener">third-party notices</a>.`,
   privacy: "Your firmware file never leaves your computer. Nothing is uploaded, no firmware is provided.",
@@ -11838,6 +11838,48 @@ function renderCredits() {
     `${esc(c.en)}</li>`).join("");
 }
 
+// The footer's receipt (index.html, #rc): who did the hard part, model27's share 0.00. Here only what moves: the
+// visitor's date and time on it, TIP printing one line per press like a receipt printer (then "out of paper", and
+// the names blink), the stamp landing once it comes into view. Without this the receipt reads the same.
+const RECEIPT_TIPS = ["> tip redirected: see the names above", "> tip redirected again", "> still no. pay them.",
+  "> out of paper."];
+function wireReceipt() {
+  const box = $("rc");
+  if (!box) return;
+  const d = new Date(), p = (n) => String(n).padStart(2, "0");
+  $("rc-now").textContent = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  const out = $("rc-print");
+  const quick = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const blink = () => {
+    box.classList.remove("hl");
+    void box.offsetWidth;                 // restart the animation on a second press
+    box.classList.add("hl");
+    setTimeout(() => box.classList.remove("hl"), 2000);
+  };
+  let n = 0, busy = false;
+  $("rc-tip").addEventListener("click", () => {
+    if (busy) return;
+    if (n >= RECEIPT_TIPS.length) { blink(); return; }
+    const line = document.createElement("div");
+    out.appendChild(line);
+    const msg = RECEIPT_TIPS[n++];
+    if (quick) { line.textContent = msg; blink(); return; }
+    busy = true;
+    let i = 0;
+    const timer = setInterval(() => {
+      line.textContent = msg.slice(0, ++i);
+      if (i >= msg.length) { clearInterval(timer); busy = false; blink(); }
+    }, 28);
+  });
+  const stamp = $("rc-stamp");
+  if (stamp && "IntersectionObserver" in window) {
+    const io = new IntersectionObserver((es) => {
+      if (es.some((e) => e.isIntersecting)) { stamp.classList.add("slam"); io.disconnect(); }
+    }, { threshold: 0.9 });
+    io.observe(stamp);
+  }
+}
+
 // Model-TG with the Syntakt engines: the combined version (notes/31), its base (f.with) then the engines' tweak
 // built on top of it (combo.tg). MACRO with the engines adds nothing itself: the engines take their version with MACRO
 // (combo.macro, notes/50). In card order (the REF_MAINOS keys); MCBuilder.build applies them in tweak order.
@@ -12772,6 +12814,7 @@ function init() {
   });
 
   $("build-stamp").textContent = "· build " + (window.MC_BUILD || "?");
+  wireReceipt();
   wirePicker();
   applyTexts();
   update();

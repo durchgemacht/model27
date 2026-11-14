@@ -41,6 +41,14 @@ section's cards share, and `kind_<k>_note`, an optional smaller note at the end.
 A card's Details button opens its description and facts in the same window (`openCard()`), so the cards never move;
 the card keeps a hidden copy (`#det-<id>`), which the search and the smoke test read.
 
+The footer (the maintainer's design of 14/11/2026): the brand, the site's and the project's links, and in a third of
+the width a receipt (`#rc` in `flasher/index.html`, `wireReceipt()` in `app.js`): "Do not buy me a coffee", the people
+who did the hard part as its items, model27's share 0.00. model27 asks for no money; each name links where that person
+takes support (18nelli18 and gialloinfuso: Ko-fi; drumkilla: his donation page; dagargo: Liberapay; checked on
+14/11/2026) or else their GitHub, in plain words, never labelled as a donation link. Check those links again when the
+list changes. Below it: the credits (folded, with the licenses), the disclaimer and the version. Light only, as the
+page; the receipt's torn edges are the tokens `--zig-top` and `--zig-bot`, with a dark pair.
+
 ## The manager
 
 `manager/` (release 0.30, notes/77) keeps one project per firmware on the Model:Cycles: a firmware is a `.syx` the user
