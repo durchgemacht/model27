@@ -282,8 +282,8 @@ MAIN OS patché, `solid` 0.1 seule, avec ses propres images (release 0.64, note 
 `8581385a0dc5782912b4e3eca6ebea88967f38be33f91eccf50f42a526daf94b` (sans images : `f7b26b90…` ; SAMPLE 0.15 : `b1fc2896…`) ; avec toutes les cartes de la page (dix-sept,
 release 0.64 : `--machines sampler,solid,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq --cpu --resample
 --transpose --perform --with control-all-config,trig-preview,trig-cond-order`) :
-`c5d6879a3b55b9ebd787770ddccd43733ef04d330e851130429a6f82ac747b00`, pas encore essayé sur un Model:Cycles ; sans Perform Kit (seize, la même
-commande sans `--perform`) : `b7b50e9ad1d6cff67ff96d47c7ba1a197e931d189480822a07b4f8eb90d3bc62`, le fichier essayé dans digiemu et sur un
+`c5d6879a3b55b9ebd787770ddccd43733ef04d330e851130429a6f82ac747b00` ; sans Perform Kit (seize, la même commande sans
+`--perform`) : `b7b50e9ad1d6cff67ff96d47c7ba1a197e931d189480822a07b4f8eb90d3bc62`, le fichier essayé dans digiemu et sur un
 Model:Cycles depuis la ligne de commande le 14/11/2026, avec les images de SOLID et de SAMPLE (note 71 §13.5) ; release
 0.63 (Perform Kit, sans les images, note 81) : `d91ef5bf…` ; release 0.59 : `0901bf28…`, essayé dans digiemu et sur un Model:Cycles depuis la ligne de commande le 11/11/2026 (note 71 §11),
 puis flashé depuis la page le même jour (note 71 §12).
@@ -609,7 +609,7 @@ the page (seventeen, release 0.63: `--machines sampler,solid,chordtables,digidel
 `d91ef5bf0372dff894a1fa6250cdd18a46e49e05a46e64b12f47ba9776d2ca37`. Tested on a Model:Cycles from the command line on
 2026-11-14 (note 81 §9 to §10.1: alone, every step of saving; with every card, the switch and the mark), then flashed
 from the page the same day (note 81 §12). Release 0.64, with SOLID's and SAMPLE's own pictures (note 71 §13):
-`c5d6879a3b55b9ebd787770ddccd43733ef04d330e851130429a6f82ac747b00`, not yet tried on a Model:Cycles.
+`c5d6879a3b55b9ebd787770ddccd43733ef04d330e851130429a6f82ac747b00`.
 
 ### Trig Cond dans un autre ordre
 

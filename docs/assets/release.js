@@ -9,7 +9,7 @@
 window.MC_RELEASES = [
   { version: "0.64", date: "2026-11-14", changes: [
     { en: "SOLID and SAMPLE have their own pictures. On the MACHINES page, SOLID shows its own card and a ball behind a pillar instead of Perc's, SAMPLE its own card and a waveform instead of Tone's. The main screen and the preset dialogs show them too. The sound is unchanged" },
-    { en: "Checked in an emulator on the OS's own code and in digiemu with every card of release 0.62 (2026-11-14): the MACHINES page, the main screen and the SAVE PRESET and RENAME PRESET windows. Then on a Model:Cycles from the command line with every card of release 0.62 the same day: the MACHINES page" }
+    { en: "Checked in an emulator on the OS's own code and in digiemu with every card (2026-11-14): the MACHINES page, the main screen and the SAVE PRESET and RENAME PRESET windows. Then on a Model:Cycles from the command line with every card the same day: the MACHINES page" }
   ] },
   { version: "0.63", date: "2026-11-14", changes: [
     { en: "New card, Perform Kit: press and hold SETTINGS and press PATTERN, and a pattern change keeps your presets, track levels, delay and reverb as they are. The new pattern's trigs, parameter locks and preset locks play on them. A checkered stripe at the left edge of the screen shows that the mode is on" },

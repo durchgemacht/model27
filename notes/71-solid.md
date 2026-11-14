@@ -465,7 +465,7 @@ dot in its white (levels 13 to 15 of 16 read as a face there), the pillar's whit
 
 The build with SAMPLE's own pictures too (notes/60 §25.1): every card of the page then (sixteen, release 0.62's), MAIN OS
 `b7b50e9a…`, `.syx` `ba08106d…`. Release 0.63 went to Perform Kit (notes/81) while this was on its branch; merged into
-main the same day as release 0.64. With Perform Kit too (seventeen cards) MAIN OS `c5d6879a…`, not tried on the device:
+main the same day as release 0.64. With Perform Kit too (seventeen cards) MAIN OS `c5d6879a…`:
 `test_perform --dry` finds every other write and the payload as in the build without Perform Kit, the pictures' among
 them, and SAMPLE's draw behind its mark; builds without Perform Kit keep their hashes, `b7b50e9a…` included.
 
