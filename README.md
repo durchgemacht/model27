@@ -23,7 +23,7 @@ Model:Cycles over USB. Modded-Cycles has since moved to a single OS with 2.0; mo
 together, so that a new machine fits next to the others. The rules a mod follows for that are the
 **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.5), written alongside.
 
-**Status: beta, release 0.62.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers sixteen
+**Status: beta, release 0.63.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers seventeen
 cards, all of them tested on a Model:Cycles as the page builds them: the
 **SAMPLE** machine of [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples
 on the +Drive (since 0.61 the pad and the TRIG keys play the sample under the PRESET browser's cursor, since 0.62 with the knobs as you turn them, and with the pad held the
@@ -56,7 +56,7 @@ glass and everything in between, hit by a mallet, a burst of noise or noise that
 with all the other cards, then flashed from the page. The seventeenth, **Perform Kit**, model27's own: with SETTINGS
 held, PATTERN switches a mode in which a pattern change keeps the presets, the track levels and the delay and
 reverb settings as they are; nothing is kept unless the pattern is saved. Tested on a Model:Cycles from the command
-line, alone and with all the other cards; experimental until flashed from the page. The
+line, alone and with all the other cards, then flashed from the page. The
 [guide](https://durchgemacht.github.io/model27/guide/) explains them. Combining machines is proven with two internal
 reference machines: SAMPLE with the first one on a Model:Cycles; the second one, with a shortcut, and sharing the
 main screen, the knob view, the screen's tick and the browser with SAMPLE, in emulation so far, composed by the page

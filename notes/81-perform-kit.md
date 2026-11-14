@@ -13,7 +13,7 @@ lock sounds) into the kit of the pattern about to play, keeps that pattern's own
 its own back. The kit serializer hands out the pattern's own bytes, so nothing of the mode is saved until the
 pattern is; Save Pattern and Reload Pattern make what is saved or loaded the pattern's own. A popup at the switch
 and a checkerboard stripe on the main screen show the mode. Proven by `tools/emu/test_perform.py` and tested on a
-Model:Cycles (§8.1 to §10.1); the card is experimental until flashed from the page (§11).
+Model:Cycles (§8.1 to §10.1); the card was flashed from the page the same day and is tested (§12).
 
 `[FAIT]` = read in a disassembly on 2026-11-14 (the Model:Cycles OS 1.13; the Digitakt II OS 1.17, whose MAIN OS
 loads at `0x40000400`); `[HYP]` = not proven when written; what became of each is in the later sections.
@@ -395,6 +395,16 @@ task, not in the audio interrupt). Not committed, not in digiemu, not on a devic
   The card in `FEATURES` (`live`, experimental), its texts in `FEAT`, the guide's section 19, release 0.63.
 - **The texts** were written once, to docs/AGENTS.md's *Writing for users*, and accepted as they were (« Ja,
   einsetzen »): the short, nine blocks, a note on what switching the mode off discards.
-- **Status:** experimental until flashed from the page. Left for later: a pattern chain and FUNC + PLAY inside the
+- **Status:** experimental until flashed from the page (done the same day, §12). Left for later: a pattern chain and FUNC + PLAY inside the
   mode were not tried; the effect choice and the wavetable could stay with the mode by the same mechanism on the
   pattern's header (§5).
+
+## 12. Tested from the page (2026-11-14)
+
+- The branch was merged into main and pushed by the maintainer; the page showed release 0.63.
+- **The maintainer's report (2026-11-14):** « gepusht, seiten-flash passt ». The test asked for: every card of the
+  page with Perform Kit ticked and flashed from the page, then SETTINGS + PATTERN; expected a normal start, the popup
+  Perform Kit ON and the stripe at the left edge.
+- **Status:** tested. The card carries no tag (`gen_flasher_tweaks.py`, `tweaks.js`), the guide's section 19 says
+  Tested, release 0.63 and the README no longer say experimental. The firmware is unchanged.
+- Still not tried: a pattern chain and FUNC + PLAY inside the mode.

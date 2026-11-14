@@ -563,9 +563,9 @@ ALL_FEATURES = [
                 "it. Nothing is kept unless the pattern is saved.",
         # model27's own (notes/81): the sequencer's writes, the kit selection, the serializer, the saves and loads,
         # the popup and the mark proven in emulation; tested on the Model:Cycles from the command line on 2026-11-14
-        # (notes/81 §9: alone, every step of saving; with every card, the mark and the switch). Experimental until
-        # flashed from this page
-        "status": "experimental",
+        # (notes/81 §9: alone, every step of saving; with every card, the mark and the switch), then
+        # flashed from this page (release 0.63) the same day (notes/81 §12)
+        "status": "tested",
         "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
         # a part composed in the page with the machines, effects, Track FX, the CPU page, RESAMPLE and Transpose
         # ticked: alone it gives 82-perform.json byte for byte, whose conflicts give its excludes

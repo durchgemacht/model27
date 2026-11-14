@@ -605,7 +605,8 @@ Patched MAIN OS, `perform` alone: `65a6f2a90c664cfd29c8c375ec1c6ddf376fa46ec63f0
 the page (seventeen, release 0.63: `--machines sampler,solid,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq
 --cpu --resample --transpose --perform --with control-all-config,trig-preview,trig-cond-order`):
 `d91ef5bf0372dff894a1fa6250cdd18a46e49e05a46e64b12f47ba9776d2ca37`. Tested on a Model:Cycles from the command line on
-2026-11-14 (note 81 §9 to §10.1: alone, every step of saving; with every card, the switch and the mark).
+2026-11-14 (note 81 §9 to §10.1: alone, every step of saving; with every card, the switch and the mark), then flashed
+from the page the same day (note 81 §12).
 
 ### Trig Cond dans un autre ordre
 

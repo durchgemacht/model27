@@ -427,7 +427,7 @@ window.MC_TWEAKS = {
    "id": "perform",
    "label": "Perform Kit",
    "desc": "SETTINGS + PATTERN switches a mode in which a pattern change keeps the presets, the track levels and the delay and reverb settings as they are; a checkered stripe at the left edge of the screen shows it. Nothing is kept unless the pattern is saved.",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "by",
     "who": "durchgemacht",
