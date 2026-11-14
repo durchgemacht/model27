@@ -18,6 +18,9 @@
  *   - Mode off (pk_toggle): home's kit 0..693 <- its own bytes; the audio side's cached pointers cleared
  *     (0x4005950e: the six sounds, the six levels and the effect block are taken again at the next note), and the
  *     kit's change notice (0x400d1f98), which refreshes the interface and the kit's mirror.
+ * The switch shows the OS's popup, "Perform Kit ON" or "Perform Kit OFF" (popup, as RESAMPLE's save.c and the OS's
+ * own 0x4000d750 show one: 0x400747c0 on 0x9c bytes, its holder 0x400fbf40, presented on the views' target); paste
+ * and clear, which switch the mode off, show it too. Nothing shows the mode after the popup is gone (step P5).
  * SETTINGS + PATTERN switches (pk_pattern_c, from pk_pattern at 0x40020ad0, PatternGridView's PATTERN case): with
  * SETTINGS held, PATTERN's press toggles the mode and is taken, with its repeats and its release, so the pattern
  * selection is not armed. SETTINGS is held when isKeyHeld(13) says so or its last event does (pk_held, a byte the
@@ -81,6 +84,44 @@ extern volatile uint8_t pk_held;
 #define IS_PRESS ((uint32_t (*)(void *))0x400724a0)                        /* a press, not its repeat */
 #define IS_RELEASE ((uint32_t (*)(void *))0x40072470)
 #define TEMP_KIT_SAVE ((uint32_t (*)(uint8_t *, uint32_t, uint32_t))0x4001002c)   /* (project, 1, pattern) */
+#define NEW(n) ((void *(*)(uint32_t))0x400802e0)(n)                 /* operator new */
+#define STRING(s, c, tag) ((void (*)(void *, const char *, void *))0x400f980c)(s, c, tag)
+#define STRING_DROP(s) ((void (*)(void *))0x400f7d5c)(s)
+#define POPUP_SIZE 0x9c
+#define POPUP(p, s) ((void (*)(void *, void *))0x400747c0)(p, s)
+#define POPUP_HOLDER_VT 0x400fbf40u
+#define VIEWS_UP (*(void *const volatile *)0x40fe4178)
+#define VIEWS() ((char *(*)(void))0x400d0974)()
+#define TARGET(v) ((void *(*)(void *))0x400060d8)(v)
+#define PRESENT(t, pair, x) ((void (*)(void *, void *, uint32_t))0x4007700e)(t, pair, x)
+#define DROP(ref) ((void (*)(void *))0x400cf23c)(ref)
+
+/* The OS's popup with this text, as tools/machines/resample/save.c shows one. */
+static void popup(const char *text)
+{
+	char tag[4];
+	uint32_t s, *holder;
+	void *pair[2];
+	char *p;
+
+	if (!VIEWS_UP)
+		return;
+	STRING(&s, text, tag);
+	p = NEW(POPUP_SIZE);
+	if (p) {
+		POPUP(p, &s);
+		holder = NEW(16);
+		holder[0] = POPUP_HOLDER_VT;
+		holder[1] = holder[2] = 1;
+		holder[3] = (uint32_t)p;
+		pair[0] = p;
+		pair[1] = holder;
+		PRESENT(TARGET(VIEWS()), pair, 0);
+		DROP(&pair[1]);
+	}
+	STRING_DROP(&s);
+}
+
 static inline uint32_t irq_off(void)
 {
 	uint32_t sr, masked;
@@ -184,6 +225,7 @@ static void mode_off(pk_t *D)
 			D->temp[n >> 3] &= (uint8_t)~(1u << (n & 7u));
 			TEMP_KIT_SAVE(PROJECT(), 1, n);
 		}
+	popup("Perform Kit OFF");
 }
 
 /* The mode on or off. */
@@ -205,6 +247,7 @@ void pk_toggle(void)
 	D->left1 = 0;
 	D->on = 1;
 	irq_back(sr);
+	popup("Perform Kit ON");
 }
 
 /* entries.S's pk_off_*: a pattern is about to be pasted or cleared. */

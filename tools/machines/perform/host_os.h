@@ -25,6 +25,7 @@ void host_audio_kit(uint8_t *kit);
 #define AUDIO_KIT host_audio_kit
 uint32_t host_temp_save(uint8_t *project, uint32_t temp, uint32_t n);
 #define TEMP_KIT_SAVE host_temp_save
+void popup(const char *text);
 #define IS_PRESS(e) ((((host_event *)(e))->flags & 1u) && !(((host_event *)(e))->flags & 8u))
 #define IS_RELEASE(e) (!(((host_event *)(e))->flags & 1u))
 static inline uint32_t irq_off(void) { return host_masked++; }

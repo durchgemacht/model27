@@ -36,6 +36,9 @@ and the build side by side.
      0x40011a7e): the frame, the stack and the registers as the stock instructions leave them; another project
      drops the mode and writes no kit; paste and clear switch it off first: the own bytes back, the audio side and
      the interface told, the temp-saved patterns' kits saved to the temp slot again.
+  10. the popup: with the views up, the switch builds the OS's popup as RESAMPLE's save does: the string of "Perform
+     Kit ON" or "Perform Kit OFF", 0x9c bytes, the popup's constructor on them, the holder (0x400fbf40, 1, 1, the
+     popup), presented on the views' target, the reference and the string dropped; before the views are up, none.
 
 Unicorn's JIT stops with SIGILL in a sandbox that forbids generated code: run it in a normal terminal.
 
@@ -74,6 +77,9 @@ SERIALIZER, SER_NEXT, KSAVE_SITE, KLOAD_SITE, KLOAD_NEXT, LOADER = 0x4005b2ae, 0
 TEMP_KIT_SAVE, DROP_SITE, DROP_NEXT = 0x4001002c, 0x4000eb12, 0x4000eb18
 OFF_SITES = {"paste": (0x40010c7a, 0x40010c82), "cut": (0x4001190c, 0x40011914), "clear": (0x40011a7e, 0x40011a86)}
 BUF, RET = 0x93e30000, 0x93e40000
+VIEWS_UP, STRING, NEW, POPUP, VIEWS, TARGET, PRESENT, DROP, STRING_DROP = (
+    0x40fe4178, 0x400f980c, 0x400802e0, 0x400747c0, 0x400d0974, 0x400060d8, 0x4007700e, 0x400cf23c, 0x400f7d5c)
+POPUP_HOLDER_VT, VIEWS_OBJ, TARGET_OBJ = 0x400fbf40, 0x93e60000, 0x93e70000
 K_PATTERN, K_SETTINGS = 3, 13
 OBJ, VT, H_BOUND, PROJ, VIEW, EVENT = 0x93e00000, 0x93e01000, 0x93e02000, 0x93a00000, 0x93e10000, 0x93d10000
 
@@ -391,7 +397,7 @@ def ui_tests(key, stock, w):
 
 
 # --- 4. SETTINGS + PATTERN ---------------------------------------------------------------------------------------------
-def pat_case(u, flags, playing=3):
+def pat_case(u, flags, playing=3, extra=None):
     """PatternGridView's PATTERN case from its first instruction: (where it goes, a3, d3's byte, the stack against
     the case's start, the registers kept, the calls)."""
     from unicorn import UC_HOOK_CODE
@@ -410,6 +416,7 @@ def pat_case(u, flags, playing=3):
     u.hooks = {SEQ_STATE: ("seq", 0x93e20000), CURRENT: ("current", playing), PROJECT: ("project", PROJ),
                KIT_CHANGED: ("changed", 0), AUDIO_KIT: ("audio", 0), UI_STATE: ("ui", 0x93a20000),
                TEMP_KIT_SAVE: ("tempsave", 1)}
+    u.hooks.update(extra or {})
     u.calls.clear()
     u.bad.clear()
     got = []
@@ -713,6 +720,50 @@ def entry_tests(key, stock, w):
                     "temp-saved pattern's kit to the temp slot again; with the mode off nothing")
 
 
+# --- 10. the popup ---------------------------------------------------------------------------------------------------
+def popup_tests(key, stock, w):
+    tweak, info, img, runtime = w
+    da = info["perform"]["data_at"]
+    b = rig(img, runtime)
+    names = ("string", "new", "popup", "views", "target", "present", "drop", "sdrop")
+    hooks = {STRING: ("string", 0), NEW: ("new", 0), POPUP: ("popup", 0), VIEWS: ("views", VIEWS_OBJ),
+             TARGET: ("target", TARGET_OBJ), PRESENT: ("present", 0), DROP: ("drop", 0), STRING_DROP: ("sdrop", 0)}
+    load(b, Model(pattern_bytes()), da)
+    b.uc.mem_write(PLAY_KIT, struct.pack(">I", kit(3)))
+    b.hold(K_SETTINGS, True)
+    b.uc.mem_write(VIEWS_UP, bytes(4))
+    r = pat_case(b, 1, extra=dict(hooks))
+    quiet = r[0] == EPILOGUE and not [n for n, _ in b.calls if n in names] and state(b, da)[1][0] == 1
+    pat_case(b, 0, extra=dict(hooks))
+    check(quiet, f"{key}: the switch before the views are up: the mode on, no popup")
+    b.uc.mem_write(VIEWS_UP, struct.pack(">I", 0x93e80000))
+    for text, on in (("Perform Kit OFF", 0), ("Perform Kit ON", 1)):
+        heap = b.heap
+        r = pat_case(b, 1, extra=dict(hooks))
+        calls = [(n, a) for n, a in b.calls if n in names]
+        pop, holder = heap, (heap + 0x9c + 15) & ~15
+        order = [n for n, _ in calls] == ["string", "new", "popup", "new", "views", "target", "present", "drop", "sdrop"]
+        ok = order and r[0] == EPILOGUE and r[4] and state(b, da)[1][0] == on
+        if order:
+            sref = calls[0][1][0]
+            pair = calls[6][1][1]
+            ok &= b.cstr(calls[0][1][1]) == text
+            ok &= calls[1][1][0] == 0x9c and calls[3][1][0] == 16
+            ok &= calls[2][1][:2] == (pop, sref)
+            ok &= calls[5][1][0] == VIEWS_OBJ
+            ok &= calls[6][1][0] == TARGET_OBJ and calls[6][1][2] == 0
+            ok &= (b.u32(pair), b.u32(pair + 4)) == (pop, holder)
+            ok &= [b.u32(holder + 4 * i) for i in range(4)] == [POPUP_HOLDER_VT, 1, 1, pop]
+            ok &= calls[7][1][0] == pair + 4 and calls[8][1][0] == sref
+            if not on:
+                before = [n for n, _ in b.calls]
+                ok &= before.index("changed") < before.index("string")
+        check(ok, f"{key}: the switch with the views up: « {text} », the string, 0x9c bytes, the popup's constructor, "
+                  f"the holder ({POPUP_HOLDER_VT:#x}, 1, 1, the popup), presented on the views' target, the reference "
+                  "and the string dropped; the handler ends as handled, the registers kept")
+        pat_case(b, 0, extra=dict(hooks))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cycles", required=True, help="official model-cycles_OS1.13.syx")
@@ -734,7 +785,8 @@ def main():
                                          ("the start of the kit serializer", ser_tests),
                                          ("the kit's save to a slot", ksave_tests),
                                          ("the kit's load from a slot", kload_tests),
-                                         ("another project, pattern paste and clear", entry_tests)), 2):
+                                         ("another project, pattern paste and clear", entry_tests),
+                                         ("the popup", popup_tests)), 2):
             print(f"{n}. {title}")
             for key in ("perform", "resample+perform"):
                 fn(key, stock, builds[key])

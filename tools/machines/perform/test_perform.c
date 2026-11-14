@@ -20,7 +20,15 @@ static uint32_t changed_n, changed_calls, audio_calls, masked_at_audio;
 static uint8_t *changed_obj, *audio_kit;
 static int failed, checks;
 
-static uint32_t temp_calls, temp_seen[8], temp_own;
+static uint32_t temp_calls, temp_seen[8], temp_own, popups;
+static const char *popup_text;
+
+void popup(const char *text)
+{
+	popup_text = text;
+	popups++;
+}
+
 static int own(uint32_t n);
 
 uint32_t host_temp_save(uint8_t *project, uint32_t temp, uint32_t n)
@@ -70,7 +78,8 @@ static void reset(void)
 	memset(&pk_data, 0, sizeof pk_data);
 	pk_held = 0;
 	host_key_held = host_pattern = host_masked = 0;
-	changed_calls = audio_calls = temp_calls = temp_own = 0;
+	changed_calls = audio_calls = temp_calls = temp_own = popups = 0;
+	popup_text = "";
 	host_play_kit = KIT(0);
 }
 
@@ -266,6 +275,23 @@ int main(void)
 	CHECK(head_is(2, t) && head_is(3, t) && !audio_calls && !changed_calls && !temp_calls,
 	      "another project: no kit written, nothing called");
 	CHECK(pk_ser_c(KIT(3)) == KIT(3), "another project: the serializer gets the kits themselves");
+
+	/* 14. the popup */
+	reset();
+	host_pattern = 2;
+	pk_toggle();
+	CHECK(popups == 1 && !strcmp(popup_text, "Perform Kit ON"), "on: the popup");
+	pk_change_c(KIT(3));
+	pk_ui_c();
+	CHECK(popups == 1, "a change: no popup");
+	pk_toggle();
+	CHECK(popups == 2 && !strcmp(popup_text, "Perform Kit OFF"), "off: the popup");
+	pk_toggle();
+	pk_off_c();
+	CHECK(popups == 4 && !strcmp(popup_text, "Perform Kit OFF"), "paste or clear: the popup");
+	pk_off_c();
+	pk_drop_c();
+	CHECK(popups == 4, "the mode off already, another project: no popup");
 
 	printf("%s, %d checks\n", failed ? "FAILED" : "ALL OK", checks);
 	return failed != 0;
