@@ -919,7 +919,7 @@ class Loader:
         u.uc.mem_write(0x80008000, img[0x401a2a50 - E.BASE:0x401aa140 - E.BASE])
         self.d = Drive(u)
         u.hooks = {GETTER: ("getter", 0x5a)}
-        for s in ("smp_hook_tick",):          # SAMPLE's own tick, with the dispatcher: not this proof's
+        for s in ("sample_hook_tick", "smp_hook_tick"):   # SAMPLE's own tick, with the dispatcher: not this proof's
             if s in syms:
                 u.hooks[syms[s]] = (s, 0x5a)
         self.syms, self.tick_va, self.insns = syms, syms.get("dp_tick", syms["ct_hook_tick"]), 0

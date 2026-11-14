@@ -11,6 +11,9 @@ sampler,refmachine2; sampler,refmachine,refmachine2), on the official OS 1.13:
      parameter tables built at boot, lookups, accessors and state per descriptor, the MACHINES page (names,
      pictures, marks, two rows from 8 machines), the machine setter and the wheel, records per machine, a real
      machine change, the main screen's knobs, a machine this build does not have, the small icon;
+     a machine's pictures (notes/71 §13): the MACHINES page, the small icon, the main screen's icon and the preset
+     dialogs' track icons show an added machine's own sprites (its manifest's pictures) or the stock one of its
+     image, the stock machines' as the stock OS, and its sprites are the OS's Bitmaps with the package's pixels;
   3. the runtime against B1: the same results, input for input, from the OS functions that go through the detours
      (B1 is built with the m68k toolchain; without it this part is skipped and says so);
   4. the voice loop: REF plays the same as machine 6 alone and as machine 7 next to SAMPLE, REF2 the same as machine
@@ -154,17 +157,103 @@ def probe(img, runtime):
     return out, bad
 
 
-def against_b1(stock, ids, img, runtime):
+def against_b1(stock, ids, img, runtime, added=()):
     if not shutil.which(compose.gx.CROSS + "as"):
         print(f"  skip  runtime against B1: no {compose.gx.CROSS}as here to assemble B1's detours")
         return
     _, _, img1, runtime1 = built(stock, ids, registrar="b1")
     a, bad_a = probe(img1, runtime1)
     b, bad_b = probe(img, runtime)
+    own = {m["index"] for m in added if m.get("pics")}      # their pictures are the runtime's, B1 has none
+    for out in (a, b):
+        out["MACHINES page"] = [x for i, x in enumerate(out["MACHINES page"]) if i not in own]
+        out["small icon"] = {k: v for k, v in out["small icon"].items() if k not in own}
     diff = [k for k in a if a[k] != b[k]]
     check(not diff and not bad_a and not bad_b,
           f"runtime = B1's detours, input for input: {', '.join(a)}" + (f"; DIFFERENT: {', '.join(diff)}" if diff else "")
           + (f"; access outside memory {[hex(x) for x in (bad_a + bad_b)[:4]]}" if bad_a or bad_b else ""))
+
+
+# --- 2b. a machine's pictures (notes/71 §13) -----------------------------------------------------------------------
+SIZES = ((48, 33), (34, 34), (25, 22))                  # card, icon, track icon (registrar.S, which 0, 4, 8)
+VECS = (0x40fe32cc, 0x40fe384c, 0x40fe37f0)             # the stock vectors' globals
+FAKE = (0x92000000, 0x92100000, 0x92200000)             # their first sprites, as the probes set them
+BITMAP_VTABLE = 0x401173c8
+# the main screen's icon and the preset dialogs' track icons: (name, where it starts, the instruction after its draw,
+# which picture, the registers the OS has there for machine m)
+SITES = (("main screen", 0x4001b68c, 0x4001b6b6, 1, lambda m: {"d0": m << 8, "d2": 0x91000000}),
+         ("preset dialog A", 0x400a40a2, 0x400a40ce, 2, lambda m: {"d0": m, "d1": 5}),
+         ("preset dialog B", 0x400a4fac, 0x400a4fd8, 2, lambda m: {"d0": m, "d1": 5}))
+
+
+def own_pictures(tweak, runtime, added):
+    """Each added machine's own pictures as the composer put them in the parameter block (registrar.S, entry +12):
+    m["pics"] = the card's, the icon's and the track icon's sprite (0: the stock one of its image), or None."""
+    regs = compose.load_registrar()["runtime"]["regs_at"]
+    block = bytes.fromhex(next(p["hex"] for p in tweak["append"]["parts"] if p["dest"] == regs))
+    for i, m in enumerate(added):
+        table = struct.unpack_from(">I", block, 16 + 16 * i + 12)[0]
+        m["pics"] = list(struct.unpack_from(">3I", runtime, table - E.PAYLOAD_DST)) if table else None
+
+
+def drawn_at(img, payload, site, m):
+    """The sprites one picture site hands the draw (0x40071da4) for machine m, run from the site's start to the
+    instruction after its draw, with the stock vectors at FAKE."""
+    from unicorn import m68k_const as mk
+    _, start, until, _, regs = site
+    u = UI(img, payload)
+    u.hooks = {0x40071da4: "image"}
+    for g, f in zip(VECS, FAKE):
+        u.uc.mem_write(g, struct.pack(">I", f))
+    sp = t7.STACK - 0x800
+    u.uc.mem_write(sp, struct.pack(">I", t7.STOP) * 64)
+    u.uc.reg_write(mk.UC_M68K_REG_A7, sp)
+    for r, v in regs(m).items():
+        u.uc.reg_write(getattr(mk, f"UC_M68K_REG_{r.upper()}"), v & 0xffffffff)
+    u.uc.emu_start(start, until, count=100_000)
+    return [args[1] for k, args in u.calls if k == "image"], u.bad
+
+
+def pictures(stock, img, runtime, added):
+    """The main screen's icon and the preset dialogs' track icons for the stock machines, the added ones and two that
+    are not there; then each own sprite: an OS Bitmap of its size, its mask on its own rows, the package's pixels."""
+    by = {m["index"]: m for m in added}
+    for site in SITES:
+        name, _, _, which, _ = site
+        ok, seen = True, []
+        for m in [0, 1, 3, 5] + list(by) + [TS.NM, 100]:
+            got, bad = drawn_at(img, runtime, site, m)
+            if m in by:
+                pics = by[m].get("pics")
+                want = pics[which] if pics and pics[which] else FAKE[which] + 28 * by[m]["image"]
+                seen.append(f"{by[m]['name']} " + ("its own" if pics and pics[which] else f"image {by[m]['image']}"))
+            elif m <= 5:
+                want = drawn_at(stock, b"", site, m)[0][0]     # the stock OS's
+            else:
+                want = FAKE[which] + 28 * 1                     # no such machine: SNARE's, as before (notes/18 §4)
+            ok &= got == [want] and not bad
+        check(ok, f"{name}: 0..5 as the stock OS, {', '.join(seen)}, no such machine: SNARE's")
+    pkgs = {m["index"]: compose.MACHINES / m["code"] / "pictures" for m in added}
+    for m in added:
+        if not m.get("pics"):
+            continue
+        ok, notes = True, []
+        for which, ptr in enumerate(m["pics"]):
+            if not ptr:
+                continue
+            vt, w, h, pitch, words, mask, _ = struct.unpack_from(">IiiiIII", runtime, ptr - E.PAYLOAD_DST)
+            n = w * pitch
+            px = runtime[words - E.PAYLOAD_DST:][:4 * n]
+            mk_ = struct.unpack_from(f">{n}I", runtime, mask - E.PAYLOAD_DST)
+            rows = [max(0, min(32, h - 32 * k)) for k in range(pitch)]
+            want_mask = tuple((((1 << r) - 1) << (32 - r)) if r else 0 for _ in range(w) for r in rows)
+            files = sorted(pkgs[m["index"]].glob(f"*_{w}x{h}.bin"))
+            ok &= vt == BITMAP_VTABLE and (w, h) == SIZES[which] and pitch == (h + 31) // 32 and mk_ == want_mask
+            if files:                                       # else its pixels are set at run time
+                ok &= len(files) == 1 and files[0].read_bytes() == px
+            notes.append(f"{w} x {h} = {files[0].name if files else 'set at run time'}")
+        check(ok, f"{m['name']}: its own sprites are the OS's Bitmaps, masks on their own rows, pixels "
+                  f"{', '.join(notes)}")
 
 
 # --- 4. the voice loop ----------------------------------------------------------------------------------------
@@ -239,6 +328,7 @@ def main():
         key = "+".join(ids)
         tweak, info, img, runtime = built(stock, ids)
         added = configure(ids)
+        own_pictures(tweak, runtime, added)
         print(f"\n{key}: " + ", ".join(f"{m['name']} = machine {m['index']}" for m in added)
               + f"; payload {len(runtime)} bytes at {E.PAYLOAD_DST:#x}, {len(img) - E.IMAGE_LEN} in the image, "
               f"code {', '.join(f'{a:#x}..{b:#x}' for a, b in code_ranges(tweak))}")
@@ -257,8 +347,10 @@ def main():
         TS.records_and_change(stock, img, runtime)
         TS.out_of_range(stock, img, runtime)
         TS.small_icon(stock, img, runtime)
+        print("a machine's pictures (notes/71 §13)")
+        pictures(stock, img, runtime, added)
         print("the runtime against B1")
-        against_b1(stock, ids, img, runtime)
+        against_b1(stock, ids, img, runtime, added)
     if args.dry:
         print("\n(dry run: no emulation)")
         return 0

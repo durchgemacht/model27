@@ -12,7 +12,8 @@
  "order": 27,
  "build": {
   "sources": ["src/smp_core.c", "src/smp_coeffs.c", "src/smp_filter.c", "src/smp_filter_tab.c", "src/smp_filter_cf.S",
-              "machine/sampler.c", "machine/pool.c", "machine/view.c", "machine/hooks.S"],
+              "machine/sampler.c", "machine/pool.c", "machine/view.c", "machine/hooks.S",
+              "sample_pictures.c", "sample_card.c"],
   "include": ["src", "machine"],
   "cflags": ["-std=c99", "-mcpu=54418", "-O2", "-ffreestanding", "-fno-builtin", "-fno-tree-loop-distribute-patterns",
              "-nostdlib", "-fno-pic", "-fno-common", "-ffunction-sections", "-fdata-sections", "-Wall", "-Wextra",
@@ -27,10 +28,10 @@
   "symbols": {"update": "sampler_update", "render": "sampler_render"},
   "keep": ["smp_hook_open", "smp_hook_preview", "smp_hook_pad_on", "smp_hook_pad_off", "smp_hook_key_on", "smp_hook_save2", "smp_hook_save1",
            "smp_hook_load", "smp_hook_tick", "smp_main_draw", "smp_knob_draw", "smp_note_draw", "smp_hook_pan",
-           "smp_hook_pan_all"]
+           "smp_hook_pan_all", "sample_pictures", "sample_hook_tick"]
  },
  "uses": [
-  {"point": "machine", "name": "SAMPLE", "image": 4, "decay_default": 127,
+  {"point": "machine", "name": "SAMPLE", "image": 4, "pictures": "sample_pictures", "decay_default": 127,
    "knobs": [
     {"long": "Start", "short": "STRT", "default": 0, "min": 0, "max": 120},
     {"long": "Length", "short": "LEN", "default": 120, "min": 0, "max": 120},
@@ -56,8 +57,8 @@
    "why": "sound to record, version 1"},
   {"point": "sound.record", "hook": {"at": "0x4005aecc", "stock": "4feffff448d71c00", "op": "jmp", "symbol": "smp_hook_load"},
    "why": "record to sound: the key back"},
-  {"point": "screen.tick", "hook": {"at": "0x400075f0", "stock": "4eb940076be4", "op": "jsr", "symbol": "smp_hook_tick"},
-   "why": "the screen's redraw, about 30 Hz: loads and frees samples"},
+  {"point": "screen.tick", "hook": {"at": "0x400075f0", "stock": "4eb940076be4", "op": "jsr", "symbol": "sample_hook_tick"},
+   "why": "the screen's redraw, about 30 Hz: SAMPLE's card once (sample_card.c), then One-Shot's tick (smp_hook_tick), which loads and frees samples"},
   {"point": "main.pan", "hook": {"at": "0x4001ab14", "stock": "2f032f02d880", "op": "jsr", "symbol": "smp_hook_pan"},
    "why": "FUNC + LEVEL/DATA on the main screen, one track: the pan + step the OS sets comes from smp_pan_step; on a SAMPLE track a pan on an odd value lands on the even value next to it (the OS steps by 2 and clamps at 63)"},
   {"point": "main.pan", "hook": {"at": "0x4001ab52", "stock": "2f022800d887", "op": "jsr", "symbol": "smp_hook_pan_all"},

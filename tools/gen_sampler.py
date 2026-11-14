@@ -48,6 +48,12 @@ so).
 MACRO's and ACID's optional writes (usb_steady, voice_loop) are left out, as in One-Shot's own build. One-Shot's own
 build has no shortcut layer and no SMP_SWITCHES: it plays one shot, forward.
 
+model27 adds SAMPLE's own pictures, which One-Shot does not have (notes/60 §25): this generator writes
+tools/machines/sampler/sample_pictures.c (tools/machine_pictures.py: the MACHINES page's card, its pixels set by
+sample_card.c, the icon and the track icon from the 1-bit files in tools/machines/sampler/pictures/), and the
+manifest compiles it and sample_card.c with One-Shot's sources; the screen's tick goes to sample_card.c's
+sample_hook_tick, which sets the card once and then runs One-Shot's tick (smp_hook_tick).
+
     python3 tools/gen_sampler.py --cycles model-cycles_OS1.13.syx [--check]
 
 The committed object and JSON are compiled with m68k-elf-gcc 16.2 (Homebrew); another GCC can give other bytes, and
@@ -74,6 +80,8 @@ DEV = HERE.parent / "tweaks" / "model-cycles_OS1.13"
 OUT = DEV / "27-sampler.json"
 LICENSE_OUT = DEV / "LICENSE-One-Shot"
 SRC = HERE / "machines" / "sampler"
+PICTURES = SRC / "sample_pictures.c"
+RUNTIME_PICTURES = {"card": "sample_card_px"}     # set by sample_card.c
 
 UPSTREAM = "https://github.com/durchgemacht/cycles-one-shot"
 UPSTREAM_TAG, UPSTREAM_COMMIT = "v0.17", "caf5b0a"
@@ -141,6 +149,8 @@ def build_tweak(img, check=False):
             "settings, as the Model:Samples does (0x400a6426), once it has loaded in the background; with the pad",
             "held (0x4001d05e, 0x4001d0fc) the track's trigs play it too, and let go, the note goes on in the track's",
             "sample at the same place (notes/60 §24).",
+            "model27's own pictures for SAMPLE, from sample_pictures.c and sample_card.c (not One-Shot's): the MACHINES",
+            "page's card and icon, the main screen's and the preset dialogs' track icon (notes/60 §25).",
             "Code of Cycles One-Shot %s (durchgemacht, MIT, %s, %s), copied as is into tools/machines/sampler/,"
             % (VERSION, UPSTREAM, "tag " + UPSTREAM_TAG if UPSTREAM_TAG else "commit " + UPSTREAM_COMMIT[:7]),
             "compiled once with CM_SYMBOLS and SMP_SWITCHES into sampler.o and placed by tools/relocate.py (notes/60).",
@@ -170,6 +180,11 @@ def main():
     ap.add_argument("--check", action="store_true", help="checks that the committed files match")
     args = ap.parse_args()
     bad = gm.emit(LICENSE_OUT, (SRC / "LICENSE").read_text(encoding="utf-8"), args.check)
+    import machine_pictures as mp
+    bad += gm.emit(PICTURES, mp.sprites_c("sample", ["/* SAMPLE's own pictures (tools/gen_sampler.py from "
+                                                      "tools/machines/sampler/pictures/, notes/60 §25). Generated:",
+                                                      "   do not edit. model27's, not Cycles One-Shot's."],
+                                          SRC, RUNTIME_PICTURES), args.check)
     if args.cycles:
         img = g7.cycles_main(args.cycles)
         if len(img) != gx.IMAGE_LEN:

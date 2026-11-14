@@ -10,7 +10,7 @@
  "os": "1.13",
  "order": 71,
  "build": {
-  "sources": ["solid.c", "ring_cf.S"],
+  "sources": ["solid.c", "ring_cf.S", "solid_pictures.c", "solid_card.c"],
   "include": ["."],
   "cflags": ["-std=c99", "-mcpu=54418", "-O2", "-ffreestanding", "-fno-builtin", "-fno-tree-loop-distribute-patterns",
              "-nostdlib", "-fno-pic", "-fno-common", "-ffunction-sections", "-fdata-sections", "-Wall", "-Wextra",
@@ -19,15 +19,16 @@
   "objects": ["solid.o"],
   "patch_points": [],
   "symbols": {"update": "solid_update", "render": "solid_render"},
-  "keep": []
+  "keep": ["solid_pictures", "solid_hook_tick"]
  },
  "uses": [
-  {"point": "machine", "name": "SOLID", "image": 3, "decay_default": 80,
+  {"point": "machine", "name": "SOLID", "image": 3, "decay_default": 80, "pictures": "solid_pictures",
    "knobs": [
     {"long": "Solid Bright", "short": "BRIT", "default": 64},
     {"long": "Solid Body", "short": "BODY", "default": 51},
     {"long": "Solid Pickup", "short": "PICK", "default": 40},
-    {"long": "Solid Exciter", "short": "EXCT", "default": 30}]}
+    {"long": "Solid Exciter", "short": "EXCT", "default": 30}]},
+  {"point": "screen.tick", "hook": {"at": "0x400075f0", "stock": "4eb940076be4", "op": "jsr", "symbol": "solid_hook_tick"}}
  ],
  "claims": {"sound_slots": [], "record_slots": [], "ram": [], "gestures": [], "views": []},
  "cost": {"emulation": {"default": 3588, "strike": 11969, "string_36": 3590, "glass_96": 2582, "burst": 6354, "sustained": 8598, "silent": 201, "six_ringing": 51589, "six_tone": 31746, "pattern": "instructions a block, the whole voice loop less the same loop muted, note 60 and default knobs unless named; 8 modes; six_ringing: six tracks of sustained noise; tools/emu/test_solid.py, the maintainer's run of 2026-11-11 after the optimization (notes/71 §9)", "before_optimization": {"default": 9915, "strike": 13375, "string_36": 9918, "glass_96": 6939, "burst": 11187, "sustained": 14331, "silent": 201, "six_ringing": 85989, "six_tone": 31746, "pattern": "instructions a block, the whole voice loop less the same loop muted, note 60 and default knobs unless named; 8 modes; tools/emu/test_solid.py, the maintainer's run of 2026-11-11 (notes/71 §6)"}}, "device": {"status": "measured", "date": "2026-11-11", "by": "maintainer", "build": "0.1e (notes/71 §11)", "cpu_page": "the stock pattern A01, all six tracks on SOLID, a Track FX on every track, POTS on the delay send: about 60 % on average, peaks up to 75 %"}},

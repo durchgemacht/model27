@@ -205,8 +205,13 @@ tools/machines/perform/       Perform Kit, a part (notes/81): SETTINGS + PATTERN
                               (composer.js performLayer); tools/emu/test_perform.py proves it, test_perform.c its logic
                               on the host
 tools/machines/solid/         SOLID (notes/71): model27's own modal resonator machine, eight modes in fixed point on the
-                              EMAC; tools/gen_solid.py writes its tables and its object and composes it alone into 71-solid.json, the
-                              flasher's SOLID card; tools/emu/test_solid.py proves it
+                              EMAC; tools/gen_solid.py writes its tables, its own pictures (solid_pictures.c: the
+                              MACHINES page's card, set by solid_card.c on the screen's tick, and from pictures/*.bin its
+                              icon and the track icon, through the registrar's pictures, §13) and its object and composes
+                              it alone into 71-solid.json, the flasher's SOLID card; tools/emu/test_solid.py proves it
+tools/machine_pictures.py     an added machine's own pictures as C (the OS's Bitmaps, their masks, the registrar's table):
+                              gen_solid.py and gen_sampler.py write solid_pictures.c and sample_pictures.c with it
+                              (notes/60 §25); SAMPLE's (sample_card.c, pictures/) are model27's, next to One-Shot's code
 tools/emu/                    Unicorn emulation of the OS: test_<mod>.py proofs, mcengine.py, emac.py, syntakt.py
 tools/gen_flasher_tweaks.py   FEATURES list -> docs/flasher/tweaks.js (generated); a machine card embeds its package and
                               the registrar's frame, composed in the page (notes/61)

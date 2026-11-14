@@ -128,6 +128,7 @@ function parameterBlock(fr, machines) {
     e.set(bytesOf(first + i, m.image, 76 + 5 * i, 76 + 5 * i - 51), 0);
     put32(e, 4, lay.recs + 0x60 * i);                                // rec
     put32(e, 8, m.knob_hook || 0);                                   // knob_hook
+    put32(e, 12, m.pictures || 0);                                   // pictures (notes/71 §13)
     parts.push(e);
   });
   const out = concat(...parts);
@@ -1101,10 +1102,14 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {},
     placedAt[p.id] = [codeAt, bssAt, raw, blob.length, bssEnd];
     if (codeAt + blob.length > lay.stubs)
       throw new Error(`${p.id}: code and tables end at ${hx(codeAt + blob.length)}, past ${hx(lay.stubs)}`);
-    if (mc)
+    if (mc) {
+      if ("pictures" in mc && syms[mc.pictures] === undefined)        // compose.load_manifest() checks it is kept
+        throw new Error(`${p.id}: its pictures ${mc.pictures} are not a symbol of the package (keep it)`);
       machines.push({ name: mc.name, image: mc.image, decay: mc.decay_default,
                       knobs: mc.knobs.map((k) => [k.long, k.short, k.default].concat("min" in k ? [k.min, k.max] : [])),
-                      update: syms[p.symbols.update], render: syms[p.symbols.render] });
+                      update: syms[p.symbols.update], render: syms[p.symbols.render],
+                      pictures: "pictures" in mc ? syms[mc.pictures] : 0 });
+    }
     blobs.push([codeAt, blob]);
     symsOf[p.id] = syms;
     info.push({ id: p.id, index: mc ? first + i : st ? STOCK_EXTENDED[st.machine] : null, desc: mc ? 76 + 5 * i : null,

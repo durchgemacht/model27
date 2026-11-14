@@ -11,7 +11,9 @@
  *            .byte index, image, first_desc, rec_param     index = first + i; rec_param = first_desc - 51
  *            .long rec                                      RECS + 0x60 i, the machine's record (built on first use)
  *            .long knob_hook                                0, or a package's hook called by knob_vec (MACRO's lo-fi)
- *            .long 0
+ *            .long pictures                                 0, or the package's own pictures: three sprite pointers,
+ *                                                           card, icon, track icon, each 0 for the stock one of image
+ *                                                           (notes/71 §13)
  *
  * Each entry keeps the register contract of the detour it replaces (notes/60 §5.2): the constants come from the
  * block with cmp.l / mvz.b from memory, the loops use a0 where the detour owned it (the whole-function entries and
@@ -95,37 +97,93 @@ find_machine:
 9:	suba.l	%a0, %a0
 8:	rts
 
-/* shown: d0 = machine -> d0 = its picture (unchanged for a stock machine). Uses d0, d1, a0. */
-shown:
+/* --- a machine's pictures (notes/71 §13) ---------------------------------------------------------------------
+ * The OS draws three sprites per machine, each out of a stock vector of six (28-byte Bitmaps, the vector's first at
+ * a global): `which` 0 the MACHINES page's card 48 x 33 (*0x40fe32cc), 4 its icon 34 x 34 (*0x40fe384c, also on
+ * the main screen), 8 the track icon 25 x 22 (*0x40fe37f0, the preset dialogs).
+ *
+ * own_sprite: d0 = machine, d1 = which -> an added machine: d0 = its own sprite (the entry's pictures, when it names
+ * one) or else the stock sprite of its image, d1 = 1; any other machine: d0 unchanged, d1 = 0. a1 = which on return.
+ * Uses d0, d1, a0, a1. */
+own_sprite:
+	movea.l	%d1, %a1
 	move.l	%d0, %d1
 	bsr.w	find_machine
 	move.l	%a0, %d1
 	beq.s	9f
-	mvz.b	1(%a0), %d0
+	mvz.b	1(%a0), %d0		/* its image */
+	move.l	12(%a0), %d1		/* its pictures, or 0 */
+	beq.s	1f
+	movea.l	%d1, %a0
+	move.l	(%a0,%a1.l), %d1	/* its own sprite of this kind, or 0 */
+	beq.s	1f
+	move.l	%d1, %d0
+	moveq	#1, %d1
+	rts
+1:	bsr.s	stock_sprite
+	moveq	#1, %d1
 9:	rts
 
-/* --- MACHINES page: the big picture (0x400a2638 -> 0x400a2680, mid-function; d3 = machine, d2 = context) ------ */
+/* stock_sprite: d0 = picture (0..5), a1 = which -> d0 = that picture's sprite in the stock vector. Uses d0, d1,
+ * a0. */
+stock_sprite:
+	move.l	%d0, %d1
+	lsl.l	#2, %d1
+	lsl.l	#5, %d0
+	sub.l	%d1, %d0		/* 28 x picture */
+	lea	stock_vec(%pc), %a0
+	movea.l	(%a0,%a1.l), %a0
+	add.l	(%a0), %d0
+	rts
+
+stock_vec:
+	.long	0x40fe32cc, 0x40fe384c, 0x40fe37f0
+
+/* sprite_of: as own_sprite, and a stock machine gets the sprite of its own picture (no bounds: the MACHINES page's
+ * are the OS's). Uses d0, d1, a0, a1. */
+sprite_of:
+	bsr.s	own_sprite
+	tst.l	%d1
+	beq.s	stock_sprite
+	rts
+
+/* bounded_sprite: as own_sprite; any other machine as the OS bounds it at the main screen and the preset dialogs,
+ * 0 below, and above 5 SNARE's (1), as the composer's bound did before (notes/18 §4). Uses d0, d1, a0, a1. */
+bounded_sprite:
+	bsr.s	own_sprite
+	tst.l	%d1
+	bne.s	9f
+	tst.l	%d0
+	bge.s	1f
+	moveq	#0, %d0
+1:	moveq	#5, %d1
+	cmp.l	%d0, %d1
+	bge.s	2f
+	moveq	#1, %d0
+2:	bra.s	stock_sprite
+9:	rts
+
+/* --- MACHINES page: the big picture (0x400a2638 -> 0x400a2680, mid-function; d3 = machine, d2 = context) ------
+ * The card, then the icon; d4 = the icon's sprite and a2 = the draw on return, as the OS's code left them. */
 	.globl	drum_icons
 drum_icons:
 	move.l	%d3, %d0
-	bsr.w	shown
-	move.l	%d0, %d4
-	lsl.l	#2, %d0
-	lsl.l	#5, %d4
-	sub.l	%d0, %d4
+	moveq	#0, %d1
+	bsr.w	sprite_of
 	pea	0x1
 	pea	0x17
 	pea	0x20
 	lea	0x40071da4, %a2
-	movea.l	0x40fe32cc, %a1
-	adda.l	%d4, %a1
-	move.l	%a1, -(%sp)
+	move.l	%d0, -(%sp)
 	move.l	%d2, -(%sp)
 	jsr	(%a2)
 	lea	48(%sp), %sp
+	move.l	%d3, %d0
+	moveq	#4, %d1
+	bsr.w	sprite_of
+	move.l	%d0, %d4
 	pea	0x1
 	pea	0x22
-	add.l	0x40fe384c, %d4
 	pea	0x60
 	move.l	%d4, -(%sp)
 	move.l	%d2, -(%sp)
@@ -133,24 +191,49 @@ drum_icons:
 	lea	20(%sp), %sp
 	jmp	0x400a2680
 
-/* --- the small icon of a track (0x400a4dc4 -> 0x400a4dde, mid-function; d2 = machine, a0 = view) -------------- */
+/* --- the small icon of a track (0x400a4dc4 -> 0x400a4dec, mid-function; d2 = machine, a0 = view) --------------
+ * Back at the push of the sprite, d0 = the sprite; any other machine as the OS bounds it, 0 below, CHORD above. */
 	.globl	small_icon
 small_icon:
 	lea	10(%a0), %a0
 	move.l	%a0, -(%sp)
 	move.l	16(%fp), -(%sp)
 	move.l	%d2, %d0
+	moveq	#8, %d1
+	bsr.w	own_sprite
+	tst.l	%d1
+	bne.s	3f
+	move.l	%d2, %d0
 	bpl.s	1f
 	moveq	#0, %d0
 1:	moveq	#5, %d1
 	cmp.l	%d0, %d1
-	bge.s	3f
-	bsr.w	shown
-	moveq	#5, %d1
-	cmp.l	%d0, %d1
-	bge.s	3f
+	bge.s	2f
 	moveq	#5, %d0
-3:	jmp	0x400a4dde
+2:	bsr.w	stock_sprite
+3:	jmp	0x400a4dec
+
+/* --- the main screen's icon (0x4001b68c -> 0x4001b6ac, mid-function; d0 = the machine in 8.8) ---------------- */
+	.globl	main_icon
+main_icon:
+	asr.l	#8, %d0
+	moveq	#4, %d1
+	bsr.w	bounded_sprite
+	jmp	0x4001b6ac
+
+/* --- the preset dialogs' track icons (0x400a40a2 -> 0x400a40c2 and 0x400a4fac -> 0x400a4fcc, mid-function;
+ * d0 = machine) ----------------------------------------------------------------------------------------------- */
+	.globl	preset_icon_a
+preset_icon_a:
+	moveq	#8, %d1
+	bsr.w	bounded_sprite
+	jmp	0x400a40c2
+
+	.globl	preset_icon_b
+preset_icon_b:
+	moveq	#8, %d1
+	bsr.w	bounded_sprite
+	jmp	0x400a4fcc
 
 /* --- records per machine (0x4004df5c record_at(index + 1), 0x4004df76 record_of(index); whole functions) -------
  * An added machine gets its own record, built on first use from SNARE's (rec_build); anything out of range gets

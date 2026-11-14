@@ -88,7 +88,7 @@ MARK = ((58, 3), (59, 3), (58, 4), (59, 4))
 BOX_LEFT, BOX_STEP, BOX_W, BOX_Y = 8, 24, 16, (20, 35)
 POINTS = {"main": (MAIN_ENTRY, 4, "smp_main_draw", "ref2_main_draw", "dp_main"),
           "knob": (KNOB_ENTRY, 28, "smp_knob_draw", "ref2_knob_draw", "dp_knob"),
-          "tick": (TICK_SITE, 52, "smp_hook_tick", "ref2_hook_tick", "dp_tick"),
+          "tick": (TICK_SITE, 52, "sample_hook_tick", "ref2_hook_tick", "dp_tick"),
           "open": (OPEN_SITE, 76, "smp_hook_open", "ref2_hook_open", "dp_open"),
           "note": (NOTE_ENTRY, 100, "smp_note_draw", "ref2_note_draw", "dp_note")}
 POINT_IDS = {"main": "view.main", "knob": "view.knob", "tick": "screen.tick", "open": "browser.open",
@@ -286,7 +286,7 @@ def dispatch_tests(key, img, runtime, syms, added):
     u.calls.clear()
     r = u.call(syms["dp_tick"], SCREEN)
     got = [(n, a[0]) for n, a in u.calls if n in set(names.values()) | {"getter"}]
-    want = [({"sampler": "smp_hook_tick", "refmachine2": "ref2_hook_tick"}[m["code"]], SCREEN) for m in added
+    want = [({"sampler": "sample_hook_tick", "refmachine2": "ref2_hook_tick"}[m["code"]], SCREEN) for m in added
             if m["code"] in ("sampler", "refmachine2")] + [("getter", SCREEN)]
     check(got == want and r == GETTER and u.sp_ok and not u.bad,
           f"{key}: the tick's dispatcher: {', '.join(n for n, _ in want)}, in machine order, then gives the getter's "

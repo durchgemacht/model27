@@ -10,7 +10,8 @@ composer (tools/compose.py, boot_stub) fills them and appends the segment table,
 
 B2c (§5): the **registrar runtime**, registrar.S, the detours of the added machines assembled once at STUBS
 (0x43033000) with a parameter block at REGS (STUBS + 0x780) that the composer fills per build (n, first, top, nm,
-last, the knob table, and one 16-byte entry per machine: index, picture, first descriptor, record). Its code and
+last, the knob table, and one 16-byte entry per machine: index, picture, first descriptor, record, knob hook, own
+pictures, notes/71 §13). Its code and
 the addresses of its entries (the targets of the OS's jumps and call) are committed here too.
 
 B3b (notes/61 §3), with --cycles: the **frame** of the registrar's part for n = 1 to 6 machines, what the composer
@@ -42,7 +43,7 @@ SRC = HERE / "machines" / "registrar" / "registrar.S"
 REGS_OFF = 0x780                   # the parameter block: the last 128 bytes of STUBS..DATA
 ENTRY, MAX_MACHINES = 16, 6        # one entry per added machine; gs.check_room allows 6 (109 descriptors)
 ENTRIES = ("state_at", "state_connect", "cc_bounds", "drum_icons", "small_icon", "record_at", "record_of", "marks",
-           "knob_vec", "desc_machine", "builder_row")
+           "knob_vec", "desc_machine", "builder_row", "main_icon", "preset_icon_a", "preset_icon_b")
 PLACEHOLDERS = {"src": 0x7a5a5a51, "dst": 0x7b5b5b52, "longs": 0x7c5c5c53}     # distinct, found once each
 
 
