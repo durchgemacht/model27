@@ -302,9 +302,10 @@ async function main() {
     check(lic.join() === "https://github.com/18nelli18/Modded-Cycles/blob/main/LICENSE,https://github.com/durchgemacht/model27/blob/main/THIRD-PARTY-NOTICES.md",
       "credits section links Modded-Cycles' MIT license and model27's third-party notices: " + JSON.stringify(lic));
     const rcNames = [...doc.querySelectorAll("#rc .rc-items a")];
-    check(rcNames.length === 10 && rcNames.every((a) => /^https:\/\//.test(a.href) && a.target === "_blank")
+    check(rcNames.length === 10
+      && rcNames.every((a) => /^https:\/\/github\.com\/[A-Za-z0-9-]+$/.test(a.href) && a.target === "_blank")
       && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(text(doc, "rc-now")) && !!doc.getElementById("rc-tip"),
-      "footer receipt: ten names, each a link that opens apart, the visitor's date and time, TIP: " +
+      "footer receipt: ten names, each a link to its GitHub profile that opens apart, the visitor's date and time, TIP: " +
       rcNames.map((a) => a.textContent).join());
     const box = (id) => doc.getElementById(id);
     const chosen = () => w.MCFlasherApp.chosenTweaks().map((x) => x.id).join();

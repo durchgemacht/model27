@@ -8,7 +8,7 @@
  */
 window.MC_RELEASES = [
   { version: "0.65", date: "2026-11-14", changes: [
-    { en: "The flasher page has a new footer: links to the site's pages and to the project, and a receipt that names the people whose work model27 is built on, from the reverse-engineering of the firmware to the sound of MACRO and ACID. model27 takes no money: every name on the receipt is a link to that person" },
+    { en: "The flasher page has a new footer: links to the site's pages and to the project, and a receipt that names the people whose work model27 is built on, from the reverse-engineering of the firmware to the sound of MACRO and ACID. model27 takes no money: every name on the receipt links to that person's GitHub" },
     { en: "The credits below it are now called Credits & licenses, otherwise unchanged. The firmware is unchanged" },
     { en: "Checked in a browser on a computer and at phone width (2026-11-14)" }
   ] },

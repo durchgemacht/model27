@@ -342,7 +342,7 @@ details.trouble{margin-top:22px;font-size:14px}
   border-top:3px solid var(--ink);font-size:12.5px}
 .foot-ver{font-weight:700;text-transform:uppercase}
 
-/* the receipt: who did the hard part, each name a link (to where they take support, or their GitHub); TIP prints a
+/* the receipt: who did the hard part, each name a link to their GitHub profile; TIP prints a
    line per press and the stamp lands once in view (wireReceipt() in app.js); the page reads the same without them */
 .rc{position:relative;margin:12px 0;padding:16px 14px 18px;background:var(--card);border-left:3px solid var(--ink);
   border-right:3px solid var(--ink);font-size:12px;line-height:1.55;text-transform:uppercase;filter:drop-shadow(4px 4px 0 var(--ink))}
