@@ -17979,7 +17979,7 @@ function renderCredits() {
     `${esc(c.en)}</li>`).join("");
 }
 
-// The footer's receipt (index.html, #rc): who did the hard part, model27's share 0.00. Here only what moves: the
+// The footer's receipt (index.html, #rc): who did the hard part, model27's cut 0.00. Here only what moves: the
 // visitor's date and time on it, TIP printing one line per press like a receipt printer (then "out of paper", and
 // the names blink), the stamp landing once it comes into view. Without this the receipt reads the same.
 const RECEIPT_TIPS = ["> tip redirected: see the names above", "> tip redirected again", "> still no. pay them.",

@@ -43,7 +43,7 @@ the card keeps a hidden copy (`#det-<id>`), which the search and the smoke test 
 
 The footer (the maintainer's design of 14/11/2026): the brand, the site's and the project's links, and in a third of
 the width a receipt (`#rc` in `flasher/index.html`, `wireReceipt()` in `app.js`): "Do not buy me a coffee", the people
-who did the hard part as its items, model27's share 0.00. model27 asks for no money; each name links to that person's
+who did the hard part as its items, model27's cut 0.00. model27 asks for no money; each name links to that person's
 GitHub profile (`https://github.com/<name>`) and nowhere else: no Ko-fi, donation or payment pages (the maintainer's
 choice of 15/11/2026; Émilie Gillet is `pichenettes`). Below it: the credits (folded, with the licenses), the
 disclaimer and the version. Light only, as the
