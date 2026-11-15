@@ -103,35 +103,46 @@ THE SOFTWARE.
 <meta name="theme-color" content="#d7dbe0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: a workbench. The 32-step wavetable with its analysis and preview on the left, the waves as a
    sidebar on the right; on narrow screens the waves stack under the table.
-   Look: model27's 1-bit pages (flasher, manager, uploader): ink on a cool grey, light only, no rounded
-   corners, one typeface (Space Mono, from Google Fonts; offline the system's monospace font stands in).
+   Look: model27's pages (flasher, uploader), graded on 2026-11-15: ink on a cool grey, light only. A line's
+   weight says what it is (2 px a frame, 1.5 px a control, 1 px a divider inside a frame); a softer text tone
+   (--soft) for what explains; controls with 3 px corners and normal writing, headings in capitals; one typeface
+   (IBM Plex Mono, from Google Fonts; offline the system's monospace font stands in).
    States are borders, dashes and inversion. The one exception is colour on the waves and the crossfade
    bar: the waves show their source (Plaits, Braids, user, in-between), the bar how steady the volume stays. */
 :root {
   color-scheme: light;
-  --ink: #0b0c0e; --paper: #d7dbe0; --card: #e6ebf1;
+  --ink: #17222e; --paper: #d7dbe0; --card: #e6ebf1;
+  --ink-up: #2a3848;             /* the ink a step lighter: a filled button under the pointer */
+  --soft: #4a5562;               /* the second text tone: what explains */
+  --tint: rgba(23, 34, 46, .09); /* an outlined control under the pointer */
+  --field: #f1f4f7;              /* where you type, choose or tick */
+  --head-bg: #1f2b39;            /* the headline's block */
+  --sh: #b4bcc6;                 /* the status bar's shadow, a 1 px checkerboard cut by --chk */
+  --sh-win: var(--ink);          /* the same under a window (help, Save), in the ink */
+  --chk: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h1v1H0zM1 1h1v1H1z'/%3E%3C/svg%3E");
+  --r: 3px;
   --panel: #d7dbe0;   /* what the waterfall fills under each frame: the right column's colour (Listen) */
   --side: var(--paper);
   --mute: var(--ink); --rule: var(--ink);
   /* only for the waves and the crossfade bar */
   --plaits: #0b7473; --braids: #a8650f; --own: #7b3fb2; --wave-mute: #5a626d;
   --good: #2f7d32; --warn: #b26b00; --bad: #c0392b;
-  --body: "Space Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --body: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --display: var(--body); --mono: var(--body);
-  --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%230b0c0e'/%3E%3C/svg%3E");
+  --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%2317222e'/%3E%3C/svg%3E");
 }
 *, *::before, *::after { box-sizing: border-box; }
-body { background: var(--paper); color: var(--ink); font: 400 14px/1.5 var(--body); margin: 0; -webkit-font-smoothing: auto; }
+body { background: var(--paper); color: var(--ink); font: 400 14px/1.5 var(--body); margin: 0; -webkit-font-smoothing: antialiased; }
 ::selection { background: var(--ink); color: var(--paper); }
 :focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 [hidden] { display: none !important; }
 code { font: inherit; font-size: 0.95em; }
-a { color: inherit; text-decoration-thickness: 2px; text-underline-offset: 0.22em; }
-a:hover { text-decoration-thickness: 4px; }
+a { color: inherit; text-decoration-thickness: 1.5px; text-underline-offset: 0.22em; }
+a:hover { text-decoration-thickness: 2.5px; }
 
 /* the table on the left, the right column (Waves | Listen) beside it; extra height of the right column goes
    into the last row */
@@ -141,117 +152,131 @@ a:hover { text-decoration-thickness: 4px; }
 .bar { grid-area: bar; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: end; justify-content: space-between; padding: 4rem 0 2rem; }
 h1, h2, h3 { font-family: var(--body); font-weight: 700; letter-spacing: 0; text-transform: uppercase; line-height: 1; margin: 0; }
 /* the headline: an inverted block, as on the flasher */
-h1 { display: inline-block; margin-left: -8px; padding: 8px; background: #2b2c2d; color: var(--paper); font-size: 36px; }
+h1 { display: inline-block; margin-left: -8px; padding: 8px; background: var(--head-bg); color: var(--paper); font-size: 36px; letter-spacing: -.02em; }
 h2 { font-size: 18px; }
 h3 { font-size: 13px; }
 
-/* the two areas: a 3 px frame each, as the uploader's panes; inside them nothing is framed but the tabs, "?" and
-   the one filled button: sections under a dashed line, buttons as text links, the waves on their own */
+/* the two areas: a 2 px frame each, as the uploader's panes; inside them sections under a dashed line, buttons
+   framed as the uploader's tools, the waves on their own */
 #step-fill { grid-area: fill; } #side { grid-area: side; background: var(--side); }
-.step { min-width: 0; background: var(--card); border: 3px solid var(--ink); }
-.step > header { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0 14px; border-bottom: 3px solid var(--ink); }
+.step { min-width: 0; background: var(--card); border: 2px solid var(--ink); }
+.step > header { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0 14px; border-bottom: 1px solid var(--ink); }
 .step h2 { align-self: center; padding: 14px 0 14px 18px; }
-.step-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; margin-left: auto; padding: 8px 18px; }
+.step-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-left: auto; padding: 8px 18px; }
 .step-body { min-width: 0; display: grid; gap: 16px; padding: 16px 18px 20px; }
-.step-body > .sub { margin: 0; font-size: 12px; }
+.step-body > .sub { margin: 0; font-size: 12px; color: var(--soft); }
 /* the right column: two tabs as its head, Waves (to drag onto the table) and Listen; the open one inverted, a
    square after Listen while something plays */
-.side-tabs { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 3px solid var(--ink); }
-.side-tabs button { min-height: 50px; border: 0; font-size: 18px; text-decoration: none; }
-.side-tabs button + button { border-left: 3px solid var(--ink); }
+.side-tabs { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--ink); }
+.side-tabs button { min-height: 50px; border: 0; font-size: 18px; font-weight: 700; text-transform: uppercase; }   /* they head the column: capitals, as a heading */
+.side-tabs button + button { border-left: 1px solid var(--ink); }
 .side-tabs button[aria-selected="true"] { background: var(--ink); color: var(--paper); }
 .side-tabs button.playing::after { content: ""; display: inline-block; width: 9px; height: 9px; margin-left: 10px; background: currentColor; vertical-align: 1px; }
 
-/* buttons: text links, as the flasher's Details and Change: underlined, thicker on hover, dotted while they cannot
-   be used. The one filled button of a place (Play sweep, Save…, Save firmware) is a block of ink. */
+/* buttons. Every button starts bare (no frame, the page's face, normal writing); then by class: .tool, a thin
+   frame as the uploader's tools (Undo, Sort by brightness, Preview, Save wavetable, …), dashed while it cannot be
+   used; .primary, the one filled button of a place (Hold, Save…, Save firmware), a block of ink, a step lighter
+   under the pointer. Nothing moves on hover. */
 button { min-height: 28px; padding: 0 1px; background: none; color: var(--ink); border: 0; border-radius: 0;
-  font: 700 12px/1 var(--body); text-transform: uppercase; text-decoration: underline; text-decoration-thickness: 2px;
-  text-underline-offset: 4px; cursor: pointer; }
-button:hover:not(:disabled) { text-decoration-thickness: 4px; }
-button:disabled { text-decoration-style: dotted; cursor: not-allowed; }
-button.primary { min-height: 40px; padding: 0 16px; background: var(--ink); color: var(--paper); border: 3px solid var(--ink); text-decoration: none;
-  transition: transform .08s steps(2); }
-button.primary:hover:not(:disabled) { transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--ink); }
-button.primary:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: none; }
-button.primary:disabled { background: transparent; color: var(--ink); border-style: dashed; }
+  font: 600 13px/1 var(--body); cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+button.tool { padding: 0 10px; border: 1.5px solid var(--ink); border-radius: var(--r); }
+button.tool:hover:not(:disabled) { background: var(--tint); }
+button.tool:disabled { border-style: dashed; }
+.card-row button.tool, .card-row button.primary { min-height: 32px; }   /* beside a field or each other, one height */
+button.primary { min-height: 36px; padding: 0 16px; background: var(--ink); color: var(--paper); border: 1.5px solid var(--ink); border-radius: var(--r); font-weight: 700; }
+button.primary:hover:not(:disabled) { background: var(--ink-up); border-color: var(--ink-up); }
+button.primary:disabled { background: transparent; border-color: var(--ink); color: var(--ink); border-style: dashed; }
 
-input[type="text"], input[type="number"], select { min-height: 32px; padding: 0 8px; font: 13px/1.2 var(--body); color: var(--ink); background: var(--paper);
-  border: 2px solid var(--ink); border-radius: 0; }
+input[type="text"], input[type="number"], select { min-height: 32px; padding: 0 8px; font: 13px/1.2 var(--body); color: var(--ink); background-color: var(--field);
+  border: 1.5px solid var(--ink); border-radius: var(--r); }
 select { padding-right: 30px; appearance: none; -webkit-appearance: none; cursor: pointer;
   background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
   background-size: 5px 5px, 5px 5px; background-position: calc(100% - 16px) 52%, calc(100% - 11px) 52%; background-repeat: no-repeat; }
 #set-name { width: 28ch; max-width: 100%; }
-/* square checkboxes with the flasher's pixel check */
-input[type="checkbox"] { appearance: none; -webkit-appearance: none; flex: none; width: 20px; height: 20px; margin: 0; border: 2px solid var(--ink); border-radius: 0;
-  background: transparent; cursor: pointer; }
-input[type="checkbox"]:checked { background: var(--check) center / 12px 12px no-repeat; }
+/* checkboxes with the flasher's pixel check, on the fields' light ground */
+input[type="checkbox"] { appearance: none; -webkit-appearance: none; flex: none; width: 20px; height: 20px; margin: 0; border: 1.5px solid var(--ink); border-radius: var(--r);
+  background: var(--field); cursor: pointer; }
+input[type="checkbox"]:checked { background: var(--field) var(--check) center / 12px 12px no-repeat; }
 /* sliders: a line of ink and a square block */
 input[type="range"] { -webkit-appearance: none; appearance: none; height: 22px; margin: 0; background: transparent; cursor: pointer; }
 input[type="range"]::-webkit-slider-runnable-track { height: 2px; background: var(--ink); }
-input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 20px; margin-top: -9px; background: var(--ink); border: 0; border-radius: 0; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 20px; margin-top: -9px; background: var(--ink); border: 0; border-radius: 2px; }
 input[type="range"]::-moz-range-track { height: 2px; background: var(--ink); }
-input[type="range"]::-moz-range-thumb { width: 12px; height: 20px; background: var(--ink); border: 0; border-radius: 0; }
+input[type="range"]::-moz-range-thumb { width: 12px; height: 20px; background: var(--ink); border: 0; border-radius: 2px; }
 #harmonics { width: 150px; }
 .card input[type="range"] { flex: 1 1 100px; width: auto; min-width: 80px; max-width: 200px; }
 
-.file { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; }
-.file label { font-size: 12px; font-weight: 700; text-transform: uppercase; }
-.file .group { display: inline-flex; align-items: center; gap: 8px; }
-#harm-val { font-size: 12px; min-width: 3.5ch; }
+.file { display: flex; flex-wrap: wrap; gap: 8px 6px; align-items: center; }
+.file label { font-size: 12px; font-weight: 600; text-transform: uppercase; }
+.file .group { display: inline-flex; align-items: center; gap: 6px; }
+.file .group + .group { margin-left: 12px; gap: 8px; }
+#harm-val { font-size: 12px; min-width: 3.5ch; color: var(--soft); }
 
 /* the waves' sources: joined frames, the open one inverted */
 .tabs { display: flex; flex-wrap: wrap; }
-.tabs button { min-height: 30px; padding: 0 10px; border: 2px solid var(--ink); text-decoration: none; }
+.tabs button { min-height: 30px; padding: 0 10px; border: 1.5px solid var(--ink); }
 .tabs button + button { border-left: 0; }
+.tabs button:first-child { border-radius: var(--r) 0 0 var(--r); }
+.tabs button:last-child { border-radius: 0 var(--r) var(--r) 0; }
+.tabs button:hover { background: var(--tint); }
 .tabs button[aria-selected="true"] { background: var(--ink); color: var(--paper); }
 
 /* the pool: the waves on their own; hovered, a thin frame; picked, inverted; on the table, a square in the corner */
 .grid { display: grid; gap: 10px 9px; }   /* room between the waves, so a row does not read as one long wave */
 .grid.g8 { grid-template-columns: repeat(8, minmax(0, 1fr)); }
 .grid.g16 { grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 6px 5px; }
-.cell { position: relative; min-height: 0; padding: 0; border: 0; background: none; aspect-ratio: 4 / 3; cursor: grab; text-decoration: none; }
+.cell { position: relative; min-height: 0; padding: 0; border: 0; background: none; aspect-ratio: 4 / 3; cursor: grab; }
 .cell:hover:not(:disabled) { outline: 1px solid var(--ink); }
 .cell canvas { width: 100%; height: 100%; display: block; }
 .cell.sel { background: var(--ink); }
 .cell.used::after { content: ""; position: absolute; right: 1px; top: 1px; width: 5px; height: 5px; background: var(--ink); }
 .cell.sel.used::after { background: var(--paper); }
-.axis { display: flex; justify-content: space-between; font-size: 11px; }
+.axis { display: flex; justify-content: space-between; font-size: 11px; font-weight: 500; color: var(--soft); }
 .pool-info { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 13px; }
-#pool-sel { font-size: 12px; min-width: 0; flex: 1 1 14ch; }
+#pool-sel { font-size: 12px; min-width: 0; flex: 1 1 14ch; color: var(--soft); }
 .pool-info label { display: flex; gap: 8px; align-items: center; }
-.note { font-size: 12px; flex: 1 1 24ch; min-width: 0; }
-.pool.dropping { outline: 3px dashed var(--ink); outline-offset: -8px; }
-.empty-own { grid-column: 1 / -1; padding: 28px 12px; text-align: center; border: 2px dashed var(--ink); font-size: 13px; }
+.note { font-size: 12px; flex: 1 1 24ch; min-width: 0; color: var(--soft); }
+.pool.dropping { outline: 2px dashed var(--ink); outline-offset: -8px; }
+.empty-own { grid-column: 1 / -1; padding: 28px 12px; text-align: center; border: 1.5px dashed var(--ink); font-size: 13px; }
 
 /* a section: controls that belong together, under a dashed line and a short title (with a "?" for more) */
-.card { display: grid; gap: 10px; padding-top: 16px; border-top: 2px dashed var(--ink); }
+.card { display: grid; gap: 10px; padding-top: 16px; border-top: 1px dashed var(--ink); }
 #ex-card { padding-top: 0; border-top: 0; }
 .card-head { display: flex; align-items: center; gap: 8px; }
 .card-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 13px; }
-.card-row .lab { min-width: 6ch; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+.card-row .lab { min-width: 6ch; font-size: 12px; font-weight: 600; text-transform: uppercase; }
 .card-row .note { flex: 1 1 20ch; }
 .card input[type="number"] { width: 7ch; }
 .card-pair { display: grid; gap: 16px; align-items: start; }
 .card-pair .lab, #live-card .lab { min-width: 9ch; }
-.val { font-size: 12px; min-width: 7ch; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.val { font-size: 12px; font-weight: 500; min-width: 7ch; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--soft); }
 /* Play: two buttons that say what is set (chord and root, the LFO), framed like a menu; each folds its controls
    open in a frame under the row, one at a time, the open button inverted */
-button.menu { min-height: 32px; padding: 0 30px 0 8px; border: 2px solid var(--ink); font: 400 13px/1.2 var(--body);
-  text-transform: none; text-decoration: none; white-space: nowrap;
+button.menu { min-height: 32px; padding: 0 30px 0 8px; border: 1.5px solid var(--ink); border-radius: var(--r); background-color: var(--field); font: 400 13px/1.2 var(--body);
+  white-space: nowrap;
   background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
   background-size: 5px 5px, 5px 5px; background-position: calc(100% - 16px) 52%, calc(100% - 11px) 52%; background-repeat: no-repeat; }
 button.menu:hover:not(:disabled) { outline: 1px solid var(--ink); outline-offset: 1px; }
 button.menu[aria-expanded="true"] { background-color: var(--ink); color: var(--paper); }
-.fold { display: grid; gap: 10px; margin-top: -4px; padding: 10px 12px; border: 2px solid var(--ink); }
+.fold { display: grid; gap: 10px; margin-top: -4px; padding: 10px 12px; border: 1.5px solid var(--ink); border-radius: var(--r); }
 
 /* "?": a small square; its text in a window under it, closed with ×, Escape or the same "?" */
-button.help { width: 22px; min-height: 22px; height: 22px; padding: 0; border: 2px solid var(--ink); font-size: 12px; line-height: 1;
-  text-transform: none; text-decoration: none; vertical-align: 1px; }
-button.help:hover:not(:disabled), button.help[aria-expanded="true"] { background: var(--ink); color: var(--paper); }
-.help-pop { position: absolute; z-index: 10; max-width: min(320px, calc(100vw - 32px)); background: var(--card); color: var(--ink); border: 3px solid var(--ink);
-  box-shadow: 4px 4px 0 var(--ink); padding: 10px 36px 12px 12px; font-size: 13px; line-height: 1.5; }
+button.help { width: 22px; min-height: 22px; height: 22px; padding: 0; border: 1.5px solid var(--ink); border-radius: var(--r); font-size: 12px; line-height: 1;
+  vertical-align: 1px; }
+button.help:hover:not(:disabled) { background: var(--tint); }
+button.help[aria-expanded="true"], button.help[aria-expanded="true"]:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+.file button.help { width: 28px; min-height: 28px; height: 28px; }   /* in a row of tools, as high as they are */
+/* its frame and ground are ::before and its shadow ::after, both behind its text: the shadow is a block 4 px down
+   and right, cut to the 1 px checkerboard, which a box-shadow cannot be (the window keeps a transparent border, so
+   its size is the same) */
+.help-pop { position: absolute; z-index: 10; max-width: min(320px, calc(100vw - 32px)); color: var(--ink); border: 2px solid transparent;
+  padding: 10px 36px 12px 12px; font-size: 13px; line-height: 1.5; }
+.help-pop::before { content: ""; position: absolute; z-index: -1; top: -2px; left: -2px; right: -2px; bottom: -2px; background: var(--card); border: 2px solid var(--ink); }
+.help-pop::after { content: ""; position: absolute; z-index: -2; top: 2px; left: 2px; right: -6px; bottom: -6px; background: var(--sh-win); pointer-events: none;
+  -webkit-mask: var(--chk) 0 0 / 2px 2px; mask: var(--chk) 0 0 / 2px 2px; }
 .help-pop p { margin: 0; }
-.help-x, .sheet-x { width: 28px; min-height: 28px; padding: 0; font-size: 18px; text-decoration: none; }
+.help-x, .sheet-x { width: 28px; min-height: 28px; padding: 0; border-radius: var(--r); font-size: 18px; }
 .help-x { position: absolute; top: 4px; right: 4px; }
 .help-x:hover:not(:disabled), .sheet-x:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
 
@@ -263,13 +288,14 @@ button.help:hover:not(:disabled), button.help[aria-expanded="true"] { background
 .slot[draggable="true"]:hover { outline: 1px solid var(--ink); }
 .slot canvas { width: 100%; aspect-ratio: 16 / 9; display: block; }
 .slot.empty canvas { background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 6px) center / 100% 2px no-repeat; }
-.slot .lab { display: flex; justify-content: space-between; gap: 4px; font-size: 10px; white-space: nowrap; overflow: hidden; }
-.slot .lab b { font-weight: 700; }
-.slot.now { outline: 3px solid var(--ink); }
+.slot .lab { display: flex; justify-content: space-between; gap: 4px; font-size: 10px; font-weight: 500; white-space: nowrap; overflow: hidden; color: var(--soft); }
+.slot .lab b { font-weight: 700; color: var(--ink); }
+.slot.now { outline: 2px solid var(--ink); }
 .slot.drop { background: var(--ink); color: var(--paper); }   /* where a dragged wave lands: inverted, as the flasher's drop field */
+.slot.drop .lab, .slot.drop .lab b { color: inherit; }
 .slot.drop.empty canvas { background-image: repeating-linear-gradient(90deg, var(--paper) 0 2px, transparent 2px 6px); }
-.slot .x { position: absolute; top: 0; right: 0; width: 20px; min-height: 20px; padding: 0; background: var(--card); border: 2px solid var(--ink);
-  font-size: 13px; text-decoration: none; display: none; }
+.slot .x { position: absolute; top: 0; right: 0; width: 20px; min-height: 20px; padding: 0; background: var(--card); border: 1.5px solid var(--ink); border-radius: var(--r);
+  font-size: 13px; display: none; }
 .slot .x:hover { background: var(--ink); color: var(--paper); }
 .slot:hover .x, .slot:focus-within .x { display: block; }
 .slot .morph { position: absolute; left: 2px; right: 2px; bottom: 1px; height: 3px; }
@@ -279,24 +305,28 @@ button.help:hover:not(:disabled), button.help[aria-expanded="true"] { background
 #waterfall { width: 100%; aspect-ratio: 2 / 1; display: block; }
 .facts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 16px; margin: 0; }
 .facts div { display: grid; gap: 2px; align-content: start; }
-.facts dt { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.facts dt { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--soft); }
 .facts dd { margin: 0; font-size: 12px; font-variant-numeric: tabular-nums; }
 
 /* the OS file: a dashed field to drop it on or click, solid once it is loaded; then one big button */
-.drop { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 3px dashed var(--ink); cursor: pointer; }
+.drop { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 2px dashed var(--ink); cursor: pointer; }
 .drop-ic { flex: none; }
 .drop-t strong { display: block; font-size: 13px; word-break: break-all; }
-.drop-t span { font-size: 12px; }
+.drop-t span { font-size: 12px; color: var(--soft); }
 .drop:hover, .drop:focus-visible, .drop.over { background: var(--ink); color: var(--paper); outline: none; }
+.drop:hover .drop-t span, .drop:focus-visible .drop-t span, .drop.over .drop-t span { color: inherit; }
 .drop.loaded { border-style: solid; }
-button.big { width: 100%; min-height: 52px; font-size: 14px; }
+button.big { width: 100%; min-height: 48px; font-size: 15px; }
 
 /* the one status bar, at the foot of the window and always in view: what the last action did (bold), then the
    table; it worked with a tick, a warning with "!", a problem inverted. Save… on its right opens the save window
-   just above it, so the bar and its messages stay in view while saving. */
+   just above it, so the bar and its messages stay in view while saving. Its shadow is model27's cards': a block
+   behind the box, 4 px down and right, cut to a 1 px checkerboard by a mask (a box-shadow takes no pattern; the
+   offsets count from inside the 2 px frame). */
 .statusbar { position: sticky; bottom: 0; z-index: 5; max-width: 1280px; margin: 0 auto; padding: 0 24px 16px; }
-.statusbar .box { display: flex; align-items: center; gap: 10px 16px; padding: 10px 10px 10px 14px; background: var(--card); border: 3px solid var(--ink);
-  box-shadow: 4px 4px 0 var(--ink); }
+.statusbar .box { position: relative; display: flex; align-items: center; gap: 10px 16px; padding: 10px 10px 10px 14px; background: var(--card); border: 2px solid var(--ink); }
+.statusbar .box::after { content: ""; position: absolute; z-index: -1; top: 2px; left: 2px; right: -6px; bottom: -6px; background: var(--sh); pointer-events: none;
+  -webkit-mask: var(--chk) 0 0 / 2px 2px; mask: var(--chk) 0 0 / 2px 2px; }
 .msgs { flex: 1; min-width: 0; display: grid; gap: 4px; }
 .msg { margin: 0; font-size: 13px; }
 #msg-act { font-weight: 700; }
@@ -306,12 +336,17 @@ button.big { width: 100%; min-height: 52px; font-size: 14px; }
 .msg.bad::before { content: "× "; }
 #btn-save-open { flex: none; }
 #save-need { margin: 0; }
-.sheet { position: absolute; right: 24px; bottom: calc(100% + 10px); width: min(520px, calc(100% - 48px)); max-height: calc(100vh - 140px); overflow: auto;
-  display: grid; gap: 16px; padding: 12px 18px 20px; background: var(--card); border: 3px solid var(--ink); box-shadow: 8px 8px 0 var(--ink); }
-.sheet-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 3px solid var(--ink); }
+/* the Save window: .sheet only places it, its box is .sheet-in (the frame, the ground, the scrolling), so the shadow
+   can be a block behind the box, 8 px down and right, cut to the checkerboard (inside a box that scrolls it would
+   be clipped) */
+.sheet { position: absolute; right: 24px; bottom: calc(100% + 10px); width: min(520px, calc(100% - 48px)); isolation: isolate; }
+.sheet::after { content: ""; position: absolute; z-index: -1; top: 8px; left: 8px; right: -8px; bottom: -8px; background: var(--sh-win); pointer-events: none;
+  -webkit-mask: var(--chk) 0 0 / 2px 2px; mask: var(--chk) 0 0 / 2px 2px; }
+.sheet-in { max-height: calc(100vh - 140px); overflow: auto; display: grid; gap: 16px; padding: 12px 18px 20px; background: var(--card); border: 2px solid var(--ink); }
+.sheet-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--ink); }
 
-footer { max-width: 1280px; margin: 20px auto 0; padding: 0 24px 40px; font-size: 12px; }
-.foot-in { display: grid; gap: 6px; padding-top: 20px; border-top: 3px solid var(--ink); }
+footer { max-width: 1280px; margin: 20px auto 0; padding: 0 24px 40px; font-size: 12px; color: var(--soft); }
+.foot-in { display: grid; gap: 6px; padding-top: 20px; border-top: 2px solid var(--ink); }
 footer p { margin: 0; max-width: 100ch; }
 
 @media (max-width: 980px) {
@@ -326,18 +361,14 @@ footer p { margin: 0; max-width: 100ch; }
   .sheet { right: 16px; width: calc(100% - 32px); }
   .slots { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
-@media (prefers-reduced-motion: reduce) {
-  button.primary { transition: none; }
-  button.primary:hover:not(:disabled) { transform: none; }
-}
 
 /* model27's header and nav, added by model27's tools/gen_wavetables_page.py: the other pages' (site.css with
    ../uploader/style.css on it), aligned with this page's columns */
 .site-top { max-width: 1280px; margin: 0 auto; padding: 24px 24px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; }
 .site-brand { margin-right: auto; font: 700 20px/1 var(--body); text-transform: uppercase; text-decoration: none; }
-.site-top nav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; font: 700 14px/1 var(--body); text-transform: uppercase; }
+.site-top nav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; font: 600 14px/1 var(--body); text-transform: uppercase; }
 .site-top nav a { text-decoration: none; }
-.site-top nav a:hover, .site-top nav a[aria-current="page"] { text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: .3em; }
+.site-top nav a:hover, .site-top nav a[aria-current="page"] { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: .3em; }
 @media (max-width: 560px) { .site-top { padding-inline: 16px; } }
 /* not on this site (the maintainer's choice, 2026-11-09): the Examples and Fill slots from a pattern, in the DOM still */
 #ex-card, #pat-row { display: none !important; }
@@ -366,19 +397,19 @@ footer p { margin: 0; max-width: 100ch; }
     <header>
       <h2 id="h-fill">Fill the table</h2>
       <div class="step-tools">
-        <button id="btn-undo" type="button" title="Undo (⌘Z / Ctrl+Z)" disabled>Undo</button>
-        <button id="btn-redo" type="button" title="Redo (⇧⌘Z / Ctrl+Y)" disabled>Redo</button>
-        <button id="btn-load" type="button" title="Open a wavetable you saved here">Open…</button>
+        <button id="btn-undo" type="button" class="tool" title="Undo (⌘Z / Ctrl+Z)" disabled>Undo</button>
+        <button id="btn-redo" type="button" class="tool" title="Redo (⇧⌘Z / Ctrl+Y)" disabled>Redo</button>
+        <button id="btn-load" type="button" class="tool" title="Open a wavetable you saved here">Open…</button>
         <input id="file-input" type="file" accept=".json,application/json" hidden>
-        <button id="btn-clear" type="button">Clear</button>
+        <button id="btn-clear" type="button" class="tool">Clear</button>
       </div>
     </header>
     <div class="step-body">
       <p class="sub">31 frames on SWEEP 4 to 124 (SWEEP 0 is a sine)</p>
       <div class="file">
-        <button id="btn-sort" type="button" title="Sort the filled slots from dark to bright; empty slots go to the end">Sort by brightness</button>
-        <button id="btn-reverse" type="button">Reverse</button>
-        <span class="group"><button id="btn-gaps" type="button">Fill gaps</button><button type="button" class="help" aria-label="Explain" data-help="Fills each gap of empty slots with waves in between its neighbours, so SWEEP moves evenly from the wave before the gap to the wave after it. Leave more empty slots between waves that sound very different. A gap at the start begins at the sine; empty slots after the last wave stay empty.">?</button></span>
+        <button id="btn-sort" type="button" class="tool" title="Sort the filled slots from dark to bright; empty slots go to the end">Sort by brightness</button>
+        <button id="btn-reverse" type="button" class="tool">Reverse</button>
+        <span class="group"><button id="btn-gaps" type="button" class="tool">Fill gaps</button><button type="button" class="help" aria-label="Explain" data-help="Fills each gap of empty slots with waves in between its neighbours, so SWEEP moves evenly from the wave before the gap to the wave after it. Leave more empty slots between waves that sound very different. A gap at the start begins at the sine; empty slots after the last wave stay empty.">?</button></span>
         <span class="group"><label for="harmonics">Harmonics</label><input id="harmonics" type="range" min="10" max="40" step="1" value="15"><span id="harm-val">H15</span><button type="button" class="help" aria-label="Explain" data-help="Sets how many harmonics each wave keeps. The range is 10 to 40, and 15 is the default; CHORD's own wavetable goes up to 16. Fewer harmonics sound duller and softer. More can sound very harsh on the Model:Cycles, depending on COLOR and on the chord you set with SHAPE. The preview here leaves COLOR out.">?</button></span>
       </div>
       <div id="slots" class="slots"></div>
@@ -394,7 +425,7 @@ footer p { margin: 0; max-width: 100ch; }
     <div class="step-body pool" id="side-waves" role="tabpanel" aria-labelledby="tab-waves">
       <div class="card" id="ex-card">
         <div class="card-head"><h3>Examples</h3><button type="button" class="help" aria-label="Explain" data-help="Ready-made wavetables to start from. Load replaces your table; Undo brings it back.">?</button></div>
-        <div class="card-row"><select id="ex-pick" aria-label="Example"></select><button id="btn-example" type="button">Load</button></div>
+        <div class="card-row"><select id="ex-pick" aria-label="Example"></select><button id="btn-example" type="button" class="tool">Load</button></div>
       </div>
       <div class="tabs" role="tablist" id="tabs" aria-label="Wave sources">
           <button type="button" role="tab" data-tab="A" aria-selected="true">Plaits A</button>
@@ -407,11 +438,11 @@ footer p { margin: 0; max-width: 100ch; }
       <div class="axis" id="pool-axis"><span>x0 →</span><span>→ x7</span></div>
       <div class="pool-info">
         <span id="pool-sel"></span>
-        <button id="btn-hear" type="button" disabled>Preview</button>
+        <button id="btn-hear" type="button" class="tool" disabled>Preview</button>
         <label><input id="auto-hear" type="checkbox" checked> Preview on click</label>
       </div>
       <div class="pool-info" id="load-row" hidden>
-        <button id="btn-wav" type="button">Load WAVs…</button>
+        <button id="btn-wav" type="button" class="tool">Load WAVs…</button>
         <input id="wav-input" type="file" accept=".wav,audio/wav,audio/x-wav" multiple hidden>
         <span id="own-note" class="note" hidden>Single cycles (16–2048 samples) or wavetables (frames of 2048 samples, up to 256). You can drop files here too.</span>
       </div>
@@ -419,7 +450,7 @@ footer p { margin: 0; max-width: 100ch; }
         <div class="card-head"><h3>Fill slots from a pattern</h3><button type="button" class="help" aria-label="Explain" data-help="Fills the slots with waves of this tab, in an order that moves smoothly. Fewer slots leave out waves of the pattern evenly.">?</button></div>
         <div class="card-row"><label class="lab" for="pat-mode">Pattern</label><select id="pat-mode"></select></div>
         <div class="card-row"><label class="lab" for="pat-s0">Slots</label><input id="pat-s0" type="number" min="1" max="31" value="1" aria-label="First slot"><span>to</span><input id="pat-s1" type="number" min="1" max="31" value="31" aria-label="Last slot"></div>
-        <div class="card-row"><button id="btn-pattern" type="button">Fill</button></div>
+        <div class="card-row"><button id="btn-pattern" type="button" class="tool">Fill</button></div>
       </div>
       <div class="card" id="spread-row" hidden>
         <div class="card-head"><h3>Spread a wavetable over the slots</h3><button type="button" class="help" aria-label="Explain" data-help="Spreads the file's frames over the slots. With even change in sound, more frames go where the file changes fast, so SWEEP moves evenly. To play the file backwards, enter the higher frame first.">?</button></div>
@@ -430,7 +461,7 @@ footer p { margin: 0; max-width: 100ch; }
           <option value="change" selected>even change in sound</option>
           <option value="frames">even frame numbers</option>
         </select></div>
-        <div class="card-row"><button id="btn-spread" type="button">Spread</button></div>
+        <div class="card-row"><button id="btn-spread" type="button" class="tool">Spread</button></div>
       </div>
       <div class="card" id="cycles-row" hidden>
         <div class="card-head"><h3>Put single cycles in order</h3><button type="button" class="help" aria-label="Explain" data-help="Puts each single cycle on a slot of its own. Smoothest path starts at the darkest wave and goes on to the most similar one each time. With more waves than slots, some are left out evenly.">?</button></div>
@@ -440,7 +471,7 @@ footer p { margin: 0; max-width: 100ch; }
           <option value="loaded">as loaded</option>
         </select></div>
         <div class="card-row"><label class="lab" for="cy-s0">Slots</label><input id="cy-s0" type="number" min="1" max="31" value="1" aria-label="First slot"><span>to</span><input id="cy-s1" type="number" min="1" max="31" value="31" aria-label="Last slot"></div>
-        <div class="card-row"><button id="btn-cycles" type="button">Put on slots</button></div>
+        <div class="card-row"><button id="btn-cycles" type="button" class="tool">Put on slots</button></div>
       </div>
     </div>
     <div class="step-body" id="side-listen" role="tabpanel" aria-labelledby="tab-listen" hidden>
@@ -475,25 +506,25 @@ footer p { margin: 0; max-width: 100ch; }
           <div class="card-row"><label class="lab" for="lfo-rate">Rate</label><input id="lfo-rate" type="range" min="0.05" max="4" step="0.05" value="0.5" aria-label="LFO rate"><span id="lfo-rate-val" class="val">0.50 Hz</span></div>
           </div>
           <div class="card-row"><label class="lab" for="sweep">SWEEP</label><input id="sweep" type="range" min="0" max="127" step="1" value="64"><span id="sweep-val" class="val">64</span></div>
-          <div class="card-row"><button id="btn-live" type="button" class="primary">Hold</button><button id="btn-play" type="button">Play sweep</button></div>
+          <div class="card-row"><button id="btn-live" type="button" class="primary">Hold</button><button id="btn-play" type="button" class="tool">Play sweep</button></div>
         </div>
     </div>
   </section>
 
 </main>
 <div class="statusbar">
-  <section id="save-sheet" class="sheet" aria-labelledby="h-save" hidden>
+  <section id="save-sheet" class="sheet" aria-labelledby="h-save" hidden><div class="sheet-in">
     <div class="sheet-top"><h2 id="h-save">Save</h2><button type="button" class="sheet-x" id="save-x" aria-label="Close">×</button></div>
     <div class="card-row"><label class="lab" for="set-name">Name</label><input id="set-name" type="text" value="my-wavetable" spellcheck="false" autocomplete="off"></div>
     <div class="card-pair">
       <div class="card">
         <div class="card-head"><h3>Wavetable</h3><button type="button" class="help" aria-label="Explain" data-help="Saves the table and its harmonics as a .json file. Open… brings it back here to change it later.">?</button></div>
-        <div class="card-row"><button id="btn-save" type="button" disabled>Save wavetable</button><button id="btn-copy" type="button" hidden>Copy JSON instead</button></div>
+        <div class="card-row"><button id="btn-save" type="button" class="tool" disabled>Save wavetable</button><button id="btn-copy" type="button" class="tool" hidden>Copy JSON instead</button></div>
         <p id="save-need" class="note"></p>
       </div>
       <div class="card">
         <div class="card-head"><h3>CHORD Tables</h3><button type="button" class="help" aria-label="Explain" data-help="Saves the wavetable as a .wav file for CHORD Tables, a mod in model27's flasher. The file's name starts with the number you choose here. Put the file on the +Drive with model27's Uploader, in the folder Wavetables. On the Model:Cycles, press and hold PATTERN, then turn SWEEP until the popup shows Wavetable and that number.">?</button></div>
-        <div class="card-row"><label class="lab" for="table-no">Number</label><select id="table-no"></select><button id="btn-save-wav" type="button" disabled>Save .wav</button></div>
+        <div class="card-row"><label class="lab" for="table-no">Number</label><select id="table-no"></select><button id="btn-save-wav" type="button" class="tool" disabled>Save .wav</button></div>
       </div>
       <div class="card">
         <div class="card-head"><h3>Firmware</h3><button type="button" class="help" aria-label="Explain" data-help="Puts your wavetable into CHORD, in the OS file you drop here: the official OS 1.13 (model-cycles_OS1.13.syx from Elektron) or a model27 build (Download in the flasher), which keeps all its mods. The file stays on your computer. Install the saved file like an official OS update.">?</button></div>
@@ -505,7 +536,7 @@ footer p { margin: 0; max-width: 100ch; }
         <button id="btn-save-fw" type="button" class="primary big" disabled>Save firmware</button>
       </div>
     </div>
-  </section>
+  </div></section>
   <div class="box">
     <div class="msgs" role="status" aria-live="polite"><p id="msg-act" class="msg" hidden></p><p id="msg-state" class="msg"></p></div>
     <button id="btn-save-open" type="button" class="primary" aria-expanded="false" aria-controls="save-sheet">Save…</button>
@@ -514,7 +545,7 @@ footer p { margin: 0; max-width: 100ch; }
 <footer><div class="foot-in">
     <p>Your OS file and your waves stay in this browser. The preview models the waves and CHORD's crossfade, not its envelopes, COLOR or the rest of the signal path.</p>
     <p>The editor of CHORD Wave Bank, MIT license. Wave tables of Braids and Plaits by Emilie Gillet, MIT license, from pichenettes/eurorack (commit 08460a6). Not affiliated with Elektron; contains no Elektron firmware.</p>
-    <p>model27 <span data-rel="version">0.56</span> · <a href="../#version">what's new</a> · <a href="../guide/">guide</a></p>
+    <p>model27 <span data-rel="version">0.67</span> · <a href="../#version">what's new</a> · <a href="../guide/">guide</a></p>
 </div></footer>
 <div id="help-pop" class="help-pop" role="dialog" aria-label="Explanation" hidden><p id="help-text"></p><button type="button" class="help-x" aria-label="Close">×</button></div>
 
@@ -2482,5 +2513,5 @@ const WAV = (() => {
 </script>
 
 <!-- ?v= : the site's version stamp, as on the other pages -->
-<script src="../assets/release.js?v=2026-11-15-03"></script>
-<script src="../assets/site.js?v=2026-11-15-03"></script>
+<script src="../assets/release.js?v=2026-11-15-04"></script>
+<script src="../assets/site.js?v=2026-11-15-04"></script>

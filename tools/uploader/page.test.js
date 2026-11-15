@@ -36,12 +36,12 @@ function element(id) {
 }
 const ids = ["status", "nomidi", "chip", "chip-text", "ports", "in", "out", "retry", "src", "remove-sel", "pick", "chooser",
              "files", "upload", "path", "select-mode", "del-sel", "mkdir", "refresh", "newdir", "dirname", "mkdir-ok", "mkdir-cancel",
-             "folder", "src-mkdir", "pick-dir", "chooser-dir", "overall", "overall-fill", "dst",
+             "folder", "src-mkdir", "pick-dir", "chooser-dir", "overall", "overall-fill", "dst", "files-cols", "folder-cols",
              "alert", "alert-h", "alert-body", "alert-ok"];
 const elements = {};
 ids.forEach(id => { elements[id] = element(id); });
 /* hidden in index.html until the page shows them */
-["status", "nomidi", "ports", "newdir", "overall"].forEach(id => { elements[id].hidden = true; });
+["status", "nomidi", "ports", "newdir", "overall", "files-cols", "folder-cols"].forEach(id => { elements[id].hidden = true; });
 /* the window of a warning or a problem: a <dialog>, closed in index.html; this DOM has no showModal, so app.js shows
    and hides it by hidden */
 elements.alert.hidden = true;

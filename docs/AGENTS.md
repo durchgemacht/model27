@@ -29,7 +29,8 @@ assets/site.js, site.css, guide.css, cycles.js   shared behaviour and styles (la
 
 ## What the flasher shows
 
-The main page (redesign of 2026-10-31, 1-bit look in `flasher/style.css`) offers the Model:Cycles and the fast method
+The main page (redesign of 2026-10-31, 1-bit look in `flasher/style.css`, graded on 15/11/2026: see *The look*) offers
+the Model:Cycles and the fast method
 only, on two screens: the cards, then the install steps (1 recalls the choice; 2 to 4 keep the numbers the texts refer
 to). `SAMPLES_UI` in `app.js` (true on `flasher/?samples`, which the guide links) brings back the Official firmware and
 Samples OS tabs and the machine picker; `CLASSIC_UI` (false) the classic method and Advanced. Those parts stay in the
@@ -49,6 +50,42 @@ choice of 15/11/2026; Émilie Gillet is `pichenettes`). Below it: the credits (f
 disclaimer and the version. Light only, as the
 page; the receipt's torn edges are the tokens `--zig-top` and `--zig-bot`, with a dark pair.
 
+## The look
+
+The flasher, the uploader and the Wavetables page share one look (the maintainer's choices of 15/11/2026, release
+0.67, tried first on a copy of the site with a switch per change): ink on a cool grey, light only.
+
+- **Lines** say what they are: 2 px a frame (a card, a pane, a window, a step), 1.5 px a control (a button, a field,
+  a checkbox, a tab), 1 px a divider inside a frame (a card's foot, a step's head, dashed section lines) and the rules
+  between a list's rows, which are grey (`--rule`).
+- **Two text tones**: the ink (`--ink`, a dark blue-grey, `#17222e`) for names, titles and what you act on; `--soft`
+  for what explains (a card's sentence, hints, sizes, credits, footers), `--soft-inv` for the same on an inverted row.
+- **Controls** have 3 px corners (`--r`) and normal writing; headings, the nav and the receipt keep their capitals.
+  A filled button is a block of ink, a step lighter under the pointer (`--ink-up`); an outlined one gets a faint
+  ground (`--tint`); nothing moves. Fields and checkboxes sit on `--field`, lighter than the card. Disabled is a
+  dashed frame. The uploader's `.tool` is the small outlined button; the Wavetables page uses the same for what
+  were underlined words (`button.tool` in the editor).
+- **A card's shadow** is a 1 px checkerboard in `--sh` (the light soft tone): a block behind the card (`.mod::after`,
+  on the Wavetables page the status bar's box), 4 px down and right, cut by the mask `--chk`, since a box-shadow
+  takes no pattern. A window over the page has the same checkerboard, 8 px, in the ink (`--sh-win`): the light one
+  is lost on the dithered backdrop. For that the `<dialog>` only places the window (no frame, no ground) and its
+  box is `.info-in` / `.alert-in`, which has the frame and scrolls: a pseudo-element of a box that scrolls is
+  clipped. The Wavetables page's help and Save windows have it too (4 and 8 px). The footer's receipt keeps a full
+  shadow in the ink (a drop-shadow that follows its torn edges).
+- **A window over the page** (the flasher's How to use and Details, the uploader's warning): while it is open the page
+  behind it does not scroll (`app.js` sets `html.modal`, the sheet hides the overflow and keeps the scrollbar's
+  gutter). The flasher's window opens with its title focused, not Close, so no focus ring stands round the button;
+  Close is a `.tool`.
+- **Keys and knobs in a text** (`rich()`): a key is an inverted box with the controls' corners and letters lighter
+  than the page (`--field`); a knob has the same size and weight and grey dashes under it (`--rule`).
+- **One typeface**, IBM Plex Mono (Google Fonts, weights 400 to 700; 600 for controls, 500 for small print).
+- States are still borders, dashes and inversion, never colour. The spacing between sections and in the page's head
+  is as before (the maintainer's wish: thinner lines need the room).
+
+The tokens live in each page's own sheet (`flasher/style.css`, `uploader/style.css`, the editor's `<style>`): keep
+the three alike. Plain CSS only (no nesting, `color-mix` or `:has`). The manager and the home page are not part of
+it: the manager still has the look before the grading (3 px lines, Space Mono), the home page and the guide their own.
+
 ## The manager
 
 `manager/` (release 0.30, notes/77) keeps one project per firmware on the Model:Cycles: a firmware is a `.syx` the user
@@ -57,7 +94,8 @@ runs five steps in a dialog: stop the sequencer, back up (request `0x6F`), flash
 user presses YES), bring the firmware's project back (checked by the settings the Cycles answers to `0x64`), save it in
 its slot. It is not tied to the flasher: it only loads `flasher.js` and links nothing else. The library lives in the
 browser's IndexedDB under the page's origin (an export from another address imports as is). `style.css` is the
-flasher's 1-bit look, its own copy of the tokens, header, buttons and footer; class names that `site.css` styles too
+flasher's 1-bit look as it was before 15/11/2026 (*The look* above has not reached this page), its own copy of the
+tokens, header, buttons and footer; class names that `site.css` styles too
 (`.wrap`, `.top`, `.brand`, `.btn`, `.foot`) are overridden there, and the page's own classes avoid the others.
 Light only, as the flasher. Its link in the site's nav is `hidden` on every page (the maintainer's choice of
 09/11/2026): the page stays at `manager/` and keeps the nav, with its own link current but out of sight; nothing
@@ -93,8 +131,9 @@ In `/Wavetables` it applies CHORD Tables'
 rules (notes/66). The status line under the title says what happened last; a warning or a problem also opens a window
 over the page (`alertBox()`, a `<dialog>` in `index.html`), which stays until OK or Escape and names the files it is
 about, a second message going under the first (release 0.53, the maintainer's wish of 08/11/2026). It came from Cycles One-Shot's upload page (MIT, same author), whose old address now leads here;
-this copy is the one kept up. `style.css` follows the manager's: the same tokens, header, buttons, connect chip,
-status line and footer, overridden on `site.css`'s classes as there. Light only. It is not tied to the other pages
+this copy is the one kept up. `style.css` came from the manager's and now follows the flasher's (*The look*): the
+same tokens, header, buttons and footer, overridden on `site.css`'s classes as there; over each list a line names
+its columns (`#files-cols`, `#folder-cols`, hidden by `app.js` while the list has no rows). Light only. It is not tied to the other pages
 and loads only `release.js` and `site.js`. Checks: `tools/webuploader_check.sh` (the protocol, and the page against a
 stand-in, on the host); the page itself against `tools/uploader/fake-cycles.js` (serve the repository's root, open
 `/docs/uploader/`, load it by hand, `FakeDrive.install()`), and on a Model:Cycles by the maintainer.

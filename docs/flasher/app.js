@@ -17536,7 +17536,7 @@ function rich(s) {
 }
 // One window over the page for a section's How to use and a card's Details: opening it moves no card. A click on
 // the backdrop reaches the dialog itself, as does one on its padding: only a click outside its box closes it. On
-// closing, the button that opened it gets the focus back.
+// closing, the button that opened it gets the focus back and the page scrolls again.
 function openWindow(title, html, back) {
   let d = $("grp-info");
   if (!d) {
@@ -17544,22 +17544,29 @@ function openWindow(title, html, back) {
     d.id = "grp-info";
     d.className = "info";
     d.setAttribute("aria-labelledby", "grp-info-h");
-    d.innerHTML = `<div class="info-in"><div class="info-top"><h2 id="grp-info-h"></h2>` +
-      `<button type="button" class="more" data-close>${esc(t("info_close"))}</button></div><div class="info-body"></div></div>`;
+    d.innerHTML = `<div class="info-in"><div class="info-top"><h2 id="grp-info-h" tabindex="-1"></h2>` +
+      `<button type="button" class="tool" data-close>${esc(t("info_close"))}</button></div><div class="info-body"></div></div>`;
     d.addEventListener("click", (e) => {
       if (e.target.closest("[data-close]")) return closeInfo();
       if (e.target !== d) return;
       const r = d.getBoundingClientRect();
       if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) closeInfo();
     });
-    d.addEventListener("close", () => { const b = $(d.dataset.back); if (b) b.focus({ preventScroll: true }); });
+    d.addEventListener("close", () => {
+      document.documentElement.classList.remove("modal");
+      const b = $(d.dataset.back); if (b) b.focus({ preventScroll: true });
+    });
     document.body.appendChild(d);
   }
   d.dataset.back = back;
   d.querySelector("h2").textContent = title;
   d.querySelector(".info-body").innerHTML = html;
-  d.querySelector(".info-body").scrollTop = 0;
+  d.querySelector(".info-in").scrollTop = 0;        // the box that scrolls (the dialog itself only places it)
   if (typeof d.showModal === "function") { if (!d.open) d.showModal(); } else d.setAttribute("open", "");
+  // the page behind does not scroll (html.modal in style.css); the window starts at its title, which takes the
+  // focus: a browser would put it on Close and draw a ring round it
+  document.documentElement.classList.add("modal");
+  d.querySelector("h2").focus({ preventScroll: true });
 }
 function openInfo(k) {
   const cards = order().filter((f) => kindOf(f) === k);

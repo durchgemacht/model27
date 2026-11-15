@@ -1,25 +1,39 @@
 /* Web flasher page, on top of ../assets/site.css. Class names are the ones app.js renders.
- * 1-bit (redesign of 2026-10-31): two tones only, ink and a cool grey; the dark theme swaps them. Greys are patterns
- * (dashes, a dithered LED), states are borders and inversion, never colour. No rounded corners, one typeface (Space Mono).
+ * 1-bit (redesign of 2026-10-31), graded on 2026-11-15: ink on a cool grey; the dark theme swaps them. A line's weight
+ * says what it is: 2 px a frame, 1.5 px a control, 1 px a divider inside a frame. Two text tones: the ink, and a softer
+ * one (--soft) for what explains (a card's sentence, hints, credits). States are borders, dashes and inversion, never
+ * colour. Controls have 3 px corners and normal writing, headings keep their capitals. A shadow is a 1 px checkerboard
+ * cut by the mask --chk: a card's in a light grey (--sh), a window's in the ink (--sh-win); the receipt keeps a full
+ * one. One typeface
+ * (IBM Plex Mono).
  * Plain CSS (no nesting, color-mix or :has): the smoke test parses it with jsdom. */
 
 :root{
   color-scheme:light;
-  --ink:#0b0c0e;
+  --ink:#17222e;           /* a dark blue-grey, not black */
+  --ink-up:#2a3848;        /* the ink a step lighter: a filled button under the pointer */
+  --soft:#4a5562;          /* the second text tone: what explains */
+  --soft-inv:#b4bcc6;      /* the same on an inverted ground */
+  --rule:#98a1ab;          /* lines between the rows of a list */
+  --tint:rgba(23,34,46,.09);   /* an outlined control under the pointer */
   --paper:#d7dbe0;
   --card:#e6ebf1;          /* the cards, a shade lighter than the page; the dark theme keeps them on the page's tone */
   --card-foot:#cde3ef;     /* a card's foot (author, Details); none in the dark theme */
-  --head-bg:#2b2c2d;       /* the headline's block; the dark theme inverts it */
-  --check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%230b0c0e'/%3E%3C/svg%3E");   /* a ticked box: a pixel check in the ink */
+  --field:#f1f4f7;         /* where you type, choose or tick: lighter than the card */
+  --head-bg:#1f2b39;       /* the headline's block; the dark theme inverts it */
+  --sh:#b4bcc6;            /* a card's shadow */
+  --sh-win:var(--ink);     /* a window's shadow: the same checkerboard in the ink, the light one is lost on the dithered backdrop */
+  --chk:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h1v1H0zM1 1h1v1H1z'/%3E%3C/svg%3E");   /* the mask that cuts it to a checkerboard */
+  --check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%2317222e'/%3E%3C/svg%3E");   /* a ticked box: a pixel check in the ink */
   /* the footer receipt's torn edges, top and bottom: the card's tone, an ink line (dark theme: its own pair) */
-  --zig-top:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 11L8 2L16 11V12H0Z' fill='%23e6ebf1'/%3E%3Cpath d='M0 11L8 2L16 11' fill='none' stroke='%230b0c0e' stroke-width='3'/%3E%3C/svg%3E");
-  --zig-bot:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 0H16V1L8 10L0 1Z' fill='%23e6ebf1'/%3E%3Cpath d='M0 1L8 10L16 1' fill='none' stroke='%230b0c0e' stroke-width='3'/%3E%3C/svg%3E");
+  --zig-top:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 11L8 2L16 11V12H0Z' fill='%23e6ebf1'/%3E%3Cpath d='M0 11L8 2L16 11' fill='none' stroke='%2317222e' stroke-width='2'/%3E%3C/svg%3E");
+  --zig-bot:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 0H16V1L8 10L0 1Z' fill='%23e6ebf1'/%3E%3Cpath d='M0 1L8 10L16 1' fill='none' stroke='%2317222e' stroke-width='2'/%3E%3C/svg%3E");
   --casing:var(--paper);
   --well:var(--paper);
   --line:var(--ink);
   --line-2:var(--ink);
   --ink-2:var(--ink);
-  --muted:var(--ink);
+  --muted:var(--soft);
   --ctl:var(--ink);
   --ctl-ink:var(--paper);
   --ctl-edge:var(--ink);
@@ -32,27 +46,31 @@
   --ok:var(--ink);
   --warn:var(--ink);
   --bad:var(--ink);
-  --f:"Space Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --f:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --f-code:var(--f);
-  --r:0;
+  --r:3px;
   --wrap:1120px;
 }
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){color-scheme:dark;--ink:#d7dbe0;--paper:#0b0c0e;--card:var(--paper);--card-foot:transparent;--head-bg:var(--ink);
+  :root:not([data-theme="light"]){color-scheme:dark;--ink:#d7dbe0;--ink-up:#f1f4f7;--soft:#a9b1bb;--soft-inv:#4a5562;--rule:#4a5562;--tint:rgba(215,219,224,.14);--paper:#0b0c0e;--card:var(--paper);--card-foot:transparent;--field:#161a20;--head-bg:var(--ink);--sh:#4a5562;
     --check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%23d7dbe0'/%3E%3C/svg%3E");
-    --zig-top:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 11L8 2L16 11V12H0Z' fill='%230b0c0e'/%3E%3Cpath d='M0 11L8 2L16 11' fill='none' stroke='%23d7dbe0' stroke-width='3'/%3E%3C/svg%3E");
-    --zig-bot:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 0H16V1L8 10L0 1Z' fill='%230b0c0e'/%3E%3Cpath d='M0 1L8 10L16 1' fill='none' stroke='%23d7dbe0' stroke-width='3'/%3E%3C/svg%3E")}
+    --zig-top:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 11L8 2L16 11V12H0Z' fill='%230b0c0e'/%3E%3Cpath d='M0 11L8 2L16 11' fill='none' stroke='%23d7dbe0' stroke-width='2'/%3E%3C/svg%3E");
+    --zig-bot:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 0H16V1L8 10L0 1Z' fill='%230b0c0e'/%3E%3Cpath d='M0 1L8 10L16 1' fill='none' stroke='%23d7dbe0' stroke-width='2'/%3E%3C/svg%3E")}
 }
-:root[data-theme="dark"]{color-scheme:dark;--ink:#d7dbe0;--paper:#0b0c0e;--card:var(--paper);--card-foot:transparent;--head-bg:var(--ink);
+:root[data-theme="dark"]{color-scheme:dark;--ink:#d7dbe0;--ink-up:#f1f4f7;--soft:#a9b1bb;--soft-inv:#4a5562;--rule:#4a5562;--tint:rgba(215,219,224,.14);--paper:#0b0c0e;--card:var(--paper);--card-foot:transparent;--field:#161a20;--head-bg:var(--ink);--sh:#4a5562;
   --check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%23d7dbe0'/%3E%3C/svg%3E");
-  --zig-top:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 11L8 2L16 11V12H0Z' fill='%230b0c0e'/%3E%3Cpath d='M0 11L8 2L16 11' fill='none' stroke='%23d7dbe0' stroke-width='3'/%3E%3C/svg%3E");
-  --zig-bot:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 0H16V1L8 10L0 1Z' fill='%230b0c0e'/%3E%3Cpath d='M0 1L8 10L16 1' fill='none' stroke='%23d7dbe0' stroke-width='3'/%3E%3C/svg%3E")}
+  --zig-top:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 11L8 2L16 11V12H0Z' fill='%230b0c0e'/%3E%3Cpath d='M0 11L8 2L16 11' fill='none' stroke='%23d7dbe0' stroke-width='2'/%3E%3C/svg%3E");
+  --zig-bot:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 0H16V1L8 10L0 1Z' fill='%230b0c0e'/%3E%3Cpath d='M0 1L8 10L16 1' fill='none' stroke='%23d7dbe0' stroke-width='2'/%3E%3C/svg%3E")}
 
-body{font:400 15px/1.6 var(--f);-webkit-font-smoothing:auto}
+body{font:400 15px/1.6 var(--f);-webkit-font-smoothing:antialiased}
+/* while a window is open over the page (app.js sets the class), the page behind it does not scroll; the gutter
+   stays, so nothing shifts where scrollbars take room */
+html{scrollbar-gutter:stable}
+html.modal{overflow:hidden}
 ::selection{background:var(--ink);color:var(--paper)}
 :focus-visible{outline:3px solid currentColor;outline-offset:3px}
-a{text-decoration-thickness:2px;text-decoration-color:currentColor;text-underline-offset:.22em}
-a:hover{text-decoration-thickness:4px;text-decoration-color:currentColor}
+a{text-decoration-thickness:1.5px;text-decoration-color:currentColor;text-underline-offset:.22em}
+a:hover{text-decoration-thickness:2.5px;text-decoration-color:currentColor}
 h1,h2,h3{font-family:var(--f);font-weight:700;letter-spacing:0;text-transform:uppercase;line-height:1}
 code{font:.9em var(--f);background:none;padding:0;border-radius:0}
 .vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
@@ -61,87 +79,95 @@ code{font:.9em var(--f);background:none;padding:0;border-radius:0}
 /* header */
 .top{align-items:center;gap:10px 20px;padding-top:24px}
 .brand{font:700 20px/1 var(--f);text-transform:uppercase;letter-spacing:0}
-.top nav{gap:6px 16px;align-items:center;font:700 14px/1 var(--f);text-transform:uppercase}
+.top nav{gap:6px 16px;align-items:center;font:600 14px/1 var(--f);text-transform:uppercase}
 .top nav a{text-decoration:none}
-.top nav a:hover,.top nav a[aria-current="page"]{text-decoration:underline;text-decoration-color:currentColor;text-decoration-thickness:3px;text-underline-offset:.3em}
-.theme-btn{width:36px;height:36px;margin:0;border:3px solid var(--ink);border-radius:0;color:var(--ink)}
-.theme-btn:hover{background:var(--ink);color:var(--paper)}
+.top nav a:hover,.top nav a[aria-current="page"]{text-decoration:underline;text-decoration-color:currentColor;text-decoration-thickness:2px;text-underline-offset:.3em}
+.theme-btn{width:36px;height:36px;margin:0;border:1.5px solid var(--ink);border-radius:var(--r);color:var(--ink)}
+.theme-btn:hover{background:var(--tint);color:var(--ink)}
 
-/* buttons: a block of ink; disabled, an empty dashed frame */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:0 18px;border:3px solid var(--ink);border-radius:0;
-  background:var(--ink);color:var(--paper);box-shadow:none;font:700 14px/1 var(--f);text-transform:uppercase;transition:transform .08s steps(2)}
-.btn:hover{background:var(--ink);color:var(--paper);transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--ink)}
-.btn:active{transform:translate(2px,2px);box-shadow:none}
+/* buttons: a block of ink, a step lighter under the pointer (nothing moves); disabled, an empty dashed frame */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:42px;padding:0 18px;border:1.5px solid var(--ink);border-radius:var(--r);
+  background:var(--ink);color:var(--paper);box-shadow:none;font:600 15px/1 var(--f);text-transform:none;transform:none;transition:none}
+.btn:hover{background:var(--ink-up);border-color:var(--ink-up);color:var(--paper)}
+.btn:active{transform:none;box-shadow:none}
 .btn.secondary{background:transparent;color:var(--ink);box-shadow:none}
-.btn.secondary:hover{background:var(--ink);color:var(--paper)}
-.btn.big{width:100%;min-height:60px;font-size:15px}
-.btn:disabled,.btn:disabled:hover{background:transparent;color:var(--ink);border-style:dashed;box-shadow:none;transform:none;cursor:not-allowed}
-.lnk{font:inherit;font-weight:700;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;
-  text-decoration-thickness:2px;text-underline-offset:.22em}
-.lnk:hover{text-decoration-thickness:4px}
+.btn.secondary:hover{background:var(--tint);border-color:var(--ink);color:var(--ink)}
+.btn.big{width:100%;min-height:52px;font-size:15px}
+.btn:disabled,.btn:disabled:hover{background:transparent;border-color:var(--ink);color:var(--ink);border-style:dashed;box-shadow:none;transform:none;cursor:not-allowed}
+.lnk{font:inherit;font-weight:600;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;
+  text-decoration-thickness:1.5px;text-underline-offset:.22em}
+.lnk:hover{text-decoration-thickness:2.5px}
+/* a small outlined button, as the uploader's tools: the window's Close */
+.tool{min-height:28px;padding:0 10px;background:transparent;border:1.5px solid var(--ink);border-radius:var(--r);color:var(--ink);
+  font:600 13px/1 var(--f);cursor:pointer}
+.tool:hover{background:var(--tint)}
 
 .fl{padding-bottom:24px}
-.alert{margin:20px 0 0;padding:10px 14px;border:3px solid var(--ink);font-size:15px}
+.alert{margin:20px 0 0;padding:10px 14px;border:2px solid var(--ink);font-size:15px}
 .alert a{color:inherit}
 
 /* screen 1: the cards */
 .fl-head{padding:6rem 0}
-.fl-head h1{display:inline-block;margin:0 0 8px -8px;padding:8px;background:var(--head-bg);color:var(--paper);font-size:36px}
-.fl-head p{margin:0;max-width:64ch;font-size:15px}
+.fl-head h1{display:inline-block;margin:0 0 8px -8px;padding:8px;background:var(--head-bg);color:var(--paper);font-size:36px;letter-spacing:-.02em}
+.fl-head p{margin:0;max-width:64ch;font-size:15px;color:var(--soft)}
 .grp{margin:0 0 6rem}
-.grp-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px;margin:0 0 1rem;padding-top:1rem;border-top:3px solid var(--ink)}
+.grp-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px;margin:0 0 1rem;padding-top:1rem;border-top:2px solid var(--ink)}
 .grp-h{margin:0;font-size:20px}
-.grp-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
+.grp-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;isolation:isolate}   /* the cards' shadows stay inside */
 
 /* a card: a checkbox with its name and one sentence; picked, it inverts */
-.mod{display:flex;flex-direction:column;border:3px solid var(--ink);background:var(--card);color:var(--ink);
-  box-shadow:4px 4px 0 var(--ink)}
-/* hover thickens the shadow in place: the cards are rebuilt on every click, and a card moved by a transform left
-   stray lines in the paint when it was replaced */
-.mod:hover{box-shadow:6px 6px 0 var(--ink)}
-.mod-row{display:grid;grid-template-columns:minmax(0,1fr) 28px;grid-template-areas:"ttl key" "short short";gap:8px 12px;
+.mod{position:relative;display:flex;flex-direction:column;border:2px solid var(--ink);background:var(--card);color:var(--ink)}
+/* its shadow: a box-shadow takes no pattern, so it is a block behind the card, the card's size, 4 px down and right,
+   cut to a 1 px checkerboard by a mask (the offsets count from inside the 2 px frame). Hover moves the shadow to
+   6 px, in place: the cards are rebuilt on every click, and a card moved by a transform left stray lines in the
+   paint when it was replaced */
+.mod::after{content:"";position:absolute;z-index:-1;top:2px;left:2px;right:-6px;bottom:-6px;background:var(--sh);pointer-events:none;
+  -webkit-mask:var(--chk) 0 0 / 2px 2px;mask:var(--chk) 0 0 / 2px 2px}
+.mod:hover::after{top:4px;left:4px;right:-8px;bottom:-8px}
+.mod-row{display:grid;grid-template-columns:minmax(0,1fr) 24px;grid-template-areas:"ttl key" "short short";gap:8px 12px;
   padding:16px 16px 14px;cursor:pointer}
 .mod-row>input{grid-area:key}
 .ttl{grid-area:ttl;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 10px;font-size:18px;font-weight:700;line-height:1.25}
-.ttl .incl{font-size:13.5px;font-weight:400}
-.short{grid-area:short;font-size:14px;line-height:1.55}
+.ttl .incl{font-size:13.5px;font-weight:400;color:var(--soft)}
+.short{grid-area:short;font-size:14px;line-height:1.55;color:var(--soft)}
 .mod.incl .mod-row{cursor:default}
 .mod.incl .mod-row>input{border-style:dashed;cursor:default}
 .ext{padding:0 16px}
 .ext:empty{display:none}
-.mod-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:auto;padding:6px 8px 6px 16px;border-top:3px solid currentColor;background:var(--card-foot)}
+.mod-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:auto;padding:6px 8px 6px 16px;border-top:1px solid currentColor;background:var(--card-foot)}
 .st:empty{display:none}
-.by{display:flex;flex-wrap:wrap;gap:0 12px;min-width:0;font-size:13px;line-height:1.4;overflow-wrap:anywhere}
+.by{display:flex;flex-wrap:wrap;gap:0 12px;min-width:0;font-size:13px;font-weight:500;line-height:1.4;overflow-wrap:anywhere;color:var(--soft)}
 .by a{color:inherit}
+.by a:hover{color:var(--ink)}
 .credit{display:flex;flex-direction:column}       /* author, then license: a long name never breaks the line */
-.more,.grp-info{margin-left:auto;min-height:40px;padding:0 8px;border:0;background:none;color:inherit;font:700 14px/1 var(--f);text-transform:uppercase;
-  text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px;cursor:pointer}
-.more:hover,.grp-info:hover{text-decoration-thickness:4px}
+.more,.grp-info{margin-left:auto;min-height:40px;padding:0 8px;border:0;background:none;color:var(--ink);font:600 14px/1 var(--f);
+  text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:4px;cursor:pointer}
+.more:hover,.grp-info:hover{text-decoration-thickness:2.5px}
 
-/* square checkboxes: an empty frame, a pixel check once ticked (a picked card itself stays as it is) */
-.mod-row>input,.variants input,.check input{appearance:none;-webkit-appearance:none;flex:none;width:28px;height:28px;margin:0;border:3px solid currentColor;
-  border-radius:0;background:transparent;box-shadow:none;cursor:pointer}
-.mod-row>input:checked,.variants input:checked,.check input:checked{background:var(--check) center / 16px 16px no-repeat}
-.variants input[type=radio]{border-radius:0}
+/* checkboxes: a thin frame on the fields' light ground, a pixel check once ticked (a picked card itself stays as it is) */
+.mod-row>input,.variants input,.check input{appearance:none;-webkit-appearance:none;flex:none;width:24px;height:24px;margin:0;border:1.5px solid var(--ink);
+  border-radius:var(--r);background:var(--field);box-shadow:none;cursor:pointer}
+.mod-row>input:checked,.variants input:checked,.check input:checked{background:var(--field) var(--check) center / 14px 14px no-repeat}
+.variants input[type=radio]{border-radius:var(--r)}
 
 /* tags: the exceptions only (Experimental); Tested is the rule */
-.tag{display:inline-block;padding:2px 4px;border:3px solid currentColor;font:700 12px/1.2 var(--f);text-transform:uppercase;letter-spacing:0}
+.tag{display:inline-block;padding:2px 4px;border:1.5px solid currentColor;font:700 12px/1.2 var(--f);text-transform:uppercase;letter-spacing:0}
 .tag.ok,.tag.exp{color:inherit;background:none}
 
 /* to read: a clash before ticking, just unticked (with Undo), good to know once ticked */
-.say{margin:0 0 12px;padding:6px 10px;border-left:6px solid currentColor;font-size:14px;line-height:1.5}
+.say{margin:0 0 12px;padding:6px 10px;border-left:4px solid currentColor;font-size:14px;line-height:1.5}
 .say b{color:inherit}
-.say.clash{border:3px solid currentColor}
+.say.clash{border:2px solid currentColor}
 .say.clash::before{content:"!! ";font-weight:700}
 .say.swap{border-left-style:dashed}
 
 /* Details: the full description and the facts, shown in the window (openCard); the card keeps a hidden copy */
-.det{margin:0 0 14px;padding:12px 0 0;border-top:3px dashed currentColor;font-size:14.5px;line-height:1.6}
+.det{margin:0 0 14px;padding:12px 0 0;border-top:1px dashed currentColor;font-size:14.5px;line-height:1.6}
 .det>p{margin:0 0 12px;max-width:72ch}
 .det>h4{margin:16px 0 2px;font-size:13px;line-height:1.4;text-transform:uppercase}
 .det>h4+p{margin-top:0}
 .facts{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 18px;margin:0;font-size:14px;line-height:1.5}
-.facts dt{font-weight:700}
+.facts dt{font-weight:400;color:var(--soft)}
 .facts dd{margin:0;max-width:66ch}
 .facts dd b{font-weight:700}
 .facts a{color:inherit;font-weight:700}
@@ -149,66 +175,83 @@ code{font:.9em var(--f);background:none;padding:0;border-radius:0}
 .guide-link a{color:inherit;font-weight:700}
 
 /* a section's How to use: a window over the page, the cards stay where they are; the backdrop a 1-bit dither */
-.info{width:min(640px,calc(100vw - 32px));max-width:none;max-height:calc(100vh - 48px);margin:auto;
-  border:3px solid var(--ink);background:var(--card);color:var(--ink);box-shadow:8px 8px 0 var(--ink);overflow:auto}
-.info::backdrop{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h1v1H0zM2 0h1v1H2zM1 2h1v1H1zM3 2h1v1H3z' fill='%230b0c0e'/%3E%3C/svg%3E")}
-.info-in{padding:14px 20px 20px}
+/* the <dialog> itself is only the place: no frame, no ground. Its box is .info-in (the frame, the ground, the
+   scrolling), so that the shadow can be the cards': a block behind the box, 8 px down and right, cut to the 1 px
+   checkerboard (a pseudo-element of a box that scrolls or has a ground of its own would be clipped or sit on it) */
+.info{width:min(640px,calc(100vw - 32px));max-width:none;margin:auto;padding:0;border:0;background:none;color:var(--ink);overflow:visible;isolation:isolate}
+.info::after{content:"";position:absolute;z-index:-1;top:8px;left:8px;right:-8px;bottom:-8px;background:var(--sh-win);pointer-events:none;
+  -webkit-mask:var(--chk) 0 0 / 2px 2px;mask:var(--chk) 0 0 / 2px 2px}
+.info::backdrop{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h1v1H0zM2 0h1v1H2zM1 2h1v1H1zM3 2h1v1H3z' fill='%2317222e'/%3E%3C/svg%3E")}
+.info-in{max-height:calc(100vh - 48px);padding:22px 35px 35px;border:2px solid var(--ink);background:var(--card);overflow:auto;overscroll-behavior:contain}
 .info-body>:last-child,.info-body .det>:last-child{margin-bottom:0}   /* the bottom padding alone, as at the sides */
-.info-top{display:flex;align-items:baseline;gap:12px;margin:0 0 14px;padding-bottom:8px;border-bottom:3px dashed currentColor}
+/* the head: the title and Close on one middle line, 22 px from the window's top and 22 px from the dashed line.
+   Under the line, the text's capitals start as far from it as the title's letters end above it (about 27 px:
+   21 px of margin plus the first line's own leading) */
+.info-top{display:flex;align-items:center;gap:12px;margin:0 0 21px;padding-bottom:21px;border-bottom:1px dashed currentColor}
 .info-top h2{margin:0;font-size:20px}
+.info-top h2:focus{outline:none}        /* the window opens with its title focused (app.js), not a ring round Close */
+.info-top .tool{margin-left:auto}
 .info-body p{margin:0 0 12px;max-width:72ch;font-size:14.5px;line-height:1.6}
 .info-body h3{margin:16px 0 2px;font-size:13px;line-height:1.4}
 .info-body .lede{margin-bottom:4px}
 .info-body .det{margin:0;padding:0;border-top:0}
-.info-body .det>h4:first-child{margin-top:0}
+/* a window that starts with a heading: its small capitals sit higher in their line than a paragraph's, so 2 px
+   more (the margins collapse with the head's 21 px) */
+.info-body>h3:first-child,.info-body .det>h4:first-child{margin-top:23px}
 
-/* in a user text (rich() in app.js): a key an inverted box, a knob underlined with dashes */
+/* in a user text (rich() in app.js): a key an inverted box with the controls' corners, its letters lighter than the
+   page for contrast; a knob in the same size and weight, underlined with grey dashes. In a heading both take the
+   heading's size. */
 /* inline, not inline-block: a full stop right after a key stays on its line */
-.key{display:inline;padding:1px 5px;background:var(--ink);color:var(--paper);font:700 .86em/1.45 var(--f);letter-spacing:0;
+.key{display:inline;padding:1px 5px;border-radius:var(--r);background:var(--ink);color:var(--field);font:600 .86em/1.45 var(--f);letter-spacing:0;
   white-space:nowrap}
-.knob{font-weight:700;text-decoration:underline dashed;text-decoration-thickness:2px;text-underline-offset:4px}
-.info-body .info-note{margin-top:18px;font-size:13px;line-height:1.55;opacity:.72}   /* in the background: not model27's */
+.knob{font-size:.86em;font-weight:600;text-decoration:underline dashed var(--rule);text-decoration-thickness:1.5px;text-underline-offset:4px}
+h3 .key,h4 .key,h3 .knob,h4 .knob{font-size:1em}
+.info-body .info-note{margin-top:18px;font-size:13px;line-height:1.55;color:var(--soft)}   /* in the background: not model27's */
 
 /* packs, variants and engines (none offered today) */
 .parts{margin:0 0 8px;padding:0;list-style:none;font-size:14px;line-height:1.5}
 .parts li{display:inline}
 .parts li+li::before{content:" · "}
 .also{margin:0 0 12px;font-size:14px;line-height:1.5}
-.variants{display:grid;margin:0 0 12px;border-top:3px solid currentColor}
-.variants label{display:flex;align-items:flex-start;gap:12px;padding:8px 0;border-bottom:3px solid currentColor;cursor:pointer;font-size:15px}
-.variants small{display:block;font-size:13.5px}
+.variants{display:grid;margin:0 0 12px;border-top:1px solid var(--rule)}
+.variants label{display:flex;align-items:flex-start;gap:12px;padding:8px 0;border-bottom:1px solid var(--rule);cursor:pointer;font-size:15px}
+.variants small{display:block;font-size:13.5px;color:var(--soft)}
 .pads{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;margin:0 0 12px}
 .pad{position:relative;display:block;cursor:pointer}
 .pad input{position:absolute;opacity:0;width:1px;height:1px}
-.pad b{display:grid;place-items:center;height:40px;border:3px solid currentColor;font:700 14px/1 var(--f)}
+.pad b{display:grid;place-items:center;height:40px;border:1.5px solid currentColor;border-radius:var(--r);font:600 14px/1 var(--f)}
 .pad input:checked+b{background:currentColor;color:var(--paper)}
 .pad input:focus-visible+b{outline:3px solid currentColor;outline-offset:3px}
-.pad small{display:block;font-size:12.5px;line-height:1.3}
+.pad small{display:block;font-size:12.5px;line-height:1.3;color:var(--soft)}
 .combo{margin:0 0 10px;font-size:14px;line-height:1.5}
 .combo .tag{margin-right:8px}
 
 /* back to the official firmware: a quiet line at the end of the cards, above the footer */
 .restore-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px;margin:40px 0 0;font-size:13.5px}
 .restore-row .lnk{font-size:14px}
+.restore-row span{color:var(--soft)}
 
 /* the end of the cards: one big button that says what happens ("Install 2 mods"), its text and arrow in the middle;
    nothing picked, a dashed frame that sends you back to the cards. The picked names stay in the markup, hidden (the
    cards show what is ticked; screen readers hear the names from the live region) */
 .sel-sum{display:none}
 .sel-need,.sel-msg{margin:0 0 8px;font-size:14px}
-.btn.sel-next{justify-content:center;width:100%;min-height:64px;padding:0 20px;font-size:15px}
+.btn.sel-next{justify-content:center;width:100%;min-height:56px;padding:0 20px;font-size:15px}
 .btn.sel-next.empty{background:transparent;color:var(--ink);border-style:dashed}
-.btn.sel-next.empty:hover{background:var(--ink);color:var(--paper)}
+.btn.sel-next.empty:hover{background:var(--tint);border-color:var(--ink);color:var(--ink)}
 
 /* ?samples: the tabs and the machine picker */
 .seg{display:flex;flex-wrap:wrap;gap:0;margin:0 0 24px}
-.seg button{min-height:44px;padding:0 12px;border:3px solid var(--ink);background:none;color:var(--ink);font:700 14px/1 var(--f);text-transform:uppercase;cursor:pointer}
+.seg button{min-height:40px;padding:0 12px;border:1.5px solid var(--ink);background:none;color:var(--ink);font:600 14px/1 var(--f);cursor:pointer}
 .seg button+button{border-left:0}
+.seg button:first-child{border-radius:var(--r) 0 0 var(--r)}
+.seg button:last-child{border-radius:0 var(--r) var(--r) 0}
 .seg button[aria-selected="true"],.seg button[aria-checked="true"]{background:var(--ink);color:var(--paper)}
 .seg button:disabled{cursor:not-allowed;border-style:dashed}
 .seg.sub{margin:0 0 18px}
 .mach-q{margin:0 0 8px;font:700 14px/1 var(--f);text-transform:uppercase}
-.mach-pane{margin:0 0 24px;padding:0 0 18px;border-bottom:3px dashed var(--ink)}
+.mach-pane{margin:0 0 24px;padding:0 0 18px;border-bottom:1px dashed var(--ink)}
 .samples-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 0 8px;font-weight:700;font-size:17px}
 .panel-text{margin:0;max-width:66ch}
 .note{margin:16px 0 0;font-size:14px;max-width:66ch}
@@ -218,25 +261,26 @@ code{font:.9em var(--f);background:none;padding:0;border-radius:0}
 #panel-samples .check{margin:0}
 
 /* screen 2: the install steps */
-.screen-h{margin:32px 0 24px;font-size:36px}
-.step{margin:0 0 20px;border:3px solid var(--ink)}
-.step>header{display:flex;align-items:stretch;gap:14px;border-bottom:3px solid var(--ink)}
+.screen-h{margin:32px 0 24px;font-size:36px;letter-spacing:-.02em}
+.step{margin:0 0 20px;border:2px solid var(--ink)}
+.step>header{display:flex;align-items:stretch;gap:14px;border-bottom:1px solid var(--ink)}
 .step h2{align-self:center;padding:12px 0;font-size:20px;line-height:1.1}
-.num{display:grid;place-items:center;flex:none;width:48px;min-height:48px;border-right:3px solid var(--ink);font:700 22px/1 var(--f)}
+.num{display:grid;place-items:center;flex:none;width:48px;min-height:48px;border-right:1px solid var(--ink);font:700 22px/1 var(--f)}
 .step.done .num{background:var(--ink);color:var(--paper)}
 .step-body{padding:16px 18px 18px}
 .change{align-self:center;margin-left:auto;margin-right:14px;font-size:14.5px}
 .picked{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
-.picked li{display:inline-flex;align-items:center;gap:8px;padding:2px 8px;background:var(--ink);color:var(--paper);font-weight:700;font-size:14.5px}
-.picked .tag{font-size:11px;padding:0 3px;border-width:2px}
-.hint{margin:10px 0 0;font-size:13.5px}
+.picked li{display:inline-flex;align-items:center;gap:8px;padding:2px 8px;border-radius:var(--r);background:var(--ink);color:var(--paper);font-weight:600;font-size:14.5px}
+.picked .tag{font-size:11px;padding:0 3px;border-width:1.5px}
+.hint{margin:10px 0 0;font-size:13.5px;font-weight:500;color:var(--soft)}
 .hint:empty{display:none}
 
-.drop{display:flex;align-items:center;gap:16px;padding:16px 18px;border:3px dashed var(--ink);cursor:pointer}
+.drop{display:flex;align-items:center;gap:16px;padding:16px 18px;border:2px dashed var(--ink);cursor:pointer}
 .drop-ic{flex:none}
 .drop-t strong{display:block;font-size:15px;word-break:break-all}
-.drop-t span{font-size:13.5px}
+.drop-t span{font-size:13.5px;color:var(--soft)}
 .drop:hover,.drop:focus-visible,.drop.over{background:var(--ink);color:var(--paper);outline:none}
+.drop:hover .drop-t span,.drop:focus-visible .drop-t span,.drop.over .drop-t span{color:var(--soft-inv)}
 .drop.loaded{border-style:solid}
 #drop2-wrap,#drop3-wrap{margin-top:20px}
 
@@ -260,38 +304,38 @@ ol.howto{padding-left:1.3em}
 .method-note{margin:0 0 16px}
 .method-note:empty{display:none}
 .portrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-select{flex:1 1 260px;min-width:0;min-height:48px;padding:0 36px 0 12px;border:3px solid var(--ink);border-radius:0;background:var(--paper);color:var(--ink);
+select{flex:1 1 260px;min-width:0;min-height:42px;padding:0 36px 0 12px;border:1.5px solid var(--ink);border-radius:var(--r);background:var(--field);color:var(--ink);
   font:15px/1.2 var(--f);appearance:none;-webkit-appearance:none;cursor:pointer;
   background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
   background-size:6px 6px,6px 6px;background-position:calc(100% - 20px) 52%,calc(100% - 14px) 52%;background-repeat:no-repeat}
 
 .dl-note{margin:0 0 16px;max-width:66ch;font-size:14.5px}
-.summary{margin:0 0 16px;padding:2px 0 2px 12px;border-left:6px solid var(--ink);font-size:14.5px}
+.summary{margin:0 0 16px;padding:2px 0 2px 12px;border-left:4px solid var(--ink);font-size:14.5px}
 .summary b{font-weight:700}
 .check{display:flex;align-items:flex-start;gap:12px;margin:0 0 16px;cursor:pointer;max-width:66ch;font-size:14px;line-height:1.5}
 .actions{display:flex;gap:10px}
 .actions .big{flex:1}
-.missing{margin:10px 0 0;text-align:center;font-size:13.5px}
+.missing{margin:10px 0 0;text-align:center;font-size:13.5px;color:var(--soft)}
 .missing:empty{display:none}
-.alt{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:16px 0 0;font-size:13.5px}
-#download{min-height:44px}
+.alt{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:16px 0 0;font-size:13.5px;color:var(--soft)}
+#download{min-height:40px}
 
 /* progress: 16 square LEDs, the current one dithered */
 .progress{margin-top:20px}
 .bar{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:4px}
 #bar{display:none}
-.bar i{height:18px;border:3px solid var(--ink);background:transparent}
+.bar i{height:18px;border:2px solid var(--ink);background:transparent}
 .bar i.on{background:var(--ink)}
 .bar i.cur{background-image:repeating-conic-gradient(var(--ink) 0 25%,transparent 0 50%);background-size:4px 4px}
 .meta{display:flex;justify-content:space-between;gap:12px;margin-top:8px;font-size:14px;font-variant-numeric:tabular-nums}
-.callout{margin-top:16px;padding:10px 12px;border:3px dashed var(--ink);font-size:14px}
+.callout{margin-top:16px;padding:10px 12px;border:2px dashed var(--ink);font-size:14px}
 .callout.warn{border-style:solid}
-.result{margin-top:18px;padding:14px 16px;border:3px solid var(--ink)}
+.result{margin-top:18px;padding:14px 16px;border:2px solid var(--ink)}
 .result:empty{display:none}
 .result.ok{background:var(--ink);color:var(--paper)}
 .result.ok a{color:inherit}
 .result.warn{border-style:dashed}
-.result.bad{border-left-width:12px}
+.result.bad{border-left-width:8px}
 .result p{margin:.35em 0;max-width:66ch}
 
 details>summary{cursor:pointer;font-weight:700}
@@ -299,25 +343,25 @@ details.trouble{margin-top:22px;font-size:14px}
 .trouble dl{margin:10px 0 0;max-width:66ch}
 .trouble dt{margin-top:12px;font-weight:700}
 .trouble dd{margin:3px 0 0}
-.adv{margin-top:24px;padding:16px 0 0;border-top:3px dashed var(--ink)}
+.adv{margin-top:24px;padding:16px 0 0;border-top:1px dashed var(--ink)}
 .adv .field{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:14px 0 0}
 .adv .hint{margin:0}
-.adv input[type=number]{width:5.5em;padding:8px 10px;border:3px solid var(--ink);border-radius:0;background:var(--paper);color:var(--ink);font:15px var(--f)}
-#log{height:170px;overflow:auto;margin-top:16px;padding:10px 12px;border:3px solid var(--ink);font:12.5px/1.6 var(--f);white-space:pre-wrap}
+.adv input[type=number]{width:5.5em;padding:8px 10px;border:1.5px solid var(--ink);border-radius:var(--r);background:var(--field);color:var(--ink);font:15px var(--f)}
+#log{height:170px;overflow:auto;margin-top:16px;padding:10px 12px;border:2px solid var(--ink);font:12.5px/1.6 var(--f);white-space:pre-wrap}
 
 /* search, from SEARCH_FROM cards (app.js) */
 .find{position:relative;margin:0 0 12px;max-width:360px}
-.find input{width:100%;height:44px;padding:0 44px 0 40px;border:3px solid var(--ink);border-radius:0;background:transparent;color:var(--ink);font:15px var(--f);
+.find input{width:100%;height:42px;padding:0 44px 0 40px;border:1.5px solid var(--ink);border-radius:var(--r);background:var(--field);color:var(--ink);font:15px var(--f);
   appearance:none;-webkit-appearance:none}
 .find input::placeholder{color:inherit}
 .find .mag{position:absolute;left:12px;top:12px;pointer-events:none}
 .find .clr{position:absolute;right:0;top:0;width:44px;height:44px;padding:0;border:0;background:none;color:inherit;font:20px/1 var(--f);cursor:pointer}
-.found{margin:0 0 12px;font-size:14px}
+.found{margin:0 0 12px;font-size:14px;color:var(--soft)}
 
 /* footer (redesign of 2026-11-14): the brand, the site's and the project's links, and the receipt in a third; then the
    credits (folded), the disclaimer and the version. site.css styles .foot, .foot .wrap, .foot p and .foot nav:
    overridden here, the page's own rules two classes deep where they beat .foot p */
-.foot{margin-top:72px;padding:40px 0 28px;border-top:3px solid var(--ink);font-size:13.5px;line-height:1.6;color:var(--ink)}
+.foot{margin-top:72px;padding:40px 0 28px;border-top:2px solid var(--ink);font-size:13.5px;line-height:1.6;color:var(--ink)}
 .foot .wrap{display:block}
 .foot p{max-width:none}
 .foot-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:40px;align-items:start}
@@ -325,49 +369,49 @@ details.trouble{margin-top:22px;font-size:14px}
 .foot-mark{display:inline-block;margin-left:-8px;padding:7px 8px;background:var(--head-bg);color:var(--paper);
   font:700 22px/1 var(--f);text-transform:uppercase;text-decoration:none}
 .foot .foot-claim{margin:16px 0 0;max-width:34ch;font-size:15px;font-weight:700;line-height:1.45}
-.foot .foot-promise{margin:16px 0 0;max-width:44ch;padding-left:10px;border-left:6px solid var(--ink)}
+.foot .foot-promise{margin:16px 0 0;max-width:44ch;padding-left:10px;border-left:4px solid var(--ink);color:var(--soft)}
 .foot .foot-col{display:block}
-.foot .foot-h{margin:4px 0 12px;padding-bottom:8px;border-bottom:3px solid var(--ink);font-size:13px;font-weight:700;line-height:1;
+.foot .foot-h{margin:4px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--ink);font-size:13px;font-weight:700;line-height:1;
   text-transform:uppercase}
 .foot-col ul{list-style:none;margin:0;padding:0}
 .foot-col li{margin:0 0 7px}
-.foot-col a{font-weight:700;text-decoration:none}
-.foot-col a:hover,.foot-col a[aria-current="page"]{text-decoration:underline;text-decoration-thickness:3px}
-.credits{margin-top:36px;padding-top:14px;border-top:3px dashed var(--ink)}
+.foot-col a{font-weight:600;text-decoration:none}
+.foot-col a:hover,.foot-col a[aria-current="page"]{text-decoration:underline;text-decoration-thickness:2px}
+.credits{margin-top:36px;padding-top:14px;border-top:1px dashed var(--ink)}
 .credits summary{font-weight:700;text-transform:uppercase;cursor:pointer}
 .foot .credits p{margin:8px 0;max-width:80ch}
 .credits ul{margin:8px 0;padding-left:1.2em;max-width:80ch}
 .credits li{margin:.25em 0}
 .foot-bottom{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 24px;margin-top:18px;padding-top:14px;
-  border-top:3px solid var(--ink);font-size:12.5px}
+  border-top:1px solid var(--ink);font-size:12.5px;color:var(--soft)}
 .foot-ver{font-weight:700;text-transform:uppercase}
 
 /* the receipt: who did the hard part, each name a link to their GitHub profile; TIP prints a
    line per press and the stamp lands once in view (wireReceipt() in app.js); the page reads the same without them */
-.rc{position:relative;margin:12px 0;padding:16px 14px 18px;background:var(--card);border-left:3px solid var(--ink);
-  border-right:3px solid var(--ink);font-size:12px;line-height:1.55;text-transform:uppercase;filter:drop-shadow(4px 4px 0 var(--ink))}
-.rc::before,.rc::after{content:"";position:absolute;left:-3px;right:-3px;height:12px;background-repeat:repeat-x;background-size:16px 12px}
+.rc{position:relative;margin:12px 0;padding:16px 14px 18px;background:var(--card);border-left:2px solid var(--ink);
+  border-right:2px solid var(--ink);font-size:12px;line-height:1.55;text-transform:uppercase;filter:drop-shadow(4px 4px 0 var(--ink))}
+.rc::before,.rc::after{content:"";position:absolute;left:-2px;right:-2px;height:12px;background-repeat:repeat-x;background-size:16px 12px}
 .rc::before{top:-11px;background-image:var(--zig-top)}
 .rc::after{bottom:-11px;background-image:var(--zig-bot)}
-.rc hr{margin:12px 0;border:0;border-top:2px dashed var(--ink)}
-.rc hr.rc-dbl{border-top:5px double var(--ink)}
+.rc hr{margin:12px 0;border:0;border-top:1px dashed var(--ink)}
+.rc hr.rc-dbl{border-top:3px double var(--ink)}
 .rc .rc-c{margin:0;text-align:center}
 .rc .rc-b{font-size:15px;font-weight:700;line-height:1.3}
 .rc .rc-s{margin-top:6px;font-size:11px}
 .rc-hd{display:flex;justify-content:space-between;margin:0 0 2px;font-size:10.5px;font-weight:700}
 .rc-items{list-style:none;margin:0;padding:0}
 .rc-items li,.rc-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 6px;padding:1px 0}
-.rc-lead{flex:1;min-width:10px;border-bottom:2px dotted var(--ink);transform:translateY(-4px)}
+.rc-lead{flex:1;min-width:10px;border-bottom:1px dotted var(--ink);transform:translateY(-4px)}
 .rc-items a{font-weight:700;text-transform:none}
 .rc-row{font-weight:700}
 .rc .rc-sm{font-size:11px;font-weight:400}
 .rc-tip{padding:0;border:0;background:none;color:inherit;font:inherit;font-weight:700;text-transform:uppercase;
-  text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:.22em;cursor:pointer}
-.rc-tip:hover{text-decoration-thickness:4px}
+  text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:.22em;cursor:pointer}
+.rc-tip:hover{text-decoration-thickness:2.5px}
 .rc-print div{font-weight:700;text-transform:none}
 .rc-total{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;font-size:14px;font-weight:700;line-height:1.25}
 .rc-total b{font-size:22px;line-height:1}
-.rc-stamp{width:max-content;margin:14px auto 2px;padding:4px 8px;border:3px solid var(--ink);font:700 11px/1.25 var(--f);
+.rc-stamp{width:max-content;margin:14px auto 2px;padding:4px 8px;border:2px solid var(--ink);font:700 11px/1.25 var(--f);
   text-align:center;transform:rotate(-6deg)}
 .rc-stamp.slam{animation:rc-slam .36s steps(4)}
 @keyframes rc-slam{0%{transform:rotate(-6deg) scale(1.9);opacity:0}100%{transform:rotate(-6deg) scale(1);opacity:1}}

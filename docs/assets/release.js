@@ -7,6 +7,11 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.67", date: "2026-11-15", changes: [
+    { en: "The flasher, the uploader and the Wavetables page look quieter. Lines are thinner and say what they are: a frame, a control, a divider. What explains (a card's sentence, hints, sizes, credits) is in a softer tone than names and titles. The ink is a dark blue-grey instead of black, the typeface is IBM Plex Mono, and a card's shadow is a fine checkerboard" },
+    { en: "Buttons have slightly rounded corners and normal writing, and nothing jumps under the pointer. Fields and checkboxes sit on a lighter ground, so you see where to type or tick. On the Wavetables page, Undo, Sort by brightness, Preview and the other underlined words are now framed buttons, dashed while they cannot be used, as on the uploader. The uploader's two lists name their columns" },
+    { en: "The firmware and what the pages do are unchanged. Checked in a browser on a computer and at phone width (2026-11-15)" }
+  ] },
   { version: "0.66", date: "2026-11-15", changes: [
     { en: "SAMPLE (Cycles One-Shot 0.18): a sample you play from the PRESET menu ends when you let go. With GATE on, a note played on the pad or a TRIG key while the cursor rests on a sample now sounds for as long as you hold the pad or the key, then fades with DECAY. Before, it played the whole sample, however short the press" },
     { en: "The sequencer is unchanged: the track's trigs keep playing while you hold the pad or a key, and letting go cuts none of them" },

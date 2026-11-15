@@ -9,9 +9,9 @@
 <link rel="icon" href="../assets/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-11-15-03">
-<link rel="stylesheet" href="style.css?v=2026-11-15-03">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-15-04">
+<link rel="stylesheet" href="style.css?v=2026-11-15-04">
 <!-- light only, as the flasher and the manager -->
 <script>document.documentElement.setAttribute("data-theme","light")</script>
 </head>
@@ -59,6 +59,7 @@
       </div>
       <input id="chooser" type="file" accept="audio/*,.wav,.wave,.aif,.aiff,.aifc,.mp3,.flac,.ogg,.oga,.opus,.m4a,.aac" multiple hidden>
       <input id="chooser-dir" type="file" webkitdirectory multiple hidden>
+      <div id="files-cols" class="cols" aria-hidden="true" hidden><span>Name</span><span>Size</span></div>
       <ul id="files" class="rows" tabindex="0" aria-label="Files to upload" aria-multiselectable="true"></ul>
       <p class="hint">Drop files and folders here, or onto a folder in the list. Drag rows onto another folder to move them,
         onto a folder on the right to upload them there. Enter or a double-click renames. Each file becomes a 48 kHz mono
@@ -82,6 +83,7 @@
         <button id="mkdir-ok" class="tool" type="submit">Make it</button>
         <button id="mkdir-cancel" class="tool" type="button">Cancel</button>
       </form>
+      <div id="folder-cols" class="cols" aria-hidden="true" hidden><span>Name</span><span>Size</span></div>
       <ul id="folder" class="rows" tabindex="0" aria-label="Samples and folders on the Cycles" aria-multiselectable="true"></ul>
       <p class="hint">Click a folder to open it, a sample to select it. Select puts a box on each row: then a click picks
         folders too, Shift a run. Deleting cannot be undone. The Cycles stays silent while it writes.</p>
@@ -108,9 +110,9 @@
 </footer>
 
 <!-- ?v= : the site's version stamp, so a browser never mixes a new page with cached old scripts -->
-<script src="../assets/release.js?v=2026-11-15-03"></script>
-<script src="../assets/site.js?v=2026-11-15-03"></script>
-<script src="elektron.js?v=2026-11-15-03"></script>
-<script src="app.js?v=2026-11-15-03"></script>
+<script src="../assets/release.js?v=2026-11-15-04"></script>
+<script src="../assets/site.js?v=2026-11-15-04"></script>
+<script src="elektron.js?v=2026-11-15-04"></script>
+<script src="app.js?v=2026-11-15-04"></script>
 </body>
 </html>

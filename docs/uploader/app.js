@@ -114,8 +114,16 @@
                 d.showModal();
             else
                 d.hidden = false;
+            lockPage(true);
         }
         $("alert-ok").focus();
+    }
+    /* While the window is open, the page behind it does not scroll (html.modal in style.css). */
+    function lockPage(on) {
+        var root = document.documentElement;
+
+        if (root && root.classList)
+            root.classList[on ? "add" : "remove"]("modal");
     }
     function closeAlert() {
         var d = $("alert");
@@ -134,6 +142,7 @@
 
         state.alerting = false;
         state.alertBack = null;
+        lockPage(false);
         if (back && typeof back.focus === "function" && document.body && document.body.contains &&
             document.body.contains(back))
             back.focus();
@@ -1107,6 +1116,7 @@
 
         list.innerHTML = "";
         list.className = "rows" + (state.selecting && state.connected ? " selecting" : "");
+        $("folder-cols").hidden = !state.connected || !state.items.length;     /* the columns' names, over rows only */
         if (!state.connected) {
             list.innerHTML = '<li class="empty">Connect the Cycles to see its folders.</li>';
             return;
@@ -1195,6 +1205,7 @@
         var list = $("files"), rows = visible();
 
         list.innerHTML = "";
+        $("files-cols").hidden = !rows.length;                                  /* the columns' names, over rows only */
         rows.forEach(function (r, i) {
             var n = r.n, on = state.fsel.indexOf(n) >= 0, li = el("li", (n.dir ? "folder" : "file") + (on ? " sel" : "")),
                 name = el("span", "nm"), tw, st, said = rowState(n), input;

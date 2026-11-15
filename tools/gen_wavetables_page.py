@@ -38,9 +38,9 @@ CSS = """
    ../uploader/style.css on it), aligned with this page's columns */
 .site-top { max-width: 1280px; margin: 0 auto; padding: 24px 24px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; }
 .site-brand { margin-right: auto; font: 700 20px/1 var(--body); text-transform: uppercase; text-decoration: none; }
-.site-top nav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; font: 700 14px/1 var(--body); text-transform: uppercase; }
+.site-top nav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; font: 600 14px/1 var(--body); text-transform: uppercase; }
 .site-top nav a { text-decoration: none; }
-.site-top nav a:hover, .site-top nav a[aria-current="page"] { text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: .3em; }
+.site-top nav a:hover, .site-top nav a[aria-current="page"] { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: .3em; }
 @media (max-width: 560px) { .site-top { padding-inline: 16px; } }
 /* not on this site (the maintainer's choice, 2026-11-09): the Examples and Fill slots from a pattern, in the DOM still */
 #ex-card, #pat-row { display: none !important; }
