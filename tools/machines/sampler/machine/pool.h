@@ -95,7 +95,10 @@ extern volatile uint8_t smp_pad_held[6];
 
 /* From the bridge (sampler.c): the pad of track t was just pressed; nonzero when its note gets its note-off at once
    (hooks.S), so the sequencer's trigs reach the track while it is held. */
-int smp_pad_frees(int t);
-int smp_key_frees(int t);                       /* a TRIG key's note too (hooks.S, smp_hook_key_on) */
+int smp_pad_frees(int t, int note);
+int smp_key_frees(int t, int note);             /* a TRIG key's note too (hooks.S, smp_hook_key_on) */
+/* The pad or the TRIG key that played note on track t was let go (hooks.S): a note that got its note-off at once
+   ends now, with GATE on too. */
+void smp_note_off(int t, int note);
 
 #endif

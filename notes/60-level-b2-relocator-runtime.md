@@ -705,7 +705,8 @@ half-finished step never blocks a build.
     writes over them), then, when `smp_pad_frees(track)` (`machine/sampler.c`: the pad noted as held, the active
     track, a SAMPLE sound with a sample's id marked) says so, calls `0x4008145e(track, note, 0x40)`, what
     `0x4001d0fc` sends, without its end of a live recording (`0x400827a8`). Consequences: the track's trigs reach it
-    while the pad is held; with GATE on the pad's own note no longer holds (it fades with DECAY); the release's
+    while the pad is held; with GATE on the pad's own note no longer holds (it fades with DECAY) — wrong, never
+    checked: it held for good, see 0.18 below; the release's
     note-off is dropped by the event loop (the rank of the sequencer's note that holds the track, or 0, against 2),
     the counts of held notes stop at 0 (`0x40fb57ec`), and with MIDI out on the device gets a second note-off; a
     live recording still starts at the press and ends at the release. Any other pad note, the TRIG keys and presets
@@ -744,6 +745,34 @@ half-finished step never blocks a build.
   content) is left alone; the cursor arriving on a file again makes a fresh copy, recognised again. No hook, no
   write: 8 more bytes of variables. Host: `test_preview` (a knob turned, the copy before and after a tick, a preset
   left alone, the cursor back on the file), two deliberate faults caught. The proof's tick test grows the knob: **ALL OK** (the maintainer, 2026-11-13) `[FAIT en émulation]`. digiemu starts; on a Model:Cycles, flashed from the command line with every card (the maintainer, 2026-11-13, « passt »): a note after SHAPE turned down is short, after SWEEP turned filtered, the held pad's trigs follow SHAPE at once `[FAIT]`. Then flashed from the page with every card the same day (the maintainer: « seiten-flash passt ») `[FAIT]`: the card is `tested` again. The card went back to `experimental` until the device test, and is `tested` since the page's flash of 2026-11-13. **Hashes 0.17** (MAIN OS): SAMPLE alone `e5db2aef…`, with both effects `a5ecc06d…`, every card of the page `6b88b851…` (the file for digiemu and the device, `.syx` `bb82036a…`); 140 writes, 48 756 bytes added; the smoke test's pins 140 / 48 756, the Model:Samples packings `f5980224…` (`_smp-os`) and `89c1e6e4…` (`_cyc-os`); One-Shot's own image MAIN OS `89c72c29…`, `.syx` `8be4c42f…`; with SOLID `f7b26b90…`, with CHORD Tables `e4d22760…`, with Samples `242fe9b1…`, with RESAMPLE `878d0560…`, with Transpose `5a4d375f…`, with the CPU page `6be5db32…` (`ref_mainos.py`, 137 combinations).
+- **0.18: the release ends the note** (2026-11-15, the maintainer: a sample played from the browser with the sequencer
+  stopped plays whole with GATE on, however short the TRIG key or the pad is pressed). `[FAIT, read in the OS 1.13]`:
+  the note and its note-off at once are chained into the same batch (`0x40092116`), so one pass of the event loop
+  sets the track's bit in the trig mask (d4) and in the note-offs (`fp-108`, `0x40058f88`); the voice loop
+  (`0x400a7d96`) writes them as `+0x34` (trig) and `+0x3c` (end), each for that block alone; the amp envelope
+  (`0x400a9252`) sets its "released" (`+0x244`) only when `+0x3c` is set and `+0x34` is clear (`0x400a92ee`), so the end
+  is dropped; the next block (`+0x38`) starts the envelope, which with GATE on (`+0x24c`) goes to its hold (state 2 at
+  `+0x23c`) and leaves it only on "released"; the OS's own note-off at the let-go is dropped by the loop (rank 0
+  against 2, `0x40058f4c`). The envelope's code run block by block in an interpreter (`[FAIT en émulation]`, not
+  Unicorn): state 2 after 5 000 blocks; with an end in a later block, state 1 and the level falling; with GATE off,
+  decay from the start. So the sentence above ("no longer holds") was wrong. One-Shot 0.18 (`0a3b763`):
+  `smp_pad_frees(track, note)` / `smp_key_frees(track, note)` note the note that got its note-off at once (the last
+  one, as the OS's `0x40fe4cb4`); both releases call `smp_note_off(track, note)` first, the pads' `0x4001d0fc`
+  (`smp_hook_pad_off`) and the TRIG keys' `0x40019c84(view, track, note)` (called only through a5 from `0x40019d10`,
+  the keyboard's release; stock `4feffff07005` becomes `jsr smp_hook_key_off`, the manifest's second `key.note`
+  hook); `sampler_update` then sets the voice's `+0x3c` in the first block without a trig, if the note's sound is
+  still 0 (a note played live in the browser, `0x4005910e`): a trig of the sequencer since is left alone. A press
+  drops an end still waiting; of two keys the last one's release ends the note, as on the stock OS. 141 writes
+  (+1), 50 728 bytes added (+244), 283 conflicts as before, no new claim. Host: `test_release`, six deliberate
+  faults caught. The proof (`tools/emu/test_sampler_preview.py`): the release's site, and through the event loop
+  and the real envelope, GATE on, a TRIG key and the pad hold while down (state 2 after 60 blocks) and decay once
+  let go (state 1), the loop itself giving no end at the release: **ALL OK** (the maintainer, 2026-11-15)
+  `[FAIT en émulation]`. digiemu with every card (the maintainer, 2026-11-15): a TRIG key and the pad, tapped and
+  held, with GATE on, a short DECAY and the sequencer stopped; a key let go while the sequencer's trigs play cuts
+  none. Not yet on a Model:Cycles: the card is experimental again. Hashes (MAIN OS): SAMPLE alone `e5dd1f1f…`, with
+  SOLID `31c2b697…`, CHORD Tables `581e6796…`, both delays `7452134c…`, Samples `1675b0be…`, RESAMPLE `aa23bfae…`,
+  Transpose `3cd6f3e3…`, every card of the page (seventeen) `c3dc12d0…`, the file tried in digiemu. Release 0.66,
+  stamp 2026-11-15-02.
 - **`[HYP]` the tick while the browser is open**: SAMPLE's tick is the screen's redraw (`0x400075f0` in `0x400075da`,
   called from `0x40007e92`, `0x40076ff4`, `0x40084522`), which takes the screen object and asks its root view
   (`+64`) whether to draw; nothing there depends on which view is on top. Read, not run: the device decides it (the

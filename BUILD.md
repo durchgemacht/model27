@@ -278,11 +278,11 @@ python3 tools/emu/test_compose.py --cycles model-cycles_OS1.13.syx --machines so
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines solid                # seule
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,solid        # avec SAMPLE
 ```
-MAIN OS patché, `solid` 0.1 seule, avec ses propres images (release 0.64, note 71 §13) : `3febf7a572aef0d0ebffbf70db50e4db2d6a52af782df875d0bc2c17be414b0e` (sans : `ded57d3e…`) ; avec SAMPLE 0.17 et ses images :
-`8581385a0dc5782912b4e3eca6ebea88967f38be33f91eccf50f42a526daf94b` (sans images : `f7b26b90…` ; SAMPLE 0.15 : `b1fc2896…`) ; avec toutes les cartes de la page (dix-sept,
+MAIN OS patché, `solid` 0.1 seule, avec ses propres images (release 0.64, note 71 §13) : `3febf7a572aef0d0ebffbf70db50e4db2d6a52af782df875d0bc2c17be414b0e` (sans : `ded57d3e…`) ; avec SAMPLE 0.18 et ses images :
+`31c2b697a336a00f9fae4f07979b2a0c821498700bf2ed195d0d8db5adcd7d78` (SAMPLE 0.17 : `8581385a…` ; sans images : `f7b26b90…` ; SAMPLE 0.15 : `b1fc2896…`) ; avec toutes les cartes de la page (dix-sept,
 release 0.64 : `--machines sampler,solid,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq --cpu --resample
 --transpose --perform --with control-all-config,trig-preview,trig-cond-order`) :
-`c5d6879a3b55b9ebd787770ddccd43733ef04d330e851130429a6f82ac747b00` ; sans Perform Kit (seize, la même commande sans
+`c3dc12d0ddc49b76080b9db021af2403e27d3ebe9a58d0bab234cb93a501bd18` (release 0.66, SAMPLE 0.18, note 60 §24 ; release 0.64 : `c5d6879a…`) ; sans Perform Kit, release 0.64 (seize, la même commande sans
 `--perform`) : `b7b50e9ad1d6cff67ff96d47c7ba1a197e931d189480822a07b4f8eb90d3bc62`, le fichier essayé dans digiemu et sur un
 Model:Cycles depuis la ligne de commande le 14/11/2026, avec les images de SOLID et de SAMPLE (note 71 §13.5) ; release
 0.63 (Perform Kit, sans les images, note 81) : `d91ef5bf…` ; release 0.59 : `0901bf28…`, essayé dans digiemu et sur un Model:Cycles depuis la ligne de commande le 11/11/2026 (note 71 §11),
@@ -308,7 +308,7 @@ python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines chordtables
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,chordtables        # avec SAMPLE
 ```
 MAIN OS patché, `chordtables` 0.4 seul : `6b1b29521cce0222fe093b5fd3226131fdb3cc0da589e94c81bb3cc840fce04b` ; avec
-SAMPLE 0.17 et ses images : `3ac976494d89790d3925f8dedc32efe1835d3c35d1d4f56cbc37a3cea16bf565` (sans images : `e4d22760…` ; SAMPLE 0.15 : `8aa5757d…`) ; avec toutes les cartes de la page (quinze,
+SAMPLE 0.18 et ses images : `581e6796ae7b833840f42b471b794a38e36058fcbc3d288d34073c2fc3a2682b` (SAMPLE 0.17 : `3ac97649…` ; sans images : `e4d22760…` ; SAMPLE 0.15 : `8aa5757d…`) ; avec toutes les cartes de la page (quinze,
 release 0.54 : `--machines sampler,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq --cpu --resample --transpose
 --with control-all-config,trig-preview,trig-cond-order`) : `8e0a92418f6ecbd14df773a41b60f0702e2a9abe85f668740bf997a1b3a84409`,
 le fichier essayé sur un Model:Cycles depuis la ligne de commande le 09/11/2026 (note 66 §36.10) ; puis flashé depuis
@@ -359,8 +359,8 @@ python3 tools/build.py -i model-cycles_OS1.13.syx -t pots
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,digidelay,pots   # avec Digital et SAMPLE
 ```
 MAIN OS patché, `pots` seul : `93ad7348e2ffa42879d2bcfabf66780f0cce721a03022f543ad785c92ba779e8` ; `digidelay` et `pots`
-composés : `81bc4d1e4cfee2bc8daba59ecf99e89a6c33f924ef11b3819632558ccfc4b64a` ; avec SAMPLE 0.17 (`sampler`,
-`digidelay`, `pots`, SAMPLE avec ses images) : `1d94c968c60ddd0aab2fee4459dc8c91add1824160dd815fc5a4e6ddda031a77` (sans images : `a5ecc06d…` ; la couche de raccourcis 0.6 ; SAMPLE 0.15 : `4f8a41c5…` ; avec la couche 0.5 : `a545a230…` ; SAMPLE 0.14 : `14345987…` ; SAMPLE 0.13 : `bf9a0636…`),
+composés : `81bc4d1e4cfee2bc8daba59ecf99e89a6c33f924ef11b3819632558ccfc4b64a` ; avec SAMPLE 0.18 (`sampler`,
+`digidelay`, `pots`, SAMPLE avec ses images) : `7452134cfe72b802c85e980655dbb8ba6c355a75b5e9a0c4dca00ab10d63a689` (SAMPLE 0.17 : `1d94c968…` ; sans images : `a5ecc06d…` ; la couche de raccourcis 0.6 ; SAMPLE 0.15 : `4f8a41c5…` ; avec la couche 0.5 : `a545a230…` ; SAMPLE 0.14 : `14345987…` ; SAMPLE 0.13 : `bf9a0636…`),
 ceux que la page compose avec
 `fxslot` 0.7 (le compteur de la page CPU, note 78 §8) et la couche de raccourcis 0.5 (note 63 §25–§31). Depuis POTS 0.2 la ligne tourne à
 6 kHz (`pots_cf.S` pour la décimation, note 69 §24), environ un tiers de la charge de la version à 12 kHz ; celle-ci
@@ -388,7 +388,7 @@ python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,smpfilter   # avec SAMPLE
 ```
 MAIN OS patché, `smpfilter` seul : `c422bf3817202993a9e133e3ea77cd82027f7083fe623818823ebb33f6c3af03` (la couche de raccourcis 0.6 ; avec la couche 0.5 : `e9838dee…`) ; avec SAMPLE
-(`sampler` 0.17 avec ses images, `smpfilter`) : `90ca4667b5bf2e55597e1f65f6fb39fbae4180c17a5b6adba59f84484aef5d19` (sans images : `242fe9b1…` ; SAMPLE 0.15 : `5dee5685…` ; `fltslot` 0.11 et la couche de raccourcis 0.6 ; avec la couche 0.5 : `1caed5f9…`, qui
+(`sampler` 0.18 avec ses images, `smpfilter`) : `1675b0be155e914cd44113e1de3ffc41d1e2e4beb97f4c5a2d3200a36c38c0ae` (SAMPLE 0.17 : `90ca4667…` ; sans images : `242fe9b1…` ; SAMPLE 0.15 : `5dee5685…` ; `fltslot` 0.11 et la couche de raccourcis 0.6 ; avec la couche 0.5 : `1caed5f9…`, qui
 garde les rangées de p-locks de k 23 et plus, note 63 §25 ; avec `fltslot` 0.10 et SAMPLE 0.14 : `a545bb6b…`, `b7507068…` ;
 Samples 0.4, le même son que 0.3 au bit près en
 moins d'instructions, note 72 §25 ; SAMPLE 0.13 : `f1ae1200…` ; avec Samples 0.3 : `62db5452…`, `d343e6c9…` ; SAMPLE 0.12 :
@@ -420,7 +420,7 @@ python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,c
 MAIN OS patché, `crush` seul : `e3e6b94acfd533b949192691ea6c1e1b5eeab31d2c374f08367c7740c1b246da` (la couche de raccourcis 0.6 ; avec la couche 0.5 : `29c30e96…`) ; avec Samples
 (`smpfilter`, `crush`) : `e05c2951153a0aca2153734785690cf4cc528de2086480d44e6688fe8958dbbf` (`fltslot` 0.11, la couche 0.6 ; avec la couche 0.5 : `973ed79a…` ; avec `fltslot` 0.10 : `36494141…`,
 `9c33360e…`) ; avec toutes les cartes de
-la page (dix-sept, release 0.64, la commande de SOLID ci-dessus) : `c5d6879a3b55b9ebd787770ddccd43733ef04d330e851130429a6f82ac747b00` (les images de SOLID et de SAMPLE, note 71 §13, avec Perform Kit ; seize, sans Perform Kit : `b7b50e9a…` ; release 0.63 : `d91ef5bf…`, Perform Kit, note 81 ; release 0.62 : `6b88b851…`, SAMPLE 0.17, note 60 §24 ; release 0.60 : `dd9183af…`, `fltslot` 0.12, CC 75 / 76, note 73 §21 ; seize, release 0.59 : `0901bf28…` ; quatorze, release 0.51 : `398b05d1…`, SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.6 et Transpose 0.3 ; avec Transpose 0.2 : `cd89791b…` ; treize cartes, release 0.50, la couche 0.5 : `a503f081…` ; note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, note 76 §17 ; avec EQ 0.5, release 0.40 : `9e7c87d2…` ; Reso 0.4, note 75 §17 ; avec Reso 0.3, release 0.39 : `021d39d1…`), ceux que la page compose (Ring 0.3, note 74 §13 ; avec Ring 0.2 :
+la page (dix-sept, release 0.64, la commande de SOLID ci-dessus ; release 0.66, SAMPLE 0.18, note 60 §24) : `c3dc12d0ddc49b76080b9db021af2403e27d3ebe9a58d0bab234cb93a501bd18` (release 0.64 : `c5d6879a…`, les images de SOLID et de SAMPLE, note 71 §13, avec Perform Kit ; seize, sans Perform Kit : `b7b50e9a…` ; release 0.63 : `d91ef5bf…`, Perform Kit, note 81 ; release 0.62 : `6b88b851…`, SAMPLE 0.17, note 60 §24 ; release 0.60 : `dd9183af…`, `fltslot` 0.12, CC 75 / 76, note 73 §21 ; seize, release 0.59 : `0901bf28…` ; quatorze, release 0.51 : `398b05d1…`, SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.6 et Transpose 0.3 ; avec Transpose 0.2 : `cd89791b…` ; treize cartes, release 0.50, la couche 0.5 : `a503f081…` ; note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, note 76 §17 ; avec EQ 0.5, release 0.40 : `9e7c87d2…` ; Reso 0.4, note 75 §17 ; avec Reso 0.3, release 0.39 : `021d39d1…`), ceux que la page compose (Ring 0.3, note 74 §13 ; avec Ring 0.2 :
 `289e6c14…` (onze cartes, release 0.35 : `2fbe6c3f…`) ; Samples 0.4, note 72 §25 ;
 avec Samples 0.3, release 0.34 : `44e16270…`, `0d64b14e…` ; Crush 0.5, le même son
 que 0.4 au bit près en moins d'instructions, note 73 §20 ; avec Crush 0.4, Bits de 8 bits à 1 bit, `fltslot` 0.10 : `3e95ccad…`,
@@ -449,7 +449,7 @@ python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines ring --cpu 
 MAIN OS patché (Ring 0.3), `ring` seul : `5f7e2f0394147695ca6b0be74e82b8aaeecf95766316879fc722d3a93d96b897` (`fltslot` 0.12, CC 75 sur COLOR, note 73 §21 ; avec 0.11 : `20ae22ce…` ; la couche de raccourcis 0.6 ; avec la couche 0.5 : `c8e189ce…`) ; avec Samples
 et Crush : `9fcac455acb0d5209e43f3cd275e255404c63c24edea6a855edfae3db0e1ab6e` (`fltslot` 0.12 ; avec 0.11 : `031021a9…` ; la couche de raccourcis 0.6 ; avec la couche 0.5 : `dd49ce7a…`) ; avec la page CPU :
 `5cbc86eec33cd1f662856af5471df701cddd48c69e888a10cdcc1fe3362a4f90` (`fltslot` 0.12 ; avec 0.11 : `532766f2…` ; la couche 0.6 ; avec la couche 0.5 : `9fc74881…` ; avec `fltslot` 0.10 : `a6340129…`, `4a1554a4…`, `df80d34a…` ; Ring 0.2 : `333bae39…`) ; avec toutes les cartes de la page (dix-sept,
-release 0.64, la commande de SOLID ci-dessus) : `c5d6879a3b55b9ebd787770ddccd43733ef04d330e851130429a6f82ac747b00` (les images de SOLID et de SAMPLE, note 71 §13, avec Perform Kit ; seize, sans Perform Kit : `b7b50e9a…` ; release 0.63 : `d91ef5bf…`, Perform Kit, note 81 ; release 0.62 : `6b88b851…`, SAMPLE 0.17, note 60 §24 ; release 0.60 : `dd9183af…`, `fltslot` 0.12, CC 75 / 76, note 73 §21 ; seize, release 0.59 : `0901bf28…` ; quatorze, release 0.51 : `398b05d1…`, SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.6 et Transpose 0.3 ; avec Transpose 0.2 : `cd89791b…` ; treize cartes, release 0.50, la couche 0.5 : `a503f081…` ; note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, note 76 §17 ; avec EQ 0.5, release 0.40 : `9e7c87d2…` ; Reso 0.4, note 75 §17 ; avec Reso 0.3, release 0.39 : `021d39d1…`) (Ring 0.3, la porteuse de 2 048 pas sans interpolation et la boucle dans `ring_cf.S`, un tiers
+release 0.64, la commande de SOLID ci-dessus ; release 0.66, SAMPLE 0.18, note 60 §24) : `c3dc12d0ddc49b76080b9db021af2403e27d3ebe9a58d0bab234cb93a501bd18` (release 0.64 : `c5d6879a…`, les images de SOLID et de SAMPLE, note 71 §13, avec Perform Kit ; seize, sans Perform Kit : `b7b50e9a…` ; release 0.63 : `d91ef5bf…`, Perform Kit, note 81 ; release 0.62 : `6b88b851…`, SAMPLE 0.17, note 60 §24 ; release 0.60 : `dd9183af…`, `fltslot` 0.12, CC 75 / 76, note 73 §21 ; seize, release 0.59 : `0901bf28…` ; quatorze, release 0.51 : `398b05d1…`, SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.6 et Transpose 0.3 ; avec Transpose 0.2 : `cd89791b…` ; treize cartes, release 0.50, la couche 0.5 : `a503f081…` ; note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, note 76 §17 ; avec EQ 0.5, release 0.40 : `9e7c87d2…` ; Reso 0.4, note 75 §17 ; avec Reso 0.3, release 0.39 : `021d39d1…`) (Ring 0.3, la porteuse de 2 048 pas sans interpolation et la boucle dans `ring_cf.S`, un tiers
 d'instructions en moins, note 74 §13, et le nom Wave, §14 ; avec Ring 0.2 : `704f5f65…`, `68b3f5f1…`,
 `289e6c14…` (onze cartes, release 0.35 : `2fbe6c3f…`) ; Ring 0.2, le produit sur l'EMAC, `fltslot` 0.10 ; Crush 0.5 ; Samples 0.4 ;
 avec Samples 0.3, release 0.34 : `7f9371fa…`, `0d64b14e…` ; avec Crush 0.4, release 0.32 : `85467706…`, `09661941…` ;
@@ -474,7 +474,7 @@ python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,c
 MAIN OS patché, `reso` seul : `6ff88f345a7f786aea2fda10e21d88e9d5c80abc9d8258ba56fa892155c3c97e` (`fltslot` 0.12, CC 75 / 76 sur COLOR / SHAPE, note 73 §21 ; avec 0.11 : `aaf1adbc…` ; la couche de raccourcis 0.6 ; avec la couche 0.5 : `540699be…`) ; avec Samples et
 Crush : `9ce86da68368ec0437116e9841bdeadc82a2f2a7cd156d034a373fc23431b8c8` (`fltslot` 0.12 ; avec 0.11 : `dee2a5f8…` ; la couche 0.6 ; avec la couche 0.5 : `f2f326ad…` ; avec `fltslot` 0.10 : `7626270e…`, `ccdcf75a…`) ;
 avec toutes les cartes de la page (dix-sept,
-release 0.64, la commande de SOLID ci-dessus) : `c5d6879a3b55b9ebd787770ddccd43733ef04d330e851130429a6f82ac747b00` (les images de SOLID et de SAMPLE, note 71 §13, avec Perform Kit ; seize, sans Perform Kit : `b7b50e9a…` ; release 0.63 : `d91ef5bf…`, Perform Kit, note 81 ; release 0.62 : `6b88b851…`, SAMPLE 0.17, note 60 §24 ; release 0.60 : `dd9183af…`, `fltslot` 0.12, CC 75 / 76, note 73 §21 ; seize, release 0.59 : `0901bf28…` ; quatorze, release 0.51 : `398b05d1…`, SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.6 et Transpose 0.3 ; avec Transpose 0.2 : `cd89791b…` ; treize cartes, release 0.50, la couche 0.5 : `a503f081…` ; note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, note 76 §17 ; avec EQ 0.5, release 0.40 : `9e7c87d2…` ; Reso 0.4, le bloc et les coefficients
+release 0.64, la commande de SOLID ci-dessus ; release 0.66, SAMPLE 0.18, note 60 §24) : `c3dc12d0ddc49b76080b9db021af2403e27d3ebe9a58d0bab234cb93a501bd18` (release 0.64 : `c5d6879a…`, les images de SOLID et de SAMPLE, note 71 §13, avec Perform Kit ; seize, sans Perform Kit : `b7b50e9a…` ; release 0.63 : `d91ef5bf…`, Perform Kit, note 81 ; release 0.62 : `6b88b851…`, SAMPLE 0.17, note 60 §24 ; release 0.60 : `dd9183af…`, `fltslot` 0.12, CC 75 / 76, note 73 §21 ; seize, release 0.59 : `0901bf28…` ; quatorze, release 0.51 : `398b05d1…`, SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.6 et Transpose 0.3 ; avec Transpose 0.2 : `cd89791b…` ; treize cartes, release 0.50, la couche 0.5 : `a503f081…` ; note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, note 76 §17 ; avec EQ 0.5, release 0.40 : `9e7c87d2…` ; Reso 0.4, le bloc et les coefficients
 dans `reso_cf.S`, un cinquième d'instructions de moins au pire, note 75 §17 ; avec Reso 0.3, release 0.39 : `0b0fdba1…`,
 `d8f9807c…`, `021d39d1…` ; Reso 0.3, Tone sur COLOR et Decay sur SHAPE, `fltslot` 0.10 ; Crush 0.5 ;
 Samples 0.4 ; Ring 0.3 ; avec Ring 0.2 : `289e6c14…` (onze cartes, release 0.35 : `2fbe6c3f…`) ; avec Samples 0.3, release 0.34 : `c1be9428…`, `0d64b14e…` ; avec Crush 0.4, release 0.32 : `45a81abb…`, `09661941…` ; avec
@@ -502,7 +502,7 @@ python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines smpfilter,c
 MAIN OS patché (EQ 0.6), `eq` seul : `b5f6d9d865886b023e9f3f253b65ac518120d1c5143dc6cd9fd1581fe0cf29c5` (`fltslot` 0.12, CC 75 / 76 sur COLOR / SHAPE, note 73 §21 ; avec 0.11 : `e205497b…` ; la couche de raccourcis 0.6 ; avec la couche 0.5 : `fb2a9f9b…`) ; avec Samples et
 Crush : `bc55e38d28918b3fb2cb3a1472c9a37120075d4fa92fb76c54973562b8c84ea7` (`fltslot` 0.12 ; avec 0.11 : `aab432fb…` ; la couche 0.6 ; avec la couche 0.5 : `015937f5…` ; avec `fltslot` 0.10 : `49130cc3…`, `33824b1c…`) ;
 avec toutes les cartes de la page (dix-sept,
-release 0.64, la commande de SOLID ci-dessus) : `c5d6879a3b55b9ebd787770ddccd43733ef04d330e851130429a6f82ac747b00` (les images de SOLID et de SAMPLE, note 71 §13, avec Perform Kit ; seize, sans Perform Kit : `b7b50e9a…` ; release 0.63 : `d91ef5bf…`, Perform Kit, note 81 ; release 0.62 : `6b88b851…`, SAMPLE 0.17, note 60 §24 ; release 0.60 : `dd9183af…`, `fltslot` 0.12, CC 75 / 76, note 73 §21 ; seize, release 0.59 : `0901bf28…` ; quatorze, release 0.51 : `398b05d1…`, SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.6 et Transpose 0.3 ; avec Transpose 0.2 : `cd89791b…` ; treize cartes, release 0.50, la couche 0.5 : `a503f081…` ; note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, le bloc et les coefficients
+release 0.64, la commande de SOLID ci-dessus ; release 0.66, SAMPLE 0.18, note 60 §24) : `c3dc12d0ddc49b76080b9db021af2403e27d3ebe9a58d0bab234cb93a501bd18` (release 0.64 : `c5d6879a…`, les images de SOLID et de SAMPLE, note 71 §13, avec Perform Kit ; seize, sans Perform Kit : `b7b50e9a…` ; release 0.63 : `d91ef5bf…`, Perform Kit, note 81 ; release 0.62 : `6b88b851…`, SAMPLE 0.17, note 60 §24 ; release 0.60 : `dd9183af…`, `fltslot` 0.12, CC 75 / 76, note 73 §21 ; seize, release 0.59 : `0901bf28…` ; quatorze, release 0.51 : `398b05d1…`, SAMPLE 0.15, `fltslot` 0.11, la couche de raccourcis 0.6 et Transpose 0.3 ; avec Transpose 0.2 : `cd89791b…` ; treize cartes, release 0.50, la couche 0.5 : `a503f081…` ; note 63 §25–§31 ; release 0.44 : `4f6a8756…`, SAMPLE 0.14 ; release 0.41 : `275ea11f…` ; EQ 0.6, le bloc et les coefficients
 dans `eq_cf.S`, un septième d'instructions de moins au pire, note 76 §17 ; avec EQ 0.5, release 0.40 : `cf01be47…`,
 `937099de…`, `9e7c87d2…` ; avec Reso 0.3, release 0.39 : `021d39d1…`) (`fltslot` 0.10 ; Crush 0.5 ; Samples 0.4 ; Ring 0.3 ; avec Ring 0.2 : `289e6c14…` (onze cartes, release 0.35 : `2fbe6c3f…`) ;
 avec Samples 0.3, release 0.34 : `567c2b42…`, `0d64b14e…` ; avec Crush 0.4, release 0.32 : `d53b1fe6…`, `09661941…` ; avec `fltslot` 0.9 : `31e4456f…`, `be915b71…`,
@@ -552,8 +552,8 @@ python3 tools/emu/test_resample.py --cycles model-cycles_OS1.13.syx [--keys] [--
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --resample                         # seul
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler --resample      # avec SAMPLE
 ```
-MAIN OS patché, `resample` seul : `d88f8603927fd2bbf8eade07af3cd58994e6bafa17a3f4145751e7ba6a8a9a9f` ; avec SAMPLE 0.17 et ses images :
-`5b78474801ce8fc7dae526ebea132f96ad8f609d8ba2899812537bb57a28b46c` (sans images : `878d0560…` ; la couche de raccourcis 0.6 ; SAMPLE 0.15 : `92a109a8…` ; avec la couche 0.5 : `d1852177…` ; SAMPLE 0.14 : `87476afd…` ; SAMPLE 0.13 : `e6e162fe…`) ; avec SAMPLE 0.13 et Trig Preview (le fichier essayé sur
+MAIN OS patché, `resample` seul : `d88f8603927fd2bbf8eade07af3cd58994e6bafa17a3f4145751e7ba6a8a9a9f` ; avec SAMPLE 0.18 et ses images :
+`aa23bfaeafcedfde939467a96405146e99e0b0ab5250428161f7987dff0322bc` (SAMPLE 0.17 : `5b784748…` ; sans images : `878d0560…` ; la couche de raccourcis 0.6 ; SAMPLE 0.15 : `92a109a8…` ; avec la couche 0.5 : `d1852177…` ; SAMPLE 0.14 : `87476afd…` ; SAMPLE 0.13 : `e6e162fe…`) ; avec SAMPLE 0.13 et Trig Preview (le fichier essayé sur
 un Model:Cycles depuis la ligne de commande le 04/11/2026, note 79 §12) :
 `15a32ac02984461ede21bca62bf83e93aa2599bf3f4734c6f18ff2828ef6c76a`, le même que la page construit avec ces trois cartes,
 téléchargé depuis la page et testé sur un Model:Cycles le 04/11/2026 (note 79 §13) ; avec toutes les cartes de la page (treize, release
@@ -577,8 +577,8 @@ python3 tools/compose.py --cycles model-cycles_OS1.13.syx --transpose           
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler --transpose      # avec SAMPLE
 python3 tools/compose.py --cycles model-cycles_OS1.13.syx --transpose --transpose-n 3         # essai : 333 Hz
 ```
-MAIN OS patché, `transpose` seul : `637d945544ae0fcc3b0242382bc02752d310ed4b0836d00cfa25c7ab04dbb4ff` ; avec SAMPLE 0.17 et ses images :
-`5a6356884fa3ba27497315e4133df6add998c1f5d40d7f9e78e8391fdae41b6e` (sans images : `5a4d375f…` ; SAMPLE 0.15 : `96cb4ba0…`) ; avec toutes les cartes de la page (quatorze,
+MAIN OS patché, `transpose` seul : `637d945544ae0fcc3b0242382bc02752d310ed4b0836d00cfa25c7ab04dbb4ff` ; avec SAMPLE 0.18 et ses images :
+`3cd6f3e32892f423ca3c37f9c3d27ed9e4a78a6eaee1246a005bf5be4ef7dea4` (SAMPLE 0.17 : `5a635688…` ; sans images : `5a4d375f…` ; SAMPLE 0.15 : `96cb4ba0…`) ; avec toutes les cartes de la page (quatorze,
 release 0.51) : `398b05d1e35e04d071ccda408a7f17bf1967e14888a185858d48fe7bf8471ee9`. La période d'atténuation de 3 ms
 (essai, jamais proposé) seule : `614643c26793f343227adc404819a2e147ff8cd849f6744c5bd161f4d870cf3d`. Transpose 0.3, le
 rechargement du pattern remet les sauts à 0 (note 80 §5.5) ; avec la 0.2 : `ad9e4492…`, `ab74cbf2…`, `cd89791b…`,
@@ -609,7 +609,8 @@ the page (seventeen, release 0.63: `--machines sampler,solid,chordtables,digidel
 `d91ef5bf0372dff894a1fa6250cdd18a46e49e05a46e64b12f47ba9776d2ca37`. Tested on a Model:Cycles from the command line on
 2026-11-14 (note 81 §9 to §10.1: alone, every step of saving; with every card, the switch and the mark), then flashed
 from the page the same day (note 81 §12). Release 0.64, with SOLID's and SAMPLE's own pictures (note 71 §13):
-`c5d6879a3b55b9ebd787770ddccd43733ef04d330e851130429a6f82ac747b00`.
+`c5d6879a3b55b9ebd787770ddccd43733ef04d330e851130429a6f82ac747b00`; release 0.66, with SAMPLE 0.18 (note 60 §24):
+`c3dc12d0ddc49b76080b9db021af2403e27d3ebe9a58d0bab234cb93a501bd18`.
 
 ### Trig Cond dans un autre ordre
 

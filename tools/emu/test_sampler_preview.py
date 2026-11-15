@@ -42,6 +42,9 @@ note) is written as the OS writes it; test_sample_preview.py §4 runs that event
      from their entry, the pad's note carries the mark; with the pad held a trig of the track's own sound plays the
      marked sample, a lock's sound its own; the pad let go, the note goes on in the track's own without a trig, and
      the next trig plays the track's own; the browser closed with the pad held does the same.
+     GATE on (One-Shot 0.18): the event loop gives the voice the note's trig and its end in one block, the real amp
+     envelope (0x400a9252, through the voice loop) holds while the TRIG key or the pad is down and decays once it is
+     let go (the real 0x40019c84 and 0x4001d0fc, SAMPLE's hooks first), the loop itself giving no end then.
      Through the audio side's own event loop (0x40058d46..0x400591e4, as test_sample_preview.py §4 runs it), the
      notes posted for real: with nothing marked the pad's note holds its track (rank 2, 0x40fe4c9c) and a sequencer's
      note (rank 1) is dropped, as on the stock OS; with a sample marked SAMPLE sends the pad's note-off at once
@@ -109,6 +112,7 @@ PAD_ON, PAD_OFF = 0x4001d05e, 0x4001d0fc   # a pad plays its note (view, track, 
 NOTE_OFF = 0x4008145e
 EV_LOOP, EV_END = 0x40058d46, 0x400591e4   # one pass of the audio interrupt's event loop (test_sample_preview.py §4)
 FRAME = 0x9000f000                          # its frame (test_arp)
+VOICE0, VSTRIDE = 0x42308828, 0x31c         # the voices (mcengine); +0x23c the amp envelope's state (0x400a9252)
 RANK, HOLDS = 0x40fe4c9c, 0x40fe4cb4        # by track: the rank and the note of the note holding it (0x40058e3e)
 QSEND = 0x40092116                          # the post's send into the audio side's queue (0x400589b4)
 REC_ASK = (0x4000eb90, 0x40012e82)          # what the pads' note functions ask before a live recording's call
@@ -444,7 +448,7 @@ class Rig:
 
 def site_tests(key, stock, img, syms):
     for va, old, sym in ((PAD_ON, "4feffff07205", "smp_hook_pad_on"), (PAD_OFF, "4feffff47005", "smp_hook_pad_off"),
-                         (KEY_ON, "4feffff07005", "smp_hook_key_on")):
+                         (KEY_ON, "4feffff07005", "smp_hook_key_on"), (KEY_OFF, "4feffff07005", "smp_hook_key_off")):
         check(stock[va - BASE:va - BASE + 6].hex() == old
               and img[va - BASE:va - BASE + 6] == struct.pack(">HI", 0x4eb9, syms[sym]),
               f"{key}: {va:#x} {old} (lea, moveq) on the stock OS -> jsr {sym} ({syms[sym]:#x})")
@@ -823,6 +827,33 @@ def engine_tests(key, img, runtime, tweak, smp, syms):
     check(r.n(NOTE_OFF) == 2 and m_off is not None and not m_off >> t & 1 and before == after and r.clean(),
           f"{key}: the key let go (the real 0x40019c84): its note-off dropped by the loop (rank and note "
           f"{hx(after[0])}, {hx(after[1])} kept)")
+    # GATE on (One-Shot 0.18): the note that got its note-off at once holds for as long as its key or pad is down. The
+    # loop hands the voice the note's trig and its end in one block, where the stock amp envelope drops the end
+    # (0x400a92ee), and the release's own note-off matches no held note; so the release (the real 0x40019c84 and
+    # 0x4001d0fc, SAMPLE's hooks first) asks the bridge for the end, which the voice takes in its next block.
+    env = VOICE0 + VSTRIDE * t
+    for name, on_fn, off_fn in (("a TRIG key", KEY_ON, KEY_OFF), ("the pad", PAD_ON, PAD_OFF)):
+        r, _ = engine_rig(img, smp, runtime, tweak, syms)
+        r.e.set(t, gate=1, decay=20)
+        r.call(on_fn, PADVIEW, t, 60, 100, 0xffffffff, sr=0x2000)
+        m_on = r.run() or 0
+        ends_on = r.r32(FRAME - 108)
+        r.e.block(m_on, ends_on)                         # the note's own block: its trig and its note-off at once
+        for _ in range(60):
+            r.e.block()
+        held = r.r32(env + 0x23c)
+        r.call(off_fn, PADVIEW, t, 60, sr=0x2000)
+        m_off = r.run() or 0
+        ends_off = r.r32(FRAME - 108)
+        r.e.block(m_off, ends_off)
+        r.e.block()
+        let = r.r32(env + 0x23c)
+        check(m_on >> t & 1 and ends_on >> t & 1 and held == 2 and not m_off >> t & 1 and not ends_off >> t & 1
+              and let == 1 and r.clean(),
+              f"{key}: GATE on, {name} with a sample marked: the loop gives the note's trig and its end in one block "
+              f"(masks {hx(m_on)}, {hx(ends_on)}), the amp envelope holds while it is down (state {held}); let go, the "
+              f"loop gives no end (mask {hx(ends_off)}), SAMPLE's does: the envelope decays (state {let})"
+              + ("" if r.clean() else f"; {r.errors[:2]}"))
     # a live recording: the press still starts the recorded note and only the release ends it
     r, _ = engine_rig(img, smp, runtime, tweak, syms, recording=True)
     r.call(PAD_ON, PADVIEW, t, 60, 100, 0xffffffff, sr=0x2000, regs=True)

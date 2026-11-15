@@ -6,9 +6,9 @@ Adresses : VA de l'OS 1.13 (la section 3 commence en `0x40000400`). Un mod qui v
 
 ## En bref
 
-- 301 tweaks, 32 455 écritures.
+- 301 tweaks, 32 456 écritures.
 - Masques de sprites libérables : 164 (35 960 o), dont 52 pris (18 000 o) et **112 libres (17 960 o)**.
-- Crochets sur l'OS : 149 adresses détournées, dont 83 à l'identique par des mods de familles différentes.
+- Crochets sur l'OS : 150 adresses détournées, dont 83 à l'identique par des mods de familles différentes.
 - Pointeurs réécrits : 67 adresses. Écritures dans des octets 0xFF hors masques : 14 zones.
 - Charges utiles ajoutées après l'OS : 279 tweaks ; place restante au §3.
 - Declared claims (notes/65): 21 holders; the saved data in §6, the key combinations in §8, the descriptors, formatters, pictures, p-lock rows and MIDI in §9, the views in §10.
@@ -395,7 +395,7 @@ Code trop gros pour un masque, ajouté à la fin de l'image (`at`) et copié au 
 | macro | 25 | `0x401aa140` | 105 152 | `0x401c3c00` | `0x43000000` | 324 576 |  |
 | macro-acid | 25 | `0x401aa140` | 111 760 | `0x401c55d0` | `0x43000000` | 492 288 |  |
 | acid | 26 | `0x401aa140` | 11 380 | `0x401acdb4` | `0x43000000` | 221 928 |  |
-| sampler | 27 | `0x401aa140` | 50 484 | `0x401b6674` | `0x43000000` | 283 924 |  |
+| sampler | 27 | `0x401aa140` | 50 728 | `0x401b6768` | `0x43000000` | 283 936 |  |
 | refmachine | 28 | `0x401aa140` | 6 992 | `0x401abc90` | `0x43000000` | 221 376 |  |
 | refmachine2 | 29 | `0x401aa140` | 11 620 | `0x401acea4` | `0x43000000` | 221 428 |  |
 | model-tg | 30 | `0x401aa140` | 87 936 | `0x401bf8c0` | `0x401aa140` | 87 936 |  |
@@ -580,12 +580,13 @@ Instructions de l'OS remplacées par un détour (`jsr`, `jmp`, `bsr.l`, `bra.l`)
 | `0x40011a7e` | `4e56ffb4122e0013` | jmp | charge utile (mémoire) +0x9e8 | perform | notes/81 |
 | `0x4001413e` | `205242a72f0a` | jmp | charge utile (image) +0x10eb6 | model-tg, model-tg-st | notes/31, notes/36 |
 | `0x400169f0` | `4feffff448d7040c` | jmp | charge utile (image) +0x4fb6 | model-tg, model-tg-st | notes/31, notes/36 |
-| `0x40019e7a` | `4feffff07005` | jsr | charge utile (mémoire) +0x4ce6 | sampler | notes/60 |
+| `0x40019c84` | `4feffff07005` | jsr | charge utile (mémoire) +0x4e44 | sampler | notes/60 |
+| `0x40019e7a` | `4feffff07005` | jsr | charge utile (mémoire) +0x4dae | sampler | notes/60 |
 | `0x4001a164` | `4eb940016da6` | jsr | charge utile (mémoire) +0x9bc | transpose | notes/80 |
 | `0x4001a1c4` | `4eb940016086` | jsr | masque `0x4018a788` +0x16 | arp | notes/32 |
 | `0x4001aa4e` | `4fefffe048d70cfc` | jmp | masque `0x4018f4b4` +0xc | level-pan-values | notes/44 |
-| `0x4001ab14` | `2f032f02d880` | jsr | charge utile (mémoire) +0x4d6a | sampler | notes/60 |
-| `0x4001ab52` | `2f022800d887` | jsr | charge utile (mémoire) +0x4d76 | sampler | notes/60 |
+| `0x4001ab14` | `2f032f02d880` | jsr | charge utile (mémoire) +0x4e5e | sampler | notes/60 |
+| `0x4001ab52` | `2f022800d887` | jsr | charge utile (mémoire) +0x4e6a | sampler | notes/60 |
 | `0x4001ac4a` | `4feffff47201` | jmp | charge utile (mémoire), 2 cibles selon la combinaison | refmachine2, sampler | notes/60, notes/63 |
 | `0x4001ac7a` | `2f022f034e92` | jmp | masque `0x4018bb48` +0x0 `cac_loop4` | control-all-config | notes/58 |
 | `0x4001b22a` | `4e56ffc048d73cfc` | jmp | masque `0x4018f4b4` +0x78 | level-pan-values | notes/44 |
@@ -597,8 +598,8 @@ Instructions de l'OS remplacées par un détour (`jsr`, `jmp`, `bsr.l`, `bra.l`)
 | `0x4001ca1e` | `2f034e93588f` | jsr | charge utile (mémoire), 9 cibles selon la combinaison | crush, eq, refchord, refmachine2, reso, ring, sampler, smpfilter, transpose | notes/60, notes/63, notes/66, notes/72, notes/73, notes/74, notes/75, notes/76, notes/80 |
 | `0x4001cb3e` | `4eb94002d138` | jsr | masque `0x40179730` +0x0 `ck_ui_menu_ctor` | chord-keys | notes/42 |
 | `0x4001cc86` | `2a004a8257c0` | jsr | charge utile (mémoire), 2 cibles selon la combinaison | refmachine2, sampler | notes/60, notes/63 |
-| `0x4001d05e` | `4feffff07205` | jsr | charge utile (mémoire) +0x4c76 | sampler | notes/60 |
-| `0x4001d0fc` | `4feffff47005` | jsr | charge utile (mémoire) +0x4d4a | sampler | notes/60 |
+| `0x4001d05e` | `4feffff07205` | jsr | charge utile (mémoire) +0x4d3a | sampler | notes/60 |
+| `0x4001d0fc` | `4feffff47005` | jsr | charge utile (mémoire) +0x4e16 | sampler | notes/60 |
 | `0x4001d25e` | `4eb940016086` | jsr | masque `0x4018a788` +0x1a | arp | notes/32 |
 | `0x4001d5a2` | `20522f032f02` | jmp | masque `0x4018b9c8` +0x5c `cac_loop2` | control-all-config | notes/58 |
 | `0x4001d6f8` | `20522668007c` | jmp | masque `0x4018b9c8` +0x38 `cac_loop1` | control-all-config | notes/58 |
@@ -712,7 +713,7 @@ Instructions de l'OS remplacées par un détour (`jsr`, `jmp`, `bsr.l`, `bra.l`)
 | `0x400a5612` | `20522f0a20680040` | jsr | masque `0x401904b4` +0x10 `ml_bound` | multiline-browser | notes/40 |
 | `0x400a576e` | `4eb940071da4` | jsr | masque `0x401904b4` +0x102 `ml_icon` | multiline-browser | notes/40 |
 | `0x400a6426` | `4eb9400a3052` | jsr | masque `0x40185c58` +0x0 `pv_parse` | sample-preview, sample-preview-st | notes/46 |
-| `0x400a6426` | `4eb9400a3052` | jsr | charge utile (mémoire) +0x4c4e | sampler | notes/60 |
+| `0x400a6426` | `4eb9400a3052` | jsr | charge utile (mémoire) +0x4d12 | sampler | notes/60 |
 | `0x400a6602` | `4eb9400a3052` | jsr | charge utile (mémoire), 2 cibles selon la combinaison | refmachine2, sampler | notes/60, notes/63 |
 | `0x400a6816` | `206800504e90` | jsr | charge utile (image) +0x116ac | model-tg, model-tg-st | notes/31, notes/36 |
 | `0x400a7da8` | `2d41003c4a936730` | jmp | charge utile (image) +0x1f2a | model-tg, model-tg-st | notes/31, notes/36 |
@@ -879,7 +880,7 @@ Nombre d'écritures de chaque sorte (une plage pour une famille de moteurs).
 | macro | 122 | 56 | 14 | 48 | 2 | 2 | 0 | 105 152 o | notes/36 |
 | macro-acid | 122 | 55 | 15 | 48 | 2 | 2 | 0 | 111 760 o | notes/36 |
 | acid | 122 | 56 | 14 | 48 | 2 | 2 | 0 | 11 380 o | notes/36 |
-| sampler | 140 | 52 | 32 | 54 | 1 | 1 | 0 | 50 484 o | notes/60 |
+| sampler | 141 | 52 | 33 | 54 | 1 | 1 | 0 | 50 728 o | notes/60 |
 | refmachine | 116 | 52 | 14 | 48 | 1 | 1 | 0 | 6 992 o | notes/65 |
 | refmachine2 | 134 | 52 | 26 | 54 | 1 | 1 | 0 | 11 620 o | notes/63 |
 | model-tg | 142 | 94 | 32 | 0 | 1 | 1 | 14 | 87 936 o | notes/36 |

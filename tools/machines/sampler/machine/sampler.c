@@ -179,20 +179,49 @@ static uint32_t held_mark(int t)
     return smp_pad_held[t] ? marked_for(t) : 0;
 }
 
+/* The note that got its note-off at once (since 0.18). That note-off reaches the audio side in the block of the
+   note itself, where the amp envelope drops it (0x400a92ee: an end counts only in a block without a trig), and the
+   one at the release no longer matches (0x40058f4c), so with GATE on the note would hold for good. So the UI side
+   notes the note here (freed, note + 1, the last one as the OS's own 0x40fe4cb4) and, when the pad or the key of
+   that note is let go (smp_note_off), asks the audio side for the end (ended); sampler_update gives it to the
+   voice as the OS's own end of a note (v+0x3c) in the first block without a trig, if the note that plays is still
+   one played live in the browser (CUR_SND 0), not a trig that took the track since. */
+static volatile uint8_t freed[6];
+static volatile uint8_t ended[6];
+
+static int frees(int t, int note, uint32_t mark)
+{
+    if (t < 0 || t >= 6 || !mark)
+        return 0;
+    ended[t] = 0;                               /* an end still waiting was the note before's */
+    freed[t] = (uint8_t)(note + 1);
+    return 1;
+}
+
 /* The pad of track t was just pressed (hooks.S, smp_pad_on, after the OS's note): whether its note gets its
    note-off at once, so that the sequencer's trigs reach the track while the pad is held. Only while the PRESET
    browser marks a sample for this track, the active one; any other pad note stays held, as on the stock OS. */
-int smp_pad_frees(int t)
+int smp_pad_frees(int t, int note)
 {
-    return t >= 0 && t < 6 && held_mark(t) != 0;
+    return t >= 0 && t < 6 && frees(t, note, held_mark(t));
 }
 
 /* A TRIG key of track t was just pressed in CHROMATIC mode (hooks.S, smp_hook_key_on, after the OS's note): the
    same note-off at once, so that the track's trigs play on, in the track's own sample, and cut the key's note, as
    the maintainer asked (2026-11-12). The key is not noted as held: its trigs never take the marked sample. */
-int smp_key_frees(int t)
+int smp_key_frees(int t, int note)
 {
-    return t >= 0 && t < 6 && marked_for(t) != 0;
+    return frees(t, note, t >= 0 && t < 6 ? marked_for(t) : 0);
+}
+
+/* The pad or the TRIG key of track t that played note was let go (hooks.S, smp_hook_pad_off, smp_hook_key_off,
+   before the OS's own note-off): if that note got its note-off at once, its end now. */
+void smp_note_off(int t, int note)
+{
+    if (t < 0 || t >= 6 || freed[t] != (uint8_t)(note + 1))
+        return;
+    freed[t] = 0;
+    ended[t] = 1;
 }
 
 /* A trig: play the sample the note's sound names, from COLOR's start for SHAPE's length; the
@@ -367,6 +396,11 @@ void sampler_update(int32_t pmod, char *v, const char *p)
             V32(0x48) = 0;
         }
         start(t, v, p, (sw & SW_LOOP ? SMP_LOOP : 0) | (sw & SW_REVERSE ? SMP_REVERSE : 0));
+    }
+    if (ended[t] && !V32(0x34)) {               /* the pad or the key let go: the note's end, as the OS gives it */
+        ended[t] = 0;
+        if (!CUR_SND(t))
+            V32(0x3c) = 1;
     }
     smp_set_loop(sv, (sw & SW_LOOP) != 0);
     /* note = PITCH - 64 + the trig's note + FINE (+-2 semitones), as on every machine */

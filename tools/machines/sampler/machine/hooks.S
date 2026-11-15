@@ -58,9 +58,9 @@ smp_hook_preview:
    holds its track until its note-off (same rank and note, 0x40058f4c). So when smp_pad_frees(track) says the PRESET
    browser marks a sample for the pad's track, the pad's note gets its note-off at once, as the Model:Samples' browser
    does (0x400a4088 right after 0x400a3fac): 0x4008145e(track, note, 0x40), what 0x4001d0fc sends, without its end of
-   a live recording (0x400827a8, still at the release). The track takes its trigs again and the note plays on (with
-   GATE on it no longer holds); the note-off at the release is then dropped by the audio side (its rank or note no
-   longer matches). For that the hook runs the rest of 0x4001d05e as a subroutine, on a copy of its five arguments
+   a live recording (0x400827a8, still at the release). The track takes its trigs again and the note plays on; the
+   note-off at the release is then dropped by the audio side (its rank or note no longer matches), so the release
+   ends the note through the bridge (smp_hook_pad_off below). For that the hook runs the rest of 0x4001d05e as a subroutine, on a copy of its five arguments
    (its tail call into the recording, 0x4008273c, writes over them). */
 	.globl	smp_hook_pad_on
 smp_hook_pad_on:
@@ -83,9 +83,10 @@ smp_hook_pad_on:
 	moveq	#5, %d1
 	jmp	(%a1)
 1:	lea	20(%sp), %sp		/* the copies */
-	move.l	8(%sp), -(%sp)		/* track */
+	move.l	12(%sp), -(%sp)		/* note */
+	move.l	12(%sp), -(%sp)		/* track */
 	jsr	smp_pad_frees
-	addq.l	#4, %sp
+	addq.l	#8, %sp
 	tst.l	%d0
 	beq.s	2f
 	moveq	#0x40, %d0
@@ -124,9 +125,10 @@ smp_hook_key_on:
 	moveq	#5, %d0
 	jmp	(%a1)
 1:	lea	20(%sp), %sp		/* the copies */
-	move.l	8(%sp), -(%sp)		/* track */
+	move.l	12(%sp), -(%sp)		/* note */
+	move.l	12(%sp), -(%sp)		/* track */
 	jsr	smp_key_frees
-	addq.l	#4, %sp
+	addq.l	#8, %sp
 	tst.l	%d0
 	beq.s	2f
 	moveq	#0x40, %d0
@@ -141,17 +143,39 @@ smp_hook_key_on:
 	moveq	#5, %d0
 	jmp	(%a1)
 
+/* The release (since 0.18). The note-off at once reaches the audio side in the block of the note itself, where the
+   amp envelope drops it (0x400a92ee: a note's end counts only in a block without a trig), and the OS's own at the
+   release no longer matches the track's rank and note (0x40058f4c): with GATE on the note held for good. So both
+   releases tell the bridge first, smp_note_off(track, note) (sampler.c), which ends a note that got its note-off at
+   once: the pads' 0x4001d0fc(view, track, note) and the TRIG keys' 0x40019c84(view, track, note), called only by the
+   keyboard's release (0x40019d3e, through a5 from 0x40019d10); its first 6 bytes (lea -16(sp),sp ; moveq #5,d0)
+   become jsr smp_hook_key_off. d0, d1, a0 and a1 are free at both entries. */
 	.globl	smp_hook_pad_off
 smp_hook_pad_off:
-	move.l	12(%sp), %d1		/* the track */
+	move.l	12(%sp), %d1		/* the track: (sp) our return, 4 the caller's, 8 the view, 16 the note */
 	moveq	#5, %d0
 	cmp.l	%d0, %d1
 	bhi.s	1f
 	lea	smp_pad_held, %a1
 	moveq	#0, %d0
 	move.b	%d0, (%a1,%d1.l)
+	move.l	16(%sp), -(%sp)		/* note */
+	move.l	%d1, -(%sp)		/* track */
+	jsr	smp_note_off
+	addq.l	#8, %sp
 1:	movea.l	(%sp)+, %a1		/* back into 0x4001d102 */
 	lea	-12(%sp), %sp
+	moveq	#5, %d0
+	jmp	(%a1)
+
+	.globl	smp_hook_key_off
+smp_hook_key_off:
+	move.l	16(%sp), -(%sp)		/* note */
+	move.l	16(%sp), -(%sp)		/* track (smp_note_off checks it) */
+	jsr	smp_note_off
+	addq.l	#8, %sp
+	movea.l	(%sp)+, %a1		/* back into 0x40019c8a */
+	lea	-16(%sp), %sp
 	moveq	#5, %d0
 	jmp	(%a1)
 
