@@ -29,9 +29,12 @@ RESAMPLE's and Transpose's cards (« part », notes/78 to 80), composed with the
 « sampler+cpu+resample+transpose »); the page composes the
 ticked ones into one tweak, placed where the first of them is, its id their packages' ids joined by « + ». Here each
 non-empty set of them, in card order, is composed by tools/compose.py: REF_MODS gets one entry per set, so whatever
-the page composes is checked against the Python composer, and the sample's combinations are built with them.
+the page composes is checked against the Python composer, and the sample's combinations are built with them. The
+sets (2^n - 1 of them) are composed in parallel (--jobs, all the cores by default), against the tweak folder and its
+claims read once: compose.compose() reads them on every call otherwise, most of its time. Each set gives only its
+REF_MODS line; the sample composes again the few sets it builds.
 
-    python3 tools/ref_mainos.py --cycles model-cycles_OS1.13.syx --syntakt Syntakt_OS1.42.syx [--check]
+    python3 tools/ref_mainos.py --cycles model-cycles_OS1.13.syx --syntakt Syntakt_OS1.42.syx [--check] [--jobs N]
 """
 import argparse
 import contextlib
@@ -40,6 +43,8 @@ import hashlib
 import io
 import itertools
 import json
+import multiprocessing
+import os
 import pathlib
 import re
 import sys
@@ -49,6 +54,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE / "emu"))
 
 import build                       # noqa: E402
+import claims                      # noqa: E402
 import compose                     # noqa: E402
 import gen_flasher_tweaks          # noqa: E402
 
@@ -80,12 +86,84 @@ def writes_bytes(t):
     return bytes(out)
 
 
+# --- the machine cards' sets (notes/61): composed once each, in parallel -------------------------------------------
+PARTS = ("cpu", "resample", "transpose", "perform")        # compose.compose()'s parts, in the order of its ids
+CTX = {}            # stock, st_img, against, claims: set by blocks() before the workers fork (they inherit it)
+
+
+def set_ids(features):
+    """The id of each non-empty set of the machine cards (packages, in card order) with and without each part the page
+    offers (notes/78 to 81), parts last: the id compose.compose() gives the tweak, in the order of REF_MODS."""
+    machines = [f["package"] for f in features if f.get("package")]
+    parts = [p for p in PARTS if any(f.get("part") == p for f in features)]
+    out = []
+    for r in range(len(machines) + 1):
+        for ids in itertools.combinations(machines, r):
+            for on in itertools.product((False, True), repeat=len(parts)):
+                tid = "+".join(list(ids) + [p for p, o in zip(parts, on) if o])
+                if tid:
+                    out.append(tid)
+    return out
+
+
+def compose_set(tid):
+    """The tweak tools/compose.py composes for a set id, against the folder's tweaks and claims read once (CTX)."""
+    names = tid.split("+")
+    with contextlib.redirect_stdout(io.StringIO()):
+        t = compose.compose(CTX["stock"], [n for n in names if n not in PARTS], against=CTX["against"],
+                            against_claims=CTX["claims"], **{p: p in names for p in PARTS})[0]
+    if t["id"] != tid:
+        raise SystemExit(f"!! tools/compose.py names the set {tid} {t['id']}")
+    return t
+
+
+def mods_line(t):
+    """A tweak's REF_MODS line: the hash of its writes (w) and, if it appends code, of its payload in the image (p)."""
+    ref = {"w": hashlib.sha256(writes_bytes(t)).hexdigest()}
+    if t.get("append"):
+        image = build.payload_image(t, build.payload_runtime(t, CTX["stock"], CTX["st_img"]))
+        ref["p"] = hashlib.sha256(image).hexdigest()
+    return f'  "{t["id"]}": {json.dumps(ref, separators=(", ", ": "))},'
+
+
+def set_line(tid):
+    """(REF_MODS line, None) of a set, or (None, why) when tools/compose.py refuses it (a worker cannot exit)."""
+    try:
+        return mods_line(compose_set(tid)), None
+    except SystemExit as e:
+        return None, f"{tid}: {e}"
+
+
+def map_sets(fn, tids, jobs):
+    """fn on each set id, in order: in jobs processes (fork: they inherit CTX), or here with one job or no fork."""
+    if jobs > 1 and len(tids) > 1 and "fork" in multiprocessing.get_all_start_methods():
+        with multiprocessing.get_context("fork").Pool(jobs) as pool:
+            return pool.map(fn, tids)
+    return [fn(t) for t in tids]
+
+
+class Composed(dict):
+    """{id: tweak}: the tweaks of tweaks.js, and each set of machine cards composed when first read (the sample builds
+    a few hundred of the 2^n sets; keeping all of them would take gigabytes)."""
+
+    def __init__(self, tweaks, sets):
+        super().__init__((t["id"], t) for t in tweaks)
+        self.sets = set(sets)
+
+    def __missing__(self, tid):
+        if tid not in self.sets:
+            raise KeyError(tid)
+        self[tid] = t = compose_set(tid)
+        return t
+
+
 # --- les cartes de la page (docs/flasher/app.js : excludes(), includedBy(), chosenTweaks()) ---------------------
 class Cards:
     def __init__(self, features, tweaks):
+        """tweaks: {id: tweak}, the composed sets among them (Composed)."""
         self.features = features
         self.by_id = {f["id"]: f for f in features}
-        self.tweaks = {t["id"]: t for t in tweaks}
+        self.tweaks = tweaks
 
     def options(self, f):
         """Choix d'une carte : ses variantes (ids de tweaks), ses combinaisons de moteurs, ou son paquet (a machine
@@ -208,10 +286,9 @@ GROUPS = {
 }
 
 
-def blocks(cycles, syntakt):
-    """(texte de REF_MAINOS, texte de REF_MODS, nombre de combinaisons)."""
+def blocks(cycles, syntakt, jobs=1):
+    """(texte de REF_MAINOS, texte de REF_MODS, nombre de combinaisons) ; jobs : processes composing the sets."""
     tw = mc_tweaks()
-    by_id = {t["id"]: t for t in tw["tweaks"]}
     stock = main_os(cycles)
     if build.sha(stock) != tw["device"]["section_sha256"]:      # jamais depuis un build déjà modifié (règle 2)
         raise SystemExit("!! --cycles : ce n'est pas le MAIN OS officiel 1.13 : il faut model-cycles_OS1.13.syx "
@@ -224,34 +301,18 @@ def blocks(cycles, syntakt):
     known = tw["device"].get("cave_refs_ok")
 
     # the machine cards: each non-empty set of them, in card order, composed as the page composes them (notes/61), and
-    # each with the CPU page, with RESAMPLE and with Transpose when the page offers them (notes/78 to 80), and those
-    # alone
-    machines = [f["package"] for f in tw["features"] if f.get("package")]
-    cpus = (False, True) if any(f.get("part") == "cpu" for f in tw["features"]) else (False,)
-    rsms = (False, True) if any(f.get("part") == "resample" for f in tw["features"]) else (False,)
-    trss = (False, True) if any(f.get("part") == "transpose" for f in tw["features"]) else (False,)
-    pfss = (False, True) if any(f.get("part") == "perform" for f in tw["features"]) else (False,)   # Perform Kit (notes/81)
-    composed = []
-    for r in range(0, len(machines) + 1):
-        for ids in itertools.combinations(machines, r):
-            for cpu in cpus:
-                for rsm in rsms:
-                    for trs in trss:
-                        for pfs in pfss:
-                            if ids or cpu or rsm or trs or pfs:
-                                with contextlib.redirect_stdout(io.StringIO()):
-                                    composed.append(compose.compose(stock, list(ids), cpu=cpu, resample=rsm,
-                                                                    transpose=trs, perform=pfs)[0])
-    by_id.update({t["id"]: t for t in composed})
+    # each with the CPU page, RESAMPLE, Transpose and Perform Kit when the page offers them (notes/78 to 81), and those
+    # alone; in jobs processes, against the folder's tweaks and claims read once
+    CTX.update(stock=stock, st_img=st_img, against=compose.folder_tweaks(), claims=claims.tweak_claims())
+    sets = set_ids(tw["features"])
+    done = map_sets(set_line, sets, jobs)
+    refused = next((why for _line, why in done if why), None)
+    if refused:
+        raise SystemExit(f"!! tools/compose.py refuses a set of machine cards the page offers: {refused}")
+    mods = [mods_line(t) for t in tw["tweaks"]] + [line for line, _why in done]
 
-    mods = []
-    for t in tw["tweaks"] + composed:
-        ref = {"w": hashlib.sha256(writes_bytes(t)).hexdigest()}
-        if t.get("append"):
-            ref["p"] = hashlib.sha256(build.payload_image(t, build.payload_runtime(t, stock, st_img))).hexdigest()
-        mods.append(f'  "{t["id"]}": {json.dumps(ref, separators=(", ", ": "))},')
-
-    cards = Cards(tw["features"], tw["tweaks"] + composed)
+    by_id = Composed(tw["tweaks"], sets)       # the sets the sample builds, composed again when it reads them
+    cards = Cards(tw["features"], by_id)
     lines, seen, payloads = [], set(), {}
     last_group = None
     for group, sel in cards.sample():
@@ -283,8 +344,10 @@ def main():
     ap.add_argument("--cycles", required=True, help="model-cycles_OS1.13.syx officiel")
     ap.add_argument("--syntakt", required=True, help="Syntakt_OS1.42.syx (ou 1.41) officiel")
     ap.add_argument("--check", action="store_true", help="vérifie que app.js est à jour")
+    ap.add_argument("--jobs", type=int, default=os.cpu_count() or 1,
+                    help="processes composing the sets of machine cards (default: all the cores; 1: none)")
     args = ap.parse_args()
-    ref, mods, n = blocks(args.cycles, args.syntakt)
+    ref, mods, n = blocks(args.cycles, args.syntakt, max(1, args.jobs))
     app = APP_JS.read_text(encoding="utf-8")
     want = {"REF_MAINOS": "\n" + ref, "REF_MODS": "\n" + mods}
     found = {k: BLOCKS[k].search(app) for k in want}

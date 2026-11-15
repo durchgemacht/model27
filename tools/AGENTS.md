@@ -117,6 +117,10 @@ and check the writes of **every** other tweak for overlaps.
 - `ref_mainos.py --cycles … --syntakt … [--check]`: rewrites `REF_MODS` (each tweak's writes and payload hashes) and
   `REF_MAINOS` (the MAIN OS of a sample: each card alone, every pair, the largest combinations) in
   `docs/flasher/app.js`. Rerun after any change to a tweak or to `FEATURES`; it reads the card rules like `app.js`.
+  It composes every set of machine cards (2^n − 1, one `REF_MODS` entry each) in `--jobs` processes (all the cores
+  by default, fork) against the tweak folder and its claims read once: about 2 minutes for the 16 383 sets of 14
+  cards on 10 cores. Keep passing `against` and `against_claims` to `compose.compose()`: without them it rereads the
+  folder on every call, which was most of a run's time.
 - `webflash_smoke.js`: asserts the list and order of tweaks and cards and their tags; update it with the new card.
 - Adding a Syntakt engine: `CATALOG` in `gen_syntakt_engines.py`, then `--all` and `--all --tg`,
   `gen_flasher_tweaks.py`, `check_overlaps.py`, `ref_mainos.py`, and a proof per new tweak (see BUILD.md).
