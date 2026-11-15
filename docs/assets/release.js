@@ -10,7 +10,7 @@ window.MC_RELEASES = [
   { version: "0.66", date: "2026-11-15", changes: [
     { en: "SAMPLE (Cycles One-Shot 0.18): a sample you play from the PRESET menu ends when you let go. With GATE on, a note played on the pad or a TRIG key while the cursor rests on a sample now sounds for as long as you hold the pad or the key, then fades with DECAY. Before, it played the whole sample, however short the press" },
     { en: "The sequencer is unchanged: the track's trigs keep playing while you hold the pad or a key, and letting go cuts none of them" },
-    { en: "Checked on the host, in an emulator on the OS's own code and in digiemu with every card (2026-11-15). Not yet tested on a Model:Cycles: SAMPLE is marked experimental until then" }
+    { en: "Checked on the host, in an emulator on the OS's own code and in digiemu with every card (2026-11-15), then flashed from this page onto a Model:Cycles the same day: with GATE on and a short DECAY, the pad and a TRIG key tapped stay short, held they sound until you let go" }
   ] },
   { version: "0.65", date: "2026-11-14", changes: [
     { en: "The flasher page has a new footer: links to the site's pages and to the project, and a receipt that names the people whose work model27 is built on, from the reverse-engineering of the firmware to the sound of MACRO and ACID. model27 takes no money: every name on the receipt links to that person's GitHub" },

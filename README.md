@@ -24,7 +24,7 @@ together, so that a new machine fits next to the others. The rules a mod follows
 **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.5), written alongside.
 
 **Status: beta, release 0.66.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers seventeen
-cards, all of them tested on a Model:Cycles as the page builds them but SAMPLE's 0.18, experimental until then: the
+cards, all of them tested on a Model:Cycles as the page builds them: the
 **SAMPLE** machine of [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples
 on the +Drive (since 0.61 the pad and the TRIG keys play the sample under the PRESET browser's cursor, since 0.62 with the knobs as you turn them, since 0.66 for as long as you hold them with GATE on, and with the pad held the
 track's trigs too),

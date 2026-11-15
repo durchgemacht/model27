@@ -769,7 +769,10 @@ half-finished step never blocks a build.
   let go (state 1), the loop itself giving no end at the release: **ALL OK** (the maintainer, 2026-11-15)
   `[FAIT en émulation]`. digiemu with every card (the maintainer, 2026-11-15): a TRIG key and the pad, tapped and
   held, with GATE on, a short DECAY and the sequencer stopped; a key let go while the sequencer's trigs play cuts
-  none. Not yet on a Model:Cycles: the card is experimental again. Hashes (MAIN OS): SAMPLE alone `e5dd1f1f…`, with
+  none. The card went back to `experimental` until the device test. On a Model:Cycles, release 0.66 flashed from the
+  live page (the maintainer, 2026-11-15, « gerät geflasht, passt »): with GATE on and a short DECAY, a TRIG key and the
+  pad tapped stay short, held they sound until let go `[FAIT]`; the card is `tested` again, stamp 2026-11-15-03.
+  Hashes (MAIN OS): SAMPLE alone `e5dd1f1f…`, with
   SOLID `31c2b697…`, CHORD Tables `581e6796…`, both delays `7452134c…`, Samples `1675b0be…`, RESAMPLE `aa23bfae…`,
   Transpose `3cd6f3e3…`, every card of the page (seventeen) `c3dc12d0…`, the file tried in digiemu. Release 0.66,
   stamp 2026-11-15-02.
