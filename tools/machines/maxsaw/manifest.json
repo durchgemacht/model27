@@ -147,7 +147,11 @@
    "date": "2026-11-16",
    "build": "alone, next to SAMPLE and next to CHIPS, composed by compose.py"
   },
-  "hardware": null,
-  "status": "experimental"
+  "hardware": {
+   "date": "2026-11-16",
+   "by": "maintainer",
+   "build": "every card of the page with MAXSAW, from tools/compose.py (notes/84 §14, §15: .syx model27-maxsaw-full-0.2b, MAIN OS acc36d7a…): the sound, the Sub, the MACHINES page and the popups; then release 0.69 flashed from the page, served locally, every card ticked (notes/84 §17)"
+  },
+  "status": "tested"
  }
 }

@@ -394,8 +394,9 @@ ALL_FEATURES = [
                 "+ PUNCH the sub.",
         # model27's own after Adam Szabo's analysis of the supersaw (How to Emulate the Super Saw, KTH 2010: his numbers
         # and formulas, no code; notes/84); bit for bit its host build in emulation (test_maxsaw.py); tried on the
-        # Model:Cycles in the maintainer's full build from the command line (notes/84 §14, §15)
-        "status": "experimental",
+        # Model:Cycles in the maintainer's full build from the command line (notes/84 §14, §15), then flashed from this
+        # page (served locally, release 0.69, every card ticked) on 2026-11-16 (notes/84 §17)
+        "status": "tested",
         "credit": {"kind": "based", "who": "Adam Szabo", "url": "https://www.adamszabo.com/internet/adam_szabo_how_to_emulate_the_super_saw.pdf"},   # his thesis, linked on his name
         # composed in the page from its package (notes/84): alone it gives 85-maxsaw.json byte for byte, whose
         # conflicts give its excludes

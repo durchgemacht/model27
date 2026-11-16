@@ -224,7 +224,7 @@ tools/machines/maxsaw/        Max Saw (MAXSAW on the device; Ultra Saw was its w
                               Tone (the cutoff against the fundamental), CONTOUR Phase (the phases' width), MACHINES +
                               PUNCH Sub (a switch in k 32: a sawtooth two octaves down through a low-pass at the note);
                               tools/gen_maxsaw.py computes its tables from Szabo's formulas, builds its object and
-                              composes it alone into 85-maxsaw.json; the flasher's MAXSAW card, experimental
+                              composes it alone into 85-maxsaw.json; the flasher's MAXSAW card, tested
 tools/machine_pictures.py     an added machine's own pictures as C (the OS's Bitmaps, their masks, the registrar's table):
                               gen_solid.py and gen_sampler.py write solid_pictures.c and sample_pictures.c with it
                               (notes/60 §25); SAMPLE's (sample_card.c, pictures/) are model27's, next to One-Shot's code

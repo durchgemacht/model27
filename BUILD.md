@@ -336,7 +336,8 @@ MAIN OS patché, `maxsaw` 0.2 seule : `9d9ae4e514fa386e84159888fc1d9520b0e6fd65a
 (dix-neuf, release 0.69 : `--machines sampler,solid,chips,maxsaw,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq
 --cpu --resample --transpose --perform --with control-all-config,trig-preview,trig-cond-order`) :
 `acc36d7a371dd3fea503ab529aa7ff674d801344def7f92359487c058fa0259b`, le fichier essayé sur un Model:Cycles depuis la
-ligne de commande le 16/11/2026 (note 84 §15). Pas encore flashé depuis la page.
+ligne de commande le 16/11/2026 (note 84 §15) ; puis flashé depuis la page (servie en local, toutes les cartes
+cochées) le 16/11/2026 (note 84 §17).
 
 ### CHORD Tables (wavetables du +Drive)
 

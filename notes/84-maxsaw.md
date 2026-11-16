@@ -427,5 +427,13 @@ Checked: `gen_flasher_tweaks.py --check`, `registry.py --check`, `check_overlaps
 the receipt, the credits, the guide's section, the home page, no console error. Not run here: `webflash_smoke.sh`
 (npm's registry is out of the sandbox's reach); the maintainer's first run: one FAIL, the check of the cards'
 names, which still listed eighteen (MAXSAW added after CHIPS; the page's names checked in a browser against the
-new list); the run again (2026-11-16): « all ok ». Flashed from the page: [À FAIRE].
+new list); the run again (2026-11-16): « all ok ». Committed `43231c3`.
+
+## 17. Flashed from the page: tested (2026-11-16)
+
+The maintainer flashed release 0.69 from the page, served locally with every card ticked, onto their Model:Cycles:
+« geflasht von der seite, alles gut ». Before, MAXSAW in a build with every card from the command line (§14, §15). The
+card's status tested (`gen_flasher_tweaks.py`, `tweaks.js`): no tag; the guide's line Tested, the release entry
+without « experimental », README (all nineteen cards tested), BUILD.md, PROVENANCE, AGENTS.md, the manifest
+(`tests.hardware`, tested), `webflash_smoke.js` (the card without a tag); the stamp 2026-11-16-23 on the six pages.
 

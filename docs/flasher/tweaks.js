@@ -294,7 +294,7 @@ window.MC_TWEAKS = {
    "id": "maxsaw",
    "label": "MAXSAW",
    "desc": "One extra machine after Chord that plays a huge, wide sawtooth sound: seven sawtooths detuned around the note, with a sub two octaves down. COLOR = Detune, SHAPE = Mix, SWEEP = Tone, CONTOUR = Phase; MACHINES + PUNCH the sub.",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "based",
     "who": "Adam Szabo",

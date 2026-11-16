@@ -24,7 +24,7 @@ together, so that a new machine fits next to the others. The rules a mod follows
 **[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.5), written alongside.
 
 **Status: beta, release 0.69.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers nineteen
-cards, eighteen of them tested on a Model:Cycles as the page builds them: the
+cards, all of them tested on a Model:Cycles as the page builds them: the
 **SAMPLE** machine of [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples
 on the +Drive (since 0.61 the pad and the TRIG keys play the sample under the PRESET browser's cursor, since 0.62 with the knobs as you turn them, since 0.66 for as long as you hold them with GATE on, and with the pad held the
 track's trigs too),
@@ -62,7 +62,7 @@ square wave that runs through a chord as a fast arpeggio inside each note, with 
 stepped triangle bass; tested on a Model:Cycles from the command line, then flashed from the page with all the other
 cards. The nineteenth, **MAXSAW**, a fourth machine, model27's own, based on
 [Adam Szabo](https://www.adamszabo.com/internet/adam_szabo_how_to_emulate_the_super_saw.pdf)'s analysis of the supersaw: seven sawtooths detuned around the note, with a soft sub two octaves
-down; tried on a Model:Cycles from the command line, experimental on the page until it is flashed from it. The
+down; tested on a Model:Cycles from the command line, then flashed from the page with all the other cards. The
 [guide](https://durchgemacht.github.io/model27/guide/) explains them. Combining machines is proven with two internal
 reference machines: SAMPLE with the first one on a Model:Cycles; the second one, with a shortcut, and sharing the
 main screen, the knob view, the screen's tick and the browser with SAMPLE, in emulation so far, composed by the page
