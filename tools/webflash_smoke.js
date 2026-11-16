@@ -315,7 +315,7 @@ async function main() {
     {   // a fresh page: every card ticked, without a clash
       const f = await load({ untick: false });
       const boxes = [...f.doc.querySelectorAll('#features input[id^="feat-"]')];
-      check(boxes.length === 17 && boxes.every((x) => x.checked) && !f.doc.querySelector("#features .say.clash") && !f.errors.length,
+      check(boxes.length === 18 && boxes.every((x) => x.checked) && !f.doc.querySelector("#features .say.clash") && !f.errors.length,
         `a fresh page has every card ticked: ${boxes.filter((x) => x.checked).length} of ${boxes.length}`);
       f.dom.window.close();
     }
@@ -574,7 +574,7 @@ async function main() {
     // English only: no language switch; the cards by their names, their credits and guide links
     const names = [...doc.querySelectorAll("#features .nm")].map((e) => e.textContent);
     check(!doc.querySelector(".lang") && doc.documentElement.lang === "en" && /new tricks/.test(text(doc, "h1s"))
-      && names.join() === "SAMPLE,SOLID,Digital Delay,POTS,LP/HP Filter,Crush,Ring,Reso,EQ,CHORD Tables,RESAMPLE,Trig Preview,Trig Condition Order,Control All Config,Transpose,Perform Kit,CPU Page"
+      && names.join() === "SAMPLE,SOLID,CHIPS,Digital Delay,POTS,LP/HP Filter,Crush,Ring,Reso,EQ,CHORD Tables,RESAMPLE,Trig Preview,Trig Condition Order,Control All Config,Transpose,Perform Kit,CPU Page"
       && /by drumkilla/.test(text(doc, "features")) && /by durchgemacht/.test(text(doc, "features"))
       && doc.querySelector('#features a[href$="#control-all"]') && doc.querySelector('#features a[href$="#sampler"]'),
       "English only, no language switch; the cards by their names: " + names.join());
