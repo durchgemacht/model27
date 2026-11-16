@@ -311,7 +311,8 @@ essayé sur un Model:Cycles depuis la ligne de commande le 16/11/2026 (note 83 �
 `a4506cafee911cc44d9fe35c47a04ae463212a752416be3e567ed113eee44b68` ; avec toutes les cartes de la page (dix-huit,
 release 0.68 : `--machines sampler,solid,chips,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq --cpu --resample
 --transpose --perform --with control-all-config,trig-preview,trig-cond-order`) :
-`242fccca80357ff50ae1f92ebeeee464c7a0dc310e022b17f4139b77b2e62aed`. Pas encore flashé depuis la page.
+`242fccca80357ff50ae1f92ebeeee464c7a0dc310e022b17f4139b77b2e62aed` ; puis flashé depuis la page (servie en local,
+toutes les cartes cochées) le 16/11/2026 (note 83 §12).
 
 ### CHORD Tables (wavetables du +Drive)
 

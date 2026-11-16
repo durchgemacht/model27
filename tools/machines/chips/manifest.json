@@ -192,10 +192,10 @@
    "build": "alone and next to SAMPLE, composed by compose.py"
   },
   "hardware": {
-   "date": "2026-11-15",
+   "date": "2026-11-16",
    "by": "maintainer",
-   "build": "CHIPS alone from tools/compose.py (notes/83 §6, .syx c9db10d1…, MAIN OS 953a0e1e…): digiemu (the MACHINES page, the popups, the arpeggio) and the Model:Cycles (the bass and up-down switches with their LEDs, PUNCH, the sweep both ways, the divisions following the tempo, OCT a single tone, a trig's lock of the bass, the save and reload): \"passt\"; the CPU page not measured; before notes/83 §8. Since §8 (.syx cd43f1ec…, 2026-11-16): SHAPE with CHORD's names, CONTOUR's OFF, divisions and Hz, PITCH's window, the arpeggio from SHAPE's fourth position: \"passt alles\"; since §9 (.syx 607efea1…, 2026-11-16): the new defaults, CONTOUR from 1/4 without OFF: \"ja, passt\"; since §10 (.syx bd9971b4…, 2026-11-16): Plaits' chords, one a step, their eleven names: \"passt, alles ok\"; since §11 (.syx f6a0d95b…, 2026-11-16): SHAPE in zones, the names in the big font, CONTOUR in the narrow big font: \"all ok\""
+   "build": "CHIPS alone from tools/compose.py (notes/83 §6, .syx c9db10d1…, MAIN OS 953a0e1e…): digiemu (the MACHINES page, the popups, the arpeggio) and the Model:Cycles (the bass and up-down switches with their LEDs, PUNCH, the sweep both ways, the divisions following the tempo, OCT a single tone, a trig's lock of the bass, the save and reload): \"passt\"; the CPU page not measured; before notes/83 §8. Since §8 (.syx cd43f1ec…, 2026-11-16): SHAPE with CHORD's names, CONTOUR's OFF, divisions and Hz, PITCH's window, the arpeggio from SHAPE's fourth position: \"passt alles\"; since §9 (.syx 607efea1…, 2026-11-16): the new defaults, CONTOUR from 1/4 without OFF: \"ja, passt\"; since §10 (.syx bd9971b4…, 2026-11-16): Plaits' chords, one a step, their eleven names: \"passt, alles ok\"; since §11 (.syx f6a0d95b…, 2026-11-16): SHAPE in zones, the names in the big font, CONTOUR in the narrow big font: \"all ok\"; since §12 (release 0.68 flashed from the page served locally, every card ticked, 2026-11-16): CHIPS's names and speeds, the bass on MACHINES + PUNCH: \"habe gerade von der lokalen seite auf gerät geflasht, alles gut\""
   },
-  "status": "experimental"
+  "status": "tested"
  }
 }

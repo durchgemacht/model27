@@ -280,7 +280,7 @@ window.MC_TWEAKS = {
    "id": "chips",
    "label": "CHIPS",
    "desc": "One extra machine after Chord that plays chiptune: a square wave that arpeggiates one of Plaits' eleven chords, with a pitch sweep at every trig and a stepped triangle bass. COLOR = Wave, SHAPE = Chord (OCT is one note), SWEEP = Sweep, CONTOUR = Arp (1/4 to 1/32 with the tempo, then 16 to 64 notes a second); MACHINES + PUNCH the bass, MACHINES + GATE up and down.",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "based",
     "who": "Émilie Gillet",

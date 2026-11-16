@@ -374,9 +374,9 @@ ALL_FEATURES = [
                 "second); MACHINES + PUNCH the bass, MACHINES + GATE up and down.",
         # after the ChiptuneEngine of Mutable Instruments Plaits (MIT), written anew in fixed point (notes/83); bit for
         # bit its host build in emulation (test_chips.py), Plaits' chords bit for bit step 1's core; tried on the
-        # Model:Cycles from the command line, CHIPS alone (notes/83 §6, §8 to §11); experimental here until flashed
-        # from this page, as the other cards were
-        "status": "experimental",
+        # Model:Cycles from the command line, CHIPS alone (notes/83 §6, §8 to §11), then flashed from this page (served
+        # locally, release 0.68, every card ticked) on 2026-11-16 (notes/83 §12)
+        "status": "tested",
         "credit": {"kind": "based", "who": "Émilie Gillet", "repo": "pichenettes/eurorack"},
         "license": "LICENSE-Plaits",
         # composed in the page from its package (notes/83 §12): alone it gives 84-chips.json byte for byte, whose

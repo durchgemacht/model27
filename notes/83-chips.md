@@ -542,11 +542,14 @@ a look at CHORD's COLOR, which shows two lines at some values (84) and big numbe
   `tools/webflash_smoke.sh` on both official files (npm is closed in the agent's sandbox), the maintainer's run
   (2026-11-16): « all ok ».
 - Not done: CHIPS's own pictures (it shows TONE's), a load on the CPU page.
+- Committed `7b1701e` (the package and the card, experimental). Then the card tested, in its own commit: its status in
+  `gen_flasher_tweaks.py` and `tweaks.js`, the guide's section 5 (Tested), release 0.68's last line, README (all
+  eighteen cards tested), BUILD.md, PROVENANCE, the manifest, `webflash_smoke.js` (no tag); the stamps `2026-11-16-02`.
 
 ## 13. Left to do
 
 - **Step 5:** the CPU page on the device (a build with `--cpu`), if the maintainer wants the load measured there.
-- **Step 6:** `tested` in its own commit (the page's build ok on the device, §12); CHIPS's own pictures.
+- **Step 6:** CHIPS's own pictures.
 - The maintainer's: the knobs' names, DECAY's default, the order 84 (Chord's and Arp's defaults decided, §9).
 - For the card (step 6): CHIPS claims k 32 and the switches as SAMPLE does; the page composes machine cards together
   through the shortcut layer (`sampler,chips` composes), but the conflicts computed for CHIPS alone list SAMPLE's,

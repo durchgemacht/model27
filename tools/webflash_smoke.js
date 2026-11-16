@@ -506,7 +506,7 @@ async function main() {
       && !doc.querySelector("#mod-solid .tag"),
       `SOLID alone ${solAlone}; with SAMPLE ${solSmp}; with CHORD Tables, Digital Delay, Crush and Transpose ${solFx}, one ` +
       `composed tweak, no clash; in Machines; no sub-choice; its guide link; tested, so no tag`);
-    // CHIPS: a machine card (notes/83 §12), composed with the other package cards, in Machines; experimental
+    // CHIPS: a machine card (notes/83 §12), composed with the other package cards, in Machines; tested
     box("feat-chips").click(); await wait(5);
     const chpAlone = chosen();
     box("feat-sampler").click(); await wait(5);
@@ -519,9 +519,9 @@ async function main() {
       && chpOn && !chosen().length
       && doc.querySelector('#grp-machine #feat-chips') && doc.querySelector('#features a[href$="#chips"]')
       && doc.querySelectorAll('input[name="var-chips"]').length === 0
-      && (doc.querySelector("#mod-chips .tag") || {}).textContent === "Experimental",
+      && !doc.querySelector("#mod-chips .tag"),
       `CHIPS alone ${chpAlone}; with SAMPLE ${chpSmp}; with SOLID, CHORD Tables, Crush and Transpose ${chpFx}, one ` +
-      `composed tweak, no clash; in Machines; no sub-choice; its guide link; experimental, so tagged`);
+      `composed tweak, no clash; in Machines; no sub-choice; its guide link; tested, so no tag`);
     const every = ["sampler", "solid", "chips", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample", "transpose", "perform", "control-all-config", "trig-cond-order", "trig-preview"];
     for (const i of every) { box("feat-" + i).click(); await wait(5); }
     const fxAll = chosen();
