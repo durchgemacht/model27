@@ -66,6 +66,12 @@ SELECTIONS = ((["sampler"], []), (["refmachine"], []), (["sampler", "refmachine"
               (["solid", "chips", "chordtables", "crush"], []),
               (["sampler", "solid", "chips", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq",
                 "cpu", "resample", "transpose", "perform"], []),
+              # notes/84: MAXSAW alone, with SAMPLE before and after it (machines 6 and 7), with CHIPS (its switch on the
+              # same key, MACHINES + PUNCH, on its own tracks), SOLID, CHORD Tables and a Track FX, and the full offered set
+              (["maxsaw"], []), (["sampler", "maxsaw"], []), (["maxsaw", "sampler"], []),
+              (["solid", "chips", "maxsaw", "chordtables", "crush"], []),
+              (["sampler", "solid", "chips", "maxsaw", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring",
+                "reso", "eq", "cpu", "resample", "transpose", "perform"], []),
               # notes/68: the effects alone, in both slots, with SAMPLE before and after them, with the shortcut layer
               # and the dispatchers (REF2, SAMPLE), and with an extension of CHORD (the stock descriptor table)
               (["digidelay"], []), (["refdelay", "refreverb"], []), (["sampler", "digidelay"], []),

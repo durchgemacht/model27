@@ -46,6 +46,8 @@ OUT = ROOT / "docs" / "flasher" / "tweaks.js"
 # status : "tested" (flashe sur un vrai Model:Cycles) ou "experimental".
 # credit : auteur du travail d'origine, affiche sur la carte (voir aussi les credits de la page) ; sans « repo »
 # (un mod recu sans depot public), la carte dit « d'apres un mod de … », sans lien.
+# Avec « url » au lieu de « repo » (un travail publie hors de GitHub, la these d'Adam Szabo), la carte dit « based on
+# <who> », le nom lie a cette adresse.
 # license : fichier de licence (dans tweaks/model-cycles_OS1.13/) du code tiers que la carte embarque ; servi a cote
 # de la page (docs/flasher/<license>.txt) et lie depuis la carte.
 # cat : rubrique du flasher, une de CATS (meme liste que CATS dans docs/flasher/app.js, plus « other »). Sans cat,
@@ -384,6 +386,22 @@ ALL_FEATURES = [
         "package": "chips",
     },
     {
+        "id": "maxsaw",
+        "cat": "sound",
+        "label": "MAXSAW",
+        "desc": "One extra machine after Chord that plays a huge, wide sawtooth sound: seven sawtooths detuned around the "
+                "note, with a sub two octaves down. COLOR = Detune, SHAPE = Mix, SWEEP = Tone, CONTOUR = Phase; MACHINES "
+                "+ PUNCH the sub.",
+        # model27's own after Adam Szabo's analysis of the supersaw (How to Emulate the Super Saw, KTH 2010: his numbers
+        # and formulas, no code; notes/84); bit for bit its host build in emulation (test_maxsaw.py); tried on the
+        # Model:Cycles in the maintainer's full build from the command line (notes/84 §14, §15)
+        "status": "experimental",
+        "credit": {"kind": "based", "who": "Adam Szabo", "url": "https://www.adamszabo.com/internet/adam_szabo_how_to_emulate_the_super_saw.pdf"},   # his thesis, linked on his name
+        # composed in the page from its package (notes/84): alone it gives 85-maxsaw.json byte for byte, whose
+        # conflicts give its excludes
+        "package": "maxsaw",
+    },
+    {
         "id": "chordtables",
         "cat": "sound",
         "label": "CHORD Tables",
@@ -663,7 +681,7 @@ ALL_FEATURES = [
 # model27 offers a short list of cards. The other definitions above stay as they are, for the command-line build
 # (every tweak of tweaks/ is still built by tools/build.py) and so that merges from upstream apply cleanly; a card
 # comes back into the flasher by adding its id here, once it has been reviewed against the Cycles Mod Standard.
-OFFERED = ("sampler", "solid", "chips", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample",
+OFFERED = ("sampler", "solid", "chips", "maxsaw", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample",
            "transpose", "perform", "control-all-config", "trig-cond-order", "trig-preview")
 FEATURES = [f for f in ALL_FEATURES if f["id"] in OFFERED]
 _missing = set(OFFERED) - {f["id"] for f in FEATURES}

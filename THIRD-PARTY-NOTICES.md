@@ -51,6 +51,11 @@ The web flasher serves the MIT texts next to the code that carries them (`docs/f
 Methods and ideas only, no code: [octamax](https://github.com/mxldyn/octamax) by mxldyn (no license published) and
 [octa-bt-pt](https://github.com/bryantysinger/octa-bt-pt) by Bryan Tysinger (MIT). See `notes/03` and `notes/05`.
 
+A published analysis, no code: the MAXSAW machine follows Adam Szabo's [How to Emulate the Super Saw](https://www.adamszabo.com/internet/adam_szabo_how_to_emulate_the_super_saw.pdf) (BSc
+thesis, KTH 2010): the six side oscillators' offsets, the detune polynomial and the two mix polynomials it publishes,
+evaluated by `tools/gen_maxsaw.py` into the tables of `tools/machines/maxsaw/`, the rest written by this project in
+fixed point. See `notes/84`.
+
 ## Contributed mods
 
 These mods came from people outside the project before it had a license. Written confirmation that each contribution

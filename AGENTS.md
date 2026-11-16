@@ -217,6 +217,14 @@ tools/machines/chips/         CHIPS (notes/83): Plaits' hard-synced square and 3
                               k 32; tools/gen_chips.py writes its tables and its object and composes it alone into
                               84-chips.json, the flasher's CHIPS card; tools/emu/test_chips.py proves it (chips_ref.c, the
                               core on the host); experimental
+tools/machines/maxsaw/        Max Saw (MAXSAW on the device; Ultra Saw was its working title; notes/84): seven naive
+                              sawtooths after Adam Szabo's analysis of the Super Saw (KTH 2010: his offsets,
+                              detune curve and mix curves; no code of his), a 2-pole high-pass at the fundamental,
+                              random phases at each trig, in fixed point on the EMAC; COLOR Detune, SHAPE Mix, SWEEP
+                              Tone (the cutoff against the fundamental), CONTOUR Phase (the phases' width), MACHINES +
+                              PUNCH Sub (a switch in k 32: a sawtooth two octaves down through a low-pass at the note);
+                              tools/gen_maxsaw.py computes its tables from Szabo's formulas, builds its object and
+                              composes it alone into 85-maxsaw.json; the flasher's MAXSAW card, experimental
 tools/machine_pictures.py     an added machine's own pictures as C (the OS's Bitmaps, their masks, the registrar's table):
                               gen_solid.py and gen_sampler.py write solid_pictures.c and sample_pictures.c with it
                               (notes/60 §25); SAMPLE's (sample_card.c, pictures/) are model27's, next to One-Shot's code
@@ -260,7 +268,7 @@ CONTRIBUTING.md               terms for outside contributions, and how a machine
 
 Follow the shape of the last ones (tempo-max: commits `5997b4a`, `14fb9fa`, `6e592bc`; trig-hold, arp). In order:
 
-1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 83 is the last) with the
+1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 84 is the last) with the
    user's request and its source, the OS code involved (addresses, `[FAIT]`/`[HYP]`), the design, free space used and
    conflicts with other tweaks. Add a row to `notes/README.md`. See `notes/AGENTS.md`.
 2. **Write the generator** `tools/gen_<mod>.py` (and sources under `tools/machines/<mod>/` if it has code). It reads

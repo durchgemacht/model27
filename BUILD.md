@@ -314,6 +314,30 @@ release 0.68 : `--machines sampler,solid,chips,chordtables,digidelay,pots,smpfil
 `242fccca80357ff50ae1f92ebeeee464c7a0dc310e022b17f4139b77b2e62aed` ; puis flashé depuis la page (servie en local,
 toutes les cartes cochées) le 16/11/2026 (note 83 §12).
 
+### Machine MAXSAW
+
+`tweaks/model-cycles_OS1.13/85-maxsaw.json` est produit par `tools/gen_maxsaw.py`, qui écrit ses tables
+(`tools/machines/maxsaw/maxsaw_tables.h`, calculées depuis les formules publiées par Adam Szabo dans *How to Emulate
+the Super Saw*, KTH 2010 : décalages, courbe de désaccord, courbes de mélange ; aucun code repris), compile
+`tools/machines/maxsaw/maxsaw.c` et `maxsaw_cf.S` en son objet et le compose seul avec `tools/compose.py` : une machine
+ajoutée, sept dents de scie naïves autour de la note, un passe-haut à deux pôles qui suit la note, une phase au hasard
+à chaque trig, et un Sub (une dent de scie deux octaves plus bas à travers un passe-bas sur la note), en virgule fixe
+sur l'EMAC ([note 84](notes/84-maxsaw.md)). COLOR est le désaccord, SHAPE le mélange, SWEEP le passe-haut contre la
+note, CONTOUR l'étendue des phases au trig ; MACHINES + PUNCH le Sub. La preuve tourne sur le code de l'OS (Unicorn),
+au bit près contre le build hôte du même fichier (`tools/emu/maxsaw_ref.c`) :
+```sh
+python3 tools/gen_maxsaw.py --cycles model-cycles_OS1.13.syx [--check]
+python3 tools/emu/test_maxsaw.py --cycles model-cycles_OS1.13.syx [--dry] [--quick] [--only core,chain,tracks,next,measure]
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines maxsaw                # seule
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,maxsaw        # avec SAMPLE
+```
+MAIN OS patché, `maxsaw` 0.2 seule : `9d9ae4e514fa386e84159888fc1d9520b0e6fd65ae437724621ce28f96347814` ; avec SAMPLE
+0.18 : `cd4bdccd01dfc1b2d060c7876e2ab2c072ba6744d49116146ae8056d65f681f7` ; avec toutes les cartes de la page
+(dix-neuf, release 0.69 : `--machines sampler,solid,chips,maxsaw,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq
+--cpu --resample --transpose --perform --with control-all-config,trig-preview,trig-cond-order`) :
+`acc36d7a371dd3fea503ab529aa7ff674d801344def7f92359487c058fa0259b`, le fichier essayé sur un Model:Cycles depuis la
+ligne de commande le 16/11/2026 (note 84 §15). Pas encore flashé depuis la page.
+
 ### CHORD Tables (wavetables du +Drive)
 
 `tweaks/model-cycles_OS1.13/36-chordtables.json` est produit par `tools/gen_chordtables.py`, qui compile

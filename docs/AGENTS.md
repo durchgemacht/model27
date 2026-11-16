@@ -46,7 +46,8 @@ The footer (the maintainer's design of 14/11/2026): the brand, the site's and th
 the width a receipt (`#rc` in `flasher/index.html`, `wireReceipt()` in `app.js`): "Do not buy me a coffee", the people
 who did the hard part as its items, model27's cut 0.00. model27 asks for no money; each name links to that person's
 GitHub profile (`https://github.com/<name>`) and nowhere else: no Ko-fi, donation or payment pages (the maintainer's
-choice of 15/11/2026; Émilie Gillet is `pichenettes`). Below it: the credits (folded, with the licenses), the
+choice of 15/11/2026; Émilie Gillet is `pichenettes`). One exception, the maintainer's of 16/11/2026: Adam Szabo, who
+has no GitHub work behind model27, links to his thesis on his own site (MAXSAW's model). Below it: the credits (folded, with the licenses), the
 disclaimer and the version. Light only, as the
 page; the receipt's torn edges are the tokens `--zig-top` and `--zig-bot`, with a dark pair.
 

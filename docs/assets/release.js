@@ -7,6 +7,11 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.69", date: "2026-11-16", changes: [
+    { en: "A new machine, MAXSAW, plays a huge, wide sawtooth sound: seven sawtooths detuned around the note. COLOR spreads them, SHAPE mixes the middle one with the six others, SWEEP takes away low end below the note, and CONTOUR sets how they start at each trig, from a random point each to all at once for a hard attack" },
+    { en: "Press and hold MACHINES and press PUNCH for a soft sub two octaves down, which adds low end without a buzz. A step can lock it" },
+    { en: "Based on Adam Szabo's analysis of the supersaw, written anew for the Model:Cycles; the flasher's receipt and credits now name him, linked to his thesis. Goes with every other card. Checked in an emulator on the OS's own code and tried on a Model:Cycles from the command line (2026-11-16); experimental until it is flashed from this page" }
+  ] },
   { version: "0.68", date: "2026-11-16", changes: [
     { en: "A new machine, CHIPS, plays chiptune: a square wave that runs through a chord as a fast arpeggio inside each note. SHAPE chooses the chord (OCT plays the note alone), CONTOUR how fast the arpeggio runs, from 1/4 to 1/32 with the tempo or 16 to 64 notes a second, COLOR the shape of the square wave and SWEEP a pitch sweep at every trig" },
     { en: "Press and hold MACHINES and press PUNCH for a stepped triangle bass an octave below, or GATE for an arpeggio up and down. A step can lock either. The screen names the chords (OCT, 5, SUS, m …) and the speeds (1/16, 1/16T, 35HZ …) instead of numbers" },

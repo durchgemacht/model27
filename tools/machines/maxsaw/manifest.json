@@ -1,0 +1,153 @@
+{
+ "schema": "cycles-mod/0.1",
+ "id": "maxsaw",
+ "version": "0.2",
+ "name": "Max Saw: seven sawtooths after Adam Szabo's analysis of the Super Saw",
+ "description": "model27's machine after Adam Szabo's analysis of the Super Saw (How to Emulate the Super Saw, KTH 2010; notes/84), written in fixed point on the EMAC: seven naive sawtooths, the centre at the note and six around it at Szabo's offsets times his detune curve, the centre's and the sides' levels from his two mix curves, a high-pass after them that follows the pitch, and a random phase for every sawtooth at each trig. Detune spreads the six (little up to the middle, then steeply); Mix goes from the centre alone to all seven, the two as loud at 95; Tone moves the high-pass against the fundamental, 16 steps an octave, Szabo's at 32, full below, thin above; Phase is how far the phases scatter at a trig, 127 fully random (Szabo's), 0 all seven together (a hard attack, then flanging). MACHINES + PUNCH switches Sub: an eighth oscillator, a sawtooth two octaves below the note through a low-pass at the note, as loud as a sine of height 1, added after the high-pass; the centre and the high-pass stay at the note (notes/84 §13). DECAY, GATE and PUNCH are the stock amp chain as on TONE; while the envelope is closed the voice stands still. Pitch as on every machine.",
+ "license": "MIT",
+ "credit": {
+  "kind": "based",
+  "who": "Adam Szabo (How to Emulate the Super Saw, KTH 2010)",
+  "url": "https://www.adamszabo.com/internet/adam_szabo_how_to_emulate_the_super_saw.pdf"
+ },
+ "source": "https://www.adamszabo.com/internet/adam_szabo_how_to_emulate_the_super_saw.pdf",
+ "device": "Model:Cycles",
+ "os": "1.13",
+ "order": 85,
+ "build": {
+  "sources": [
+   "maxsaw.c",
+   "maxsaw_cf.S"
+  ],
+  "include": [
+   "."
+  ],
+  "cflags": [
+   "-std=c99",
+   "-mcpu=54418",
+   "-O2",
+   "-ffreestanding",
+   "-fno-builtin",
+   "-fno-tree-loop-distribute-patterns",
+   "-nostdlib",
+   "-fno-pic",
+   "-fno-common",
+   "-ffunction-sections",
+   "-fdata-sections",
+   "-Wall",
+   "-Wextra",
+   "-Werror"
+  ],
+  "defines": {},
+  "objects": [
+   "maxsaw.o"
+  ],
+  "patch_points": [],
+  "symbols": {
+   "update": "maxsaw_update",
+   "render": "maxsaw_render"
+  },
+  "keep": []
+ },
+ "uses": [
+  {
+   "point": "machine",
+   "name": "MAXSAW",
+   "image": 5,
+   "decay_default": 80,
+   "knobs": [
+    {
+     "long": "MaxSaw Detune",
+     "short": "DET",
+     "default": 64
+    },
+    {
+     "long": "MaxSaw Mix",
+     "short": "MIX",
+     "default": 95
+    },
+    {
+     "long": "MaxSaw Tone",
+     "short": "TONE",
+     "default": 32
+    },
+    {
+     "long": "MaxSaw Phase",
+     "short": "PHAS",
+     "default": 127
+    }
+   ]
+  },
+  {
+   "point": "shortcut",
+   "key": "MACHINES",
+   "press": "PUNCH",
+   "why": "Sub, a switch: bit 8 of k 32, which the voice reads in the note's sound every block (a trig's lock of k 32 at the trig); the shortcut layer flips and saves it"
+  }
+ ],
+ "claims": {
+  "sound_slots": [
+   32
+  ],
+  "record_slots": [
+   18
+  ],
+  "ram": [],
+  "gestures": [
+   {
+    "combo": "MACHINES + PUNCH",
+    "meaning": "Sub"
+   }
+  ],
+  "views": []
+ },
+ "cost": {
+  "emulation": {
+   "default": 2567,
+   "detune_127": 2567,
+   "mix_0": 2567,
+   "sub": 3284,
+   "punch": 2562,
+   "note_24": 2567,
+   "note_96": 2567,
+   "tone_127": 2567,
+   "trig_block": 3391,
+   "sub_trig_block": 4108,
+   "phase_0_retrig_every_10_sub_mean": 3294,
+   "paused": 207,
+   "six_sub": 19704,
+   "six_tone": 31746,
+   "stack_bytes": 280,
+   "pattern": "instructions a block, the whole voice loop less the same loop muted, note 60, DECAY 127 and default knobs unless named; the frame loops in assembly (maxsaw_cf.S); tools/emu/test_maxsaw.py, the maintainer's run of 2026-11-16 with the new Sub (notes/84 §14); before it 2 576 (§11), the C version 4 791 (§10.1)"
+  },
+  "device": {
+   "status": "not measured"
+  }
+ },
+ "stock_behaviour": {
+  "changes": [
+   "on its tracks, MACHINES held + PUNCH flips Sub instead of PUNCH, and the PUNCH LED shows the switch while MACHINES is held"
+  ],
+  "fixes": [],
+  "unchanged": [
+   "other tracks and machines",
+   "TRACK + PUNCH (Control All), with or without MACHINES"
+  ]
+ },
+ "compat": {
+  "built_against": [
+   "model27"
+  ],
+  "requires": [],
+  "conflicts_declared": []
+ },
+ "tests": {
+  "emulation": {
+   "tool": "the core against the same model in double on the host and the ColdFire object against the host build in a ColdFire interpreter (notes/84 §5, §7, §9); tools/emu/test_maxsaw.py (Unicorn, the OS's own code, against the host build tools/emu/maxsaw_ref.c, notes/84 §10): ALL OK, the core exact in 81 cases (13 758 blocks), the pause, Sub from the sound, a preview and a lock, the chain TONE's but the output stage, the tracks, next to SAMPLE and CHIPS; since notes/84 §11 the frame loops in assembly, the ColdFire interpreter: the object equal to the host core, the saturation's edges; the maintainer's Unicorn run of the assembly (core, chain, tracks, next, measure): ALL OK; since notes/84 §13 (the new Sub): the host core with Sub off equal to the core before, bit for bit; the Sub equal to the listening page's draft in double to 97.5 dB; the ColdFire interpreter: the object equal to the host core (six tracks, Sub switched), the Sub's loops at their edges; the maintainer's Unicorn run of the new Sub (core, chain, tracks, next, measure): ALL OK",
+   "date": "2026-11-16",
+   "build": "alone, next to SAMPLE and next to CHIPS, composed by compose.py"
+  },
+  "hardware": null,
+  "status": "experimental"
+ }
+}
