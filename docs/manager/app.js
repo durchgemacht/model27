@@ -95,14 +95,20 @@
        The official OS, and a name the user gave that does not look like that, stay as they are. */
     var LONG = 32;
 
+    /* Since 16/11/2026 the model27 flasher writes what made a build as key=value parts after the OS:
+       model-cycles_OS1.13_flasher=model27_v=0.68_mods=a+b…; older builds, and other flashers', carry the mods alone. */
     function looks(b) {
-        var m = !KNOWN[b.key] && /^model-cycles_OS(\d+\.\d+)[_-](.+)$/i.exec(b.name), mods;
+        var m = !KNOWN[b.key] && /^model-cycles_OS(\d+\.\d+)[_-](.+)$/i.exec(b.name), mods, p = {}, count, by;
 
         if (!m)
             return { title: b.name, sub: "", mods: null, long: b.name.length > LONG };
-        mods = m[2].split("+").filter(Boolean);
-        return { title: "Model:Cycles build", count: mods.length + " mod" + (mods.length === 1 ? "" : "s"), os: m[1],
-                 sub: mods.length + " mod" + (mods.length === 1 ? "" : "s") + " · OS " + m[1], mods: mods, long: false };
+        if (/(^|_)mods=/.test(m[2]))
+            m[2].split("_").forEach(function (part) { var i = part.indexOf("="); if (i > 0) p[part.slice(0, i)] = part.slice(i + 1); });
+        mods = (p.mods !== undefined ? p.mods : m[2]).split("+").filter(Boolean);
+        count = mods.length + " mod" + (mods.length === 1 ? "" : "s");
+        by = p.flasher === "model27";
+        return { title: by ? "model27 build" : "Model:Cycles build", count: count, os: m[1], flasher: p.flasher || "", version: p.v || "",
+                 sub: count + (by && p.v ? " · model27 " + p.v : "") + " · OS " + m[1], mods: mods, long: false };
     }
 
     /* in a sentence or a title: "Model:Cycles build (18 mods)", a long name cut */

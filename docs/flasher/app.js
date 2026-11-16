@@ -34720,6 +34720,10 @@ function prepareFirmware() {
   const sdv = needsSyntakt();
   if (sdv && !st.syntakt) { st.fw = null; st.fwError = "needs_syntakt"; return; }
   const key = tweaks.map((x) => x.id).join("+");
+  // the file's name says what made it, as key=value parts after the OS (the maintainer's choice of 16/11/2026):
+  // model-cycles_OS1.13_flasher=model27_v=0.68_mods=sampler+solid….syx; the manager reads them (looks() there)
+  const ver = ((window.MC_RELEASES || [])[0] || {}).version;
+  const tag = `flasher=model27${ver ? `_v=${ver}` : ""}_mods=${key}`;
   const labels = chosenLabels();
   const syntakt = sdv ? st.syntakt.raw : null;     // only official files, all with the same section 7: same bytes for every key
   const makeCycles = (raw) => {
@@ -34730,7 +34734,7 @@ function prepareFirmware() {
     const built = tweaks.map((x) => (x.machines ? composeMachines(raw, x.machines, x.cpu, x.resample, x.transpose, x.perform) : x));
     const r = window.MCBuilder.build(raw, window.MC_TWEAKS.device, built, opts);
     log(`Built ${key}: MAIN OS ${r.mainOsSha.slice(0, 12)}…, ${r.patchedBytes} bytes patched, ${r.raw.length} bytes.`, "is-ok");
-    return { raw: r.raw, name: `model-cycles_OS1.13_${key}.syx`, kind: "built", mods: labels, sha: r.mainOsSha,
+    return { raw: r.raw, name: `model-cycles_OS1.13_${tag}.syx`, kind: "built", mods: labels, sha: r.mainOsSha,
       ref: !!REF_MAINOS[key], modsRef: r.modsChecked, sixch: tweaks.some((x) => x.id.startsWith("6ch")),
       sdv: sdv && (tweaks.find((x) => x.append && x.append.syntakt) || {}).id, engines: sdv ? chosenEngines() : [] };
   };
@@ -34747,7 +34751,7 @@ function prepareFirmware() {
     log(`Packed ${key} for a Model:Samples (${into === "samples" ? "Samples OS" : "Cycles OS"} running): ` +
       `MAIN OS ${r.mainOsSha.slice(0, 12)}…, ${r.raw.length} bytes.`, "is-ok");
     return Object.assign({}, base, { raw: r.raw, machine: st.machine,
-      name: `model-cycles_OS1.13_${key}_for-samples_${st.machine === "smp" ? "smp-os" : "cyc-os"}.syx` });
+      name: `model-cycles_OS1.13_${tag}_for-samples_${st.machine === "smp" ? "smp-os" : "cyc-os"}.syx` });
   });
 }
 

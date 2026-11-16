@@ -104,7 +104,9 @@ look* above since 16/11/2026, its own copy of the tokens, header, buttons and fo
 tiles: the one on the Cycles has the lightest ground, the LED (Active), Mark another as active and Back up now; the
 Cycles' card above them is a compact row shown only while the page needs something (no firmware yet, which one is on
 the Cycles). A firmware named as the flashers name their builds (`model-cycles_OS1.13_<mod>+…`) shows as
-"Model:Cycles build" with its mods counted and listed behind Details, any other long name cut to a line (`looks()`,
+"Model:Cycles build" with its mods counted and listed behind Details; one from this flasher, which names its builds
+`model-cycles_OS1.13_flasher=model27_v=<release>_mods=<mod>+….syx` since 16/11/2026 (key=value parts, so that the
+manager can read what made it), as "model27 build" with the release; any other long name cut to a line (`looks()`,
 `shortName()`, `nameParts()` in `app.js`). The setup's four steps and the switch's texts speak to the owner (*Writing
 for users*); the setup no longer asks for the slot, the switch's last step does. Class names that `site.css` styles too
 (`.wrap`, `.top`, `.brand`, `.btn`, `.foot`) are overridden there, and the page's own classes avoid the others.
