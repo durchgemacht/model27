@@ -108,9 +108,8 @@ the Cycles). A firmware named as the flashers name their builds (`model-cycles_O
 `shortName()`, `nameParts()` in `app.js`). The setup's four steps and the switch's texts speak to the owner (*Writing
 for users*); the setup no longer asks for the slot, the switch's last step does. Class names that `site.css` styles too
 (`.wrap`, `.top`, `.brand`, `.btn`, `.foot`) are overridden there, and the page's own classes avoid the others.
-Light only, as the flasher. Its link in the site's nav is `hidden` on every page (the maintainer's choice of
-09/11/2026): the page stays at `manager/` and keeps the nav, with its own link current but out of sight; nothing
-else on the site links it. Checks: `tools/webmanager_check.sh` (the scripts on the host); the page itself against
+Light only, as the flasher. Its link in the site's nav comes after the Uploader on every page, and in the
+flasher's footer (shown again on 16/11/2026, the maintainer's choice; hidden from 09/11/2026 until then). Checks: `tools/webmanager_check.sh` (the scripts on the host); the page itself against
 the stand-in `tools/manager/fake-cycles.js` (serve the repository's root, load it by hand, `FakeCycles.install()`),
 and on a Model:Cycles by the maintainer.
 

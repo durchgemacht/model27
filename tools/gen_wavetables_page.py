@@ -50,8 +50,8 @@ HEADER = """<header class="site-top">
   <a class="site-brand" href="../">model27</a>
   <nav aria-label="Site">
     <a href="../flasher/">Flasher</a>
-    <a href="../manager/" hidden>Manager</a>
     <a href="../uploader/">Uploader</a>
+    <a href="../manager/">Manager</a>
     <a href="./" aria-current="page">Wavetables</a>
     <a href="../guide/">Guide</a>
     <a href="https://github.com/durchgemacht/model27" target="_blank" rel="noopener">GitHub</a>
@@ -125,7 +125,7 @@ def unstamped(t):
 
 def nav_of(folder):
     """The site nav of a page: (where each link goes, its text, hidden or not) in order, and where its aria-current
-    link goes. A hidden link stays in the nav, out of sight (the Manager since 2026-11-09, the maintainer's choice)."""
+    link goes. A hidden link stays in the nav, out of sight (the Manager from 2026-11-09 to 2026-11-16)."""
     path = DOCS / folder / "index.html" if folder else DOCS / "index.html"
     m = re.search(r'<nav aria-label="Site">(.*?)</nav>', path.read_text(encoding="utf-8"), re.S)
     if not m:
