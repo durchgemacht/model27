@@ -4,7 +4,7 @@
  * controls with 3 px corners and normal writing, headings in capitals. States are borders, dashes and inversion,
  * never colour. One typeface (IBM Plex Mono).
  * The tokens, the header, the buttons, the status line and the footer are the flasher's: keep them alike. The manager
- * (../manager/style.css), which this page's styles came from, still has the look before the grading.
+ * (../manager/style.css), which this page's styles came from, has the same look since 16/11/2026.
  * site.css also styles .wrap, .top, .brand, .btn and .foot: the rules here override all it sets on them.
  * Plain CSS (no nesting, color-mix or :has). */
 

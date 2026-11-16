@@ -52,8 +52,9 @@ page; the receipt's torn edges are the tokens `--zig-top` and `--zig-bot`, with 
 
 ## The look
 
-The flasher, the uploader and the Wavetables page share one look (the maintainer's choices of 15/11/2026, release
-0.67, tried first on a copy of the site with a switch per change): ink on a cool grey, light only.
+The flasher, the uploader, the Wavetables page and the manager share one look (the maintainer's choices of 15/11/2026,
+release 0.67, tried first on a copy of the site with a switch per change; the manager followed on 16/11/2026): ink on a
+cool grey, light only.
 
 - **Lines** say what they are: 2 px a frame (a card, a pane, a window, a step), 1.5 px a control (a button, a field,
   a checkbox, a tab), 1 px a divider inside a frame (a card's foot, a step's head, dashed section lines) and the rules
@@ -82,9 +83,14 @@ The flasher, the uploader and the Wavetables page share one look (the maintainer
 - States are still borders, dashes and inversion, never colour. The spacing between sections and in the page's head
   is as before (the maintainer's wish: thinner lines need the room).
 
-The tokens live in each page's own sheet (`flasher/style.css`, `uploader/style.css`, the editor's `<style>`): keep
-the three alike. Plain CSS only (no nesting, `color-mix` or `:has`). The manager and the home page are not part of
-it: the manager still has the look before the grading (3 px lines, Space Mono), the home page and the guide their own.
+- **The one colour**: the manager's green LED for "connected" (`--led`, the maintainer's choice of 16/11/2026), in
+  its chip, its setup's first step and on the tile of the firmware on the Cycles; only there for now.
+- **No button that looks locked for what only needs the Cycles**: such a button stays a button and connects first
+  (the manager's `withCycles()`); a dashed frame is left for what cannot work (no Web MIDI, something running).
+
+The tokens live in each page's own sheet (`flasher/style.css`, `uploader/style.css`, `manager/style.css`, the
+editor's `<style>`): keep them alike. Plain CSS only (no nesting, `color-mix` or `:has`). The home page and the guide
+are not part of it: they keep their own.
 
 ## The manager
 
@@ -93,9 +99,14 @@ adds (any build, the official OS named by its hash in `KNOWN`), with its backups
 runs five steps in a dialog: stop the sequencer, back up (request `0x6F`), flash (`upgradeFast` of `flasher.js`, the
 user presses YES), bring the firmware's project back (checked by the settings the Cycles answers to `0x64`), save it in
 its slot. It is not tied to the flasher: it only loads `flasher.js` and links nothing else. The library lives in the
-browser's IndexedDB under the page's origin (an export from another address imports as is). `style.css` is the
-flasher's 1-bit look as it was before 15/11/2026 (*The look* above has not reached this page), its own copy of the
-tokens, header, buttons and footer; class names that `site.css` styles too
+browser's IndexedDB under the page's origin (an export from another address imports as is). `style.css` has *The
+look* above since 16/11/2026, its own copy of the tokens, header, buttons and footer. The overview is the firmwares'
+tiles: the one on the Cycles has the lightest ground, the LED (Active), Mark another as active and Back up now; the
+Cycles' card above them is a compact row shown only while the page needs something (no firmware yet, which one is on
+the Cycles). A firmware named as the flashers name their builds (`model-cycles_OS1.13_<mod>+…`) shows as
+"Model:Cycles build" with its mods counted and listed behind Details, any other long name cut to a line (`looks()`,
+`shortName()`, `nameParts()` in `app.js`). The setup's four steps and the switch's texts speak to the owner (*Writing
+for users*); the setup no longer asks for the slot, the switch's last step does. Class names that `site.css` styles too
 (`.wrap`, `.top`, `.brand`, `.btn`, `.foot`) are overridden there, and the page's own classes avoid the others.
 Light only, as the flasher. Its link in the site's nav is `hidden` on every page (the maintainer's choice of
 09/11/2026): the page stays at `manager/` and keeps the nav, with its own link current but out of sight; nothing

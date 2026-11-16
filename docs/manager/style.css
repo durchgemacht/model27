@@ -1,21 +1,36 @@
 /* The manager page, on top of ../assets/site.css. Class names are the ones app.js renders.
- * 1-bit, as the flasher: two tones only, ink and a cool grey; the dark theme swaps them. States are borders, dashes and
- * inversion, never colour; greys are a dither. No rounded corners, one typeface (Space Mono).
- * The tokens, the header, the buttons and the footer are the flasher's (../flasher/style.css): keep them alike.
- * site.css also styles .wrap, .top, .brand, .btn and .foot: the rules here override all it sets on them.
+ * The flasher's look (../flasher/style.css, graded on 2026-11-15): ink on a cool grey; a line's weight says what it is
+ * (2 px a frame, 1.5 px a control, 1 px a divider inside a frame or a list's rule), a softer text tone (--soft) for
+ * what explains, controls with 3 px corners and normal writing, headings in capitals. States are borders, dashes and
+ * inversion, never colour, with one exception: connected is a green LED (--led). A firmware's name is a file name,
+ * often long and without spaces: it breaks anywhere. A shadow is a 1 px checkerboard cut by the mask --chk: a card's in a light grey (--sh), a
+ * window's in the ink (--sh-win). One typeface (IBM Plex Mono).
+ * The tokens, the header, the buttons, the status line and the footer are the flasher's and the uploader's: keep them
+ * alike. site.css also styles .wrap, .top, .brand, .btn and .foot: the rules here override all it sets on them.
  * Plain CSS (no nesting, color-mix or :has). */
 
 :root{
   color-scheme:light;
-  --ink:#0b0c0e;
+  --ink:#17222e;           /* a dark blue-grey, not black */
+  --ink-up:#2a3848;        /* the ink a step lighter: a filled button under the pointer */
+  --soft:#4a5562;          /* the second text tone: what explains */
+  --soft-inv:#b4bcc6;      /* the same on an inverted ground (the Cycles' card, a step being done) */
+  --rule:#98a1ab;          /* lines between the rows of a list */
+  --tint:rgba(23,34,46,.09);   /* an outlined control under the pointer */
   --paper:#d7dbe0;
-  --card:#e6ebf1;          /* the tiles and dialogs, a shade lighter than the page; the dark theme keeps them on the page's tone */
+  --card:#e6ebf1;          /* the tiles and windows, a shade lighter than the page; the dark theme keeps them on the page's tone */
+  --field:#f1f4f7;         /* where you type or choose: lighter than the card */
+  --sh:#b4bcc6;            /* a card's shadow */
+  --led:#2fa35a;           /* connected: a green LED, the page's one colour (the maintainer's choice of 16/11/2026) */
+  --sh-win:var(--ink);     /* a window's shadow: the same checkerboard in the ink, the light one is lost on the dithered backdrop */
+  --chk:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h1v1H0zM1 1h1v1H1z'/%3E%3C/svg%3E");   /* the mask that cuts it to a checkerboard */
+  --check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%2317222e'/%3E%3C/svg%3E");   /* a picked choice: the flasher's pixel check in the ink */
   --casing:var(--paper);
   --well:var(--paper);
   --line:var(--ink);
   --line-2:var(--ink);
   --ink-2:var(--ink);
-  --muted:var(--ink);
+  --muted:var(--soft);
   --ctl:var(--ink);
   --ctl-ink:var(--paper);
   --ctl-edge:var(--ink);
@@ -28,185 +43,259 @@
   --ok:var(--ink);
   --warn:var(--ink);
   --bad:var(--ink);
-  --f:"Space Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --f:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --f-code:var(--f);
-  --r:0;
+  --r:3px;
   --wrap:1120px;
 }
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){color-scheme:dark;--ink:#d7dbe0;--paper:#0b0c0e;--card:var(--paper)}
+  :root:not([data-theme="light"]){color-scheme:dark;--ink:#d7dbe0;--ink-up:#f1f4f7;--soft:#a9b1bb;--soft-inv:#4a5562;--rule:#4a5562;--tint:rgba(215,219,224,.14);--paper:#0b0c0e;--card:var(--paper);--field:#161a20;--sh:#4a5562;--led:#3fbf6c;
+    --check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%23d7dbe0'/%3E%3C/svg%3E")}
 }
-:root[data-theme="dark"]{color-scheme:dark;--ink:#d7dbe0;--paper:#0b0c0e;--card:var(--paper)}
+:root[data-theme="dark"]{color-scheme:dark;--ink:#d7dbe0;--ink-up:#f1f4f7;--soft:#a9b1bb;--soft-inv:#4a5562;--rule:#4a5562;--tint:rgba(215,219,224,.14);--paper:#0b0c0e;--card:var(--paper);--field:#161a20;--sh:#4a5562;--led:#3fbf6c;
+  --check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%23d7dbe0'/%3E%3C/svg%3E")}
 
-body{font:400 15px/1.5 var(--f);-webkit-font-smoothing:auto}
+body{font:400 15px/1.5 var(--f);-webkit-font-smoothing:antialiased}
+/* while the switch, the history or the setup is over the page (app.js sets the class), the page behind it does not
+   scroll; the gutter stays, so nothing shifts where scrollbars take room */
+html{scrollbar-gutter:stable}
+html.modal{overflow:hidden}
 ::selection{background:var(--ink);color:var(--paper)}
 :focus-visible{outline:3px solid currentColor;outline-offset:3px}
-a{text-decoration-thickness:2px;text-decoration-color:currentColor;text-underline-offset:.22em}
-a:hover{text-decoration-thickness:4px;text-decoration-color:currentColor}
+a{text-decoration-thickness:1.5px;text-decoration-color:currentColor;text-underline-offset:.22em}
+a:hover{text-decoration-thickness:2.5px;text-decoration-color:currentColor}
 h1,h2,h3{font-family:var(--f);font-weight:700;letter-spacing:0;text-transform:uppercase;line-height:1}
 button,input,select{font:inherit;color:inherit}
+/* long firmware names: a text breaks inside them where it must; a flex item that holds one may also shrink below
+   its longest word (anywhere), so the name breaks instead of running out of its box */
+.mg,.overlay{overflow-wrap:break-word}
+.choice,.list li b,.steps li>span,.dhead h1,.panel h2,.result .big,.stitle{overflow-wrap:anywhere;min-width:0}
 .vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 [hidden]{display:none !important}
 
 /* header */
 .top{align-items:center;gap:10px 20px;padding-top:24px}
 .brand{font:700 20px/1 var(--f);text-transform:uppercase;letter-spacing:0}
-.top nav{gap:6px 16px;align-items:center;font:700 14px/1 var(--f);text-transform:uppercase}
+.top nav{gap:6px 16px;align-items:center;font:600 14px/1 var(--f);text-transform:uppercase}
 .top nav a{text-decoration:none}
-.top nav a:hover,.top nav a[aria-current="page"]{text-decoration:underline;text-decoration-color:currentColor;text-decoration-thickness:3px;text-underline-offset:.3em}
-.theme-btn{width:36px;height:36px;margin:0;border:3px solid var(--ink);border-radius:0;color:var(--ink)}
-.theme-btn:hover{background:var(--ink);color:var(--paper)}
+.top nav a:hover,.top nav a[aria-current="page"]{text-decoration:underline;text-decoration-color:currentColor;text-decoration-thickness:2px;text-underline-offset:.3em}
+.theme-btn{width:36px;height:36px;margin:0;border:1.5px solid var(--ink);border-radius:var(--r);color:var(--ink)}
+.theme-btn:hover{background:var(--tint);color:var(--ink)}
 
-/* buttons: a block of ink; disabled, an empty dashed frame; .inv, a block of paper on the Cycles' card */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 20px;border:3px solid var(--ink);border-radius:0;
-  background:var(--ink);color:var(--paper);box-shadow:none;font:700 14px/1 var(--f);text-transform:uppercase;text-decoration:none;cursor:pointer;
-  transition:transform .08s steps(2)}
-.btn:hover{background:var(--ink);color:var(--paper);transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--ink)}
-.btn:active{transform:translate(2px,2px);box-shadow:none}
+/* buttons: a block of ink, a step lighter under the pointer (nothing moves); .ghost an outlined one with a faint
+   ground under the pointer; .inv a block of paper on the Cycles' card; disabled, an empty dashed frame */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:0 18px;border:1.5px solid var(--ink);border-radius:var(--r);
+  background:var(--ink);color:var(--paper);box-shadow:none;font:600 15px/1 var(--f);text-transform:none;text-decoration:none;cursor:pointer;
+  transform:none;transition:none}
+.btn:hover{background:var(--ink-up);border-color:var(--ink-up);color:var(--paper)}
+.btn:active{transform:none;box-shadow:none}
 .btn.ghost{background:transparent;color:var(--ink)}
-.btn.ghost:hover{background:var(--ink);color:var(--paper);transform:none;box-shadow:none}
+.btn.ghost:hover{background:var(--tint);border-color:var(--ink);color:var(--ink)}
 .btn.inv{background:var(--paper);color:var(--ink);border-color:var(--paper)}
-.btn.inv:hover{background:var(--paper);color:var(--ink);box-shadow:4px 4px 0 var(--paper)}
-.btn.sm{min-height:44px;padding:0 14px;font-size:13px}
-.btn.big{min-height:56px;padding:0 24px;font-size:15px}
-.btn:disabled,.btn:disabled:hover{background:transparent;color:var(--ink);border-style:dashed;cursor:not-allowed;transform:none;box-shadow:none}
+.btn.inv:hover{background:var(--field);border-color:var(--field);color:var(--ink)}
+.btn.sm{min-height:34px;padding:0 12px;font-size:14px}
+.btn.big{min-height:52px;padding:0 22px;font-size:15px}
+.btn:disabled,.btn:disabled:hover{background:transparent;border-color:var(--ink);color:var(--ink);border-style:dashed;cursor:not-allowed;transform:none;box-shadow:none}
 .btn.inv:disabled,.btn.inv:disabled:hover{color:var(--paper);border-color:var(--paper)}
-.lnk{padding:0;background:none;border:0;font:700 13px/1.4 var(--f);text-transform:uppercase;cursor:pointer;
-  text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:.22em}
-.lnk:hover{text-decoration-thickness:4px}
+.lnk{padding:0;background:none;border:0;font:600 14px/1.4 var(--f);color:inherit;cursor:pointer;
+  text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:.22em}
+.lnk:hover{text-decoration-thickness:2.5px}
 .lnk:disabled{cursor:not-allowed;text-decoration-style:dashed}
-.small{font-size:13px}
+/* a small outlined button, as the uploader's tools and the flasher's Close: the windows' Close */
+.tool,.close{flex:none;min-height:28px;padding:0 10px;background:transparent;border:1.5px solid var(--ink);border-radius:var(--r);color:var(--ink);
+  font:600 13px/1 var(--f);cursor:pointer}
+.tool:hover:enabled,.close:hover:enabled{background:var(--tint)}
+.tool:disabled,.close:disabled{border-style:dashed;cursor:not-allowed}
+.small{font-size:13px;font-weight:500;color:var(--soft)}
 
 /* the page */
-.mg{display:flex;flex-direction:column;gap:28px;padding-top:32px;padding-bottom:16px}
+.mg{display:flex;flex-direction:column;gap:28px;padding-top:32px;padding-bottom:16px;isolation:isolate}   /* the cards' shadows stay inside */
 .mg-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 24px}
-.mg-head h1{font-size:28px;line-height:1.15}
-.mg-head p{margin:8px 0 0;max-width:62ch}
-.chip{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border:3px solid var(--ink);
-  background:transparent;font:700 13px/1 var(--f);text-transform:uppercase;cursor:pointer}
-.chip:hover{background:var(--ink);color:var(--paper)}
+.mg-head h1{font-size:28px;line-height:1.15;letter-spacing:-.02em}
+.mg-head p{margin:8px 0 0;max-width:62ch;color:var(--soft)}
+.chip{display:inline-flex;align-items:center;gap:10px;min-height:38px;padding:0 12px;border:1.5px solid var(--ink);border-radius:var(--r);
+  background:transparent;font:600 14px/1 var(--f);cursor:pointer}
+.chip:hover{background:var(--tint)}
 .chip:disabled{cursor:not-allowed}
+.chip:disabled:hover{background:transparent}
 .dot{display:inline-block;width:10px;height:10px;background:currentColor}
 .chip.off .dot{background:transparent;border:2px dashed currentColor}
-.ports{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 14px;border:3px dashed var(--ink);font-size:13px}
-.ports select{min-height:40px;padding:0 8px;background:var(--paper);border:3px solid var(--ink)}
+/* connected, in the chip and in the setup: a green LED in a thin ink ring */
+.chip:not(.off) .dot,.led{background:var(--led);box-shadow:0 0 0 1.5px var(--ink)}
+.led{display:inline-block;flex:none;width:12px;height:12px;box-sizing:border-box}
+.led.off{background:transparent;box-shadow:none;border:2px dashed currentColor}   /* not connected: the LED is out */
+.linked{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0;min-height:52px}
+.linked b{font-weight:600}
+/* the firmware on the Cycles: its tile ends with the LED (Active) and Mark another as active on one line, over
+   Back up now, where the others have Switch */
+.here-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;min-height:28px}
+.tile .here-now{min-height:0}
+.here-other{font-size:13px}
+.ports{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 14px;border:1.5px dashed var(--ink);font-size:13px;color:var(--soft)}
+.ports select{min-height:34px;padding:0 8px;background:var(--field);color:var(--ink);border:1.5px solid var(--ink);border-radius:var(--r)}
 
-.status{margin:0;padding:10px 14px;border:3px solid var(--ink);font-weight:700}
+/* the one status line: news plain, a warning dashed, a problem inverted */
+.status{margin:0;padding:10px 14px;border:2px solid var(--ink);font-weight:600}
 .status.bad{background:var(--ink);color:var(--paper)}
 .status.warn{border-style:dashed}
 
-/* the Cycles' card */
-.device{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:24px;padding:28px;
-  background:var(--ink);color:var(--paper);border:3px solid var(--ink)}
-.device .col{display:flex;flex-direction:column;gap:10px;min-width:0}
-.device .label{font:700 13px/1.4 var(--f);text-transform:uppercase}
-.device .dname{font:700 40px/1.05 var(--f);text-transform:uppercase;overflow-wrap:anywhere}
-.device .meta{display:flex;flex-wrap:wrap;gap:6px 28px}
-.device .acts{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px}
-.device select{min-height:48px;padding:0 10px;background:var(--paper);color:var(--ink);border:3px solid var(--paper);font-weight:700}
+/* a card's shadow, as the flasher's: a box-shadow takes no pattern, so it is a block behind the card, the card's size,
+   4 px down and right, cut to a 1 px checkerboard by a mask (the offsets count from inside the 2 px frame) */
+.device::after,.tile::after{content:"";position:absolute;z-index:-1;top:2px;left:2px;right:-6px;bottom:-6px;background:var(--sh);pointer-events:none;
+  -webkit-mask:var(--chk) 0 0 / 2px 2px;mask:var(--chk) 0 0 / 2px 2px}
+
+/* the Cycles' card: inverted, what explains in the light soft tone. Since 16/11/2026 (the maintainer) one compact
+   row, shown only while the page needs something (no firmware yet, which one is on the Cycles) */
+.device{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px;padding:14px 20px;
+  background:var(--ink);color:var(--paper);border:2px solid var(--ink)}
+.device .col{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 320px}
+.device .dname{font:700 18px/1.25 var(--f);text-transform:uppercase;overflow-wrap:anywhere}
+.device .meta{font-size:14px;color:var(--soft-inv)}
+.device .meta b{font-weight:600;color:var(--paper)}
+.device .acts{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;min-width:0;max-width:100%}
+.device select{max-width:100%;min-width:0;min-height:42px;padding:0 36px 0 12px;background:var(--field);color:var(--ink);border:1.5px solid var(--paper);border-radius:var(--r);font-weight:600;
+  appearance:none;-webkit-appearance:none;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-size:6px 6px,6px 6px;background-position:calc(100% - 20px) 52%,calc(100% - 14px) 52%;background-repeat:no-repeat}
 
 /* the firmwares */
 .sechead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
 .sechead h2{font-size:20px;line-height:1}
-.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
-.tile{position:relative;display:flex;flex-direction:column;gap:16px;min-height:240px;padding:20px;background:var(--card);border:3px solid var(--ink)}
-.tile.here{background:var(--paper)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;isolation:isolate}
+.tile{position:relative;display:flex;flex-direction:column;gap:16px;min-height:240px;padding:20px;background:var(--card);border:2px solid var(--ink)}
+.tile.here{background:var(--field)}      /* the firmware on the Cycles: the lightest ground (the maintainer, 16/11/2026) */
 .tile .head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .tile h3{font-size:18px;line-height:1.25;overflow-wrap:anywhere}
-.tile .rename{flex:1;min-width:0;height:44px;padding:0 10px;background:var(--paper);border:3px solid var(--ink);font:700 16px var(--f);text-transform:uppercase}
+.tile .rename{flex:1;min-width:0;width:100%;height:40px;padding:0 10px;background:var(--field);border:1.5px solid var(--ink);border-radius:var(--r);font:600 16px var(--f)}
 .facts{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:14px}
-.facts dd{margin:0;font-weight:700}
+.facts dt{color:var(--soft)}
+.facts dd{margin:0;font-weight:600}
 .tile .go{margin-top:auto;display:flex;flex-direction:column;gap:6px}
 .tile .go .btn{width:100%}
-.tag{flex:none;padding:6px 8px;background:var(--ink);color:var(--paper);font:700 12px/1 var(--f);text-transform:uppercase}
-.more{flex:none;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:3px solid var(--ink);cursor:pointer}
-.more:hover,.more[aria-expanded="true"]{background:var(--ink);color:var(--paper)}
+/* a state, as the flasher's tags: capitals in a thin frame */
+.tag{flex:none;display:inline-block;padding:2px 4px;border:1.5px solid currentColor;font:700 12px/1.2 var(--f);text-transform:uppercase}
+.more{flex:none;width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;background:transparent;color:var(--ink);
+  border:1.5px solid var(--ink);border-radius:var(--r);cursor:pointer}
+.more:hover{background:var(--tint)}
+.more[aria-expanded="true"],.more[aria-expanded="true"]:hover{background:var(--ink);color:var(--paper)}
 .more:disabled{border-style:dashed;cursor:not-allowed}
 .more:disabled:hover{background:transparent;color:var(--ink)}
-.menu{position:absolute;top:72px;right:20px;z-index:3;display:flex;flex-direction:column;min-width:240px;
-  background:var(--paper);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink)}
-.menu button{padding:12px 16px;text-align:left;background:transparent;border:0;font:700 14px/1.3 var(--f);text-transform:uppercase;cursor:pointer}
-.menu button:hover{background:var(--ink);color:var(--paper)}
-.menu .sep{border-top:3px dashed var(--ink)}
-.addtile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:240px;padding:20px;text-align:center;border:3px dashed var(--ink)}
+/* the tile's menu: a small window, its shadow the windows' checkerboard. The menu has a z-index (it lies over the next
+   tile), so its shadow, a block behind it, would cover its own ground: the block is cut to the part outside the menu */
+.menu{position:absolute;top:64px;right:20px;z-index:3;display:flex;flex-direction:column;min-width:240px;padding:4px 0;
+  background:var(--card);border:2px solid var(--ink)}
+.menu::after{content:"";position:absolute;z-index:-1;top:4px;left:4px;right:-8px;bottom:-8px;background:var(--sh-win);pointer-events:none;
+  -webkit-mask:var(--chk) 0 0 / 2px 2px;mask:var(--chk) 0 0 / 2px 2px;
+  clip-path:polygon(calc(100% - 6px) 0,100% 0,100% 100%,0 100%,0 calc(100% - 6px),calc(100% - 6px) calc(100% - 6px))}
+.menu button{padding:10px 16px;text-align:left;background:transparent;border:0;font:600 14px/1.3 var(--f);cursor:pointer}
+.menu button:hover{background:var(--tint)}
+.menu .sep{margin-top:4px;padding-top:14px;border-top:1px solid var(--rule)}
+.addtile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:240px;padding:20px;text-align:center;border:2px dashed var(--ink)}
 .addtile.drag,.drop.drag{background:var(--ink);color:var(--paper)}
+.addtile.drag .small,.drop.drag .small{color:var(--soft-inv)}
 
 /* the library: export, import, the protocol */
-.libbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px;padding-top:16px;border-top:3px solid var(--ink);font-size:13px}
-.libbar .acts{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.libbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px;padding-top:16px;border-top:2px solid var(--ink);font-size:13px;color:var(--soft)}
+.libbar .acts{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;color:var(--ink)}
 .logbox{display:flex;flex-direction:column;gap:8px}
-.log{max-height:220px;overflow:auto;margin:0;padding:10px;background:var(--card);border:3px solid var(--ink);font:12px/1.5 var(--f);white-space:pre-wrap}
+.log{max-height:220px;overflow:auto;margin:0;padding:10px 12px;background:var(--card);border:2px solid var(--ink);font:12.5px/1.6 var(--f);white-space:pre-wrap}
 
-/* over the page: the switch, the history, the first start; behind them a dither of the ink */
-.overlay{position:fixed;inset:0;z-index:10;overflow:auto;padding:40px 20px;background-color:var(--paper);
-  background-image:repeating-conic-gradient(var(--ink) 0% 25%,transparent 0% 100%);background-size:4px 4px}
+/* over the page: the switch, the history, the first start. Behind them the flasher's backdrop, a 1-bit dither of the
+   ink, here on the page's ground: these take the whole screen, and the page's text through the dots would only
+   disturb. A window's shadow, the cards' checkerboard 8 px down and right, in the ink */
+.overlay{position:fixed;inset:0;z-index:10;overflow:auto;overscroll-behavior:contain;padding:40px 20px;
+  background:var(--paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h1v1H0zM2 0h1v1H2zM1 2h1v1H1zM3 2h1v1H3z' fill='%2317222e'/%3E%3C/svg%3E")}
 .overlay.side{padding:0;display:flex;justify-content:flex-end}
-.dialog{max-width:980px;margin:0 auto;background:var(--card);border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink)}
-.dhead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 20px;padding:20px 24px;border-bottom:3px solid var(--ink)}
+.dialog::after,.setup>.shead::after,.setup>.pips::after,.setup .card::after{content:"";position:absolute;z-index:-1;top:6px;left:6px;right:-10px;bottom:-10px;
+  background:var(--sh-win);pointer-events:none;-webkit-mask:var(--chk) 0 0 / 2px 2px;mask:var(--chk) 0 0 / 2px 2px}
+.dialog{position:relative;max-width:980px;margin:0 auto;background:var(--card);border:2px solid var(--ink)}
+.dhead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 20px;padding:20px 24px;border-bottom:1px solid var(--ink)}
 .dhead h1{font-size:18px;line-height:1.25}
 .dbody{display:flex;flex-wrap:wrap}
-.steps{flex:1 1 260px;margin:0;padding:20px 0;list-style:none;border-right:3px solid var(--ink)}
-.steps li{display:flex;align-items:center;gap:12px;padding:10px 20px;font:700 14px/1.3 var(--f);text-transform:uppercase}
+.steps{flex:1 1 260px;margin:0;padding:20px 0;list-style:none;border-right:1px solid var(--ink)}
+.steps li{display:flex;align-items:center;gap:12px;padding:10px 20px;font:600 14px/1.3 var(--f)}
+.steps li.todo{color:var(--soft)}
 .steps li.doing{background:var(--ink);color:var(--paper)}
-.steps .mark{flex:none;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center}
-.steps li.todo .mark{border:3px dashed var(--ink)}
-.steps li.doing .mark{border:3px solid var(--paper)}
+.steps .mark{flex:none;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+.steps li.todo .mark{border:1.5px dashed currentColor}
+.steps li.doing .mark{border:1.5px solid var(--paper)}
 .steps li.done .mark{background:var(--ink);color:var(--paper)}
-.steps li.failed .mark{border:3px solid var(--ink)}
+.steps li.failed .mark{border:1.5px solid var(--ink)}
 .panel{flex:999 1 420px;min-width:0;min-height:360px;padding:28px;display:flex;flex-direction:column;gap:18px}
-.panel h2{font-size:28px;line-height:1.15}
+.panel h2{font-size:28px;line-height:1.15;letter-spacing:-.02em}
 .panel h2.huge{font-size:40px;line-height:1.05}
 .panel p{margin:0;max-width:52ch}
 .panel ol{margin:0;padding-left:24px;display:flex;flex-direction:column;gap:8px;max-width:54ch}
 .bar{display:flex;align-items:center;gap:14px}
-.bar .track{flex:1;height:28px;border:3px solid var(--ink)}
+.bar .track{flex:1;height:24px;border:2px solid var(--ink)}
 .bar .fill{height:100%;width:0;background:var(--ink)}
-.bar .pct{flex:none;width:5ch;text-align:right;font-weight:700}
+.bar .pct{flex:none;width:5ch;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
 .result{display:flex;flex-direction:column;gap:4px;padding:20px;background:var(--ink);color:var(--paper)}
-.result .big{font:700 26px/1.15 var(--f);text-transform:uppercase;overflow-wrap:anywhere}
+.result>:first-child,.result>:last-child:not(.big){color:var(--soft-inv)}
+.result .big{font:700 26px/1.15 var(--f);text-transform:uppercase;overflow-wrap:anywhere;color:var(--paper)}
 .actions{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px;margin-top:auto}
-.field{display:flex;flex-direction:column;gap:4px;font:700 12px/1.3 var(--f);text-transform:uppercase}
-.field input{height:44px;padding:0 10px;background:var(--paper);border:3px solid var(--ink);font:700 16px var(--f)}
-.dfoot{padding:12px 24px;border-top:3px solid var(--ink)}
+.field{display:flex;flex-direction:column;gap:4px;font:600 13px/1.3 var(--f);color:var(--soft)}
+.field input{height:40px;padding:0 10px;background:var(--field);color:var(--ink);border:1.5px solid var(--ink);border-radius:var(--r);font:600 15px var(--f)}
+.dfoot{padding:12px 24px;border-top:1px solid var(--ink)}
 
-.drawer{flex:0 1 560px;min-width:0;min-height:100%;display:flex;flex-direction:column;gap:22px;padding:24px;background:var(--card);border-left:3px solid var(--ink)}
+/* the history: a drawer at the page's right edge */
+.drawer{flex:0 1 560px;min-width:0;min-height:100%;display:flex;flex-direction:column;gap:22px;padding:24px;background:var(--card);border-left:2px solid var(--ink)}
 .drawer .head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
 .drawer h1{font-size:22px;line-height:1.2;overflow-wrap:anywhere}
 .drawer p{margin:0}
-.boxed{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;padding:14px;border:3px solid var(--ink)}
-.hrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:14px 0;border-top:3px dashed var(--ink)}
-.hrow:first-of-type{border-top-style:solid}
+.boxed{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;padding:14px;border:1px solid var(--ink)}
+.hrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:12px 0;border-top:1px solid var(--rule)}
+.hrow:last-of-type{border-bottom:1px solid var(--rule)}
 .hrow .what{flex:1 1 200px;min-width:0}
 .hrow .links{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px 16px}
-.close{flex:none;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:3px solid var(--ink);font:700 20px/1 var(--f);cursor:pointer}
-.close:hover{background:var(--ink);color:var(--paper)}
 
+/* the first start: a head, four pips and the step's card */
 .setup{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
-.setup>.shead,.setup>.pips{padding:10px 14px;background:var(--paper);border:3px solid var(--ink)}
+.setup>.shead,.setup>.pips{position:relative;padding:10px 14px;background:var(--card);border:2px solid var(--ink)}
 .shead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px}
-.stitle{font:700 20px/1 var(--f);text-transform:uppercase}
-.setup .card{display:flex;flex-direction:column;gap:18px;min-height:420px;padding:28px;background:var(--card);border:3px solid var(--ink)}
-.setup .card h2{font-size:28px;line-height:1.15}
+.stitle{font:700 18px/1 var(--f);text-transform:uppercase}
+.setup .card{position:relative;display:flex;flex-direction:column;gap:18px;min-height:420px;padding:28px;background:var(--card);border:2px solid var(--ink)}
+.setup .card h2{font-size:28px;line-height:1.15;letter-spacing:-.02em}
 .setup .card p{margin:0;max-width:54ch}
 .pips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.pip{height:10px;border:3px solid var(--ink)}
+.pip{height:12px;border:2px solid var(--ink)}
 .pip.on{background:var(--ink)}
-.choice{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 14px;border:3px solid var(--ink);font-weight:700;text-transform:uppercase;cursor:pointer}
-.choice.on{background:var(--ink);color:var(--paper)}
-.choice input{width:20px;height:20px;accent-color:currentColor}
-.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:110px;padding:16px;text-align:center;border:3px dashed var(--ink)}
-.list{margin:0;padding:0;list-style:none;border-top:3px solid var(--ink)}
-.list li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 16px;padding:10px 0;border-bottom:3px dashed var(--ink)}
-.nav{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding-top:18px;border-top:3px solid var(--ink)}
+/* which firmware is on the Cycles: a row per firmware, a box with the flasher's pixel check; picked, the row inverts */
+.choice{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 14px;border:1.5px solid var(--ink);border-radius:var(--r);font-weight:600;cursor:pointer}
+.choice:hover{background:var(--tint)}
+.choice.on,.choice.on:hover{background:var(--ink);color:var(--paper)}
+.choice input{appearance:none;-webkit-appearance:none;flex:none;width:22px;height:22px;margin:0;border:1.5px solid currentColor;border-radius:var(--r);
+  background:var(--field);cursor:pointer}
+.choice input:checked{background:var(--field) var(--check) center / 14px 14px no-repeat}
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:110px;padding:16px;text-align:center;border:2px dashed var(--ink)}
+.list{margin:0;padding:0;list-style:none;border-top:1px solid var(--rule)}
+.list li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 16px;padding:10px 0;border-bottom:1px solid var(--rule)}
+.nav{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding-top:18px;border-top:1px solid var(--ink)}
+/* a firmware's name (nameParts() in app.js): its title, cut to one line with "…" when it is long (the whole in the
+   tooltip and behind Details), the count of its mods under it, and behind Details the mods or the whole name */
+.namebox{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;max-width:100%}
+.clip{display:block;max-width:100%;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.det-link{font-size:13px}
+.mods{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+.mods span{padding:0 5px;border:1.5px solid currentColor;border-radius:var(--r);font:500 12px/1.6 var(--f);text-transform:none}
+.full{font-size:12.5px;font-weight:500;line-height:1.5;color:var(--soft);overflow-wrap:anywhere}
+.device .small,.choice.on .small{color:var(--soft-inv)}
+.choice .namebox{flex:1}
+/* step 1's Help: the how, folded until asked for */
+.help{margin:0;padding:12px 14px 12px 36px;border:1px dashed var(--ink);display:flex;flex-direction:column;gap:6px;max-width:60ch;font-size:14.5px}
+/* Next and, while it waits, what is missing (or a hint once it can go on) */
+.go-on{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px 14px;margin-left:auto}
+/* step 4: the firmware the copy belongs to, on a line of its own */
+.owner{display:flex;flex-direction:column;gap:2px}
+.owner b{font-weight:600;overflow-wrap:anywhere}
 
-/* footer: as the flasher's */
-.foot{margin-top:56px;padding:24px 0 40px;border-top:3px solid var(--ink);font-size:13px;color:var(--ink)}
+/* footer: as the uploader's */
+.foot{margin-top:56px;padding:24px 0 40px;border-top:2px solid var(--ink);font-size:13px;color:var(--soft)}
 .foot .wrap{flex-direction:column;gap:10px}
 .foot p{max-width:none}
 
 @media (max-width:640px){
-  .steps{border-right:0;border-bottom:3px solid var(--ink)}
-  .device .dname{font-size:28px}
+  .steps{border-right:0;border-bottom:1px solid var(--ink)}
   .panel h2.huge{font-size:30px}
   .overlay{padding:16px 12px}
 }

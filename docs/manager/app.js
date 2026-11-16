@@ -44,7 +44,8 @@
         busy: false, flow: null, transferTimer: null, persisted: false, log: [],
         view: null, viewBuild: null,    /* over the page: "switch", "history" (of viewBuild) or "setup" */
         menu: null, renaming: null, renamingBackup: null, chooseHere: false, showPorts: false,
-        setup: null
+        setup: null,
+        details: {}                     /* the tiles whose Details are open, by firmware */
     };
 
     function $(id) { return document.getElementById(id); }
@@ -85,7 +86,50 @@
     function when(iso) { return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }); }
     function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
     function build(id) { return state.builds.filter(function (b) { return b.key === id; })[0] || null; }
-    function nameOf(id) { var b = build(id); return b ? "“" + b.name + "”" : "an unknown firmware"; }
+    function nameOf(id) { var b = build(id); return b ? "“" + shortName(b) + "”" : "an unknown firmware"; }
+
+    /* A firmware's name as the page shows it (the maintainer's choice of 16/11/2026). A build named as the flashers
+       name their downloads, model-cycles_OS1.13_<mod>+<mod>… (the command line's with "-"), shows as "Model:Cycles
+       build" with its mods counted and listed behind Details: not "model27 build", Modded-Cycles' flasher names its
+       builds the same way. Any other name longer than LONG is cut to one line with "…", the whole behind Details.
+       The official OS, and a name the user gave that does not look like that, stay as they are. */
+    var LONG = 32;
+
+    function looks(b) {
+        var m = !KNOWN[b.key] && /^model-cycles_OS(\d+\.\d+)[_-](.+)$/i.exec(b.name), mods;
+
+        if (!m)
+            return { title: b.name, sub: "", mods: null, long: b.name.length > LONG };
+        mods = m[2].split("+").filter(Boolean);
+        return { title: "Model:Cycles build", count: mods.length + " mod" + (mods.length === 1 ? "" : "s"), os: m[1],
+                 sub: mods.length + " mod" + (mods.length === 1 ? "" : "s") + " · OS " + m[1], mods: mods, long: false };
+    }
+
+    /* in a sentence or a title: "Model:Cycles build (18 mods)", a long name cut */
+    function shortName(b) {
+        var l = looks(b);
+
+        return l.mods ? l.title + " (" + l.count + ")" : l.long ? b.name.slice(0, LONG - 1) + "…" : b.name;
+    }
+
+    /* The name in a tile, a card or a list: its title (cut to one line when long), the mods under it, and with
+       details (a tile) a Details link that shows the mods' list or the whole name. */
+    function nameParts(b, tag, cls, details) {
+        var l = looks(b), out = [], open = !!state.details[b.key];
+
+        out.push(el(tag, { class: (cls || "") + (l.long ? " clip" : ""), text: l.title, title: l.long ? b.name : "" }));
+        if (l.sub)
+            out.push(el("span", { class: "small", text: l.sub }));
+        if (details && (l.mods || l.long)) {
+            out.push(el("button", { type: "button", class: "lnk det-link", "aria-expanded": String(open),
+                                    text: open ? "Details ▾" : "Details ▸",
+                                    onclick: function (ev) { ev.stopPropagation(); state.details[b.key] = !open; render(); } }));
+            if (open)
+                out.push(l.mods ? el("div", { class: "mods" }, l.mods.map(function (m) { return el("span", { text: m }); })) :
+                                  el("div", { class: "full", text: b.name }));
+        }
+        return out;
+    }
     function label(x) { return x.name || when(x.made); }
     function sentence(s) { return s.charAt(0).toUpperCase() + s.slice(1) + "."; }
     function ready() { return !!(state.input && state.output && state.identity && state.identity.id === 27); }
@@ -480,10 +524,40 @@
        what the Cycles plays, not its slot, so the list still marks the project loaded before, and the
        Cycles' quick save would write into that one. */
     function slotAdvice(b) {
-        return b && b.slot ? "To keep the Cycles' project list right, save it there into slot " + two(b.slot) + " as " +
-                             (b.slotName || "its name") + " (select Save, answer “Overwrite?” with Yes)." :
-                             "To keep the Cycles' project list right, save it from the project list into a slot of its own; " +
-                             "the quick save would write into the slot of the project loaded before.";
+        var others = b ? otherSlots(b.key) : "";
+
+        return b && b.slot ? "Now save it on the Cycles: in the project list, pick slot " + two(b.slot) + " and select Save " +
+                             "(answer “Overwrite?” with Yes)." :
+                             "Now save it on the Cycles in a slot of its own, not in another firmware's slot" +
+                             (others ? " (" + others + ")" : "") + ".";
+    }
+
+    /* The slots the other firmwares' projects are saved in, "04 (OG), 07": the ones not to pick. */
+    function otherSlots(key) {
+        return state.builds.filter(function (x) { return x.key !== key && x.slot; })
+                           .map(function (x) { return two(x.slot) + (x.slotName ? " (" + x.slotName + ")" : ""); }).join(", ");
+    }
+
+    /* A button that needs the Cycles stays a button (the maintainer's wish of 16/11/2026: a locked button looks
+       broken). Pressed while the Cycles is not connected, it connects first and goes on once the Cycles answers;
+       if none answers, connect() and identify() have said why, or this does. */
+    async function withCycles(go) {
+        if (NO_MIDI) {
+            show(NO_MIDI_TEXT[NO_MIDI], "bad");
+            return;
+        }
+        if (!ready()) {
+            if (!state.access)
+                await connect();
+            else
+                await usePorts();
+            if (!ready()) {
+                if (state.access && !(state.input && state.output))
+                    show("No Model:Cycles found: plug it in over USB, quit Elektron Transfer, then press again.", "bad");
+                return;
+            }
+        }
+        go();
     }
 
     async function backupButton() {
@@ -557,7 +631,7 @@
             }
             hash = await S.sha256(bytes);
             r = await lib.addBuild(bytes, KNOWN[hash] || f.name.replace(/\.syx$/i, ""));
-            said.push(r.added ? "added " + r.build.name : f.name + " is already here as “" + r.build.name + "”");
+            said.push(r.added ? "added " + shortName(r.build) : f.name + " is already here as “" + shortName(r.build) + "”");
         }
         await keep();
         await refresh();
@@ -568,13 +642,13 @@
     async function removeBuild(b) {
         var n = (state.backups[b.key] || []).length;
 
-        if (!window.confirm("Remove the firmware “" + b.name + "”" + (n ? " and its " + n + " backup" + (n > 1 ? "s" : "") : "") +
+        if (!window.confirm("Remove the firmware “" + shortName(b) + "”" + (n ? " and its " + n + " backup" + (n > 1 ? "s" : "") : "") +
                             " from this browser? Export first to keep them."))
             return;
         closeView();
         await lib.removeBuild(b.key);
         await refresh();
-        show("Removed “" + b.name + "”.", "ok");
+        show("Removed “" + shortName(b) + "”.", "ok");
     }
 
     async function removeBackup(x) {
@@ -623,24 +697,32 @@
     async function saveInSlot(target, has) {
         var b = build(target), flow = state.flow, v, slot = b && b.slot ? String(b.slot) : "", name = b ? b.slotName : "", first = [], warn = "";
 
+        /* the maintainer's review of 16/11/2026: say why, one action per line, and warn off the other firmwares'
+           slots (named, otherSlots). The name only helps in the Cycles' project list: the page never reads it, so it
+           is optional, and "Overwrite?" comes only for a slot that holds a project. */
+        var others = otherSlots(target);
+
         if (!has)
-            first.push("Make this firmware's project on the Cycles, or keep the one it plays.");
+            first.push("This firmware has no project yet: build one now, or keep the project that is open.");
         step(4, "doing");
         for (;;) {
             if (b && b.slot)
-                setPanel({ title: "Save it in slot " + two(b.slot), text: warn, items: first.concat([
-                    "Open the project list on the Cycles.",
-                    "Choose slot " + two(b.slot) + ", select Save and answer “Overwrite?” with Yes.",
-                    "Type the name " + (b.slotName || "you gave it") + ". The Cycles suggests the name of the project loaded before: change it."]) });
+                setPanel({ title: "Save the project in slot " + two(b.slot), text: warn, items: first.concat([
+                    "On the Cycles, open the project list.",
+                    "Pick slot " + two(b.slot) + " and select Save. If the Cycles asks “Overwrite?”, answer Yes.",
+                    "It suggests the old project's name: rename it" + (b.slotName ? " to " + b.slotName : "") + " if you like."]) });
             else
-                setPanel({ title: "Save it in a slot of its own", text: warn, items: first.concat([
-                    "Open the project list on the Cycles.",
-                    "Choose a slot for this firmware, select Save and answer “Overwrite?” with Yes.",
-                    "Give it a name of its own. The Cycles suggests the name of the project loaded before: change it.",
-                    "Enter the slot and the name here: next time the page tells you."]) });
-            v = await ask((b && b.slot ? [] : [{ input: "slot", caption: "Slot on the Cycles", value: slot, size: 4 },
-                                                { input: "slotName", caption: "Name there", value: name, size: 12 }])
-                          .concat([{ label: "Saved there", value: "saved", kind: "", size: "big" },
+                setPanel({ title: "Save the project in its own slot",
+                           text: warn || "Each firmware needs a slot of its own, or its project overwrites another firmware's.",
+                           items: first.concat([
+                    "On the Cycles, open the project list.",
+                    "Pick an empty slot, or the one this firmware used before. Not the slot of another firmware" +
+                        (others ? ": " + others : "") + ".",
+                    "Select Save. If the Cycles asks “Overwrite?”, answer Yes. It suggests the old project's name: rename it if you like.",
+                    "Enter the slot below, and the name if you like. From then on, this page tells you the slot after every switch."]) });
+            v = await ask((b && b.slot ? [] : [{ input: "slot", caption: "Slot", value: slot, size: 4 },
+                                                { input: "slotName", caption: "Project name (optional)", value: name, size: 12 }])
+                          .concat([{ label: "Saved", value: "saved", kind: "", size: "big" },
                                    { label: "Skip", value: "skip", kind: "ghost", size: "big" }]));
             if (v !== "saved")
                 break;
@@ -651,7 +733,7 @@
             slot = ((flow.inputs && flow.inputs.slot) || "").trim();
             name = ((flow.inputs && flow.inputs.slotName) || "").trim();
             if (!/^[1-9][0-9]*$/.test(slot.replace(/^0+(?=\d)/, ""))) {
-                warn = "Enter the number of the slot you saved it in, and its name, or press Skip.";
+                warn = "Enter the number of the slot you saved it in, or press Skip.";
                 continue;
             }
             b = await lib.updateBuild(target, { slot: slot, slotName: name });
@@ -668,13 +750,13 @@
 
         state.menu = null;
         flow = state.flow = {
-            title: "Switching to " + toB.name, from: "from " + (build(from) ? build(from).name : "?"), cancel: false, actions: [],
+            title: "Switching to " + shortName(toB), from: "from " + (build(from) ? shortName(build(from)) : "?"), cancel: false, actions: [],
             panel: {}, steps: [
                 { text: "Stop the sequencer", how: "doing" },
                 { text: "Back up " + projectOf(from), how: "todo" },
-                { text: "Flash " + toB.name, how: "todo" },
+                { text: "Flash " + shortName(toB), how: "todo" },
                 { text: "Bring back " + projectOf(target), how: "todo" },
-                { text: toB.slot ? "Save it in slot " + two(toB.slot) : "Save it in its slot", how: "todo" }
+                { text: toB.slot ? "Save in slot " + two(toB.slot) : "Save in its own slot", how: "todo" }
             ] };
         state.busy = true;
         state.view = "switch";
@@ -716,7 +798,7 @@
             }
 
             step(2, "doing");
-            setPanel({ title: "Checking " + toB.name, text: "The file, and that a Model:Cycles answers." });
+            setPanel({ title: "Checking " + shortName(toB), text: "The file, and that a Model:Cycles answers." });
             data = await lib.buildData(target);
             v = F.verify(data);
             if (v.product !== 0x11)
@@ -728,7 +810,7 @@
                 ", version “" + id.version + "”.");
             var sendText = "About " + Math.round(F.fastSeconds(data) / 5) * 5 + " seconds. The Cycles checks every block as it comes in.";
 
-            setPanel({ title: "Sending " + toB.name, text: sendText, progress: 0 });
+            setPanel({ title: "Sending " + shortName(toB), text: sendText, progress: 0 });
             flow.actions = [{ label: "Stop sending", value: "stop", kind: "ghost", size: "sm" }];
             flow.answer = function () { flow.cancel = true; flow.actions = []; renderFlow(); };
             quarter = 0;
@@ -737,7 +819,7 @@
                 onProgress: function (done, total) {
                     var pct = Math.floor(100 * done / total);
 
-                    setPanel({ title: "Sending " + toB.name, text: sendText, progress: pct });
+                    setPanel({ title: "Sending " + shortName(toB), text: sendText, progress: pct });
                     if (Math.floor(pct / 25) > quarter) {
                         quarter = Math.floor(pct / 25);
                         log("Flash: " + pct + " % sent.");
@@ -771,7 +853,7 @@
                 flow.answer = null;
             }
             log("Flash: the Cycles went away " + ((performance.now() - t0) / 1000).toFixed(1) + " s after the last block.");
-            setPanel({ title: "Restarting…", text: "The Cycles comes back with " + toB.name + ". Don't turn it off." });
+            setPanel({ title: "Restarting…", text: "The Cycles comes back with " + shortName(toB) + ". Don't turn it off." });
             try {
                 await waitPort("back", BACK_MS);
             } catch (e) {
@@ -804,8 +886,8 @@
             }
             saved = await saveInSlot(target, !!cur);
             toB = build(target);
-            flow.title = "Switched to " + toB.name;
-            setPanel({ title: "Done", result: { label: "On your Cycles now", big: toB.name,
+            flow.title = "Switched to " + shortName(toB);
+            setPanel({ title: "Done", result: { label: "On your Cycles now", big: shortName(toB),
                        meta: [toB.slotName ? "Project " + toB.slotName : (cur ? "Its project" : "No project yet"),
                               toB.slot ? "Slot " + two(toB.slot) + (saved ? "" : " (not saved there)") : "No slot given",
                               cur ? "checked" : ""].filter(Boolean).join(" · ") } });
@@ -838,14 +920,10 @@
 
     function openSetup() {
         state.menu = null;
-        state.setup = { n: 1, pick: state.device.build || (state.builds[0] && state.builds[0].key) || null,
-                        slot: "", name: "", pct: -1, result: null, error: "" };
-        var b = build(state.setup.pick);
-
-        if (b) {
-            state.setup.slot = b.slot ? two(b.slot) : "";
-            state.setup.name = b.slotName || "";
-        }
+        /* no slot in the setup (the maintainer's choice of 16/11/2026): the switch asks for it in its last step, where
+           the reason is plain, and the tile's menu has it (Slot on your Cycles…) */
+        state.setup = { n: ready() ? 2 : 1, pick: state.device.build || (state.builds[0] && state.builds[0].key) || null,
+                        pct: -1, result: null, error: "", help: false, onward: false };
         state.view = "setup";
         render();
     }
@@ -875,8 +953,6 @@
 
         if (st.n === 3 && st.pick) {
             await lib.setDevice(st.pick, true);
-            if (st.slot.trim())
-                await lib.updateBuild(st.pick, { slot: st.slot, slotName: st.name });
             await refresh();
         }
         st.n = Math.min(4, st.n + 1);
@@ -954,53 +1030,51 @@
 
         c.className = "chip" + (ok ? "" : " off");
         c.disabled = state.busy || !!NO_MIDI;
-        $("chip-text").textContent = NO_MIDI ? "No Web MIDI" : !state.access ? "Connect the Cycles" : ok ? "Cycles connected · OS " + id.version :
+        $("chip-text").textContent = NO_MIDI ? "No Web MIDI" : !state.access ? "Connect your Cycles" : ok ? "Cycles connected · OS " + id.version :
                                      id ? "Not a Model:Cycles" : !(state.input && state.output) ? "Pick the MIDI ports" :
                                      state.asked ? "No answer" : "Asking…";
         c.setAttribute("aria-expanded", String(!$("ports").hidden));
         $("ports").hidden = !(state.access && (state.showPorts || !ok));
     }
 
+    /* The Cycles' card: since 16/11/2026 (the maintainer: compact, no second copy of the tile) only a row when the
+       page needs something, no firmware yet or which one is on the Cycles; otherwise the firmware's tile says it all
+       (the LED, Back up now, Mark another as active) and the card is hidden. */
     function renderDevice() {
-        var box = $("device"), d = state.device.build, b = build(d), cur = currentOf(b), col, acts, sel;
+        var box = $("device"), d = state.device.build, b = build(d), sel;
 
         box.innerHTML = "";
-        col = el("div", { class: "col" }, [el("div", { class: "label", text: "On your Cycles" })]);
-        acts = el("div", { class: "acts" });
-        box.appendChild(col);
-        box.appendChild(acts);
+        box.hidden = !!(state.builds.length && b && !state.chooseHere);
+        if (box.hidden)
+            return;
         if (!state.builds.length) {
-            col.appendChild(el("div", { class: "dname", text: "No firmware yet" }));
-            col.appendChild(el("div", { class: "meta", text: "Add the firmware files you flash, then say which one is on the Cycles." }));
-            acts.appendChild(button("Set up", openSetup, { kind: "inv", size: "big", disabled: state.busy }));
+            box.appendChild(el("div", { class: "col" }, [
+                el("div", { class: "dname", text: "No firmware yet" }),
+                el("div", { class: "meta", text: "Add one or more .syx files, from any flasher, and pick the one on your Cycles." })
+            ]));
+            box.appendChild(el("div", { class: "acts" }, [button("Set up", openSetup, { kind: "inv", disabled: state.busy })]));
             return;
         }
-        if (!b || state.chooseHere) {
-            col.appendChild(el("div", { class: "dname", text: b ? b.name : "Not known yet" }));
-            col.appendChild(el("div", { class: "meta", text: "The Cycles cannot tell which firmware it runs. Say it once; after that " +
-                                                              "the page keeps track." }));
-            sel = el("select", { "aria-label": "Firmware on the Cycles" });
-            state.builds.forEach(function (x) { sel.appendChild(el("option", { value: x.key, text: x.name })); });
-            sel.value = d || state.builds[0].key;
-            acts.appendChild(sel);
-            acts.appendChild(button("That's the one", async function () {
+        sel = el("select", { "aria-label": "Firmware on your Cycles" });
+        state.builds.forEach(function (x) { sel.appendChild(el("option", { value: x.key, text: shortName(x) })); });
+        sel.value = d || state.builds[0].key;
+        box.appendChild(el("div", { class: "col" }, [
+            el("div", { class: "dname", text: "Which firmware is on your Cycles?" }),
+            el("div", { class: "meta", text: "A Model:Cycles can't tell this page which firmware it runs. Pick it once; after every switch " +
+                                             "this page knows." }),
+            /* the page cannot see a flash it did not do (the maintainer, 16/11/2026) */
+            el("div", { class: "meta", text: "Flashed a firmware in between, with Elektron Transfer or another flasher? Pick the one on " +
+                                             "your Cycles now, so that this page stays right." })
+        ]));
+        box.appendChild(el("div", { class: "acts" }, [
+            sel,
+            button("That's the one", async function () {
                 state.chooseHere = false;
                 await lib.setDevice(sel.value, true);
                 await refresh();
-            }, { kind: "inv", disabled: state.busy }));
-            if (b)
-                acts.appendChild(button("Cancel", function () { state.chooseHere = false; render(); }, { cls: "lnk" }));
-            return;
-        }
-        col.appendChild(el("div", { class: "dname", text: b.name }));
-        col.appendChild(el("div", { class: "meta" }, [
-            el("span", {}, b.slotName ? ["Project ", el("b", { text: b.slotName })] : [cur ? "Its project" : "No project yet"]),
-            el("span", {}, b.slot ? ["Slot ", el("b", { text: two(b.slot) })] : ["No slot given"]),
-            el("span", { text: cur ? "Backed up " + ago(cur.made) : "Not backed up yet" })
+            }, { kind: "inv", disabled: state.busy }),
+            b ? button("Cancel", function () { state.chooseHere = false; render(); }, { cls: "lnk" }) : null
         ]));
-        acts.appendChild(button("Not this one?", function () { state.chooseHere = true; render(); }, { cls: "lnk", disabled: state.busy }));
-        acts.appendChild(button("Back up now", backupButton, { kind: "inv", size: "big", disabled: state.busy || !ready(),
-                                                               title: ready() ? "" : NO_MIDI ? "No Web MIDI in this browser" : "Connect the Cycles first" }));
     }
 
     function renderTiles() {
@@ -1033,19 +1107,39 @@
             title.onblur = function () { done(true); };
             setTimeout(function () { title.focus(); title.select(); }, 0);
         } else
-            title = el("h3", { text: b.name });
+            title = el("div", { class: "namebox" }, nameParts(b, "h3", "", true));
         more = el("button", { type: "button", class: "more", "aria-label": "More for " + b.name, "aria-haspopup": "true",
                               "aria-expanded": String(state.menu === b.key), disabled: state.busy,
                               onclick: function (ev) { ev.stopPropagation(); state.menu = state.menu === b.key ? null : b.key; render(); } },
                      [dots()]);
         head = el("div", { class: "head" }, [
             el("div", { style: "display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; flex: 1" },
-               [here ? el("span", { class: "tag", text: "On the Cycles" }) : null, title]),
+               [title]),
             more]);
-        why = NO_MIDI ? "Needs Web MIDI: Chrome, Edge or Opera on a computer." : !ready() ? "Connect the Cycles first." : !state.device.build ? "Say first which firmware is on the Cycles." : "";
+        /* the firmware on the Cycles: the green LED, Active (lit while the Cycles is connected), Mark another as active and Back up now
+           (the Cycles' card's, which shows only when it is needed); the others: Switch. Both connect first when they
+           must (withCycles) */
+        why = NO_MIDI ? "Needs Web MIDI: Chrome, Edge or Opera on a computer." : state.device.build ? "" : "Say first which firmware is on your Cycles.";
         go = el("div", { class: "go" }, here ?
-            [button("On the Cycles now", null, { disabled: true, size: "big" })] :
-            [button("Switch to this", function () { switchTo(b.key); }, { size: "big", disabled: state.busy || !!why }),
+            [el("div", { class: "here-row" }, [
+                 el("p", { class: "linked here-now", role: "status" }, [el("span", { class: "led" + (ready() ? "" : " off"), "aria-hidden": "true" }),
+                                                                        el("b", { text: "Active" })]),
+                 /* only says which firmware is on the Cycles (the row above the tiles), flashes nothing */
+                 button("Mark another as active", function () { state.chooseHere = true; render(); }, { cls: "lnk here-other", disabled: state.busy,
+                          title: "Flashed another firmware with Elektron Transfer or another flasher? Mark it as active here." })
+             ]),
+             button("Back up now", function () { withCycles(backupButton); }, { kind: "ghost", size: "big", disabled: state.busy || !!NO_MIDI })] :
+            [button("Switch to this", function () {
+                 withCycles(function () {
+                     if (!state.device.build) {
+                         state.chooseHere = true;
+                         render();
+                         show("Say first which firmware is on your Cycles: pick it on the card above.", "warn");
+                         return;
+                     }
+                     switchTo(b.key);
+                 });
+             }, { size: "big", disabled: state.busy || !!NO_MIDI }),
              why && !state.busy ? el("span", { class: "small", text: why }) : null]);
         t = el("article", { class: "tile" + (here ? " here" : "") }, [
             head,
@@ -1060,7 +1154,7 @@
             t.appendChild(el("div", { class: "menu", role: "menu" }, [
                 menuItem("History · " + list.length + " backup" + (list.length === 1 ? "" : "s"), function () { openHistory(b.key); }),
                 menuItem("Rename", function () { state.menu = null; state.renaming = b.key; render(); }, "sep"),
-                menuItem("Slot on the Cycles…", function () { openHistory(b.key); }),
+                menuItem("Slot on your Cycles…", function () { openHistory(b.key); }),
                 menuItem("Save .syx", async function () { state.menu = null; render(); save(await lib.buildData(b.key), fileName(b.name) + ".syx"); }),
                 menuItem("Remove", function () { state.menu = null; removeBuild(b); }, "sep")
             ]));
@@ -1105,7 +1199,7 @@
         var o = $("overlay");
 
         o.hidden = !state.view;
-        document.body.style.overflow = state.view ? "hidden" : "";
+        document.documentElement.classList.toggle("modal", !!state.view);     /* the page behind does not scroll (style.css) */
         if (!state.view) {
             o.innerHTML = "";
             o.dataset.mode = "";
@@ -1161,9 +1255,8 @@
                 x.key === b.current ? el("span", { class: "tag", text: "Current" }) :
                     button("Make current", async function () { await lib.setCurrent(b.key, x.key); await refresh(); },
                            { kind: "ghost", size: "sm", disabled: state.busy }),
-                button("Send to the Cycles", function () { sendBackup(x); },
-                       { kind: "ghost", size: "sm", disabled: state.busy || !ready(),
-                         title: ready() ? "" : NO_MIDI ? "No Web MIDI in this browser" : "Connect the Cycles first" }),
+                button("Send to your Cycles", function () { withCycles(function () { sendBackup(x); }); },
+                       { kind: "ghost", size: "sm", disabled: state.busy || !!NO_MIDI }),
                 el("div", { class: "links" }, renaming ? [el("label", { class: "field" }, ["Name", input])] : [
                     button("Name it", function () { state.renamingBackup = x.key; render(); }, { cls: "lnk" }),
                     button("Save .syx", async function () { save(await lib.backupData(x.key), fileName(b.name + " " + label(x)) + ".syx"); },
@@ -1176,19 +1269,20 @@
             el("div", { class: "head" }, [
                 el("div", { style: "display: flex; flex-direction: column; gap: 6px; min-width: 0" }, [
                     el("div", { class: "small", style: "font-weight: 700; text-transform: uppercase", text: "History" }),
-                    el("h1", { id: "history-title", text: b.name })
+                    el("h1", { id: "history-title", text: looks(b).title }),
+                    looks(b).mods || looks(b).long ? el("div", { class: "full", text: b.name }) : null
                 ]),
-                el("button", { type: "button", class: "close", "aria-label": "Close", text: "×", onclick: closeView })
+                el("button", { type: "button", class: "close", text: "Close", onclick: closeView })
             ]),
             el("div", { class: "boxed" }, [
-                el("label", { class: "field" }, ["Slot on the Cycles", slot]),
+                el("label", { class: "field" }, ["Slot on your Cycles", slot]),
                 el("label", { class: "field" }, ["Name there", name]),
                 el("span", { class: "small", style: "flex: 1 1 160px", text: "After a switch the page says to save its project there." })
             ]),
             el("section", { "aria-label": "Backups" }, [el("h2", { style: "font-size: 16px; margin-bottom: 8px", text: "Backups" })]
                 .concat(rows.length ? rows : [el("p", { class: "small", text: "No backups yet. They come with Back up now and with every switch." })])
                 .concat([el("p", { class: "small", style: "margin: 12px 0 0", text: "Send replaces the project on the Cycles; the page backs that one up first." })])),
-            el("div", { style: "display: flex; flex-wrap: wrap; gap: 10px; margin-top: auto; padding-top: 16px; border-top: 3px solid var(--ink)" }, [
+            el("div", { style: "display: flex; flex-wrap: wrap; gap: 10px; margin-top: auto; padding-top: 16px; border-top: 1px solid var(--ink)" }, [
                 button("Save the firmware .syx", async function () { save(await lib.buildData(b.key), fileName(b.name) + ".syx"); },
                        { kind: "ghost", size: "sm" }),
                 button("Remove this firmware", function () { removeBuild(b); }, { kind: "ghost", size: "sm", disabled: state.busy })
@@ -1201,20 +1295,45 @@
 
         pips = el("div", { class: "pips", "aria-hidden": "true" }, [1, 2, 3, 4].map(function (i) { return el("div", { class: "pip" + (i <= n ? " on" : "") }); }));
         card = el("section", { class: "card" });
+        /* The texts speak to a Model:Cycles owner (docs/AGENTS.md, Writing for users; the maintainer's review of
+           16/11/2026): what happens now, what happens on the Cycles (or that nothing does), what to do. While Next
+           waits, a line beside it says what is missing (next.why). */
+        /* Step 1 only connects (the maintainer's wish of 16/11/2026): the how behind Help, no Back and no Next.
+           Once the Cycles answers, the LED shows for a moment and the setup goes on to step 2 by itself; a setup
+           opened with the Cycles connected starts there (openSetup). */
         if (n === 1) {
             card.appendChild(el("h2", { text: "Connect your Model:Cycles" }));
-            card.appendChild(el("p", { text: "Plug it in over USB and quit Elektron Transfer: the two cannot talk to it at the same time. " +
-                                             "The browser asks for MIDI access once." }));
+            card.appendChild(el("p", { class: "small", text: "Four short steps. Nothing here is final: you can add, rename and remove " +
+                                                             "firmwares any time later." }));
             if (NO_MIDI)
                 card.appendChild(el("p", { style: "font-weight: 700", text: NO_MIDI_TEXT[NO_MIDI] }));
-            card.appendChild(el("div", { class: "actions", style: "margin-top: 0" }, [
-                button(ready() ? "Connected" : "Connect", function () { if (!state.access) connect(); else usePorts(); },
-                       { size: "big", disabled: state.busy || ready() || !!NO_MIDI }),
-                ready() ? el("span", { style: "display: inline-flex; align-items: center; gap: 10px; font-weight: 700" },
-                             [el("span", { class: "dot", "aria-hidden": "true" }), "Model:Cycles · OS " + state.identity.version]) :
-                state.asked ? el("span", { text: "No answer. Quit Elektron Transfer and press Connect again." }) : null
-            ]));
-            next = { ok: ready() };
+            /* connected: no button any more, a green LED and what answered (the one colour of the page, the
+               maintainer's choice of 16/11/2026); else Connect */
+            card.appendChild(ready() ?
+                el("p", { class: "linked", role: "status" }, [el("span", { class: "led", "aria-hidden": "true" }), el("b", { text: "Connected" }),
+                                                              el("span", { class: "small", text: "Model:Cycles · OS " + state.identity.version })]) :
+                el("div", { class: "actions", style: "margin-top: 0; align-items: center" }, [
+                    button("Connect", function () { if (!state.access) connect(); else usePorts(); },
+                           { size: "big", disabled: state.busy || !!NO_MIDI }),
+                    el("button", { type: "button", class: "tool", text: "Help", "aria-expanded": String(!!st.help), "aria-controls": "setup-help",
+                                   onclick: function () { st.help = !st.help; render(); } }),
+                    state.asked ? el("span", { text: "Your Cycles didn't answer. Quit Elektron Transfer, then press Connect again." }) : null
+                ]));
+            if (!ready() && st.help)
+                card.appendChild(el("ol", { id: "setup-help", class: "help" }, [
+                    el("li", { text: "Plug your Cycles into this computer over USB." }),
+                    el("li", { text: "Quit Elektron Transfer: only one program can talk to the Cycles at a time." }),
+                    el("li", { text: "Press Connect. Your browser asks once whether this page may use MIDI devices: allow it." })
+                ]));
+            if (ready() && !st.onward) {
+                st.onward = true;
+                setTimeout(function () {
+                    if (state.view === "setup" && state.setup === st && st.n === 1 && ready())
+                        st.n = 2;
+                    st.onward = false;
+                    render();
+                }, 900);
+            }
         } else if (n === 2) {
             var drop = el("div", { class: "drop" }, [
                 button("Choose .syx files", function () { $("add-file").click(); }, { kind: "ghost", disabled: state.busy }),
@@ -1222,54 +1341,52 @@
             ]);
 
             dropTarget(drop);
-            card.appendChild(el("h2", { text: "Add the firmwares you use" }));
-            card.appendChild(el("p", { text: "The .syx files you flash: the official OS from elektron.se, the builds you download from " +
-                                             "the Flasher, any build for the Model:Cycles. They stay in this browser." }));
+            card.appendChild(el("h2", { text: "Add the firmwares you switch between" }));
+            card.appendChild(el("p", { text: "Add one or more .syx files, from any flasher." }));
+            card.appendChild(el("p", { text: "Nothing is sent to the Cycles now. The files stay in this browser; a firmware goes onto the " +
+                                             "Cycles only when you press Switch." }));
             card.appendChild(drop);
             if (state.builds.length)
                 card.appendChild(el("ul", { class: "list" }, state.builds.map(function (b) {
-                    return el("li", {}, [el("b", { style: "text-transform: uppercase", text: b.name }),
-                                         el("span", { class: "small", text: (KNOWN[b.key] ? "recognized" : "checked") + " · " + kb(b.bytes) })]);
+                    var l = looks(b);
+
+                    return el("li", {}, [el("b", { class: l.long ? "clip" : "", style: "text-transform: uppercase", text: l.title, title: l.long ? b.name : "" }),
+                                         el("span", { class: "small", text: (KNOWN[b.key] ? "official OS" : l.mods ? l.count : "build") + " · " + kb(b.bytes) })]);
                 })));
-            next = { ok: state.builds.length > 0 };
+            /* one is enough to go on (someone with the official OS only can finish the setup); Switch needs two */
+            next = { ok: state.builds.length > 0, why: "Add a firmware to go on.",
+                     hint: state.builds.length === 1 ? "Switch needs two: add the other one now or later." : "" };
         } else if (n === 3) {
             card.appendChild(el("h2", { text: "Which one is on your Cycles now?" }));
-            card.appendChild(el("p", { text: "The Cycles cannot tell which firmware it runs. Say it once; after that the page keeps track." }));
+            card.appendChild(el("p", { text: "A Model:Cycles can't tell this page which firmware it runs. Pick it once; after every switch this " +
+                                             "page knows." }));
             card.appendChild(el("fieldset", { style: "margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 10px" },
-                [el("legend", { class: "vh", text: "Firmware on the Cycles" })].concat(state.builds.map(function (b) {
+                [el("legend", { class: "vh", text: "Firmware on your Cycles" })].concat(state.builds.map(function (b) {
                     var r = el("input", { type: "radio", name: "here", checked: st.pick === b.key });
 
                     r.onchange = function () {
                         st.pick = b.key;
-                        st.slot = b.slot ? two(b.slot) : "";
-                        st.name = b.slotName || "";
                         render();
                     };
-                    return el("label", { class: "choice" + (st.pick === b.key ? " on" : "") }, [r, b.name]);
+                    return el("label", { class: "choice" + (st.pick === b.key ? " on" : "") }, [r, el("span", { class: "namebox" }, nameParts(b, "span", ""))]);
                 }))));
-            var slot = el("input", { value: st.slot, size: 4 }), name = el("input", { value: st.name, size: 10 });
-
-            slot.oninput = function () { st.slot = slot.value; };
-            name.oninput = function () { st.name = name.value; };
-            card.appendChild(el("div", { style: "display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px" }, [
-                el("label", { class: "field" }, ["Its slot on the Cycles", slot]),
-                el("label", { class: "field" }, ["Name there", name]),
-                el("span", { class: "small", style: "flex: 1 1 200px", text: "The slot that holds its project, so that the page can say " +
-                                                                              "where to save it after a switch." })
-            ]));
-            next = { ok: !!st.pick };
+            next = { ok: !!st.pick, why: "Pick the firmware on your Cycles to go on." };
         } else {
             var b = build(st.pick);
 
-            card.appendChild(el("h2", { text: "Back up its project" }));
-            card.appendChild(el("p", { text: "The page asks the Cycles for the project it plays now and keeps it as the project of " +
-                                             (b ? b.name : "this firmware") + "." }));
-            if (st.result)
+            card.appendChild(el("h2", { text: "Keep a copy of your project" }));
+            card.appendChild(el("p", { text: "The page reads the project open on your Cycles and keeps a copy in this browser, unsaved " +
+                                             "changes included. Nothing on the Cycles changes." }));
+            card.appendChild(el("p", { class: "owner" }, [el("span", { class: "small", text: "This copy belongs to:" }),
+                                                          el("span", { class: "namebox" }, b ? nameParts(b, "b", "") : [el("b", { text: "this firmware" })])]));
+            if (st.result) {
                 card.appendChild(el("div", { class: "result" }, [
-                    el("div", { class: "label", style: "font-weight: 700; font-size: 13px; text-transform: uppercase", text: "Backed up" }),
-                    el("div", { class: "big", text: (b && b.slotName ? b.slotName + " · " : "") + "project of " + (b ? b.name : "") }),
-                    el("div", { text: st.result.backup.messages + " messages · " + kb(st.result.backup.bytes) + " · whole" })
+                    el("div", { class: "label", style: "font-weight: 700; font-size: 13px; text-transform: uppercase", text: "Done" }),
+                    el("div", { class: "big", text: "Copy kept" }),
+                    el("div", { text: (b && b.slotName ? "Project " + b.slotName + " · " : "") + kb(st.result.backup.bytes) })   /* the firmware's name stands above */
                 ]));
+                card.appendChild(el("p", { text: "You can add more firmwares, change the slot and switch on the overview at any time." }));
+            }
             else if (st.pct >= 0)
                 card.appendChild(el("div", { class: "bar" }, [
                     el("div", { class: "track" }, [el("div", { class: "fill", id: "setup-fill", style: "width: " + st.pct + "%" })]),
@@ -1279,17 +1396,24 @@
                 card.appendChild(el("p", { style: "font-weight: 700", text: st.error }));
             card.appendChild(el("div", { class: "actions", style: "margin-top: 0" }, st.result ?
                 [button("Open the overview", closeView, { size: "big" })] :
-                [button(st.error ? "Try again" : "Back up now", setupBackup, { size: "big", disabled: state.busy || !ready() || st.pct >= 0 })]));
+                [button(st.error ? "Try again" : "Back up now", function () { withCycles(setupBackup); }, { size: "big", disabled: state.busy || !!NO_MIDI || st.pct >= 0 })]));
         }
-        card.appendChild(el("div", { class: "nav", style: "margin-top: auto" }, [
-            button("Back", function () { st.n = Math.max(1, n - 1); st.pct = -1; st.result = null; st.error = ""; render(); },
-                   { kind: "ghost", size: "sm", disabled: n === 1 || state.busy }),
-            next ? button("Next", setupNext, { size: "sm", disabled: !next.ok || state.busy }) : null
-        ]));
+        /* Back from step 2 only while the Cycles is not connected: step 1 has nothing else to do */
+        var back = n > 2 || (n === 2 && !ready());
+
+        if (back || next)
+            card.appendChild(el("div", { class: "nav", style: "margin-top: auto" }, [
+                back ? button("Back", function () { st.n = Math.max(1, n - 1); st.pct = -1; st.result = null; st.error = ""; render(); },
+                              { kind: "ghost", size: "sm", disabled: state.busy }) : null,
+                next ? el("div", { class: "go-on" }, [
+                    (!next.ok && next.why) || next.hint ? el("span", { class: "small", text: next.ok ? next.hint : next.why }) : null,
+                    button("Next", setupNext, { size: "sm", disabled: !next.ok || state.busy })
+                ]) : null
+            ]));
         return el("div", { class: "setup", role: "dialog", "aria-modal": "true", "aria-label": "Set up" }, [
             el("div", { class: "shead" }, [
                 el("div", { class: "stitle", text: "Set up · step " + n + " of 4" }),
-                el("button", { type: "button", class: "close", "aria-label": "Close the setup", text: "×", onclick: closeView, disabled: state.busy })
+                el("button", { type: "button", class: "close", "aria-label": "Close the setup", text: "Close", onclick: closeView, disabled: state.busy })
             ]),
             pips,
             card

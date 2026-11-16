@@ -21,7 +21,8 @@ the page only sends what the user adds and what the Cycles sent. Addresses: load
 - **Which firmware runs cannot be read** from the device: a model27 build answers as the official OS does (§5); the
   page keeps track of what it flashed and asks once.
 - **A backup holds no name and no slot** (§6): after a restore the Cycles keeps those of the project loaded before,
-  and its quick save would overwrite that project. The fifth step says where to save and which name to type.
+  and its quick save would overwrite that project. The fifth step says where to save, names the slots of the other
+  firmwares not to pick, and leaves the name to the user (only the project list shows it).
 - Tried on the maintainer's Model:Cycles (2026-11-02, §8): both ways between a model27 build and the official OS
   1.13, each with its own project, also after a power cycle; stopping a flash; USB pulled during a restore; export
   and import.
@@ -128,7 +129,12 @@ slot of the project loaded before: its project list marks no project or the old 
 restored project into the slot of the other firmware's project (2026-11-02). A restored project survives a power
 cycle. Saving it from the project list into the firmware's own slot (Save, “Overwrite?” Yes) asks for a name and
 suggests the one held from before; renamed, that slot is marked and named right (2026-11-02). So the switch's fifth step
-names the slot and the name to type, from the firmware's `slot` and `slotName` (asked the first time, or in the setup).
+names the slot, from the firmware's `slot` (asked the first time, or set from the tile's menu, Slot on your Cycles…;
+the setup no longer asks for it since 16/11/2026: without the switch around it the reason was not plain). Since
+16/11/2026 it says why (each firmware a slot of its own), one action per line, names the slots of the other
+firmwares not to pick, and makes the name optional: the page never reads it from the Cycles, it only keeps two
+slots in the project list from having the same name. “Overwrite?” is written as “if the Cycles asks”: it was seen
+only when saving into a slot that held a project.
 
 ## 7. The page
 
@@ -172,7 +178,7 @@ The maintainer: the page needs a notice when the browser has no Web MIDI, since 
 flasher can still offer the `.syx` for Elektron Transfer). `app.js` tells why as the flasher does (`noMidi`): not a
 secure page (`isSecureContext` false), or no `navigator.requestMIDIAccess` (Safari, for example). It then shows the
 reason at the top of the page (`#nomidi`) and in the setup's first step, the chip reads "No Web MIDI" and is locked,
-Switch, Back up now and Send to the Cycles stay locked with the reason, and the setup does not open by itself on an
+Switch, Back up now and Send to your Cycles stay locked with the reason, and the setup does not open by itself on an
 empty library. Adding firmwares, Export and Import still work. Checked in a browser with `requestMIDIAccess` removed
 before the page's scripts, and without it removed (unchanged).
 
