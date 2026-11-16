@@ -1,0 +1,201 @@
+{
+ "schema": "cycles-mod/0.1",
+ "id": "chips",
+ "version": "0.1",
+ "name": "CHIPS: a chip square with an arpeggio inside the note, a pitch sweep and a stepped triangle bass, after Plaits",
+ "description": "model27's machine after the ChiptuneEngine of Mutable Instruments Plaits (notes/83), written anew in fixed point on the EMAC: Plaits' hard-synced square with polyBLEP and its 32-step triangle bass. Wave is the square's waveform (Plaits' MORPH: a narrowing pulse below the middle, sync overtones above); Chord picks one of Plaits' eleven chords, a zone of 11 or 12 values each, named on the display in the OS's big font (OCT, 5, SUS, m, m7, m9, m11, 69, M9, M7, M), within one octave as Plaits plays them, which an arpeggio runs through inside the note as old sound chips do, from the root at every trig, up or up and down (MACHINES + GATE); OCT is one tone, a mono synth, the default; Arp is its tempo, shown in the OS's narrow big font as 1/4 .. 1/32 and 16HZ .. 64HZ, with no off (one tone is OCT's): from 0 to 63 the song's tempo from 1/4 to 1/32 with triplets, 1/16 the default, from 64 to 127 a free flutter of 16 to 64 changes a second; Sweep makes the note start above or below its pitch at every trig and fall onto it (up to 48 semitones, 30 ms), for lasers, kicks and toms. MACHINES + PUNCH adds the bass an octave below the tone the arpeggio plays; PUNCH makes it as loud as the square, without PUNCH 6 dB lower. DECAY, GATE and PUNCH are the stock amp chain as on TONE, its output stage too; while the envelope is closed the voice stands still. Pitch as on every machine.",
+ "license": "MIT",
+ "credit": {
+  "kind": "based",
+  "who": "Émilie Gillet (Mutable Instruments Plaits)",
+  "repo": "pichenettes/eurorack"
+ },
+ "source": "https://github.com/pichenettes/eurorack/tree/08460a6/plaits/dsp",
+ "device": "Model:Cycles",
+ "os": "1.13",
+ "order": 84,
+ "build": {
+  "sources": [
+   "chips.c"
+  ],
+  "include": [
+   "."
+  ],
+  "cflags": [
+   "-std=c99",
+   "-mcpu=54418",
+   "-O2",
+   "-ffreestanding",
+   "-fno-builtin",
+   "-fno-tree-loop-distribute-patterns",
+   "-nostdlib",
+   "-fno-pic",
+   "-fno-common",
+   "-ffunction-sections",
+   "-fdata-sections",
+   "-Wall",
+   "-Wextra",
+   "-Werror"
+  ],
+  "defines": {},
+  "objects": [
+   "chips.o"
+  ],
+  "patch_points": [
+   {
+    "symbol": "chips_descriptor_base",
+    "kind": "descriptor_base"
+   }
+  ],
+  "symbols": {
+   "update": "chips_update",
+   "render": "chips_render"
+  },
+  "keep": [
+   "chips_ui_format",
+   "chips_ui_draw"
+  ]
+ },
+ "uses": [
+  {
+   "point": "machine",
+   "name": "CHIPS",
+   "image": 4,
+   "decay_default": 64,
+   "knobs": [
+    {
+     "long": "Chips Wave",
+     "short": "WAVE",
+     "default": 64
+    },
+    {
+     "long": "Chips Chord",
+     "short": "CHRD",
+     "default": 0
+    },
+    {
+     "long": "Chips Sweep",
+     "short": "SWEP",
+     "default": 64
+    },
+    {
+     "long": "Chips Arp",
+     "short": "ARP",
+     "default": 41
+    }
+   ]
+  },
+  {
+   "point": "knob.text",
+   "vtable": {
+    "at": "0x400fd170",
+    "stock_ptr": "0x4000a70e",
+    "symbol": "chips_ui_format",
+    "shared": [
+     "0x400fd108",
+     "0x400fd1d8",
+     "0x400fd240"
+    ]
+   },
+   "chain": "chips_next_fmt",
+   "why": "a track's parameter object writes a knob's value as text here (the value window, the TRACK + knob popup, the locks): CHIPS's Chord as the chord's name, its Arp as 1/4 .. 1/32 and 16HZ .. 64HZ; every other descriptor to the entry behind it (notes/83 §8, §11)"
+  },
+  {
+   "point": "knob.draw",
+   "vtable": {
+    "at": "0x400fd174",
+    "stock_ptr": "0x4000a66a",
+    "symbol": "chips_ui_draw",
+    "shared": [
+     "0x400fd10c",
+     "0x400fd1dc",
+     "0x400fd244"
+    ]
+   },
+   "chain": "chips_next_draw",
+   "why": "the knob view draws a value here instead of its text: CHIPS's Chord not (0: the knob view writes the name in its big font, as a number), its Arp in the OS's narrow big font; every other descriptor to the entry behind it (notes/83 §8, §11)"
+  },
+  {
+   "point": "shortcut",
+   "key": "MACHINES",
+   "press": "PUNCH",
+   "why": "Bass, a switch: bit 8 of k 32, which the voice reads in the note's sound every block (a trig's lock of k 32 at the trig); the shortcut layer flips and saves it"
+  },
+  {
+   "point": "shortcut",
+   "key": "MACHINES",
+   "press": "GATE",
+   "why": "Up-down, a switch: bit 9 of k 32, which the voice reads in the note's sound every block (a trig's lock of k 32 at the trig); the shortcut layer flips and saves it"
+  }
+ ],
+ "claims": {
+  "sound_slots": [
+   32
+  ],
+  "record_slots": [
+   18
+  ],
+  "ram": [],
+  "gestures": [
+   {
+    "combo": "MACHINES + PUNCH",
+    "meaning": "Bass"
+   },
+   {
+    "combo": "MACHINES + GATE",
+    "meaning": "Up-down"
+   }
+  ],
+  "views": []
+ },
+ "cost": {
+  "emulation": {
+   "default": 1672,
+   "sync_color_127": 1722,
+   "bass": 2215,
+   "bass_punch": 2207,
+   "bass_note_36": 2158,
+   "arp_64hz_bass": 2234,
+   "arp_1_16_updown": 1693,
+   "bass_above_750hz": 4052,
+   "sweep_retrig_bass_mean": 4170,
+   "paused": 226,
+   "six_arp_bass": 13404,
+   "six_tone": 31746,
+   "pattern": "instructions a block, the whole voice loop less the same loop muted, note 60, DECAY 127 and default knobs unless named; tools/emu/test_chips.py, the maintainer's run of 2026-11-15 (notes/83 §5.1); before notes/83 §8"
+  },
+  "device": {
+   "status": "not measured"
+  }
+ },
+ "stock_behaviour": {
+  "changes": [
+   "on its tracks, MACHINES held + PUNCH or GATE flips the bass or the arpeggio's direction instead of PUNCH or GATE, and their LEDs show those switches while MACHINES is held"
+  ],
+  "fixes": [],
+  "unchanged": [
+   "other tracks and machines",
+   "TRACK + PUNCH or GATE (Control All), with or without MACHINES"
+  ]
+ },
+ "compat": {
+  "built_against": [
+   "model27"
+  ],
+  "requires": [],
+  "conflicts_declared": []
+ },
+ "tests": {
+  "emulation": {
+   "tool": "the core against Plaits' unchanged oscillators on the host, the package's core against step 1's chosen variant, and the ColdFire object against the host build in a ColdFire interpreter (notes/83 §3, §4.3); tools/emu/test_chips.py (Unicorn, the OS's own code, against the host build tools/emu/chips_ref.c, notes/83 §5): ALL OK before notes/83 §8 (Plaits' chords), the core exact in 85 cases, the pause, the switches from the sound, a preview's copy and a trig's lock, the tempo, the chain TONE's; since §8 (CHORD's chords, the display) the host, compose and the ColdFire interpreter ok, the maintainer's Unicorn runs ALL OK (startup, core, display, next; 12 of the 304 stock windows not built by the test, the same in both builds, notes/83 §8.3); since §9 (CONTOUR without OFF, Chord 0 and Arp 1/16 the defaults) startup, core and display ALL OK; since §10 (Plaits' chords again, one a step, named) the ColdFire interpreter (the listening page's 70 clips bit for bit against step 1) and compose ok, the maintainer's Unicorn run (startup, core, display) ok; since §11 (SHAPE in zones, the names in the big font, CONTOUR in the narrow big font) the interpreter, compose and the maintainer's Unicorn run ok",
+   "date": "2026-11-16",
+   "build": "alone and next to SAMPLE, composed by compose.py"
+  },
+  "hardware": {
+   "date": "2026-11-15",
+   "by": "maintainer",
+   "build": "CHIPS alone from tools/compose.py (notes/83 §6, .syx c9db10d1…, MAIN OS 953a0e1e…): digiemu (the MACHINES page, the popups, the arpeggio) and the Model:Cycles (the bass and up-down switches with their LEDs, PUNCH, the sweep both ways, the divisions following the tempo, OCT a single tone, a trig's lock of the bass, the save and reload): \"passt\"; the CPU page not measured; before notes/83 §8. Since §8 (.syx cd43f1ec…, 2026-11-16): SHAPE with CHORD's names, CONTOUR's OFF, divisions and Hz, PITCH's window, the arpeggio from SHAPE's fourth position: \"passt alles\"; since §9 (.syx 607efea1…, 2026-11-16): the new defaults, CONTOUR from 1/4 without OFF: \"ja, passt\"; since §10 (.syx bd9971b4…, 2026-11-16): Plaits' chords, one a step, their eleven names: \"passt, alles ok\"; since §11 (.syx f6a0d95b…, 2026-11-16): SHAPE in zones, the names in the big font, CONTOUR in the narrow big font: \"all ok\""
+  },
+  "status": "experimental"
+ }
+}

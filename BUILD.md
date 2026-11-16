@@ -288,6 +288,31 @@ Model:Cycles depuis la ligne de commande le 14/11/2026, avec les images de SOLID
 0.63 (Perform Kit, sans les images, note 81) : `d91ef5bf…` ; release 0.59 : `0901bf28…`, essayé dans digiemu et sur un Model:Cycles depuis la ligne de commande le 11/11/2026 (note 71 §11),
 puis flashé depuis la page le même jour (note 71 §12).
 
+### Machine CHIPS
+
+`tweaks/model-cycles_OS1.13/84-chips.json` est produit par `tools/gen_chips.py`, qui écrit ses tables
+(`tools/machines/chips/chips_tables.h`), compile `tools/machines/chips/chips.c` en son objet et le compose seul avec
+`tools/compose.py` : une machine ajoutée d'après le ChiptuneEngine de Plaits (Émilie Gillet, MIT,
+`tools/machines/chips/LICENSE-Plaits`), réécrite en virgule fixe sur l'EMAC ([note 83](notes/83-chips.md)) : le carré
+synchronisé de Plaits et sa basse triangle à 32 marches, un arpège dans la note sur les onze accords de Plaits pliés
+dans une octave, et un glissement de hauteur à chaque trig. COLOR est la forme du carré, SHAPE l'accord (onze zones de
+0 à 127, nommées à l'écran dans la grande police : OCT, 5, SUS, m … M), SWEEP le glissement, CONTOUR la vitesse de
+l'arpège (1/4 à 1/32 avec le tempo, puis 16 à 64 notes par seconde, écrit dans la grande police étroite) ;
+MACHINES + PUNCH la basse, MACHINES + GATE l'arpège montant et descendant. La preuve tourne sur le code de l'OS
+(Unicorn), au bit près contre le build hôte du même fichier (`tools/emu/chips_ref.c`) :
+```sh
+python3 tools/gen_chips.py --cycles model-cycles_OS1.13.syx [--check]
+python3 tools/emu/test_chips.py --cycles model-cycles_OS1.13.syx [--dry] [--quick] [--only startup,core,display]
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines chips                # seule
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,chips        # avec SAMPLE
+```
+MAIN OS patché, `chips` 0.1 seule : `3db03b31c0c8dcef24ca36d2f4c0a3f3e4f541842bfb135977d63399f4c70324`, le fichier
+essayé sur un Model:Cycles depuis la ligne de commande le 16/11/2026 (note 83 §11) ; avec SAMPLE 0.18 :
+`a4506cafee911cc44d9fe35c47a04ae463212a752416be3e567ed113eee44b68` ; avec toutes les cartes de la page (dix-huit,
+release 0.68 : `--machines sampler,solid,chips,chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq --cpu --resample
+--transpose --perform --with control-all-config,trig-preview,trig-cond-order`) :
+`242fccca80357ff50ae1f92ebeeee464c7a0dc310e022b17f4139b77b2e62aed`. Pas encore flashé depuis la page.
+
 ### CHORD Tables (wavetables du +Drive)
 
 `tweaks/model-cycles_OS1.13/36-chordtables.json` est produit par `tools/gen_chordtables.py`, qui compile

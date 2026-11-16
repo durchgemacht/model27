@@ -20,6 +20,7 @@
  "conflicts": [
   "acid",
   "acid-tg",
+  "chips",
   "chordtables",
   "crush",
   "digidelay",

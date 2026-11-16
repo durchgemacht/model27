@@ -60,6 +60,12 @@ SELECTIONS = ((["sampler"], []), (["refmachine"], []), (["sampler", "refmachine"
               (["solid", "chordtables", "crush"], []),
               (["sampler", "solid", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu",
                 "resample", "transpose"], []),
+              # notes/83 §12: CHIPS alone, with SAMPLE before and after it (machines 6 and 7), with SOLID, CHORD Tables
+              # and a Track FX (its knob view's chain hooks in front of the dispatchers), and the full offered set
+              (["chips"], []), (["sampler", "chips"], []), (["chips", "sampler"], []),
+              (["solid", "chips", "chordtables", "crush"], []),
+              (["sampler", "solid", "chips", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq",
+                "cpu", "resample", "transpose", "perform"], []),
               # notes/68: the effects alone, in both slots, with SAMPLE before and after them, with the shortcut layer
               # and the dispatchers (REF2, SAMPLE), and with an extension of CHORD (the stock descriptor table)
               (["digidelay"], []), (["refdelay", "refreverb"], []), (["sampler", "digidelay"], []),

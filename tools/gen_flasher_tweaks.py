@@ -365,6 +365,25 @@ ALL_FEATURES = [
         "package": "solid",
     },
     {
+        "id": "chips",
+        "cat": "sound",
+        "label": "CHIPS",
+        "desc": "One extra machine after Chord that plays chiptune: a square wave that arpeggiates one of Plaits' eleven "
+                "chords, with a pitch sweep at every trig and a stepped triangle bass. COLOR = Wave, SHAPE = Chord "
+                "(OCT is one note), SWEEP = Sweep, CONTOUR = Arp (1/4 to 1/32 with the tempo, then 16 to 64 notes a "
+                "second); MACHINES + PUNCH the bass, MACHINES + GATE up and down.",
+        # after the ChiptuneEngine of Mutable Instruments Plaits (MIT), written anew in fixed point (notes/83); bit for
+        # bit its host build in emulation (test_chips.py), Plaits' chords bit for bit step 1's core; tried on the
+        # Model:Cycles from the command line, CHIPS alone (notes/83 §6, §8 to §11); experimental here until flashed
+        # from this page, as the other cards were
+        "status": "experimental",
+        "credit": {"kind": "based", "who": "Émilie Gillet", "repo": "pichenettes/eurorack"},
+        "license": "LICENSE-Plaits",
+        # composed in the page from its package (notes/83 §12): alone it gives 84-chips.json byte for byte, whose
+        # conflicts give its excludes
+        "package": "chips",
+    },
+    {
         "id": "chordtables",
         "cat": "sound",
         "label": "CHORD Tables",
@@ -644,7 +663,7 @@ ALL_FEATURES = [
 # model27 offers a short list of cards. The other definitions above stay as they are, for the command-line build
 # (every tweak of tweaks/ is still built by tools/build.py) and so that merges from upstream apply cleanly; a card
 # comes back into the flasher by adding its id here, once it has been reviewed against the Cycles Mod Standard.
-OFFERED = ("sampler", "solid", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample",
+OFFERED = ("sampler", "solid", "chips", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample",
            "transpose", "perform", "control-all-config", "trig-cond-order", "trig-preview")
 FEATURES = [f for f in ALL_FEATURES if f["id"] in OFFERED]
 _missing = set(OFFERED) - {f["id"] for f in FEATURES}

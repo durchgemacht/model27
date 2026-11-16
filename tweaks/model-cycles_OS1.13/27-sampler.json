@@ -39,6 +39,7 @@
  "conflicts": [
   "acid",
   "acid-tg",
+  "chips",
   "chordtables",
   "cpu",
   "crush",

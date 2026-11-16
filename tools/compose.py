@@ -1586,7 +1586,10 @@ def package_writes(m, img, syms, skip=()):
             va, method = int(vt["at"], 16), int(vt["stock_ptr"], 16)
             if va in skip:
                 continue
-            if g7.refs32(img, method) != [va]:
+            # the method's only reference is the entry, or the entry and the other tables' entries the use names in
+            # "shared" (left as they are: a method several vtables hold, as the parameter objects' 0x4000a70e)
+            want = sorted([va] + [int(x, 16) for x in vt.get("shared", [])])
+            if sorted(g7.refs32(img, method)) != want:
                 sys.exit(f"!! {m['id']}: references to {method:#x}: {[hex(r) for r in g7.refs32(img, method)]}")
             writes.append({"off": va - BASE, "old": g7.be32(method).hex(), "new": g7.be32(syms[vt["symbol"]]).hex()})
     return writes

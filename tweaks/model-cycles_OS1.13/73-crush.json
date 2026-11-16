@@ -21,6 +21,7 @@
  "conflicts": [
   "acid",
   "acid-tg",
+  "chips",
   "chordtables",
   "cpu",
   "digidelay",

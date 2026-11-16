@@ -19,6 +19,7 @@
  "conflicts": [
   "acid",
   "acid-tg",
+  "chips",
   "cpu",
   "crush",
   "digidelay",

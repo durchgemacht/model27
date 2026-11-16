@@ -209,6 +209,14 @@ tools/machines/solid/         SOLID (notes/71): model27's own modal resonator ma
                               MACHINES page's card, set by solid_card.c on the screen's tick, and from pictures/*.bin its
                               icon and the track icon, through the registrar's pictures, §13) and its object and composes
                               it alone into 71-solid.json, the flasher's SOLID card; tools/emu/test_solid.py proves it
+tools/machines/chips/         CHIPS (notes/83): Plaits' hard-synced square and 32-step triangle bass (MIT,
+                              LICENSE-Plaits), written anew in fixed point on the EMAC, with an arpeggio inside the note
+                              (the song's divisions or a free flutter on CONTOUR, shown as 1/4 .. 1/32, 16HZ .. 64HZ) over
+                              Plaits' eleven chords in one octave (SHAPE in eleven zones, named on the display, OCT one tone) and a
+                              pitch sweep; the bass and the arpeggio's direction are MACHINES + PUNCH / GATE switches in
+                              k 32; tools/gen_chips.py writes its tables and its object and composes it alone into
+                              84-chips.json, the flasher's CHIPS card; tools/emu/test_chips.py proves it (chips_ref.c, the
+                              core on the host); experimental
 tools/machine_pictures.py     an added machine's own pictures as C (the OS's Bitmaps, their masks, the registrar's table):
                               gen_solid.py and gen_sampler.py write solid_pictures.c and sample_pictures.c with it
                               (notes/60 §25); SAMPLE's (sample_card.c, pictures/) are model27's, next to One-Shot's code
@@ -252,7 +260,7 @@ CONTRIBUTING.md               terms for outside contributions, and how a machine
 
 Follow the shape of the last ones (tempo-max: commits `5997b4a`, `14fb9fa`, `6e592bc`; trig-hold, arp). In order:
 
-1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 81 is the last) with the
+1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 83 is the last) with the
    user's request and its source, the OS code involved (addresses, `[FAIT]`/`[HYP]`), the design, free space used and
    conflicts with other tweaks. Add a row to `notes/README.md`. See `notes/AGENTS.md`.
 2. **Write the generator** `tools/gen_<mod>.py` (and sources under `tools/machines/<mod>/` if it has code). It reads

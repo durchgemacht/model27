@@ -21,6 +21,7 @@
  "conflicts": [
   "acid",
   "acid-tg",
+  "chips",
   "chord-keys",
   "chordtables",
   "cpu",
