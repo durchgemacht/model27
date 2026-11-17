@@ -178,3 +178,10 @@ Demande du mainteneur : rendre le Model:Samples de nouveau visible dans le flash
   Cycles avec l'OS Samples (`--to cycles`), sans fichier `_cyc-os` ni `--back-samples`. Non retenue pour l'instant :
   jamais essayée sur un vrai Model:Samples, et les machines déjà sous l'OS de la page (clé Samples) n'accepteraient
   plus que les fichiers signés Samples.
+
+**Preuve remise à jour (17/11/2026)** : `tools/emu/test_mods_for_samples.py` construisait encore des combinaisons de
+Modded-Cycles (Model-TG, moteurs du Syntakt) que la page n'offre plus. Il prend maintenant celles d'aujourd'hui : SAMPLE
+seul, Control All Config + Trig Preview, et toutes les cartes (`tools/compose.py`, la plus grosse de l'échantillon) ;
+`--syntakt` devient facultatif. Les trois MAIN OS égalent REF_MAINOS, et tous les groupes passent dans Unicorn (« tout
+est ok », lancé par le mainteneur) : aller, démarrage, changement de mods, retour à l'OS Samples, refus des fichiers
+signés Cycles.

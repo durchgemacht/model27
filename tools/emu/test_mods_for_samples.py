@@ -17,8 +17,11 @@ les fait tourner sur des builds avec mods de l'échantillon REF_MAINOS de la pag
   7. Sans mods, mods_for_samples redonne octet pour octet crossflash.py --to samples (REF_CYCLES_ON_SAMPLES) ;
      il refuse un fichier déjà emballé pour le Samples.
 
-    python3 tools/emu/test_mods_for_samples.py --cycles model-cycles_OS1.13.syx --samples model-samples_OS1.13.syx \\
-        --syntakt Syntakt_OS1.42.syx
+    python3 tools/emu/test_mods_for_samples.py --cycles model-cycles_OS1.13.syx --samples model-samples_OS1.13.syx
+
+The combinations are the page's of today (17/11/2026, notes/57 §7): SAMPLE alone, two mods without a machine, and every
+card at once, the largest of the page's sample; --syntakt is only for an older list that still names the Syntakt
+engines.
 
 Environ 1 min (huit vérifications HMAC émulées et un démarrage par combinaison).
 """
@@ -40,10 +43,13 @@ import test_crossflash_samples as T                                  # noqa: E40
 from mtlib.syx import unwrap                                         # noqa: E402
 
 REPO = HERE.parent.parent
-# combinaisons de l'échantillon REF_MAINOS (clés de la page, ordre des cartes) : Model-TG seul, avec la sortie 6 canaux
-# (le rapport d'akrism, notes/41 §8), avec MACRO, et la plus grosse de l'échantillon
-COMBOS = ["model-tg", "6ch-usbup+model-tg", "model-tg-st+sample-preview-st+macro-tg",
-          "6ch-usbup+model-tg-st+sample-preview-st+trig-hold+arp+tempo-max+boot-anim+multiline-browser+level-pan-values+trigless-dim+midi-live-both+lfo-plus+syntakt-tg-sd-cp-toy-bits-swarm-macro"]
+# combinations of the page's REF_MAINOS sample (its keys, in card order), as the flasher offers them on 17/11/2026:
+# SAMPLE alone, two mods without a machine, and every card at once (its largest); the first two are tweaks of the
+# folder (tools/build.py), the last is composed (tools/compose.py: machines, parts and the mods with them)
+FULL = ("control-all-config+trig-preview+sampler+solid+chips+maxsaw+chordtables+digidelay+pots+smpfilter+crush+ring+"
+        "reso+eq+cpu+resample+transpose+perform+trig-cond-order")
+COMBOS = ["sampler", "control-all-config+trig-preview", FULL]
+PARTS = ("cpu", "resample", "transpose", "perform")
 check = T.check
 
 
@@ -55,17 +61,31 @@ def ref_mainos():
 
 
 def build(cycles, syntakt, key, ref, out):
-    subprocess.run([sys.executable, str(REPO / "tools/build.py"), "-i", cycles, "--syntakt", syntakt,
-                    "-t", key.replace("+", ","), "--expect-mainos", ref, "-o", str(out)],
+    """The Model:Cycles build of a page key: tools/build.py for the folder's tweaks, tools/compose.py for every card (the
+    machines and parts composed, the other mods with them); either way its MAIN OS is checked against REF_MAINOS
+    later (the 32 bytes put back)."""
+    ids = key.split("+")
+    if key != FULL:
+        cmd = [sys.executable, str(REPO / "tools/build.py"), "-i", cycles, "-t", ",".join(ids),
+               "--expect-mainos", ref, "-o", str(out)] + (["--syntakt", syntakt] if syntakt else [])
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)
+        return out.read_bytes()
+    feats = {f["id"]: f for f in __import__("gen_flasher_tweaks").FEATURES}
+    machines = [feats[i]["package"] for i in ids if feats[i].get("package")]
+    parts = [i for i in ids if i in PARTS]
+    mods = [i for i in ids if not feats[i].get("package") and i not in parts]
+    folder = out.parent / "compose"
+    subprocess.run([sys.executable, str(REPO / "tools/compose.py"), "--cycles", cycles, "--machines", ",".join(machines),
+                    "--with", ",".join(mods), "--out", str(folder)] + [f"--{p}" for p in parts],
                    check=True, stdout=subprocess.DEVNULL)
-    return out.read_bytes()
+    return next(folder.glob("*.syx")).read_bytes()
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cycles", required=True)
     ap.add_argument("--samples", required=True)
-    ap.add_argument("--syntakt", required=True)
+    ap.add_argument("--syntakt", help="only for a list that still names the Syntakt engines")
     args = ap.parse_args()
 
     cyc, smp = X.load(args.cycles, "cycles"), X.load(args.samples, "samples")
