@@ -262,9 +262,9 @@ h3 .key,h4 .key,h3 .knob,h4 .knob{font-size:1em}
 #panel-samples .check{margin:0}
 
 /* screen 2: the install steps */
-.screen-h{margin:32px 0 24px;font-size:36px;letter-spacing:-.02em}
-.step{margin:0 0 20px;border:2px solid var(--ink)}
-.step>header{display:flex;align-items:stretch;gap:14px;border-bottom:1px solid var(--ink)}
+.screen-h{margin:32px 0 48px;font-size:36px;letter-spacing:-.02em}
+.step{margin:0 0 48px;border:2px solid var(--ink)}
+.step>header{display:flex;align-items:stretch;gap:14px;border-bottom:1px solid var(--ink);background:var(--card)}
 .step h2{align-self:center;padding:12px 0;font-size:20px;line-height:1.1}
 .num{display:grid;place-items:center;flex:none;width:48px;min-height:48px;border-right:1px solid var(--ink);font:700 22px/1 var(--f)}
 .step.done .num{background:var(--ink);color:var(--paper)}
@@ -274,7 +274,7 @@ h3 .key,h4 .key,h3 .knob,h4 .knob{font-size:1em}
 .picked li{display:inline-flex;align-items:center;gap:8px;padding:2px 8px;border-radius:var(--r);background:var(--ink);color:var(--paper);font-weight:600;font-size:14.5px}
 .picked .tag{font-size:11px;padding:0 3px;border-width:1.5px}
 /* install screen: the way back to the cards, step 1 (the machine) in two columns, step 4's list of what goes on */
-.back-row{margin:32px 0 0;font-size:14.5px}
+.back-row{margin:32px 0 0;font-size:13px;color:var(--soft)}
 .back-row+.screen-h{margin-top:12px}
 .who{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:24px 56px;padding:24px 24px 26px}
 .who-q{margin:0 0 4px;font:700 12px/1.3 var(--f);text-transform:uppercase;letter-spacing:.06em}
