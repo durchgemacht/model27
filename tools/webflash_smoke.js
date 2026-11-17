@@ -201,7 +201,7 @@ async function load({ midi = true, ports = true, inputs = true, busy = false, se
     access: () => access, devOut: () => devOut, devIn: () => devIn };
 }
 
-// No pause between blocks (50 ms on the real machine): a 2.5 MB file goes through in a few seconds.
+// No pause between blocks (50 ms on the real machine): a 1.1 MB file goes through in a few seconds.
 function noRest(w) {
   const orig = w.MCFlasher.upgradeFast;
   w.MCFlasher.upgradeFast = (session, raw, opts) => orig(session, raw, Object.assign({}, opts, { restMs: 0 }));
@@ -944,7 +944,7 @@ async function main() {
     doc.getElementById("ack").click();
     await wait(20);
     check(!doc.getElementById("flash").disabled, "flash button enabled when everything is ready");
-    const fastMin = Math.max(1, Math.round(w.MCFlasher.fastSeconds(app.state.fw.raw) / 60));   // 2.5 MB synthetic file: 2 min
+    const fastMin = Math.max(1, Math.round(w.MCFlasher.fastSeconds(app.state.fw.raw) / 60));   // 1.1 MB synthetic file: 1 min
     check(text(doc, "summary").endsWith(`via Elektron Model:Cycles · about ${fastMin} min`) && fastMin <= 2 && /confirm on its screen/.test(text(doc, "missing")),
       "fast summary: " + text(doc, "summary"));
     const dl = doc.getElementById("download");

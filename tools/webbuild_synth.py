@@ -60,9 +60,14 @@ key = bytes(a ^ b ^ c for a, b, c in zip(h, hr, const))
 
 main = bytes(main)
 
-# --- 2. section 3 compressee (tout en litteraux) ----------------------------
-ops_lit = [(aplib.LITERAL, i, 0, 1) for i in range(len(main))]
-s3 = aplib.repack(main, ops_lit, bytearray(len(main)))
+# --- 2. section 3 compressee ----------------------------------------------------
+# The first LIT bytes as literals, the rest packed: a .syx of about 1.1 MB (8,900 packets), the size of a real build.
+# All literals made a 2.5 MB .syx (19,400 packets), more than the 16,384 packet numbers builder.js wrap() allows.
+import aplib_grow                                # noqa: E402
+LIT = 800000
+_, tail_ops = aplib.depack(bytes(aplib.SECT_HDR) + aplib_grow.pack(main[LIT:]))
+ops = [(aplib.LITERAL, i, 0, 1) for i in range(LIT)] + [(k, p + LIT, o, n) for k, p, o, n in tail_ops]
+s3 = aplib.repack(main, ops, bytearray(len(main)))
 assert aplib.depack(s3)[0] == main, "aller-retour aplib synthetique"
 
 # --- 3. blob ELE3 (1 section, id 3), mise en page comme container.rebuild ----

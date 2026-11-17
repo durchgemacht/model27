@@ -196,6 +196,10 @@ function wrap(body, product, startSeq = START_SEQ) {
   const [name, dev, V, C0] = PRODUCTS[product];
   if (body.length % BYTES_PER_MSG) throw new Error("longueur de corps non multiple de " + BYTES_PER_MSG);
   const count = body.length / BYTES_PER_MSG;
+  // A packet number is two 7-bit bytes (seq >> 7, seq & 0x7f): past 0x3fff the high byte leaves the MIDI data range
+  // and the .syx is broken (Supermodel's large files hit this). Refuse instead of writing such a file.
+  const maxCount = 0x3fff - startSeq + 1;
+  if (count > maxCount) throw new Error(`firmware too large: ${count} SysEx packets, at most ${maxCount} can be numbered`);
   const pre = Uint8Array.of(0xf0, ...ELEKTRON, product, 0x00);
   const chunks = [];
   chunks.push(concat(pre, Uint8Array.of(0x7f, 0x01, dev), p21(startSeq), p21(count), Uint8Array.of(0xf7)));
