@@ -7,6 +7,11 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.72", date: "2026-11-17", changes: [
+    { en: "A new machine, TERRA, plays wave terrain synthesis: a point circles over a surface, and the height under it is the sound. COLOR chooses one of eight surfaces, fading from one into the next, SHAPE the size of the circle, from almost a sine wave to a rich sound, SWEEP moves it sideways over the surface, and CONTOUR mixes in a second sound, a sine wave that the surface bends" },
+    { en: "Surfaces 1 to 5 are smooth, 6 to 8 are made of Plaits' wavetables and sound brighter. A new trig on a track that still sounds doesn't cut it" },
+    { en: "Based on the wave terrain model of Mutable Instruments' Plaits, written anew for the Model:Cycles, with its wavetables. Goes with every other card. Checked in an emulator on the OS's own code and tried on a Model:Cycles from the command line (2026-11-17); experimental until it is flashed from this page" }
+  ] },
   { version: "0.71", date: "2026-11-17", changes: [
     { en: "Back to the official firmware on a Model:Samples now also works when its Model:Cycles OS was put on by hand or by an older tool. If the machine refuses the usual way back, nothing is written, and the page sends the other way back by itself" },
     { en: "Mods put on a Model:Samples by Modded-Cycles, Supermodel or PPPCCC already go back the usual way. Checked in an emulator on the Model:Samples' own code and with a simulated machine (2026-11-17), not yet on a real Model:Samples" }

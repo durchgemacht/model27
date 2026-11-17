@@ -102,7 +102,8 @@ LINK = """SECTIONS
   .text {code:#x} : {{ *(.text.{update}) *(.text.{render}) *(.text*) }}
   .rodata : {{ *(.rodata*) }}
   .data : {{ *(.data*) }}
-  .bss {bss:#x} (NOLOAD) : {{ *(.bss*) *(COMMON) }}
+  .far {bss:#x} : {{ *(.far*) }}
+  .bss ALIGN(4) (NOLOAD) : {{ *(.bss*) *(COMMON) }}
   /DISCARD/ : {{ *(.comment) *(.note*) *(.eh_frame*) }}
 }}
 """
@@ -351,8 +352,9 @@ def build_object(m, tmp):
 
 def compile_package(m, tmp, code_at, bss_at, code_end, values):
     """The B1 path, with the toolchain: compiles the package's sources with its flags and the build's values for
-    its patch points, links them at code_at (code, tables, data) and bss_at (variables); the code must end before
-    code_end. Returns (bytes from code_at to the end of the data, symbols, end of the variables)."""
+    its patch points, links them at code_at (code, tables, data) and bss_at (far tables, then variables); the code must
+    end before code_end. Returns (bytes from code_at to the end of the data, symbols, end of the variables, the far
+    tables' bytes at bss_at)."""
     b = m["build"]
     defines, symbols = patch_values(m, values)
     objs = compile_objects(m, tmp, defines)
@@ -368,10 +370,17 @@ def compile_package(m, tmp, code_at, bss_at, code_end, values):
         f = line.split()
         if len(f) > 4 and f[0].isdigit():
             secs[f[1]] = (int(f[3], 16), int(f[2], 16))      # address, size
-    if set(secs) - {".text", ".rodata", ".data", ".bss"}:
+    if set(secs) - {".text", ".rodata", ".data", ".far", ".bss"}:
         sys.exit(f"!! {m['id']}: unexpected sections {sorted(secs)}")
-    gx.run([gx.CROSS + "objcopy", "-O", "binary", "-R", ".bss", str(elf), str(out)])
+    gx.run([gx.CROSS + "objcopy", "-O", "binary", "-R", ".bss", "-R", ".far", str(elf), str(out)])
     blob = out.read_bytes()
+    far = b""
+    if ".far" in secs:
+        farf = tmp / f"{m['id']}.far"
+        gx.run([gx.CROSS + "objcopy", "-O", "binary", "-j", ".far", str(elf), str(farf)])
+        far = farf.read_bytes()
+        if secs[".far"][0] != bss_at:
+            sys.exit(f"!! {m['id']}: far tables at {secs['.far'][0]:#x}, expected {bss_at:#x}")
     syms = {p[2]: int(p[0], 16) for p in (l.split() for l in gx.run([gx.CROSS + "nm", str(elf)]).splitlines())
             if len(p) == 3}
     for s_ in (upd, rnd, *kept):
@@ -379,15 +388,16 @@ def compile_package(m, tmp, code_at, bss_at, code_end, values):
             sys.exit(f"!! {m['id']}: symbol {s_} not in the linked object")
     if code_at + len(blob) > code_end:
         sys.exit(f"!! {m['id']}: code and tables end at {code_at + len(blob):#x}, past {code_end:#x}")
-    bss = secs.get(".bss", (bss_at, 0))
-    if bss[0] != bss_at:
-        sys.exit(f"!! {m['id']}: variables at {bss[0]:#x}, expected {bss_at:#x}")
-    return blob, syms, align4(bss[0] + bss[1])
+    bss = secs.get(".bss", (align4(bss_at + len(far)), 0))
+    if bss[0] != align4(bss_at + len(far)):
+        sys.exit(f"!! {m['id']}: variables at {bss[0]:#x}, expected {align4(bss_at + len(far)):#x}")
+    return blob, syms, align4(bss[0] + bss[1]), far
 
 
 def place_package(m, code_at, bss_at, code_end, values, obj=None):
     """The B2 path, no toolchain: places the package's committed object (or obj, bytes) at code_at and bss_at with
-    tools/relocate.py, the patch points resolved to the build's values. Same result as compile_package."""
+    tools/relocate.py, the patch points resolved to the build's values. Same result as compile_package, the far
+    tables included."""
     defines, symbols = patch_values(m, values)
     if defines:
         sys.exit(f"!! {m['id']}: patch points as defines cannot be applied to a committed object: use symbols")
@@ -397,7 +407,8 @@ def place_package(m, code_at, bss_at, code_end, values, obj=None):
             sys.exit(f"!! {m['id']}: {path} is missing: run the package's generator (it writes the object)")
         obj = path.read_bytes()
     upd, rnd, kept = roots_of(m)
-    return relocate.place(obj, upd, rnd, kept, code_at, bss_at, code_end, symbols, m["id"])
+    lay = relocate.layout(obj, upd, rnd, kept, m["id"])
+    return (*relocate.apply(lay, code_at, bss_at, code_end, symbols), lay["far"])
 
 
 def exported(m):
@@ -1693,22 +1704,23 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                 bss_cursor = at + need
         def placement(m, code_at, bss_at, values):
             if relocator == "ld":
-                blob, syms, bss_end = compile_package(m, tmp, code_at, bss_at, gs.STUBS, values)
+                blob, syms, bss_end, far = compile_package(m, tmp, code_at, bss_at, gs.STUBS, values)
             else:
-                blob, syms, bss_end = place_package(m, code_at, bss_at, gs.STUBS, values)
+                blob, syms, bss_end, far = place_package(m, code_at, bss_at, gs.STUBS, values)
             if compare_ld:
                 if relocator == "ld":
-                    b2, s2, e2 = place_package(m, code_at, bss_at, gs.STUBS, values)
+                    b2, s2, e2, f2 = place_package(m, code_at, bss_at, gs.STUBS, values)
                 else:
-                    b2, s2, e2 = compile_package(m, tmp, code_at, bss_at, gs.STUBS, values)
-                same = blob == b2 and bss_end == e2 and all(s2.get(k) == v for k, v in syms.items() if k in s2)
+                    b2, s2, e2, f2 = compile_package(m, tmp, code_at, bss_at, gs.STUBS, values)
+                same = blob == b2 and far == f2 and bss_end == e2 and all(s2.get(k) == v for k, v in syms.items()
+                                                                          if k in s2)
                 print(f"  compare-ld {m['id']:12s} {'identical' if same else 'DIFFERENT'}: relocator {len(blob)} bytes, "
                       f"ld {len(b2)} bytes, variables end {bss_end:#x} / {e2:#x}")
                 if not same:
                     i_ = next((k for k in range(min(len(blob), len(b2))) if blob[k] != b2[k]), min(len(blob), len(b2)))
                     bad = {k: (f"{v:#x}", f"{s2[k]:#x}") for k, v in syms.items() if k in s2 and s2[k] != v}
                     sys.exit(f"!! {m['id']}: relocator and ld differ, first byte at +{i_:#x}; symbols {bad}")
-            return blob, syms, bss_end
+            return blob, syms, bss_end, far
         placed_at = {}                       # each package's place and values, for the chain hooks' second placement
         for m in mans:
             code_at, bss_at = align4(code_cursor), align4(bss_cursor)
@@ -1717,7 +1729,7 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
             if m["_effect"] and m["_effect"].get("line"):
                 values = {"fx_line": lines[m["_effect"]["point"]][0]}
             values["desc_used"] = gs.DESCN if added else g7.DESC   # the descriptor table the OS uses (notes/66 §30.2)
-            blob, syms, bss_end = placement(m, code_at, bss_at, values)
+            blob, syms, bss_end, far = placement(m, code_at, bss_at, values)
             placed_at[m["id"]] = (code_at, bss_at, values, len(blob), bss_end)
             mc = m["_machine"]
             if mc:
@@ -1728,6 +1740,8 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                                      render=syms[m["build"]["symbols"]["render"]],
                                      pictures=syms[mc["pictures"]] if "pictures" in mc else 0))
             blobs.append((code_at, blob))
+            if far:                          # the far tables at the start of its variables' room (notes/85 §5)
+                blobs.append((bss_at, far))
             syms_of[m["id"]] = syms
             fx = m["_effect"]
             info_pkgs.append(dict(id=m["id"], index=first + i if mc else m.get("_index"), desc=76 + 5 * i if mc else None,
@@ -1814,7 +1828,7 @@ def compose(img, ids, relocator="python", compare_ld=False, registrar="runtime",
                 m = next(x for x in mans if x["id"] == mid)
                 code_at, bss_at, values, n, end = placed_at[mid]
                 values = dict(values, chain={va: nexts[va] for va, (mm, _u) in chains.items() if mm is m})
-                blob, syms, bss_end = placement(m, code_at, bss_at, values)   # the same size: the same layout
+                blob, syms, bss_end, far = placement(m, code_at, bss_at, values)   # the same size: the same layout
                 if len(blob) != n or bss_end != end:
                     sys.exit(f"!! {mid}: placed again with its chain hooks' values, its size changed")
                 blobs[[a for a, _b in blobs].index(code_at)] = (code_at, blob)

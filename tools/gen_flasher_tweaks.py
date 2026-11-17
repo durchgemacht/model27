@@ -403,6 +403,23 @@ ALL_FEATURES = [
         "package": "maxsaw",
     },
     {
+        "id": "terra",
+        "cat": "sound",
+        "label": "TERRA",
+        "desc": "One extra machine after Chord that plays wave terrain synthesis: a point circles over a surface and the "
+                "height under it is the sound. Eight surfaces, five smooth and three made of Plaits' wavetables. COLOR "
+                "= Surface, SHAPE = Radius, SWEEP = Shift, CONTOUR = Aux (Plaits' second output mixed in).",
+        # after the WaveTerrainEngine of Mutable Instruments Plaits (MIT), written anew in fixed point, its wavetable
+        # data copied (notes/85); bit for bit its host build in emulation (test_terra.py); tried on the Model:Cycles
+        # from the command line, TERRA alone with the CPU page (notes/85 §8, §9)
+        "status": "experimental",
+        "credit": {"kind": "based", "who": "Émilie Gillet", "repo": "pichenettes/eurorack"},
+        "license": "LICENSE-Plaits",
+        # composed in the page from its package (notes/85): alone it gives 86-terra.json byte for byte, whose
+        # conflicts give its excludes; its wavetable data a far table (notes/85 §5)
+        "package": "terra",
+    },
+    {
         "id": "chordtables",
         "cat": "sound",
         "label": "CHORD Tables",
@@ -682,7 +699,7 @@ ALL_FEATURES = [
 # model27 offers a short list of cards. The other definitions above stay as they are, for the command-line build
 # (every tweak of tweaks/ is still built by tools/build.py) and so that merges from upstream apply cleanly; a card
 # comes back into the flasher by adding its id here, once it has been reviewed against the Cycles Mod Standard.
-OFFERED = ("sampler", "solid", "chips", "maxsaw", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample",
+OFFERED = ("sampler", "solid", "chips", "maxsaw", "terra", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample",
            "transpose", "perform", "control-all-config", "trig-cond-order", "trig-preview")
 FEATURES = [f for f in ALL_FEATURES if f["id"] in OFFERED]
 _missing = set(OFFERED) - {f["id"] for f in FEATURES}

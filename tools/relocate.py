@@ -12,7 +12,9 @@ or a table refers to another section. This module does what the linker script of
      "keep" symbols of the manifest, then everything their relocations point to;
   3. places the kept sections in the linker script's order: the update entry's section, the render entry's
      section, the other .text* in file order, then .rodata*, then .data*, each at its own alignment, from code_at;
-     the .bss* from bss_at (not emitted: the boot hook zeroes the payload);
+     from bss_at first the .far* sections (large read-only tables kept out of the code window: emitted as a payload
+     part of their own, which the boot hook copies there like the rest; no relocation in them, notes/85 §5), then
+     the .bss* (not emitted: the boot hook zeroes the payload);
   4. resolves every symbol: a section symbol to its section's address, a defined symbol to its section's address
      plus its value, an undefined symbol to the value the composer gives for that patch point (the machine index,
      the first descriptor: what `ld --defsym` would do), anything else is an error naming the symbol;
@@ -103,12 +105,12 @@ class Elf:
         return " ".join(p.decode("ascii", "replace") for p in self.data[s["off"]:s["off"] + s["size"]].split(b"\0") if p)
 
     def alloc_sections(self):
-        """The sections that take room in memory, by kind: 'text', 'rodata', 'data', 'bss'."""
+        """The sections that take room in memory, by kind: 'text', 'rodata', 'data', 'far', 'bss'."""
         out = []
         for s in self.sections:
             if not s["flags"] & SHF_ALLOC or s["size"] == 0 and s["name"] in (".text", ".data", ".bss"):
                 continue
-            kind = next((k for k in ("text", "rodata", "data", "bss") if s["name"] == "." + k
+            kind = next((k for k in ("text", "rodata", "data", "far", "bss") if s["name"] == "." + k
                          or s["name"].startswith("." + k + ".")), None)
             if kind is None:
                 raise ObjectError(f"!! {self.name}: unexpected section {s['name']} (size {s['size']})")
@@ -124,10 +126,11 @@ def align(x, a):
 
 def layout(obj, update, render, keep, name="object"):
     """What depends only on the object, done once: the garbage collection, the linker script's order and alignments,
-    the code and tables laid out from offset 0, the variables from offset 0. Returns a dict: code (bytes, each
-    relocated word zeroed), relocs [(position, base, addend)] with base "code", "bss", "abs" or the name of an undefined
-    symbol (a patch point), symbols {name: (base, offset)}, bss (the variables' size, rounded to 4) and align (the
-    largest alignment kept). A section aligned to more than 4 is refused: placed at offset 0, the object would not be
+    the code and tables laid out from offset 0, the far tables and then the variables from offset 0 of the variables'
+    room. Returns a dict: code (bytes, each relocated word zeroed), relocs [(position, base, addend)] with base "code",
+    "bss", "abs" or the name of an undefined symbol (a patch point), symbols {name: (base, offset)}, far (the .far*
+    sections' bytes, at offset 0 of the variables' room; empty without), bss (the far tables' and the variables' size,
+    rounded to 4) and align (the largest alignment kept). A section aligned to more than 4 is refused: placed at offset 0, the object would not be
     the same at every 4-aligned address. apply() places it; the web flasher embeds it (bundle(), notes/61 §2)."""
     elf = Elf(obj, name)
     roots = []
@@ -170,20 +173,27 @@ def layout(obj, update, render, keep, name="object"):
             cur += s["size"]
     code = bytearray(cur)
     cur = 0
+    for s in [s for k, s in secs if k == "far"]:
+        cur = align(cur, s["align"])
+        off[s["index"]] = ("bss", cur)
+        cur += s["size"]
+    far = bytearray(cur)
     for s in [s for k, s in secs if k == "bss"]:
         cur = align(cur, s["align"])
         off[s["index"]] = ("bss", cur)
         cur += s["size"]
     bss = align(cur, 4)
     for k, s in secs:
-        if k != "bss":
-            lo = off[s["index"]][1]
+        lo = off[s["index"]][1]
+        if k == "far":
+            far[lo:lo + s["size"]] = elf.data[s["off"]:s["off"] + s["size"]]
+        elif k != "bss":
             code[lo:lo + s["size"]] = elf.data[s["off"]:s["off"] + s["size"]]
     # --- relocations: where, relative to what, plus what
     relocs = []
     for k, s in secs:
         for r_off, si, add in elf.relocs.get(s["index"], ()):
-            if k == "bss":
+            if k in ("bss", "far"):
                 raise ObjectError(f"!! {name}: relocation in {s['name']}")
             if r_off + 4 > s["size"]:
                 raise ObjectError(f"!! {name}: relocation at {r_off:#x} past the end of {s['name']}")
@@ -207,13 +217,13 @@ def layout(obj, update, render, keep, name="object"):
             symbols[s_["name"]] = (base, o + s_["value"])
         elif s_["shndx"] == SHN_ABS:
             symbols[s_["name"]] = ("abs", s_["value"])
-    return dict(name=name, code=bytes(code), relocs=relocs, symbols=symbols, bss=bss, align=big)
+    return dict(name=name, code=bytes(code), relocs=relocs, symbols=symbols, far=bytes(far), bss=bss, align=big)
 
 
 def apply(lay, code_at, bss_at, code_end, values):
     """Places a layout at code_at (code, tables, data) and bss_at (variables), both 4-aligned, the patch points'
     symbols resolved from values. The code must end before code_end. Returns (blob, symbols, end of the variables),
-    like compose.compile_package."""
+    like compose.compile_package. The far tables, if any, are lay["far"], to be emitted at bss_at."""
     name = lay["name"]
     if code_at % 4 or bss_at % 4:
         raise ObjectError(f"!! {name}: placed at {code_at:#x} / {bss_at:#x}: code and variables start 4-aligned")
@@ -244,10 +254,13 @@ def place(obj, update, render, keep, code_at, bss_at, code_end, values, name="ob
 
 def bundle(lay, names):
     """A layout as the web flasher embeds it (JSON, notes/61 §2): the code in hex, the relocations, the symbols named
-    (the entries and what the hooks and views point at) and the variables' size. docs/flasher/composer.js places it
-    like apply()."""
-    return {"code": lay["code"].hex(), "relocs": [list(r) for r in lay["relocs"]],
-            "symbols": {k: list(lay["symbols"][k]) for k in names}, "bss": lay["bss"]}
+    (the entries and what the hooks and views point at), the far tables in hex when there are any, and the variables'
+    size. docs/flasher/composer.js places it like apply()."""
+    b = {"code": lay["code"].hex(), "relocs": [list(r) for r in lay["relocs"]],
+         "symbols": {k: list(lay["symbols"][k]) for k in names}, "bss": lay["bss"]}
+    if lay["far"]:
+        b["far"] = lay["far"].hex()
+    return b
 
 
 def main():

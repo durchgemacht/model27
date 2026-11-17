@@ -339,6 +339,32 @@ MAIN OS patché, `maxsaw` 0.2 seule : `9d9ae4e514fa386e84159888fc1d9520b0e6fd65a
 ligne de commande le 16/11/2026 (note 84 §15) ; puis flashé depuis la page (servie en local, toutes les cartes
 cochées) le 16/11/2026 (note 84 §17).
 
+### Machine TERRA
+
+`tweaks/model-cycles_OS1.13/86-terra.json` est produit par `tools/gen_terra.py`, qui écrit ses tables
+(`tools/machines/terra/terra_tables.h` : la réciproque, le Squash, et les données de wavetables de Plaits
+`wav_integrated_waves`, bancs 0 à 2, recopiées telles quelles), compile `tools/machines/terra/terra.c` en son objet et
+le compose seul avec `tools/compose.py` : une machine ajoutée, la synthèse par terrain d'onde du `WaveTerrainEngine` de
+Plaits (Émilie Gillet, MIT) réécrite en virgule fixe sur l'EMAC : un point fait le tour d'un chemin au-dessus d'une
+surface, la hauteur sous lui est le son ([note 85](notes/85-terra.md)). COLOR choisit la surface (huit, fondues
+de l'une à l'autre), SHAPE le rayon du chemin, SWEEP son décalage, CONTOUR mélange la sortie AUX de Plaits. Les
+données de wavetables (50 688 o) sont une table lointaine (sections `.far*`, note 85 §5) : posées au début de la place
+des variables du paquet, hors de la fenêtre de code, et copiées au démarrage avec le reste. La preuve tourne sur le
+code de l'OS (Unicorn), au bit près contre le build hôte du même fichier (`tools/emu/terra_ref.c`) :
+```sh
+python3 tools/gen_terra.py --cycles model-cycles_OS1.13.syx [--check]
+python3 tools/emu/test_terra.py --cycles model-cycles_OS1.13.syx [--dry] [--quick] [--only core,chain,tracks,next,measure]
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines terra                 # seule
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,terra         # avec SAMPLE
+```
+MAIN OS patché, `terra` 0.1 seule : `9f064a741226be476ac43fe03b0309bda4b4ff490d450b74d3f1a5359b8908a1` ; avec SAMPLE
+0.18 : `9810197e1353a2fdc6ecce04f5d1b8c4e1d985fd5558687e8e22df2e853713a4` ; avec toutes les cartes de la page
+(vingt, release 0.72 : `--machines sampler,solid,chips,maxsaw,terra,chordtables,digidelay,pots,smpfilter,crush,ring,
+reso,eq --cpu --resample --transpose --perform --with control-all-config,trig-preview,trig-cond-order`) :
+`b95b1d318fa722c6577a230cc88125e8733aabfa9cffb2729a4b7699b2f8c8ee`. Essayée sur un Model:Cycles depuis la ligne de
+commande, seule avec la page CPU (`--machines terra --cpu`, MAIN OS `da29c17f…`), le 17/11/2026 (note 85 §8, §9).
+Pas encore flashée depuis la page.
+
 ### CHORD Tables (wavetables du +Drive)
 
 `tweaks/model-cycles_OS1.13/36-chordtables.json` est produit par `tools/gen_chordtables.py`, qui compile

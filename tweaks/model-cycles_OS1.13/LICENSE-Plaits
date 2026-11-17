@@ -3,6 +3,11 @@ by Emilie Gillet (https://github.com/pichenettes/eurorack, commit 08460a6): the 
 SuperSquareOscillator and NESTriangleOscillator (plaits/dsp/oscillator/super_square_oscillator.h,
 nes_triangle_oscillator.h, with stmlib's polyblep.h), its chord bank (plaits/dsp/chords/chord_bank.cc) and its
 ChiptuneEngine's shape and ratio (plaits/dsp/engine2/chiptune_engine.cc); no line of its C++ is copied as is.
+TERRA, a machine of model27 (tools/machines/terra/): written anew in fixed point after the same Plaits: its
+WaveTerrainEngine (plaits/dsp/engine2/wave_terrain_engine.cc: the five terrain formulas, the path, the AUX output) and
+its FastSineOscillator (plaits/dsp/oscillator/sine_oscillator.h); no line of its C++ is copied as is. Its wavetable
+data wav_integrated_waves (plaits/resources.cc, banks 0 to 2) are copied as they are: TERRA's terrains 6 to 8 read
+them.
 Plaits is under the MIT license:
 
 Copyright 2016-2021 Emilie Gillet.

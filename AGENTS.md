@@ -97,7 +97,8 @@ tools/compose.py              Level B: lays packages out, places their committed
                               frame() per number of machines, fill() per build, web_package() for the web flasher (B3b)
 tools/relocate.py             Level B, increment B2a: places a package's committed object (m68k ELF, only R_68K_32)
                               at its address without the toolchain; compose.py uses it by default (notes/60); layout()
-                              once, apply() per build, bundle() for the web flasher (B3a, notes/61)
+                              once, apply() per build, bundle() for the web flasher (B3a, notes/61); .far* sections, a
+                              package's large read-only tables, at the start of its variables' room (notes/85 §5)
 tools/machines/<id>/<id>.o    the package's committed object (ld -r of its sources), written and checked by its generator
 tools/gen_registrar.py        Level B, increments B2b and B2c: assembles the boot stub (a template with the offsets of its
                               immediates) and the registrar runtime (registrar.S) once, and commits both (notes/60 §4, §5);
@@ -225,6 +226,13 @@ tools/machines/maxsaw/        Max Saw (MAXSAW on the device; Ultra Saw was its w
                               PUNCH Sub (a switch in k 32: a sawtooth two octaves down through a low-pass at the note);
                               tools/gen_maxsaw.py computes its tables from Szabo's formulas, builds its object and
                               composes it alone into 85-maxsaw.json; the flasher's MAXSAW card, tested
+tools/machines/terra/         TERRA (notes/85): wave terrain synthesis after Plaits' WaveTerrainEngine (MIT,
+                              LICENSE-Plaits), in fixed point on the EMAC: COLOR the surface (eight, cross-faded),
+                              SHAPE the path's radius, SWEEP its shift, CONTOUR Plaits' AUX mixed in; Plaits'
+                              wavetable data are a far table (.far*: the start of its variables' room, copied at
+                              boot, notes/85 §5); tools/gen_terra.py writes its tables and its object and composes it
+                              alone into 86-terra.json; tools/emu/test_terra.py proves it (terra_ref.c, the core on the
+                              host); the flasher's TERRA card, experimental
 tools/machine_pictures.py     an added machine's own pictures as C (the OS's Bitmaps, their masks, the registrar's table):
                               gen_solid.py and gen_sampler.py write solid_pictures.c and sample_pictures.c with it
                               (notes/60 §25); SAMPLE's (sample_card.c, pictures/) are model27's, next to One-Shot's code
@@ -268,7 +276,7 @@ CONTRIBUTING.md               terms for outside contributions, and how a machine
 
 Follow the shape of the last ones (tempo-max: commits `5997b4a`, `14fb9fa`, `6e592bc`; trig-hold, arp). In order:
 
-1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 84 is the last) with the
+1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 85 is the last) with the
    user's request and its source, the OS code involved (addresses, `[FAIT]`/`[HYP]`), the design, free space used and
    conflicts with other tweaks. Add a row to `notes/README.md`. See `notes/AGENTS.md`.
 2. **Write the generator** `tools/gen_<mod>.py` (and sources under `tools/machines/<mod>/` if it has code). It reads

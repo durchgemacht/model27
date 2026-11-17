@@ -80,8 +80,9 @@ function checkOverlaps(writes) {                  // writes in address order
       throw new Error(`writes overlap at ${hx(BASE + writes[k].off)}`);
 }
 
-// relocate.apply(): the bundle's code at codeAt, its variables at bssAt (both 4-aligned), its patch points' symbols
-// from values ({ symbol: number }). Returns { blob, symbols, bssEnd }.
+// relocate.apply(): the bundle's code at codeAt, its far tables and variables at bssAt (both 4-aligned), its patch
+// points' symbols from values ({ symbol: number }). Returns { blob, symbols, bssEnd, far } (far: the far tables'
+// bytes, at bssAt, or null; notes/85 §5).
 function place(bundle, codeAt, bssAt, values = {}) {
   if (codeAt % 4 || bssAt % 4)
     throw new Error(`placed at 0x${codeAt.toString(16)} / 0x${bssAt.toString(16)}: code and variables start 4-aligned`);
@@ -97,7 +98,7 @@ function place(bundle, codeAt, bssAt, values = {}) {
   }
   const symbols = {};
   for (const [name, [base, off]] of Object.entries(bundle.symbols)) symbols[name] = bases[base] + off;
-  return { blob, symbols, bssEnd: bssAt + bundle.bss };
+  return { blob, symbols, bssEnd: bssAt + bundle.bss, far: bundle.far ? fromHex(bundle.far) : null };
 }
 
 // compose.frame_of(): the frame of n machines out of frame.json, its writes in address order
@@ -1098,7 +1099,7 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {},
       if ("chain" in u && (typeof u.chain !== "string" || !u.chain || !("vtable" in u || ("hook" in u && u.hook.op === "jsr"))))
         throw new Error(`${p.id}: a chain is a jsr hook or a vtable entry, named by the symbol it reads`);
     const values = patchValues(p, raw);
-    const { blob, symbols: syms, bssEnd } = place(p.bundle, codeAt, bssAt, values);
+    const { blob, symbols: syms, bssEnd, far } = place(p.bundle, codeAt, bssAt, values);
     placedAt[p.id] = [codeAt, bssAt, raw, blob.length, bssEnd];
     if (codeAt + blob.length > lay.stubs)
       throw new Error(`${p.id}: code and tables end at ${hx(codeAt + blob.length)}, past ${hx(lay.stubs)}`);
@@ -1111,6 +1112,7 @@ function compose(mainOs, frames, packages, tweaks = [], parts = {}, claims = {},
                       pictures: "pictures" in mc ? syms[mc.pictures] : 0 });
     }
     blobs.push([codeAt, blob]);
+    if (far) blobs.push([bssAt, far]);            // the far tables at the start of its variables' room
     symsOf[p.id] = syms;
     info.push({ id: p.id, index: mc ? first + i : st ? STOCK_EXTENDED[st.machine] : null, desc: mc ? 76 + 5 * i : null,
                 extends: st ? st.machine : null, slot: fx ? fx.point.slice(3) : null, fx_id: fx ? fx.id : null,

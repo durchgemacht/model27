@@ -72,6 +72,13 @@ SELECTIONS = ((["sampler"], []), (["refmachine"], []), (["sampler", "refmachine"
               (["solid", "chips", "maxsaw", "chordtables", "crush"], []),
               (["sampler", "solid", "chips", "maxsaw", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring",
                 "reso", "eq", "cpu", "resample", "transpose", "perform"], []),
+              # notes/85: TERRA alone (its far table, the wavetable data, at the start of its variables' room), with
+              # SAMPLE before and after it (machines 6 and 7), with SOLID, CHIPS, MAXSAW, CHORD Tables and a Track FX,
+              # and the full offered set, which needs the far table (its code window would not hold the data)
+              (["terra"], []), (["sampler", "terra"], []), (["terra", "sampler"], []),
+              (["solid", "chips", "maxsaw", "terra", "chordtables", "crush"], []),
+              (["sampler", "solid", "chips", "maxsaw", "terra", "chordtables", "digidelay", "pots", "smpfilter", "crush",
+                "ring", "reso", "eq", "cpu", "resample", "transpose", "perform"], []),
               # notes/68: the effects alone, in both slots, with SAMPLE before and after them, with the shortcut layer
               # and the dispatchers (REF2, SAMPLE), and with an extension of CHORD (the stock descriptor table)
               (["digidelay"], []), (["refdelay", "refreverb"], []), (["sampler", "digidelay"], []),

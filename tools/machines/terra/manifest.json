@@ -1,0 +1,138 @@
+{
+ "schema": "cycles-mod/0.1",
+ "id": "terra",
+ "version": "0.1",
+ "name": "TERRA: wave terrain synthesis after Plaits",
+ "description": "model27's machine after the WaveTerrainEngine of Mutable Instruments Plaits (notes/85), written anew in fixed point on the EMAC: a point goes round a path over a surface, and the height under it is the sound. Surface picks the surface, eight of them (five formulas and three made of Plaits' wavetables), cross-faded between neighbours as Plaits does; Radius sets the path's size, from almost a sine to the full surface (smaller at very high notes, as in Plaits); Shift moves the path sideways and narrows it towards the edge; Aux mixes in Plaits' second output, a sine whose phase follows the path and the height. DECAY, GATE and PUNCH are the stock amp chain as on TONE; while the envelope is closed the voice stands still. Pitch as on every machine.",
+ "license": "MIT",
+ "credit": {
+  "kind": "based",
+  "who": "Émilie Gillet (Mutable Instruments Plaits)",
+  "repo": "pichenettes/eurorack"
+ },
+ "source": "https://github.com/pichenettes/eurorack/tree/08460a6/plaits/dsp/engine2",
+ "device": "Model:Cycles",
+ "os": "1.13",
+ "order": 86,
+ "build": {
+  "sources": [
+   "terra.c"
+  ],
+  "include": [
+   "."
+  ],
+  "cflags": [
+   "-std=c99",
+   "-mcpu=54418",
+   "-O2",
+   "-ffreestanding",
+   "-fno-builtin",
+   "-fno-tree-loop-distribute-patterns",
+   "-nostdlib",
+   "-fno-pic",
+   "-fno-common",
+   "-ffunction-sections",
+   "-fdata-sections",
+   "-Wall",
+   "-Wextra",
+   "-Werror"
+  ],
+  "defines": {},
+  "objects": [
+   "terra.o"
+  ],
+  "patch_points": [],
+  "symbols": {
+   "update": "terra_update",
+   "render": "terra_render"
+  }
+ },
+ "uses": [
+  {
+   "point": "machine",
+   "name": "TERRA",
+   "image": 4,
+   "decay_default": 64,
+   "knobs": [
+    {
+     "long": "Terra Surface",
+     "short": "SURF",
+     "default": 0
+    },
+    {
+     "long": "Terra Radius",
+     "short": "RAD",
+     "default": 64
+    },
+    {
+     "long": "Terra Shift",
+     "short": "SHFT",
+     "default": 64
+    },
+    {
+     "long": "Terra Aux",
+     "short": "AUX",
+     "default": 0
+    }
+   ]
+  }
+ ],
+ "claims": {
+  "sound_slots": [],
+  "record_slots": [],
+  "ram": [],
+  "gestures": [],
+  "views": []
+ },
+ "cost": {
+  "emulation": {
+   "default": 3325,
+   "surface_5_alone": 6611,
+   "surface_8": 5977,
+   "between_1_2": 5953,
+   "between_3_4": 6156,
+   "between_5_6": 7064,
+   "between_6_7": 5977,
+   "between_5_6_aux_64": 7941,
+   "punch": 6151,
+   "note_24": 6173,
+   "note_96": 6158,
+   "color_moving_aux_64_median": 7869,
+   "color_moving_aux_64_max": 8838,
+   "trig_block_between_5_6": 7570,
+   "paused": 185,
+   "six_between_5_6": 42384,
+   "six_tone": 31746,
+   "stack_bytes": 364,
+   "pattern": "instructions a block, the whole voice loop less the same loop muted, note 60, DECAY 127 and default knobs unless named (COLOR 0 is surface 1 alone, one surface a sample; between two surfaces two); tools/emu/test_terra.py, the maintainer's run of 2026-11-17 (notes/85 §7.1)"
+  },
+  "device": {
+   "status": "not measured"
+  }
+ },
+ "stock_behaviour": {
+  "changes": [],
+  "fixes": [],
+  "unchanged": [
+   "other tracks and machines"
+  ]
+ },
+ "compat": {
+  "built_against": [
+   "model27"
+  ],
+  "requires": [],
+  "conflicts_declared": []
+ },
+ "tests": {
+  "emulation": {
+   "tool": "step 1: the core against Plaits' unchanged engine and a model in double on the host, the ColdFire object against the host build in a ColdFire interpreter (notes/85 §3); step 2: the package's core against step 1's chosen variant, its object as the voice loop calls it in the interpreter (notes/85 §6); tools/emu/test_terra.py (Unicorn, the OS's own code, against the host build tools/emu/terra_ref.c, notes/85 §7): ALL OK, the core exact in 63 cases (9 804 blocks), the pause and the wake, the chain TONE's with TERRA's stage, the tracks, the far table and the SRAM's sine after the boot, next to SAMPLE, CHIPS and Max Saw",
+   "date": "2026-11-17",
+   "build": "alone and next to SAMPLE, CHIPS and Max Saw, composed by compose.py"
+  },
+  "hardware": {
+   "status": "not tested"
+  },
+  "status": "experimental"
+ }
+}
