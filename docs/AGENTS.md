@@ -36,7 +36,9 @@ already runs mods from this page; one sentence on the right says what will happe
 know*. Steps 2 to 4 keep the numbers the texts refer to. In step 2 a file the page took lights a green LED in its drop zone
 (`--led`, as the manager's connected); its status lines show only errors, warnings and the build under way, the rest
 stays for screen readers (`setFileStatus()`). Step 4 lists what is installed (`#picked`) and holds the one box to tick;
-its old summary line stays in the page, hidden, for the smoke test.
+its old summary line stays in the page, hidden, for the smoke test. A Model:Samples that refuses its way back (a Cycles
+OS checking with the Cycles key: by hand, or by a tool without the 32-byte change) gets, once and by itself, the
+Samples OS in the Model:Cycles container (`useSbackAlt()`, notes/57 §7).
 The Official firmware and Samples OS tabs, the old machine picker (`flasher/?samples` is gone) and, with `CLASSIC_UI`
 (false), the classic method and Advanced stay in the page, hidden, and the smoke test still drives them. The cards sit in four sections by kind (`kindOf()`: added
 machines, effects, Track FX, mods); only the exceptions carry a tag (Experimental), a card's Details say how it was

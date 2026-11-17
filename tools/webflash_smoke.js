@@ -119,7 +119,8 @@ const be = (m, o) => ((m[o] << 24) | (m[o + 1] << 16) | (m[o + 2] << 8) | m[o + 
 const cstr = (str) => [...Buffer.from(str, "latin1"), 0];
 
 // A Model:Cycles on USB: answers ping, version, OS upgrade start and blocks like the real one
-// (src/connectors/elektron.c), and records what it receives.
+// (src/connectors/elektron.c), and records what it receives. accept(received): an OS that checks the whole file at
+// the last block and answers an error when it refuses it (a key that does not match), as the real check does.
 function fakeDevice(opts, reply) {
   const dev = Object.assign({ id: 27, name: "Model Cycles", version: "1.13", startStatus: 0, writeError: -1, silent: false,
     pings: 0, starts: 0, blocks: 0, received: null, size: 0, next: 0, bad: [] }, opts);
@@ -142,7 +143,7 @@ function fakeDevice(opts, reply) {
         dev.bad.push(`block ${dev.blocks}: len ${len}/${data.length}, offset ${off}/${dev.next}`);
       dev.received.set(data, off);
       dev.next = off + len;
-      const op = dev.blocks === dev.writeError ? 2 : dev.next >= dev.size ? 1 : 0;
+      const op = dev.blocks === dev.writeError ? 2 : dev.next < dev.size ? 0 : dev.accept && !dev.accept(dev.received) ? 2 : 1;
       dev.blocks++;
       r = [...head, 0, 0, 0, 0, op];
     }
@@ -1276,6 +1277,41 @@ async function main() {
     await wait(150);
     check(/nothing to undo/.test(text(doc, "midi-status")), "way back vs a machine already on the Samples OS: nothing sent");
     check(errors.length === 0, "no JS error in the Model:Samples flow " + (errors.length ? JSON.stringify(errors) : ""));
+  }
+
+  // 7b-ter. A Model:Samples whose Cycles OS checks with the Model:Cycles key (put on by hand, or by a tool without the
+  // 32-byte change): it refuses the way back in the Samples packing, then the page sends, once and by itself, the
+  // Samples OS in the Model:Cycles container (REF_SAMPLES_ON_CYCLES), which it takes (notes/57 §7)
+  if (REAL_OS && REAL_SMP && MAIN) {
+    const cyc = new Uint8Array(fs.readFileSync(REAL_OS)), smp = new Uint8Array(fs.readFileSync(REAL_SMP));
+    let backRaw = null;
+    const env = await load({ device: { id: 27, accept: (got) => !(backRaw && same(got, backRaw)) } });
+    const { w, doc, errors } = env;
+    const app = w.MCFlasherApp, box = (id) => doc.getElementById(id);
+    noRest(w);
+    box("go-restore").click(); await wait(10);
+    box("own-smp").click(); box("modded-yes").click(); await wait(10);
+    const tip = /sends the other one by itself/.test(text(doc, "own-more"));
+    app.loadOs(cyc, "model-cycles_OS1.13.syx");
+    app.loadSamples(smp, "model-samples_OS1.13.syx");
+    await settle(w);
+    backRaw = app.state.fw && app.state.fw.raw;
+    const first = app.state.fw && app.state.fw.kind === "sback" && !app.state.fw.alt;
+    box("allow").click(); await wait(150);
+    box("ack").click(); await wait(20);
+    box("flash").click();
+    for (let i = 0; i < 400 && (app.state.sending || env.dev.starts < 2); i++) await wait(50);
+    for (let i = 0; i < 200 && app.state.sending; i++) await wait(50);
+    const f = app.state.fw, sha = f && w.MCBuilder.hex(w.MCBuilder.sha256(f.raw));
+    check(tip && first && env.dev.starts === 2 && app.state.finished === "ok" && f.alt && sha === app.REF_SAMPLES_ON_CYCLES
+      && same(env.dev.received, f.raw) && /own OS/.test(text(doc, "result")) && app.state.sbackAlt,
+      `way back refused by a Cycles-key OS -> the other way back sent by itself, byte for byte (${(sha || "").slice(0, 16)}), ` +
+      `${env.dev.starts} starts`);
+    // the page keeps the other way back until the answers change
+    box("modded-no").click(); box("modded-yes").click(); await settle(w);
+    check(!app.state.sbackAlt && app.state.fw && !app.state.fw.alt && errors.length === 0,
+      "a new answer: the usual way back first again; no JS error " + errors.join(" "));
+    box("own-cyc").click();                                        // remembered by the page: back to the default
   }
 
   // 7b-bis. Step 3 names the machine being flashed (the tab and machine chosen), and the port after the OS it runs

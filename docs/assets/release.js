@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.71", date: "2026-11-17", changes: [
+    { en: "Back to the official firmware on a Model:Samples now also works when its Model:Cycles OS was put on by hand or by an older tool. If the machine refuses the usual way back, nothing is written, and the page sends the other way back by itself" },
+    { en: "Mods put on a Model:Samples by Modded-Cycles, Supermodel or PPPCCC already go back the usual way. Checked in an emulator on the Model:Samples' own code and with a simulated machine (2026-11-17), not yet on a real Model:Samples" }
+  ] },
   { version: "0.70", date: "2026-11-17", changes: [
     { en: "A Model:Samples can get the mods again from the main flasher page. After Install, step 1 asks which device you own; for a Model:Samples, it also asks whether you already installed mods on it. One sentence says what will happen, the rest is folded under Good to know" },
     { en: "Back to the official firmware works on a Model:Samples too: answer Yes, and it gets its own OS back. In step 2, a green light in the drop zone shows a file the page took; only problems are written out. The list of what you install is now in step 4, next to the one box to tick, without the line that repeated it. The tabs and the separate flasher/?samples page are gone, and so is the Samples OS for a Model:Cycles" },

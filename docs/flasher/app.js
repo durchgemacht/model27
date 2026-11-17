@@ -65970,8 +65970,10 @@ const T = {
   own_smp_restore: "It already runs its own OS: there is nothing to undo.",
   more_backup: "Back up your projects and samples with Elektron Transfer first.",
   more_two_files: "Step 2 asks for both official OS files: the Model:Cycles OS goes inside the Model:Samples firmware, so the machine keeps its own startup menu.",
+  more_two_files_back: "Step 2 asks for both official OS files: the page packs the Model:Samples OS so that the OS it runs now takes it.",
   more_back: "To go back to its own OS later: “Back to the official firmware” under the cards, then “Yes” here.",
-  more_other_tool: "“Yes” means mods from this page. A Model:Cycles OS installed with another tool refuses these files: nothing is written.",
+  more_other_tool: "“Yes” means mods from this page or another flasher. If it refuses these files (nothing is written), first bring back its own OS: “Back to the official firmware”, then “No” here.",
+  more_other_back: "If it refuses this way back (a Model:Cycles OS put on by hand, or by an older tool), the page sends the other one by itself.",
   more_sample_untried: "SAMPLE is not tried on a Model:Samples yet.",
   more_stuck: "If it does not start properly afterwards, switch it off and on. Still stuck: hold FUNC while switching it on, then press TRIG 2. This clears the active project.",
   more_credit: "The way onto a Model:Samples started with RDS (AIM)'s flasher, integrated into Modded Cycles by DaftMaple.",
@@ -66113,6 +66115,8 @@ const T = {
   miss_cos_ack: "Confirm your backup and the official Model:Samples file (step 1).",
   done_cos: "It restarts as a <b>Model:Cycles</b>: Elektron Transfer and your computer see a “Model:Cycles”. To go back, choose “Model:Samples: back to its OS” in the Samples OS tab.",
   done_sback: "It restarts as a <b>Model:Samples</b>, with its own OS.",
+  sback_alt_try: "It refused this way back: its Model:Cycles OS checks updates differently. Sending the other way back now…",
+  sback_alt_failed: "Neither way back was taken. Turn it off and on and press the button again. If it still refuses, its startup menu takes the official Model:Samples OS through the MIDI IN (see the guide).",
   dev_fwd_on_cycles: "This machine answers as a Model:Cycles: it would refuse this firmware. If it is a Model:Samples already running the Cycles OS, there is nothing to install; to go back, choose “Model:Samples: back to its OS” if that Cycles OS came from this page, or “Model:Cycles → Samples OS” if it was installed another way.",
   dev_back_on_samples: "This machine answers as a Model:Samples: it already runs its own OS, there is nothing to undo. If it actually runs the Cycles OS with Model-TG, set Model-TG's Transfer identity back to CYC (or restart the machine), then try again.",
   // Mods tab, machine picker (notes/57): always the Model:Cycles OS, packed for the machine
@@ -66568,6 +66572,7 @@ const st = {
   intent: "mods",          // what the cards asked for: "mods" (Install n mods) | "restore" (Back to the official firmware)
   own: "cyc",              // install screen, step 1: the device owned, "cyc" | "smp"
   modded: false,           // a Model:Samples that already runs mods from this page
+  sbackAlt: false,         // its way back was refused: send the Samples OS in the Model:Cycles container instead
   samplesError: null,
   noMidi: null,            // why this browser can't send ("no_webmidi" | "insecure"): the page offers the download only
   syntakt: null,           // official Syntakt OS { raw, name, sha } (source of the Syntakt engines)
@@ -67432,6 +67437,7 @@ function ownStop() {
   return st.intent === "restore" && st.own === "smp" && !st.modded;
 }
 function setOwn(own, modded) {
+  st.sbackAlt = false;                             // a new answer: the usual way back first again
   if (own) st.own = own;
   if (modded !== undefined) st.modded = modded;
   try { localStorage.setItem("mc-own", st.own + (st.own === "smp" && st.modded ? "+mods" : "")); } catch (e) { /* private mode */ }
@@ -67457,8 +67463,8 @@ function renderOwn() {
   $("own-say").innerHTML = (key === "own_cos_restore" ? tagHtml("experimental") + " " : "") + esc(t(key) + sample);
   const more = stop ? [] : ["more_backup"];
   if (smp && !stop) {
-    more.push("more_two_files");
-    if (st.modded) more.push("more_other_tool");
+    more.push(restore ? "more_two_files_back" : "more_two_files");
+    if (st.modded) more.push(restore ? "more_other_back" : "more_other_tool");
     else more.push("more_back");
     if (!restore && isOn("sampler")) more.push("more_sample_untried");
     more.push("more_stuck", "more_credit");
@@ -67654,6 +67660,31 @@ function prepareFirmware() {
   });
 }
 
+// The other way back for a Model:Samples (notes/57 §7): its Cycles OS checks updates with the Model:Cycles key when it
+// was put on by hand or by a tool without the 32-byte change, and refuses the usual way back (nothing is written). The
+// official Samples OS in the Model:Cycles container (crossflash.py --to cycles) is taken by such an OS, and the
+// Model:Samples' bootstrap starts it (notes/41, test_crossflash_samples.py group 7).
+function makeSbackAlt(raw) {
+  const r = window.MCBuilder.crossflash(raw, st.samplesOs.raw);
+  const sha = window.MCBuilder.hex(window.MCBuilder.sha256(r.raw));
+  if (sha !== REF_SAMPLES_ON_CYCLES) throw new Error(`result ${sha.slice(0, 16)}… is not the reference build`);
+  log(`Packed the official Model:Samples OS in the Model:Cycles container, the other way back: ${r.raw.length} bytes.`, "is-ok");
+  return { raw: r.raw, name: "model-samples_OS1.13_back-from-other-cycles-os.syx", kind: "sback", alt: true, mods: [],
+    ref: true, sixch: false };
+}
+// Switches to it at once (the flash goes on with it): built here, not in buildCached's next tick.
+function useSbackAlt() {
+  st.sbackAlt = true;
+  const key = "samples-alt:" + st.samplesOs.sha;
+  if (!st.cache[key]) {
+    try { st.cache[key] = { fw: makeSbackAlt(st.os.raw) }; } catch (e) { st.cache[key] = { error: e.message }; }
+  }
+  st.buildKey = key;
+  st.fw = st.cache[key].fw || null;
+  st.fwError = st.cache[key].error || null;
+  return st.fw;
+}
+
 // Model:Samples OS in the Model:Cycles container (MCBuilder.crossflash = tools/crossflash.py), or, for a Model:Samples,
 // the Model:Cycles OS (MCBuilder.cyclesForSamples = --to samples) and its way back (MCBuilder.samplesBack = --back-samples).
 function prepareSamples(os) {
@@ -67670,6 +67701,7 @@ function prepareSamples(os) {
     });
     return;
   }
+  if (st.smpDir === "back" && st.sbackAlt) { buildCached("samples-alt:" + smp.sha, makeSbackAlt); return; }
   if (st.smpDir === "back") {
     buildCached("samples-back:" + smp.sha, (raw) => {
       const r = window.MCBuilder.samplesBack(raw, smp.raw);
@@ -68113,7 +68145,7 @@ function fmtTime(s) {
 async function flash() {
   if (missingReason() || st.sending) return;
   const out = currentPort();
-  const fw = st.fw;
+  let fw = st.fw;
   const fast = st.method === "fast";
   const p = pace();
   st.sending = true; st.cancel = false; st.finished = null; st.after = null;
@@ -68152,6 +68184,18 @@ async function flash() {
   } catch (e) {
     err = e;
   }
+  // a Model:Samples that refused its way back (nothing written): once, the other way back (makeSbackAlt)
+  if (err && fast && fw.kind === "sback" && !fw.alt && ["refused", "write"].includes(err.code) && !st.cancel && st.os && st.samplesOs) {
+    const alt = useSbackAlt();
+    if (alt) {
+      log(`The way back was refused (${err.code}): sending the Model:Samples OS in the Model:Cycles container.`, "is-warn");
+      $("watch").innerHTML = esc(t("sback_alt_try")) + "<br>" + esc(t("keep_visible"));
+      onProgress(0, alt.raw.length);
+      await new Promise((ok) => setTimeout(ok, 2000));         // let the machine leave its refusal first
+      fw = alt; err = null;
+      try { res = await flashFast(out, alt, onProgress, gone); } catch (e) { err = e; }
+    }
+  }
   try { if (st.wakeLock) await st.wakeLock.release(); } catch (e) { /* ignore */ }
   st.wakeLock = null;
   st.sending = false;
@@ -68159,7 +68203,8 @@ async function flash() {
   if (err) {
     st.finished = "error";
     r.className = "result bad";
-    r.innerHTML = `<p>${fast ? fastError(err) : esc(t("send_error", { err: err.message || err }))}</p>`;
+    r.innerHTML = `<p>${fast ? fastError(err) : esc(t("send_error", { err: err.message || err }))}</p>` +
+      (fw.alt ? `<p>${esc(t("sback_alt_failed"))}</p>` : "");
     log("Transfer error: " + (err.message || err), "is-bad");
   } else if (res.cancelled) {
     st.finished = "stopped";

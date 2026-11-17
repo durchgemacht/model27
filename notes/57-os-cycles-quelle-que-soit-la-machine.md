@@ -185,3 +185,15 @@ seul, Control All Config + Trig Preview, et toutes les cartes (`tools/compose.py
 `--syntakt` devient facultatif. Les trois MAIN OS égalent REF_MAINOS, et tous les groupes passent dans Unicorn (« tout
 est ok », lancé par le mainteneur) : aller, démarrage, changement de mods, retour à l'OS Samples, refus des fichiers
 signés Cycles.
+
+**Second retour, automatique (17/11/2026, demande du mainteneur).** Un Model:Samples dont l'OS Cycles vérifie avec la
+clé du **Cycles** (posé à la main, ou par un outil sans le correctif de 32 octets) refuse le retour habituel
+(`--back-samples`, signé Samples) : rien n'est écrit. Les flashers connus qui proposent le Model:Samples (Modded-Cycles,
+Supermodel, PPPCCC, lus le 17/11/2026) appliquent tous le correctif ; la Techno Edition ne fait que le Model:Cycles.
+Pour les autres, la page envoie alors d'elle-même, une fois, l'OS Samples dans le conteneur du Cycles
+(`crossflash.py --to cycles`, `REF_SAMPLES_ON_CYCLES`) : un tel OS l'accepte et le bootstrap du Samples le démarre
+(groupe 7 de `test_crossflash_samples.py`). Déclencheurs : un départ refusé ou une erreur de bloc (`refused`, `write`)
+en méthode rapide ; la page garde ensuite ce fichier (`st.sbackAlt`, `makeSbackAlt()`, `useSbackAlt()`) jusqu'à une
+nouvelle réponse à l'étape 1. **Ce que la machine répond exactement sur l'USB quand la clé ne va pas n'est pas
+établi** (on suppose une erreur au dernier bloc, comme le contrôle porte sur tout le fichier) : le smoke test simule ce
+cas (`accept` du faux appareil, §7b-ter), pas la machine.
