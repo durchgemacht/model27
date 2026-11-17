@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-11-16-23">
-<link rel="stylesheet" href="../assets/guide.css?v=2026-11-16-23">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-17-01">
+<link rel="stylesheet" href="../assets/guide.css?v=2026-11-17-01">
 <script>try{var t=localStorage.getItem("mc-theme")}catch(e){}if(t)document.documentElement.setAttribute("data-theme",t)</script>
 </head>
 <body data-page="guide">
@@ -61,7 +61,6 @@
         <li><a href="#transpose">Transpose</a></li>
         <li><a href="#perform">Perform Kit</a></li>
         <li><a href="#mods-on-samples">Mods on a Model:Samples</a></li>
-        <li><a href="#samples">Samples OS</a></li>
         <li><a href="#stock">Back to stock</a></li>
         <li><a href="#recovery">Recovery</a></li>
         <li><a href="#trouble">Troubleshooting</a></li>
@@ -77,7 +76,7 @@
           <li>The official OS file <code>model-cycles_OS1.13.syx</code>, from <a href="https://www.elektron.se/support-downloads/modelcycles" target="_blank" rel="noopener">elektron.se</a>, unzipped.</li>
           <li>Your projects backed up with Elektron Transfer.</li>
         </ul>
-        <p>The <a href="#samples">Samples OS</a> tab (on <a href="../flasher/?samples">this page of the flasher</a>) needs one more file, the official <a href="https://www.elektron.se/support-downloads/modelsamples" target="_blank" rel="noopener"><code>model-samples_OS1.13.syx</code></a>. The SAMPLE machine needs only the Model:Cycles file.</p>
+        <p>On a <a href="#mods-on-samples">Model:Samples</a>, the page needs one more file, the official <code>model-samples_OS1.13.syx</code>. The SAMPLE machine needs only the Model:Cycles file.</p>
         <p>No firmware is provided here. The page modifies your own file on your computer and checks the result against a reference build before sending it.</p>
       </section>
 
@@ -538,8 +537,8 @@
         <p class="lede">A Model:Samples can run the Model:Cycles OS with the same mods as a Model:Cycles. Whatever the machine, the flasher always installs the Model:Cycles OS. With the <a href="#sampler">SAMPLE</a> machine ticked, it can play the samples already on the +Drive (not yet tried on a Model:Samples).</p>
         <ol>
           <li>Back up your samples and projects with Elektron Transfer, then close Transfer.</li>
-          <li>Open <a href="../flasher/?samples">the flasher with the Model:Samples choices</a>. In its <b>Mods</b> tab, under <b>Your machine</b>, choose <b>Model:Samples, on its own OS</b> the first time (the machine starts as a Model:Samples), or <b>Model:Samples, already on the Cycles OS</b> to change mods later. Tick the box about your backup.</li>
-          <li>Tick your mods as usual. Tick SAMPLE to keep playing samples.</li>
+          <li>In the <a href="../flasher/">flasher</a>, tick your mods as usual (tick SAMPLE to keep playing samples), then <b>Install</b>.</li>
+          <li>In step 1, <b>Your machine</b>, choose <b>Model:Samples</b>. To <b>Already installed mods on it?</b> answer <b>No</b> the first time (the machine starts as a Model:Samples), <b>Yes</b> to change mods later.</li>
           <li>In step 2, load both official OS files: <code>model-cycles_OS1.13.syx</code>, then <code>model-samples_OS1.13.syx</code>.</li>
           <li>Turn the Model:Samples on normally, choose <b>Fast (USB)</b>, flash, then press <b>YES</b> on its screen. It restarts as a Model:Cycles with your mods.</li>
         </ol>
@@ -550,55 +549,21 @@
           <div class="swap"><dt>Main OS</dt><dd>Model:Cycles with your mods, which accepts the Model:Samples signature</dd></div>
         </dl>
         <dl class="facts">
-          <div><dt>Which choice</dt><dd>the page asks the machine who it is and only sends the right file: <b>on its own OS</b> goes to a machine that answers Model:Samples, <b>already on the Cycles OS</b> to one that answers Model:Cycles. With Model-TG's Transfer identity on SMP, set it back to CYC (or restart) before changing mods.</dd></div>
-          <div><dt>Coming back</dt><dd>over USB, in the <b>Samples OS</b> tab: <b>Model:Samples: back to its OS</b> (see <a href="#cycles-on-samples">below</a>). The startup menu of the Model:Samples is never touched: through the MIDI IN, it stays the safety net (<a href="#recovery">Recovery</a>).</dd></div>
-          <div><dt>Limits</dt><dd>only for a real Model:Samples (a Model:Cycles running the Samples OS answers as a Model:Samples too). Once on the Cycles OS, the machine refuses firmwares built for a Model:Cycles: nothing is written. A Model:Cycles OS installed with another tool refuses these files: first bring the Model:Samples OS back with <b>Model:Cycles → Samples OS</b>. If it starts badly, switch it off and on; if it still hangs, <b>FUNC</b> at power-on then <b>TRIG 2</b> (EMPTY RESET clears the active project).</dd></div>
+          <div><dt>Which answer</dt><dd>the page asks the machine who it is and only sends the right file: <b>No</b> goes to a machine that answers Model:Samples, <b>Yes</b> to one that answers Model:Cycles. If you answered wrong, step 3 says so and nothing is sent. With Model-TG's Transfer identity on SMP, set it back to CYC (or restart) before changing mods.</dd></div>
+          <div><dt>Coming back</dt><dd>over USB: <b>Back to the official firmware</b> under the cards, then <b>Model:Samples</b> and <b>Yes</b> in step 1. The page sends the official Model:Samples OS, unchanged, packed so that the Cycles OS from this page accepts it, and the machine starts as a Model:Samples again (experimental: not yet tried on a real Model:Samples). The startup menu of the Model:Samples is never touched: through the MIDI IN, it stays the safety net (<a href="#recovery">Recovery</a>).</dd></div>
+          <div><dt>Limits</dt><dd>only for a real Model:Samples. Once on the Cycles OS, the machine refuses firmwares built for a Model:Cycles, even when Elektron Transfer offers one: nothing is written. A Model:Cycles OS installed with another tool refuses these files too. If it starts badly, switch it off and on; if it still hangs, <b>FUNC</b> at power-on then <b>TRIG 2</b> (EMPTY RESET clears the active project).</dd></div>
           <div><dt>Tested</dt><dd>on a Model:Samples, both choices: on its own OS, and already on the Cycles OS to change mods; and in the emulator, on both OSes' own update checks and on the Model:Samples startup code, with the largest set of mods. Each mod keeps the status it has on a Model:Cycles. Thanks to RDS (AIM) for the original flasher, and DaftMaple for integrating it into Modded Cycles.</dd></div>
         </dl>
       </section>
 
-      <section id="samples">
-        <h2><span class="n">23</span>Samples OS</h2>
-        <p class="lede">The Model:Cycles starts as a Model:Samples: you load and play your own samples, managed with Elektron Transfer.</p>
-        <p>The <a href="../flasher/?samples">flasher, in its Samples OS tab</a>, puts the official Model:Samples OS inside your Model:Cycles firmware file:</p>
-        <dl class="layers fig">
-          <div><dt>Startup menu</dt><dd>Model:Cycles</dd></div>
-          <div><dt>Updater</dt><dd>Model:Cycles</dd></div>
-          <div><dt>Signature</dt><dd>Model:Cycles</dd></div>
-          <div class="swap"><dt>Main OS</dt><dd>Model:Samples</dd></div>
-        </dl>
-        <h3>Coming back</h3>
-        <p>The way back to the Model:Cycles OS goes through the startup menu, which only listens to the MIDI IN (see <a href="#recovery">Recovery</a>). <b>Without a MIDI interface, there is no way back.</b></p>
-        <p class="note">From the Samples OS, never install a Model:Samples OS file, neither with CONFIG › UPGRADE nor when Elektron Transfer offers an update: it would also replace the startup menu of your Model:Cycles. Back up your projects first: both OSes use the same storage.</p>
-
-        <h3 id="cycles-on-samples">The other way: the Cycles OS on a Model:Samples</h3>
-        <p>A Model:Samples can start as a Model:Cycles and play its synth engines. In the <a href="../flasher/?samples">flasher</a>, open the <b>Samples OS</b> tab and choose <b>Model:Samples → Cycles OS</b>. The page needs both official OS files, Model:Cycles then Model:Samples, and sends over USB like any update: the Model:Samples on as usual, Elektron Transfer closed, then YES on its screen.</p>
-        <dl class="layers fig">
-          <div><dt>Startup menu</dt><dd>Model:Samples</dd></div>
-          <div><dt>Updater</dt><dd>Model:Samples</dd></div>
-          <div><dt>Signature</dt><dd>Model:Samples</dd></div>
-          <div class="swap"><dt>Main OS</dt><dd>Model:Cycles, which accepts the Model:Samples signature</dd></div>
-        </dl>
-        <p><b>Coming back over USB:</b> same tab, <b>Model:Samples: back to its OS</b>. The page sends the official Model:Samples OS, unchanged. This works because the Model:Cycles OS put on by the page checks updates with the Model:Samples signature. An unmodified Model:Cycles OS would refuse it.</p>
-        <ul>
-          <li>Back up your samples and projects with Elektron Transfer first: both OSes use the same storage.</li>
-          <li>Only on a real Model:Samples. A Model:Cycles running the Samples OS answers as a Model:Samples too: it would take this firmware, then refuse Model:Cycles firmwares over USB until its startup menu reinstalls its OS through the MIDI IN.</li>
-          <li>If the machine does not start properly after the update, either way, switch it off and on again. If it still hangs, hold <b>FUNC</b> while switching it on, then press <b>TRIG 2</b> (EMPTY RESET): it clears the active project, hence the backup.</li>
-          <li>Under the Cycles OS, the machine refuses Model:Cycles firmwares (official or with mods), even when Elektron Transfer offers one: nothing is written. Leave through “back to its OS”. To add mods, use the Mods tab with <b>Model:Samples, already on the Cycles OS</b> (see <a href="#mods-on-samples">Mods on a Model:Samples</a>).</li>
-          <li>A Model:Cycles OS installed another way (another tool, or a Model:Cycles build with mods) refuses “back to its OS”: the machine says the update failed and nothing changes. Such an OS accepts the first choice of the tab, <b>Model:Cycles → Samples OS</b>, which brings the Model:Samples OS back.</li>
-          <li>Safety net: the startup menu of the Model:Samples is never touched. If anything went wrong, it takes the official Model:Samples OS through the MIDI IN, as in <a href="#recovery">Recovery</a>.</li>
-          <li>Experimental: checked in the emulator on both OSes' own update checks and on the Model:Samples startup code that loads the new OS, not yet tried on a real Model:Samples.</li>
-        </ul>
-      </section>
-
       <section id="stock">
-        <h2><span class="n">24</span>Back to stock</h2>
-        <p><b>Back to the official firmware</b>, under the cards of the <a href="../flasher/">flasher</a>, sends your OS file unchanged, over USB, like a normal update. It is also a good rehearsal before a first mod: it checks the cable and the setup without changing anything.</p>
+        <h2><span class="n">23</span>Back to stock</h2>
+        <p><b>Back to the official firmware</b>, under the cards of the <a href="../flasher/">flasher</a>, sends your OS file unchanged, over USB, like a normal update. It is also a good rehearsal before a first mod: it checks the cable and the setup without changing anything. On a Model:Samples with mods, answer <b>Model:Samples</b> and <b>Yes</b> in step 1: it gets its own OS back (see <a href="#mods-on-samples">Mods on a Model:Samples</a>).</p>
         <p>With the SAMPLE machine, first set your SAMPLE tracks back to an original machine (Kick to Chord): the official OS doesn't have SAMPLE, and a project that still names it can freeze its MACHINES page.</p>
       </section>
 
       <section id="recovery">
-        <h2><span class="n">25</span>Recovery</h2>
+        <h2><span class="n">24</span>Recovery</h2>
         <p class="lede">If the Model:Cycles no longer starts, its startup menu can always reinstall the OS: it lives in an area that updates never write.</p>
         <figure class="fig">
           <div data-device data-scenes="func @logo | func,mainvol | s4 @READY TO/>RECEIVE" data-ms="1300"></div>
@@ -612,7 +577,7 @@
       </section>
 
       <section id="trouble">
-        <h2><span class="n">26</span>Troubleshooting</h2>
+        <h2><span class="n">25</span>Troubleshooting</h2>
         <div class="faq">
           <details>
             <summary>Nothing happens on the Model:Cycles screen</summary>
@@ -678,8 +643,8 @@
   </div>
 </footer>
 
-<script src="../assets/release.js?v=2026-11-16-23"></script>
-<script src="../assets/cycles.js?v=2026-11-16-23"></script>
-<script src="../assets/site.js?v=2026-11-16-23"></script>
+<script src="../assets/release.js?v=2026-11-17-01"></script>
+<script src="../assets/cycles.js?v=2026-11-17-01"></script>
+<script src="../assets/site.js?v=2026-11-17-01"></script>
 </body>
 </html>

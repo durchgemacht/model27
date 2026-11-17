@@ -140,3 +140,41 @@ Sur un vrai Model:Samples (DaftMaple en a un), sauvegarde Transfer d'abord :
 **Testé sur la machine (11/10/2026)** par DaftMaple, sur son Model:Samples : les essais 1 (*sous son OS*) et 2 (*déjà sous
 l'OS Cycles*, changement de mods) marchent ; l'encadré du flasher passe de **Expérimental** à **Testé**. Les essais 3
 et 4 n'ont pas été rapportés. Les cartes de mods gardent leur propre statut, établi sur un Model:Cycles.
+
+## 7. Une seule question dans le flasher (17/11/2026)
+
+Demande du mainteneur : rendre le Model:Samples de nouveau visible dans le flasher, mais plus simple ; ce ne doit pas
+être la première chose à décider. Le passage d'un Model:Cycles à l'OS Samples ne l'intéresse pas (« personne ne veut
+ça ») : la page ne s'adresse plus qu'aux vrais Model:Samples qui veulent les mods.
+
+- **Page 1** : les cartes, comme avant. Plus d'onglets (Mods / Official firmware / Samples OS), plus de
+  `flasher/?samples` (`SAMPLES_UI` supprimé). Il reste deux chemins vers l'écran d'installation : *Install n mods* et la
+  ligne *Back to the official firmware* (`st.intent` : `"mods"` | `"restore"`).
+- **Écran d'installation, étape 1 « Your machine »** (`#step-machine`, `renderOwn()`) : *Which device do you own?*
+  (`own-cyc` / `own-smp`, l'appareil physique) et, pour un Model:Samples, *Already installed mods on it?*
+  (`modded-no` / `modded-yes`). Retenu par le navigateur (`mc-own` : `cyc`, `smp`, `smp+mods`). À droite, une phrase qui
+  dit ce qui va se passer, et *Good to know* replié. La liste des mods passe à l'étape 4 (*You install*).
+- `applyOwn()` traduit les réponses en états que la page connaissait déjà, donc en fichiers déjà construits et
+  vérifiés :
+
+| Cartes | Appareil | Mods déjà ? | État | Fichier |
+|---|---|---|---|---|
+| mods | Model:Cycles | — | `mods`, `machine "cyc"` | build habituel |
+| mods | Model:Samples | non | `mods`, `machine "smp"` | `_smp-os` (§2) |
+| mods | Model:Samples | oui | `mods`, `machine "cos"` | `_cyc-os` (§2) |
+| officiel | Model:Cycles | — | `restore` | l'OS officiel inchangé |
+| officiel | Model:Samples | oui | `samples`, `smpDir "back"` | retour `--back-samples` (41), Expérimental |
+| officiel | Model:Samples | non | rien à envoyer (`ownStop()`) | étapes 2 à 4 masquées |
+
+- Plus de cases à cocher propres au Model:Samples (`mach-ack`, `cos-ack`, `samples-ack`) : la seule case est celle de
+  l'étape 4 (sauvegarde). Les messages de l'étape 3 renvoient à la réponse de l'étape 1 (« answer “Yes” / “No” in
+  step 1 »).
+- Restent dans le code, hors de la page, et le smoke test les parcourt toujours : l'OS Samples sur un Model:Cycles
+  (`smpDir "cyc"`) et l'OS Cycles sans mods sur un Model:Samples (`smpDir "smp"`), les onglets et l'ancien sélecteur.
+- **Ce qui n'a pas changé** : les emballages (§1, §2) et la clé de 32 octets ([41](41-os-cycles-sur-samples.md) §3).
+  Une piste plus simple a été discutée le même jour, sans rien construire : d'après [41 §1](41-os-cycles-sur-samples.md),
+  seule l'OS qui tourne vérifie une mise à jour, avec sa propre clé ; un OS Cycles **sans** les 32 octets, dans le
+  conteneur Samples, accepterait alors les builds Model:Cycles ordinaires, et le retour se ferait par le conteneur
+  Cycles avec l'OS Samples (`--to cycles`), sans fichier `_cyc-os` ni `--back-samples`. Non retenue pour l'instant :
+  jamais essayée sur un vrai Model:Samples, et les machines déjà sous l'OS de la page (clé Samples) n'accepteraient
+  plus que les fichiers signés Samples.

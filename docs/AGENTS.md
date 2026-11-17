@@ -30,11 +30,15 @@ assets/site.js, site.css, guide.css, cycles.js   shared behaviour and styles (la
 ## What the flasher shows
 
 The main page (redesign of 2026-10-31, 1-bit look in `flasher/style.css`, graded on 15/11/2026: see *The look*) offers
-the Model:Cycles and the fast method
-only, on two screens: the cards, then the install steps (1 recalls the choice; 2 to 4 keep the numbers the texts refer
-to). `SAMPLES_UI` in `app.js` (true on `flasher/?samples`, which the guide links) brings back the Official firmware and
-Samples OS tabs and the machine picker; `CLASSIC_UI` (false) the classic method and Advanced. Those parts stay in the
-page, hidden, and the smoke test still drives them. The cards sit in four sections by kind (`kindOf()`: added
+the fast method only, on two screens: the cards (with *Back to the official firmware* below them), then the install
+steps. Step 1, *Your machine* (17/11/2026, notes/57 §7), asks which device you own and, for a Model:Samples, whether it
+already runs mods from this page; one sentence on the right says what will happen, the rest is folded under *Good to
+know*. Steps 2 to 4 keep the numbers the texts refer to. In step 2 a file the page took lights a green LED in its drop zone
+(`--led`, as the manager's connected); its status lines show only errors, warnings and the build under way, the rest
+stays for screen readers (`setFileStatus()`). Step 4 lists what is installed (`#picked`) and holds the one box to tick;
+its old summary line stays in the page, hidden, for the smoke test.
+The Official firmware and Samples OS tabs, the old machine picker (`flasher/?samples` is gone) and, with `CLASSIC_UI`
+(false), the classic method and Advanced stay in the page, hidden, and the smoke test still drives them. The cards sit in four sections by kind (`kindOf()`: added
 machines, effects, Track FX, mods); only the exceptions carry a tag (Experimental), a card's Details say how it was
 tested. Each section but Mods has a How to use button next to its title (no line under it: the window says it all)
 that opens one window over the page (`openInfo()`): `kind_<k>_info`, blocks of `[heading, text]` with what all the

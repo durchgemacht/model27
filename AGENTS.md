@@ -231,7 +231,7 @@ tools/machine_pictures.py     an added machine's own pictures as C (the OS's Bit
 tools/emu/                    Unicorn emulation of the OS: test_<mod>.py proofs, mcengine.py, emac.py, syntakt.py
 tools/gen_flasher_tweaks.py   FEATURES list -> docs/flasher/tweaks.js (generated); a machine card embeds its package and
                               the registrar's frame, composed in the page (notes/61)
-tools/crossflash.py, tools/mods_for_samples.py   one OS in the other machine's container (notes/41, 57): Samples OS tab,
+tools/crossflash.py, tools/mods_for_samples.py   one OS in the other machine's container (notes/41, 57): the Samples OS (off the page),
                               and the mods for a Model:Samples
 tools/check_overlaps.py       no firmware needed: mods that can be ticked together never write the same bytes, except
                               the same whole write or a mod applied on top of another (`requires`) (notes/49), nor

@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-11-16-23">
-<link rel="stylesheet" href="style.css?v=2026-11-16-23">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-17-01">
+<link rel="stylesheet" href="style.css?v=2026-11-17-01">
 <!-- the flasher is in English only (2026-10-31), and light only for now: its dark theme (style.css) waits for a
      second pass, so the page pins the light one and hides the switch; the other pages keep their own theme -->
 <script>document.documentElement.setAttribute("data-theme","light")</script>
@@ -19,7 +19,7 @@
 <body data-page="flasher">
 <script>
   // Version stamp: an old date means the browser serves a cached copy -> hard reload.
-  window.MC_BUILD = "2026-11-16-23";
+  window.MC_BUILD = "2026-11-17-01";
   window.addEventListener("error", function (e) {
     var b = document.getElementById("errbar");
     if (!b) return;
@@ -96,7 +96,7 @@
       <p class="vh" id="mod-live" aria-live="polite"></p>
       <!-- the way back, quietly at the end of the cards, above the footer -->
       <p class="restore-row" id="restore-row"><button type="button" class="lnk" id="go-restore" data-i18n="go_restore">Back to the official firmware</button>
-        <span data-i18n="go_restore_sub">Installs your OS file unchanged. Also a safe first try of your cable and setup.</span></p>
+        <span data-i18n="go_restore_sub">Removes all mods. Also a safe first try of your cable and setup.</span></p>
     </div>
     <div id="panel-restore" role="tabpanel" aria-labelledby="tab-restore" hidden>
       <p class="panel-text" data-i18n-html="restore_text"></p>
@@ -146,21 +146,41 @@
     </div>
   </section>
 
-  <!-- Screen 2: install. Step 1 recalls the choice; steps 2 to 4 keep the numbers the texts refer to. -->
+  <!-- Screen 2: install. Step 1 asks which machine (notes/57 §7); steps 2 to 4 keep the numbers the texts refer to. -->
   <div class="screen" id="screen-install" hidden>
+    <p class="back-row"><button type="button" class="lnk" id="back" data-i18n="back_cards">← Back</button></p>
     <h1 class="screen-h" id="install-h" tabindex="-1" data-i18n="install_h">Install</h1>
 
-    <section class="step done" id="step-build" aria-labelledby="h1b">
-      <header><span class="num">1</span><h2 id="h1b" data-i18n="build_h">Your build</h2>
-        <button type="button" class="lnk change" id="back" data-i18n="build_change">Change</button></header>
-      <div class="step-body"><ul class="picked" id="picked"></ul></div>
+    <section class="step done" id="step-machine" aria-labelledby="h1b">
+      <header><span class="num">1</span><h2 id="h1b" data-i18n="own_h">Your machine</h2></header>
+      <div class="step-body who">
+        <div class="who-ask">
+          <p class="who-q" id="own-q" data-i18n="own_q">Which device do you own?</p>
+          <p class="who-hint" data-i18n="own_hint">The name printed on it, whatever it runs now.</p>
+          <div class="seg" role="radiogroup" aria-labelledby="own-q">
+            <button type="button" role="radio" id="own-cyc" aria-checked="true">Model:Cycles</button>
+            <button type="button" role="radio" id="own-smp" aria-checked="false">Model:Samples</button>
+          </div>
+          <div id="modded-box" hidden>
+            <p class="who-q" id="modded-q" data-i18n="modded_q">Already installed mods on it?</p>
+            <div class="seg" role="radiogroup" aria-labelledby="modded-q">
+              <button type="button" role="radio" id="modded-no" aria-checked="true" data-i18n="modded_no">No</button>
+              <button type="button" role="radio" id="modded-yes" aria-checked="false" data-i18n="modded_yes">Yes</button>
+            </div>
+          </div>
+        </div>
+        <div class="who-say" aria-live="polite">
+          <p class="who-what" id="own-say"></p>
+          <details class="who-more" id="own-more"><summary data-i18n="good_to_know">Good to know</summary><ul id="own-more-list"></ul></details>
+        </div>
+      </div>
     </section>
 
     <section class="step" id="step-file" aria-labelledby="h2s">
       <header><span class="num">2</span><h2 id="h2s" data-i18n="s2">Load your official OS file</h2></header>
       <div class="step-body">
         <label class="drop" id="drop" tabindex="0">
-          <span class="drop-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M14 3H5v18h14V8z"/><path d="M14 3v5h5"/><path class="arrow" d="M12 11v6M9.5 14.5 12 17l2.5-2.5"/></svg></span>
+          <span class="led" aria-hidden="true"></span><span class="drop-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M14 3H5v18h14V8z"/><path d="M14 3v5h5"/><path class="arrow" d="M12 11v6M9.5 14.5 12 17l2.5-2.5"/></svg></span>
           <span class="drop-t"><strong id="drop-title" data-i18n="drop_title">Drop model-cycles_OS1.13.syx here</strong>
             <span id="drop-sub" data-i18n="drop_sub">or click to choose it</span></span>
           <input id="file" type="file" accept=".syx" hidden>
@@ -168,17 +188,16 @@
         <div id="file-status" class="status" aria-live="polite"></div>
         <div id="drop2-wrap" hidden>
           <label class="drop" id="drop2" tabindex="0">
-            <span class="drop-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M14 3H5v18h14V8z"/><path d="M14 3v5h5"/><path class="arrow" d="M12 11v6M9.5 14.5 12 17l2.5-2.5"/></svg></span>
+            <span class="led" aria-hidden="true"></span><span class="drop-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M14 3H5v18h14V8z"/><path d="M14 3v5h5"/><path class="arrow" d="M12 11v6M9.5 14.5 12 17l2.5-2.5"/></svg></span>
             <span class="drop-t"><strong id="drop2-title" data-i18n="drop2_title">Drop model-samples_OS1.13.syx here</strong>
               <span id="drop2-sub" data-i18n="drop2_sub">the official Model:Samples OS — or click to choose it</span></span>
             <input id="file2" type="file" accept=".syx" hidden>
           </label>
-          <p class="hint" data-i18n-html="get_os_samples"></p>
           <div id="file2-status" class="status" aria-live="polite"></div>
         </div>
         <div id="drop3-wrap" hidden>
           <label class="drop" id="drop3" tabindex="0">
-            <span class="drop-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M14 3H5v18h14V8z"/><path d="M14 3v5h5"/><path class="arrow" d="M12 11v6M9.5 14.5 12 17l2.5-2.5"/></svg></span>
+            <span class="led" aria-hidden="true"></span><span class="drop-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M14 3H5v18h14V8z"/><path d="M14 3v5h5"/><path class="arrow" d="M12 11v6M9.5 14.5 12 17l2.5-2.5"/></svg></span>
             <span class="drop-t"><strong id="drop3-title" data-i18n="drop3_title">Drop Syntakt_OS1.42.syx here</strong>
               <span id="drop3-sub" data-i18n="drop3_sub">the official Syntakt OS, for its engines — or click to choose it</span></span>
             <input id="file3" type="file" accept=".syx" hidden>
@@ -220,6 +239,7 @@
       <div class="step-body">
         <!-- a browser without Web MIDI: this step only offers the download, and says why -->
         <p class="dl-note" id="dl-note" hidden></p>
+        <div class="you-install"><p class="who-q" data-i18n="you_install">You install</p><ul class="picked" id="picked"></ul></div>
         <div class="summary" id="summary" hidden></div>
         <label class="check" id="ack-row"><input id="ack" type="checkbox"><span data-i18n="ack">I've backed up my projects (Elektron Transfer) and I understand that flashing is at my own risk.</span></label>
         <div class="actions">
@@ -345,12 +365,12 @@
 </footer>
 
 <!-- ?v= : same version stamp as MC_BUILD, so a browser never mixes a new page with cached old scripts -->
-<script src="../assets/release.js?v=2026-11-16-23"></script>
-<script src="../assets/site.js?v=2026-11-16-23"></script>
-<script src="builder.js?v=2026-11-16-23"></script>
-<script src="composer.js?v=2026-11-16-23"></script>
-<script src="tweaks.js?v=2026-11-16-23"></script>
-<script src="flasher.js?v=2026-11-16-23"></script>
-<script src="app.js?v=2026-11-16-23"></script>
+<script src="../assets/release.js?v=2026-11-17-01"></script>
+<script src="../assets/site.js?v=2026-11-17-01"></script>
+<script src="builder.js?v=2026-11-17-01"></script>
+<script src="composer.js?v=2026-11-17-01"></script>
+<script src="tweaks.js?v=2026-11-17-01"></script>
+<script src="flasher.js?v=2026-11-17-01"></script>
+<script src="app.js?v=2026-11-17-01"></script>
 </body>
 </html>

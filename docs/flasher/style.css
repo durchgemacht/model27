@@ -14,6 +14,7 @@
   --ink-up:#2a3848;        /* the ink a step lighter: a filled button under the pointer */
   --soft:#4a5562;          /* the second text tone: what explains */
   --soft-inv:#b4bcc6;      /* the same on an inverted ground */
+  --led:#2fa35a;           /* a file taken in step 2: a green LED, as the manager's connected (17/11/2026) */
   --rule:#98a1ab;          /* lines between the rows of a list */
   --tint:rgba(23,34,46,.09);   /* an outlined control under the pointer */
   --paper:#d7dbe0;
@@ -52,12 +53,12 @@
   --wrap:1120px;
 }
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){color-scheme:dark;--ink:#d7dbe0;--ink-up:#f1f4f7;--soft:#a9b1bb;--soft-inv:#4a5562;--rule:#4a5562;--tint:rgba(215,219,224,.14);--paper:#0b0c0e;--card:var(--paper);--card-foot:transparent;--field:#161a20;--head-bg:var(--ink);--sh:#4a5562;
+  :root:not([data-theme="light"]){color-scheme:dark;--ink:#d7dbe0;--ink-up:#f1f4f7;--soft:#a9b1bb;--soft-inv:#4a5562;--rule:#4a5562;--tint:rgba(215,219,224,.14);--paper:#0b0c0e;--card:var(--paper);--card-foot:transparent;--field:#161a20;--head-bg:var(--ink);--sh:#4a5562;--led:#3fbf6c;
     --check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%23d7dbe0'/%3E%3C/svg%3E");
     --zig-top:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 11L8 2L16 11V12H0Z' fill='%230b0c0e'/%3E%3Cpath d='M0 11L8 2L16 11' fill='none' stroke='%23d7dbe0' stroke-width='2'/%3E%3C/svg%3E");
     --zig-bot:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 0H16V1L8 10L0 1Z' fill='%230b0c0e'/%3E%3Cpath d='M0 1L8 10L16 1' fill='none' stroke='%23d7dbe0' stroke-width='2'/%3E%3C/svg%3E")}
 }
-:root[data-theme="dark"]{color-scheme:dark;--ink:#d7dbe0;--ink-up:#f1f4f7;--soft:#a9b1bb;--soft-inv:#4a5562;--rule:#4a5562;--tint:rgba(215,219,224,.14);--paper:#0b0c0e;--card:var(--paper);--card-foot:transparent;--field:#161a20;--head-bg:var(--ink);--sh:#4a5562;
+:root[data-theme="dark"]{color-scheme:dark;--ink:#d7dbe0;--ink-up:#f1f4f7;--soft:#a9b1bb;--soft-inv:#4a5562;--rule:#4a5562;--tint:rgba(215,219,224,.14);--paper:#0b0c0e;--card:var(--paper);--card-foot:transparent;--field:#161a20;--head-bg:var(--ink);--sh:#4a5562;--led:#3fbf6c;
   --check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1h-1zM6 2h2v1h-2zM0 3h1v1h-1zM5 3h2v1h-2zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h4v1h-4zM2 6h2v1h-2z' fill='%23d7dbe0'/%3E%3C/svg%3E");
   --zig-top:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 11L8 2L16 11V12H0Z' fill='%230b0c0e'/%3E%3Cpath d='M0 11L8 2L16 11' fill='none' stroke='%23d7dbe0' stroke-width='2'/%3E%3C/svg%3E");
   --zig-bot:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath d='M0 0H16V1L8 10L0 1Z' fill='%230b0c0e'/%3E%3Cpath d='M0 1L8 10L16 1' fill='none' stroke='%23d7dbe0' stroke-width='2'/%3E%3C/svg%3E")}
@@ -272,6 +273,24 @@ h3 .key,h4 .key,h3 .knob,h4 .knob{font-size:1em}
 .picked{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
 .picked li{display:inline-flex;align-items:center;gap:8px;padding:2px 8px;border-radius:var(--r);background:var(--ink);color:var(--paper);font-weight:600;font-size:14.5px}
 .picked .tag{font-size:11px;padding:0 3px;border-width:1.5px}
+/* install screen: the way back to the cards, step 1 (the machine) in two columns, step 4's list of what goes on */
+.back-row{margin:32px 0 0;font-size:14.5px}
+.back-row+.screen-h{margin-top:12px}
+.who{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:24px 56px;padding:24px 24px 26px}
+.who-q{margin:0 0 4px;font:700 12px/1.3 var(--f);text-transform:uppercase;letter-spacing:.06em}
+.who-hint{margin:0 0 12px;font-size:13px;line-height:1.45;color:var(--soft)}
+.who .seg{margin:0}
+#modded-box{margin-top:26px}
+#modded-box .who-q{margin-bottom:10px}
+.who-say{padding-left:32px;border-left:1px solid var(--rule)}
+.who-what{margin:0;max-width:52ch;font-size:17px;line-height:1.5;font-weight:500}
+.who-what .tag{margin-right:6px;vertical-align:2px}
+.who-more{margin-top:18px;max-width:60ch;font-size:13.5px;line-height:1.5}
+.who-more summary{cursor:pointer;font-weight:700;width:max-content}
+.who-more ul{margin:10px 0 0;padding-left:1.1em;color:var(--soft)}
+.who-more li{margin:.4em 0}
+.you-install{margin:0 0 18px}
+.you-install .who-q{margin-bottom:8px}
 .hint{margin:10px 0 0;font-size:13.5px;font-weight:500;color:var(--soft)}
 .hint:empty{display:none}
 
@@ -282,6 +301,12 @@ h3 .key,h4 .key,h3 .knob,h4 .knob{font-size:1em}
 .drop:hover,.drop:focus-visible,.drop.over{background:var(--ink);color:var(--paper);outline:none}
 .drop:hover .drop-t span,.drop:focus-visible .drop-t span,.drop.over .drop-t span{color:var(--soft-inv)}
 .drop.loaded{border-style:solid}
+.drop .led{display:none;flex:none;width:14px;height:14px;margin:0 6px;background:var(--led);box-shadow:0 0 0 1.5px var(--ink)}
+.drop.ok .led{display:block}
+.drop.ok .drop-ic{display:none}     /* the LED takes the icon's place */
+.drop-t span b{color:var(--ink);font-weight:700}
+.drop:hover .drop-t span b,.drop:focus-visible .drop-t span b,.drop.over .drop-t span b{color:var(--paper)}
+.status.quiet{margin:0}
 #drop2-wrap,#drop3-wrap{margin-top:20px}
 
 /* status lines: the text says it, a sign before it */
@@ -426,6 +451,8 @@ details.trouble{margin-top:22px;font-size:14px}
 @media (max-width:900px){
   .foot-grid{grid-template-columns:minmax(0,1fr)}
   .foot-og{max-width:460px}
+  .who{grid-template-columns:minmax(0,1fr)}
+  .who-say{padding:20px 0 0;border-left:0;border-top:1px solid var(--rule)}
 }
 
 @media (max-width:620px){
@@ -436,6 +463,8 @@ details.trouble{margin-top:22px;font-size:14px}
   .facts dt{margin-top:8px}
   .facts dt:first-child{margin-top:0}
   .step-body{padding:14px}
+  .who{padding:18px 14px 20px}
+  .who-what{font-size:15.5px}
   .num{width:44px;min-height:44px}
   .bar{gap:3px}
   .foot-main{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}

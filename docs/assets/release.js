@@ -7,6 +7,11 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.70", date: "2026-11-17", changes: [
+    { en: "A Model:Samples can get the mods again from the main flasher page. After Install, step 1 asks which device you own; for a Model:Samples, it also asks whether you already installed mods on it. One sentence says what will happen, the rest is folded under Good to know" },
+    { en: "Back to the official firmware works on a Model:Samples too: answer Yes, and it gets its own OS back. In step 2, a green light in the drop zone shows a file the page took; only problems are written out. The list of what you install is now in step 4, next to the one box to tick, without the line that repeated it. The tabs and the separate flasher/?samples page are gone, and so is the Samples OS for a Model:Cycles" },
+    { en: "The firmware files are the same as before, byte for byte. Checked in a browser on a computer and at phone width (2026-11-17)" }
+  ] },
   { version: "0.69", date: "2026-11-16", changes: [
     { en: "A new machine, MAXSAW, plays a huge, wide sawtooth sound: seven sawtooths detuned around the note. COLOR spreads them, SHAPE mixes the middle one with the six others, SWEEP takes away low end below the note, and CONTOUR sets how they start at each trig, from a random point each to all at once for a hard attack" },
     { en: "Press and hold MACHINES and press PUNCH for a soft sub two octaves down, which adds low end without a buzz. A step can lock it" },

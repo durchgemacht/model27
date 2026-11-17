@@ -688,19 +688,19 @@ async function main() {
     check(/Install 2 mods/.test(go) && !nx().classList.contains("empty") && /SAMPLE/.test(textOf(doc, "#mod-sel .sel-names"))
       && /Control All/.test(textOf(doc, "#mod-sel .sel-names")) && !nx().disabled,
       "end of the cards: the names (hidden by the stylesheet), then " + go.trim());
-    // Continue: the install screen, its step 1 names the cards; Change goes back with the choice kept
+    // Continue: the install screen, its step 4 names the cards; Back goes back with the choice kept
     await click(doc.querySelector("#mod-sel .sel-next"));
     const inst = box("step-choose").hidden && !box("screen-install").hidden && /SAMPLE/.test(text(doc, "picked"))
       && /Control All/.test(text(doc, "picked")) && doc.activeElement && doc.activeElement.id === "install-h";
     await click(box("back"));
     check(inst && !box("step-choose").hidden && box("screen-install").hidden && ids() === "control-all-config,sampler",
-      "Continue opens the install screen, its step 1 names the cards; Change goes back, the choice kept");
-    // back to the official firmware: the install screen with the stock OS; Change, the cards again
+      "Continue opens the install screen, its step 4 names the cards; Back goes back, the choice kept");
+    // back to the official firmware: the install screen with the stock OS; Back, the cards again
     await click(box("go-restore"));
     const rest = app.state.mode === "restore" && !box("screen-install").hidden && /Official firmware \(unchanged\)/.test(text(doc, "picked"));
     await click(box("back"));
     check(rest && app.state.mode === "mods" && !box("step-choose").hidden,
-      "Back to the official firmware: the install screen with the stock OS; Change returns to the cards");
+      "Back to the official firmware: the install screen with the stock OS; Back returns to the cards");
     await clearAll();
     check(ids() === "" && /Pick a card to start/.test(text(doc, "mod-sel")), "unticking the cards brings back \"Pick a card to start\"");
     // what the main page leaves out stays in the page, hidden: the tabs, the machine picker, the classic method, Advanced
@@ -796,21 +796,43 @@ async function main() {
       "Effects window says" + (fxBad.length ? ": " + fxBad.join() : ""));
     check(errors.length === 0, "no JS error in the mod picker " + (errors.length ? JSON.stringify(errors) : ""));
   }
-  // flasher/?samples: the tabs and the machine picker come back
+  // the install screen's step 1 (notes/57 §7): the device owned, and for a Model:Samples whether it runs mods from
+  // this page; with the cards' choice, they give the mode and the packing. flasher/?samples is gone: no tabs any more.
   if (MAIN) {
     const { w, doc, errors } = await load({ query: "?samples" });
     const box = (id) => doc.getElementById(id);
-    const shown = !box("mode-tabs").hidden && !box("mach-box").hidden && box("methods").hidden && box("advanced").hidden;
-    box("tab-samples").click(); await wait(5);
-    const off = box("panel-samples").querySelector(".go-next").disabled;
-    box("samples-ack").click(); await wait(5);
-    const on = !box("panel-samples").querySelector(".go-next").disabled;
-    box("panel-samples").querySelector(".go-next").click(); await wait(5);
-    const inst = !box("screen-install").hidden && /Model:Samples OS \(for Model:Cycles\)/.test(text(doc, "picked"));
-    box("back").click(); await wait(5);
-    check(shown && off && on && inst && w.MCFlasherApp.state.mode === "samples" && errors.length === 0,
-      "?samples: tabs and machine picker shown, no classic method; Samples OS: Continue once ticked, then its install screen; " +
-      "Change keeps the tab");
+    const S = w.MCFlasherApp.state;
+    const click = async (el) => { el.click(); await wait(5); };
+    const say = () => text(doc, "own-say");
+    const noTabs = box("mode-tabs").hidden && box("mach-box").hidden;
+    box("feat-sampler").click(); await wait(20);
+    await click(doc.querySelector("#mod-sel .sel-next"));
+    const cyc = !box("screen-install").hidden && S.mode === "mods" && S.machine === "cyc" && box("modded-box").hidden
+      && box("own-cyc").getAttribute("aria-checked") === "true" && box("drop2-wrap").hidden && /keeps everything/.test(say())
+      && /Connect your Model:Cycles/.test(text(doc, "h3s")) && /SAMPLE/.test(text(doc, "picked"));
+    await click(box("own-smp"));
+    const smp = S.machine === "smp" && !box("modded-box").hidden && !box("drop2-wrap").hidden && /start as a Model:Cycles/.test(say())
+      && /SAMPLE plays the samples/.test(say()) && /Connect your Model:Samples/.test(text(doc, "h3s"))
+      && /Load both official OS files/.test(text(doc, "h2s")) && /both official OS files/.test(text(doc, "own-more"));
+    await click(box("modded-yes"));
+    const cos = S.machine === "cos" && S.mode === "mods" && /replace the ones/.test(say()) && !box("drop2-wrap").hidden;
+    await click(box("back"));
+    const back = S.mode === "mods" && S.screen === "choose" && !box("panel-mods").hidden && !/Model:Samples/.test(text(doc, "mod-sel"));
+    await click(box("go-restore"));
+    const sback = S.mode === "samples" && S.smpDir === "back" && /Official Model:Samples OS/.test(text(doc, "picked"))
+      && /Experimental/.test(say()) && /own OS back/.test(say()) && !box("step-file").hidden;
+    await click(box("modded-no"));
+    const stop = S.mode === "restore" && /nothing to undo/.test(say()) && box("step-file").hidden && box("step-connect").hidden
+      && box("step-flash").hidden && box("own-more").hidden;
+    await click(box("own-cyc"));
+    const rest = S.mode === "restore" && /official OS back/.test(say()) && !box("step-file").hidden
+      && /Official firmware \(unchanged\)/.test(text(doc, "picked")) && box("drop2-wrap").hidden;
+    let kept = "";
+    try { kept = w.localStorage.getItem("mc-own"); } catch (e) { kept = "cyc"; }
+    await click(box("back"));
+    check(noTabs && cyc && smp && cos && back && sback && stop && rest && kept === "cyc" && S.mode === "mods" && errors.length === 0,
+      `step 1: Model:Cycles ${cyc}, Model:Samples ${smp}, with mods ${cos}, back to the cards ${back}; official firmware: ` +
+      `Samples with mods ${sback}, Samples on its OS ${stop}, Model:Cycles ${rest}; remembered “${kept}”; no tabs, even on ?samples`);
   }
 
 
@@ -904,7 +926,7 @@ async function main() {
     app.loadOs(raw, "synth.syx");
     await wait(20);
     check(/Official Model:Cycles OS 1.13 recognised/.test(text(doc, "file-status")), "OS file recognised as official");
-    check(/Select a mod/.test(text(doc, "missing")), "no mod selected -> asks for one");
+    check(/Pick a mod/.test(text(doc, "missing")), "no mod selected -> asks for one");
     doc.getElementById("feat-control-all-config").click();
     await settle(w);
     check(app.state.fw && app.state.fw.kind === "built" && /Firmware ready/.test(text(doc, "file-status")), "mod checked -> firmware built automatically");
@@ -1156,8 +1178,8 @@ async function main() {
     const cyc = new Uint8Array(fs.readFileSync(REAL_OS)), smp = new Uint8Array(fs.readFileSync(REAL_SMP));
     doc.getElementById("tab-samples").click();
     await wait(20);
-    check(!doc.getElementById("panel-samples").hidden && !doc.getElementById("drop2-wrap").hidden
-      && /Load both official OS files/.test(text(doc, "h2s")), "Samples OS tab: panel, second drop zone, step 2 title");
+    check(doc.getElementById("panel-samples").hidden && !doc.getElementById("drop2-wrap").hidden
+      && /Load both official OS files/.test(text(doc, "h2s")), "Samples OS mode (off the page): second drop zone, step 2 title");
     app.loadSamples(cyc, "model-cycles_OS1.13.syx");               // wrong file in the second zone
     await wait(20);
     check(/not the official Model:Samples OS/.test(text(doc, "file2-status")), "a Cycles file in the Samples zone is refused");
@@ -1178,14 +1200,10 @@ async function main() {
     await wait(80);
     doc.getElementById("ack").click();
     await wait(20);
-    check(/MIDI interface for the way back/.test(text(doc, "missing")) && doc.getElementById("flash").disabled,
-      "flash blocked until the MIDI-interface box is ticked");
-    doc.getElementById("samples-ack").click();
-    await wait(20);
     check(!doc.getElementById("flash").disabled && /Model:Samples OS \(for Model:Cycles\)/.test(text(doc, "summary")), "then ready: " + text(doc, "summary"));
     doc.getElementById("tab-mods").click();
     await settle(w);
-    check(app.state.fw === null && /Select a mod/.test(text(doc, "missing")), "back to Mods: the Samples build is not sent");
+    check(app.state.fw === null && /Pick a mod/.test(text(doc, "missing")), "back to Mods: the Samples build is not sent");
     doc.getElementById("tab-samples").click();
     await settle(w);
     doc.getElementById("pace").value = "0";
@@ -1226,9 +1244,6 @@ async function main() {
     await wait(150);
     doc.getElementById("ack").click();
     await wait(20);
-    check(/backup/.test(text(doc, "missing")) && doc.getElementById("flash").disabled, "flash blocked until the backup box is ticked");
-    doc.getElementById("cos-ack").click();
-    await wait(20);
     check(!doc.getElementById("flash").disabled && /Model:Cycles OS \(for Model:Samples\)/.test(text(doc, "summary")),
       "then ready: " + text(doc, "summary"));
     doc.getElementById("flash").click();
@@ -1259,7 +1274,7 @@ async function main() {
     env.dev.id = 25;
     doc.getElementById("refresh").click();
     await wait(150);
-    check(/nothing to bring back/.test(text(doc, "midi-status")), "way back vs a machine already on the Samples OS: nothing sent");
+    check(/nothing to undo/.test(text(doc, "midi-status")), "way back vs a machine already on the Samples OS: nothing sent");
     check(errors.length === 0, "no JS error in the Model:Samples flow " + (errors.length ? JSON.stringify(errors) : ""));
   }
 
@@ -1305,18 +1320,18 @@ async function main() {
     const app = w.MCFlasherApp;
     noRest(w);
     const cyc = new Uint8Array(fs.readFileSync(REAL_OS)), smp = new Uint8Array(fs.readFileSync(REAL_SMP));
-    check(app.state.machine === "cyc" && doc.getElementById("mach-pane").hidden && doc.getElementById("drop2-wrap").hidden
-      && doc.getElementById("mach-cyc").getAttribute("aria-checked") === "true", "Mods tab: Model:Cycles by default, no Samples pane");
-    doc.getElementById("mach-smp").click();
+    check(app.state.machine === "cyc" && doc.getElementById("modded-box").hidden && doc.getElementById("drop2-wrap").hidden
+      && doc.getElementById("own-cyc").getAttribute("aria-checked") === "true", "step 1: Model:Cycles by default, no second question");
+    doc.getElementById("own-smp").click();
     await wait(20);
-    check(!doc.getElementById("mach-pane").hidden && /Mods on a Model:Samples/.test(text(doc, "mach-pane")) && !doc.getElementById("drop2-wrap").hidden
-      && /Load both official OS files/.test(text(doc, "h2s")) && !doc.getElementById("mach-w-smp").hidden
-      && doc.getElementById("mach-w-cos").hidden, "Model:Samples on its OS: its pane, second drop zone");
+    check(app.state.machine === "smp" && !doc.getElementById("modded-box").hidden && !doc.getElementById("drop2-wrap").hidden
+      && /Load both official OS files/.test(text(doc, "h2s")) && doc.getElementById("modded-no").getAttribute("aria-checked") === "true",
+      "Model:Samples, no mods yet: the second question, the second drop zone");
     app.loadOs(cyc, "model-cycles_OS1.13.syx");
     doc.getElementById("feat-sampler").click();
     await settle(w);
     check(!app.state.fw && /official Model:Samples OS below/.test(text(doc, "file-status"))
-      && /Model:Samples OS file, to load/.test(text(doc, "mod-sel")), "SAMPLE ticked, no Samples file yet: asked for it");
+      && !/Model:Samples/.test(text(doc, "mod-sel")), "SAMPLE ticked, no Samples file yet: asked for it in step 2, not on the cards");
     app.loadSamples(smp, "model-samples_OS1.13.syx");
     await settle(w);
     let f = app.state.fw, sha = f && w.MCBuilder.hex(w.MCBuilder.sha256(f.raw));
@@ -1327,9 +1342,6 @@ async function main() {
     doc.getElementById("allow").click();
     await wait(150);
     doc.getElementById("ack").click();
-    await wait(20);
-    check(/backup/.test(text(doc, "missing")) && doc.getElementById("flash").disabled, "flash blocked until the backup box is ticked");
-    doc.getElementById("mach-ack").click();
     await wait(20);
     check(!doc.getElementById("flash").disabled && /\(for Model:Samples\)/.test(text(doc, "summary")) && /Model:Samples asks/.test(text(doc, "missing")),
       "then ready: " + text(doc, "summary"));
@@ -1342,12 +1354,12 @@ async function main() {
     env.dev.id = 27;
     doc.getElementById("refresh").click();
     await wait(150);
-    check(/already on the Cycles OS/.test(text(doc, "midi-status")) && doc.getElementById("flash").disabled,
-      "Samples-OS packing vs a machine answering Model:Cycles: nothing sent");
-    doc.getElementById("mach-cos").click();
+    check(/answer “Yes” in step 1/.test(text(doc, "midi-status")) && doc.getElementById("flash").disabled,
+      "Samples-OS packing vs a machine answering Model:Cycles: nothing sent, “Yes” suggested");
+    doc.getElementById("modded-yes").click();
     await settle(w);
     f = app.state.fw; sha = f && w.MCBuilder.hex(w.MCBuilder.sha256(f.raw));
-    check(f && f.machine === "cos" && f.raw[4] === 0x11 && f.raw[8] === 0x0c && sha === MFS.cos && !doc.getElementById("mach-w-cos").hidden,
+    check(f && f.machine === "cos" && f.raw[4] === 0x11 && f.raw[8] === 0x0c && sha === MFS.cos,
       "Model:Samples on the Cycles OS = tools/mods_for_samples.py _cyc-os (" + (sha || "").slice(0, 16) + ")");
     await wait(150);
     check(!doc.getElementById("flash").disabled, "ready for a machine answering Model:Cycles: " + text(doc, "missing"));
@@ -1357,14 +1369,14 @@ async function main() {
     env.dev.id = 25;
     doc.getElementById("refresh").click();
     await wait(150);
-    check(/on its own OS/.test(text(doc, "midi-status")) && doc.getElementById("flash").disabled,
-      "Cycles-OS packing vs a machine answering Model:Samples: nothing sent");
+    check(/answer “No” in step 1/.test(text(doc, "midi-status")) && doc.getElementById("flash").disabled,
+      "Cycles-OS packing vs a machine answering Model:Samples: nothing sent, “No” suggested");
 
     // back to Model:Cycles: the usual build, and a machine answering Model:Samples is pointed to step 1
-    doc.getElementById("mach-cyc").click();
+    doc.getElementById("own-cyc").click();
     await settle(w);
     f = app.state.fw;
-    check(f && !f.machine && f.raw[4] === 0x11 && f.sha === app.REF_MAINOS["sampler"] && doc.getElementById("mach-pane").hidden
+    check(f && !f.machine && f.raw[4] === 0x11 && f.sha === app.REF_MAINOS["sampler"] && doc.getElementById("modded-box").hidden
       && doc.getElementById("drop2-wrap").hidden && /choose it in step 1/.test(text(doc, "midi-status")),
       "Model:Cycles again: plain build; a Model:Samples answering is told to pick it in step 1");
     app.setMachine("cyc");                                         // remembered by the page: leave the default for the next sections
