@@ -307,7 +307,7 @@ window.MC_TWEAKS = {
    "id": "terra",
    "label": "TERRA",
    "desc": "One extra machine after Chord that plays wave terrain synthesis: a point circles over a surface and the height under it is the sound. Eight surfaces, five smooth and three made of Plaits' wavetables. COLOR = Surface, SHAPE = Radius, SWEEP = Shift, CONTOUR = Aux (Plaits' second output mixed in).",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "based",
     "who": "Émilie Gillet",

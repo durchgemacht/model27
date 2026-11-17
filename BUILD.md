@@ -362,8 +362,8 @@ MAIN OS patché, `terra` 0.1 seule : `9f064a741226be476ac43fe03b0309bda4b4ff490d
 (vingt, release 0.72 : `--machines sampler,solid,chips,maxsaw,terra,chordtables,digidelay,pots,smpfilter,crush,ring,
 reso,eq --cpu --resample --transpose --perform --with control-all-config,trig-preview,trig-cond-order`) :
 `b95b1d318fa722c6577a230cc88125e8733aabfa9cffb2729a4b7699b2f8c8ee`. Essayée sur un Model:Cycles depuis la ligne de
-commande, seule avec la page CPU (`--machines terra --cpu`, MAIN OS `da29c17f…`), le 17/11/2026 (note 85 §8, §9).
-Pas encore flashée depuis la page.
+commande, seule avec la page CPU (`--machines terra --cpu`, MAIN OS `da29c17f…`), le 17/11/2026 (note 85 §8, §9) ;
+puis flashée depuis la page (servie en local, toutes les cartes cochées) le 17/11/2026 (note 85 §12).
 
 ### CHORD Tables (wavetables du +Drive)
 

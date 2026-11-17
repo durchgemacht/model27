@@ -232,7 +232,7 @@ tools/machines/terra/         TERRA (notes/85): wave terrain synthesis after Pla
                               wavetable data are a far table (.far*: the start of its variables' room, copied at
                               boot, notes/85 §5); tools/gen_terra.py writes its tables and its object and composes it
                               alone into 86-terra.json; tools/emu/test_terra.py proves it (terra_ref.c, the core on the
-                              host); the flasher's TERRA card, experimental
+                              host); the flasher's TERRA card, tested
 tools/machine_pictures.py     an added machine's own pictures as C (the OS's Bitmaps, their masks, the registrar's table):
                               gen_solid.py and gen_sampler.py write solid_pictures.c and sample_pictures.c with it
                               (notes/60 §25); SAMPLE's (sample_card.c, pictures/) are model27's, next to One-Shot's code

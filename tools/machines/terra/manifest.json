@@ -131,8 +131,10 @@
    "build": "alone and next to SAMPLE, CHIPS and Max Saw, composed by compose.py"
   },
   "hardware": {
-   "status": "not tested"
+   "date": "2026-11-17",
+   "by": "maintainer",
+   "build": "TERRA alone with the CPU page, from tools/compose.py (notes/85 §8, §9: .syx model27-terra-0.2-cpu, MAIN OS da29c17f…): the sound, six tracks under load (CPU 67 %, PEAK 80 %), trigs without clicks; then release 0.72 flashed from the page, served locally, every card ticked (notes/85 §12)"
   },
-  "status": "experimental"
+  "status": "tested"
  }
 }

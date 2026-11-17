@@ -411,8 +411,9 @@ ALL_FEATURES = [
                 "= Surface, SHAPE = Radius, SWEEP = Shift, CONTOUR = Aux (Plaits' second output mixed in).",
         # after the WaveTerrainEngine of Mutable Instruments Plaits (MIT), written anew in fixed point, its wavetable
         # data copied (notes/85); bit for bit its host build in emulation (test_terra.py); tried on the Model:Cycles
-        # from the command line, TERRA alone with the CPU page (notes/85 §8, §9)
-        "status": "experimental",
+        # from the command line, TERRA alone with the CPU page (notes/85 §8, §9), then flashed from this page (served
+        # locally, release 0.72, every card ticked) on 2026-11-17 (notes/85 §12)
+        "status": "tested",
         "credit": {"kind": "based", "who": "Émilie Gillet", "repo": "pichenettes/eurorack"},
         "license": "LICENSE-Plaits",
         # composed in the page from its package (notes/85): alone it gives 86-terra.json byte for byte, whose

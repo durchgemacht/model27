@@ -5,7 +5,7 @@ listening page of the original Wave Terrain (outside the repository, `_scratch/p
 gut ») they asked for the machine. It follows the path of SOLID, SWARM, CHIPS and Max Saw: (1) the fixed point on the
 host against a float reference, (2) the package, (3) the proof in Unicorn and the load, (4) digiemu, (5) the device,
 (6) the card, the guide, the release. Steps 1, 2, 3, 5 and 6 are done (§10), digiemu (4) is left open: the device came first; the card is
-experimental until it is flashed from the page. Step 1's programs, renders and listening page live
+tested, flashed from the page (§12). Step 1's programs, renders and listening page live
 outside the repository (`_scratch/terrain-machine/`), step 2's proofs next to them (`_scratch/terrain-machine/step2/`).
 
 Source: Mutable Instruments Plaits by Émilie Gillet, MIT (eurorack `08460a6`, stmlib `e3bd7c9`):
@@ -325,9 +325,17 @@ The maintainer: « karte bauen … schreibe aus sicht des nutzers », after SOLI
 
 ## 11. Open `[À FAIRE]`
 
-- Flash from the page (served locally, every card ticked) on a Model:Cycles: then the card is « tested ».
 - digiemu with TERRA; the wavetable surfaces and the cache under load with the other cards.
 - Own pictures (TERRA shows TONE's).
 - The cost of the code window: TERRA takes 19.2 KiB (16.3 KiB of it the loops, one per surface and per pair, the
   surfaces inlined); 10.3 KiB are left there with every offered card and TERRA (the next machine may need its loops
   shared, or its tables far).
+
+## 12. Flashed from the page: tested (2026-11-17)
+
+After the commit of the card (`5f70def`) and the maintainer's run of `webflash_smoke.sh` (« all ok »), the maintainer
+flashed release 0.72 from the page, served locally with every card ticked, onto their Model:Cycles. Before, TERRA alone
+with the CPU page from the command line (§8, §9). The card's status tested (`gen_flasher_tweaks.py`, `tweaks.js`): no
+tag; the guide's line Tested, the release entry without « experimental », README (all twenty cards tested), BUILD.md,
+PROVENANCE, AGENTS.md, the manifest (`tests.hardware`, tested), `webflash_smoke.js` (the card without a tag); the
+stamp 2026-11-17-05 on the six pages.

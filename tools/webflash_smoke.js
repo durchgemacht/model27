@@ -546,7 +546,7 @@ async function main() {
       `MAXSAW alone ${mxsAlone}; with SAMPLE ${mxsSmp}; with SOLID, CHIPS, CHORD Tables, Crush and Transpose ${mxsFx}, one ` +
       `composed tweak, no clash; in Machines; no sub-choice; its guide link; tested, so no tag`);
     // TERRA: a machine card (notes/85), composed with the other package cards, its wavetables a far table; in Machines;
-    // experimental
+    // tested
     box("feat-terra").click(); await wait(5);
     const trrAlone = chosen();
     box("feat-sampler").click(); await wait(5);
@@ -559,9 +559,9 @@ async function main() {
       && trrOn && !chosen().length
       && doc.querySelector('#grp-machine #feat-terra') && doc.querySelector('#features a[href$="#terra"]')
       && doc.querySelectorAll('input[name="var-terra"]').length === 0
-      && (doc.querySelector("#mod-terra .tag") || {}).textContent === "Experimental",
+      && !doc.querySelector("#mod-terra .tag"),
       `TERRA alone ${trrAlone}; with SAMPLE ${trrSmp}; with SOLID, CHIPS, MAXSAW, CHORD Tables, Crush and Transpose ${trrFx}, ` +
-      `one composed tweak, no clash; in Machines; no sub-choice; its guide link; experimental, so its tag`);
+      `one composed tweak, no clash; in Machines; no sub-choice; its guide link; tested, so no tag`);
     const every = ["sampler", "solid", "chips", "maxsaw", "terra", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample", "transpose", "perform", "control-all-config", "trig-cond-order", "trig-preview"];
     for (const i of every) { box("feat-" + i).click(); await wait(5); }
     const fxAll = chosen();
