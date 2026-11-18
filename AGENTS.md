@@ -273,7 +273,9 @@ docs/                         GitHub Pages site: index.html, flasher/, manager/ 
                               firmware, generated), guide/, assets/release.js
 notes/                        numbered technical notes (French), index in notes/README.md
 BUILD.md, FLASH.md            command-line build and flashing (French)
-README.md                     English overview for Model:Cycles owners (mod table)
+README.md                     English overview for Model:Cycles owners: Features (one line per card), install, at a glance
+MAKING-MODS.md                for mod authors: packages, Gen 1 machines, shortcuts, what the builder checks
+CHANGELOG.md                  model27's releases (0.x), generated from docs/assets/release.js by tools/gen_changelog.py
 LICENSE, THIRD-PARTY-NOTICES.md   MIT for the project; what it does not cover; every third-party license
 CONTRIBUTING.md               terms for outside contributions, and how a machine or mod gets in
 .github/                      the pull request template and the issue templates (bug report, new machine or mod)
@@ -302,8 +304,9 @@ Follow the shape of the last ones (tempo-max: commits `5997b4a`, `14fb9fa`, `6e5
    `tools/ref_mainos.py`, add its card texts (`FEAT`: `label`, `short`, `desc`) and guide anchor (`GUIDE_OF`) in
    `docs/flasher/app.js`, update the lists checked by `tools/webflash_smoke.js`. See `docs/AGENTS.md`.
 6. **Document it for users**: a guide section in `docs/guide/index.html` (buttons to press, limits), a new
-   release at the top of `docs/assets/release.js`, bump the `MC_BUILD` / `?v=` stamp on the pages, a row
-   in the mod table of `README.md`.
+   release at the top of `docs/assets/release.js` and `python3 tools/gen_changelog.py` (writes `CHANGELOG.md`), bump
+   the `MC_BUILD` / `?v=` stamp on the pages, a line in its group under *Features* in `README.md` (the card's `short`
+   text, no status, no version history) and the release in its *At a glance* table.
 7. **Validate** (below), then propose the commit and tell the maintainer what to test on the machine.
 8. **After their test**: a small follow-up commit flips the status to `tested` (generator `FEATURES`, `tweaks.js`,
    guide, release notes, README, note: "Tested on the Model:Cycles (YYYY-MM-DD)"). If they report a problem, record it
@@ -333,6 +336,7 @@ tools/webmanager_check.sh                        # the manager's scripts on the 
 tools/webuploader_check.sh                       # the uploader's scripts on the host (node)
 python3 tools/gen_wavetables_page.py --editor …/chordwave-editor.html --check   # with CHORD Wave Bank's editor: the
                                                  # Wavetables page is its, and every page has the same nav
+python3 tools/gen_changelog.py --check           # CHANGELOG.md matches docs/assets/release.js
 python3 -m py_compile tools/*.py tools/emu/*.py
 ```
 

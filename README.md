@@ -1,80 +1,72 @@
 # model27
 
-**The Model:Cycles with added machines you can combine freely, built in your browser from your own copy of the
-official OS.**
+**New machines, effects and workflow mods for the Model:Cycles. Focused on performance and stability.**
 
-- **Machines combine freely.** Up to six added machines for now, a limit that will be raised soon, in any
-  combination, put together when you build. Nothing is pre-built, and no machine rules out another.
-- **What goes together is checked.** Every mod declares what it touches; the builder checks each build and stops one
-  that would write the same bytes or use the same memory, instead of making a firmware.
-- **It still plays like a Model:Cycles.** Extra values sit on one fixed set of shortcuts, MACHINES + a knob, and
-  on/off switches on MACHINES + PUNCH or GATE, the same on every machine and saved with the sound.
-- **Tested means played on a real Model:Cycles.** Before a mod reaches the flasher, it runs in an emulator on the
-  Model:Cycles' own code. Its card says Experimental until it has been played on the device, and Tested after.
-- **Your files stay yours.** The firmware is built in your browser from your own official OS file, nothing is
-  uploaded, and only the main OS is changed, so you can always go back to the official firmware.
-- **Easy to write for.** A machine is one package, its code and a manifest; the builder gives it its slot, its memory
-  and its place in the OS. Two reference machines in the repository show how, by hand or with an AI.
+Tick what you want in the [web flasher](https://durchgemacht.github.io/model27/flasher/), drop your official OS file,
+flash over USB. Every card goes with every other card, and the firmware is built in your browser from your own copy of
+the official OS.
 
-model27 is a downstream fork of [Modded-Cycles](https://github.com/18nelli18/Modded-Cycles), started from its
-release 1.55, the last one with a mod picker, plus the Control All Config mod. It keeps the picker: you tick what
-you want, the page builds the firmware from **your own copy** of the official OS in your browser and sends it to the
-Model:Cycles over USB. Modded-Cycles has since moved to a single OS with 2.0; model27 works on how mods are put
-together, so that a new machine fits next to the others. The rules a mod follows for that are the
-**[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard)** (draft 0.5), written alongside.
+## Features
 
-**Status: beta, release 0.75.** The [web flasher](https://durchgemacht.github.io/model27/flasher/) offers twenty-one
-cards, all but the newest tested on a Model:Cycles as the page builds them: the
-**SAMPLE** machine of [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot), a one-shot sampler for samples
-on the +Drive (since 0.61 the pad and the TRIG keys play the sample under the PRESET browser's cursor, since 0.62 with the knobs as you turn them, since 0.66 for as long as you hold them with GATE on, and with the pad held the
-track's trigs too),
-[Control All Config](https://github.com/durchgemacht/cycles-control-all-config), **Digital Delay**, the first
-effect: a second delay for the delay slot, chosen per pattern with PATTERN + Delay Time, based on the digital delay of
-[gialloinfuso's PPPCCC mods](https://github.com/gialloinfuso/PPPCCC-M-S-Mods), and **POTS** (since 0.38 its line
-at 6 kHz, for about a third of the load), model27's own second effect: a delay whose repeats go
-down an old telephone line. The fifth, **Trig conditions, A:B before
-the percentages**, model27's own, puts the A:B conditions before the percentages on the knob, the five dots under the
-value following. The sixth, **Trig preview** by
-[drumkilla](https://github.com/drumkilla/elektron-model-tweaks), plays a held trig's step when you press PAGE with the
-sequencer stopped. The seventh, **Samples**, the first Track FX, puts SAMPLE's filter, the Model:Samples' own, on
-any track after Volume + Dist, chosen per sound. The eighth, **Crush**, model27's own second Track FX, lowers a
-track's sample rate and bits on two knobs. The ninth to eleventh are model27's own Track FX too: **Ring**, a ring
-modulator (the carrier's note, the mix and its wave on three knobs), **Reso**, a tuned resonator that makes a track
-ring at a pitch you set, like a plucked string or a struck tube, and **EQ**, a three-band equalizer: a Mid you can
-sweep and Low and High shelves. The Track FX settings respond to MIDI CC 74, 71, 75 and 76, on SWEEP, CONTOUR,
-COLOR and SHAPE (75 and 76 since release 0.60). The twelfth, the **CPU page**, model27's own, its page built as
-[Model-TG](https://github.com/TinyGregAudio/Model-TG)'s System page, shows in SETTINGS how much of the Model:Cycles'
-time the sound takes, with the Track FX' and the effects' shares. The thirteenth, **RESAMPLE**, model27's own, its page and its save built as Model-TG builds its own, records a track, the main mix or USB on a page
-opened with SETTINGS + RECORD and saves the take as a sample in /recordings, named in the stock name editor, ready for
-SAMPLE. The fourteenth, **Transpose**, model27's own: with MACHINES held, TRIG 15 and 16 move the notes
-of the TRIG keys by octaves and TRIG 8, 9, 11 and 12 make the active track jump in pitch at once, the keys' lights
-dimmed to show it. The fifteenth, **CHORD Tables**, model27's own: the CHORD machine plays your own wavetables
-from the +Drive, one for each pattern, chosen with PATTERN + SWEEP and saved with the pattern; tested on a
-Model:Cycles from the command line with all the other cards, then flashed from the page. The sixteenth, **SOLID**,
-model27's own, a second machine: it plays struck sounds, a string, a drum skin, a marimba bar, a metal bar, a bell or
-glass and everything in between, hit by a mallet, a burst of noise or noise that goes on; tested on a Model:Cycles from the command line
-with all the other cards, then flashed from the page. The seventeenth, **Perform Kit**, model27's own: with SETTINGS
-held, PATTERN switches a mode in which a pattern change no longer changes the sound: the next pattern's trigs play
-on the six tracks as they sound now, with their levels, delay and reverb; nothing is kept unless the pattern is saved. Tested on a Model:Cycles from the command
-line, alone and with all the other cards, then flashed from the page. The eighteenth, **CHIPS**, a third machine,
-based on [Plaits](https://github.com/pichenettes/eurorack) by Émilie Gillet and written anew in fixed point: a chiptune
-square wave that runs through a chord as a fast arpeggio inside each note, with a pitch sweep at every trig and a
-stepped triangle bass; tested on a Model:Cycles from the command line, then flashed from the page with all the other
-cards. The nineteenth, **MAXSAW**, a fourth machine, model27's own, based on
-[Adam Szabo](https://www.adamszabo.com/internet/adam_szabo_how_to_emulate_the_super_saw.pdf)'s analysis of the supersaw: seven sawtooths detuned around the note, with a soft sub two octaves
-down; tested on a Model:Cycles from the command line, then flashed from the page with all the other cards. The
-twentieth, **TERRA**, a fifth machine, based on [Plaits](https://github.com/pichenettes/eurorack) by Émilie Gillet and
-written anew in fixed point, with Plaits' wavetables: wave terrain synthesis, a point circling over one of eight
-surfaces; tested on a Model:Cycles from the command line, then flashed from the page with all the other cards. The
-twenty-first, **VOSIM**, a sixth machine, based on [Braids](https://github.com/pichenettes/eurorack) by Émilie Gillet,
-its VOSIM oscillator carried over to the Model:Cycles: two vocal formants restarted on every period of the note, with
-the formants following the note and a window that fades; tried on a Model:Cycles from the command line with all the
-other cards, experimental until it is flashed from the page. The
-[guide](https://durchgemacht.github.io/model27/guide/) explains them. Combining machines is proven with two internal
-reference machines: SAMPLE with the first one on a Model:Cycles; the second one, with a shortcut, and sharing the
-main screen, the knob view, the screen's tick and the browser with SAMPLE, in emulation so far, composed by the page
-as by the command line. SOLID is the first machine card that users combine with SAMPLE. The other Modded-Cycles 1.55
-mods stay buildable from the command line.
+### Machines
+
+- **SAMPLE**: plays samples from the +Drive, once or in a loop,
+  forwards or backwards, through a DJ-style filter. The pad and the TRIG keys play the sample under the browser's
+  cursor.
+- **SOLID**: plays struck sounds: a string, drum skin, marimba, metal bar, bell or glass.
+- **CHIPS**: plays chiptune: a square wave that arpeggiates a chord, with a pitch sweep and a bass. Based on
+  [Plaits](https://github.com/pichenettes/eurorack) by Émilie Gillet.
+- **MAXSAW**: plays a huge, wide sawtooth sound, with a sub two octaves down. Based on
+  [Adam Szabo](https://www.adamszabo.com/internet/adam_szabo_how_to_emulate_the_super_saw.pdf)'s analysis of the
+  supersaw.
+- **TERRA**: plays wave terrain synthesis: a circle runs over one of eight surfaces, from soft tones to sharp ones.
+  Based on [Plaits](https://github.com/pichenettes/eurorack) by Émilie Gillet.
+- **VOSIM**: plays two vocal formants that start again on every period of the note, from soft vowels to buzzing
+  tones. Based on [Braids](https://github.com/pichenettes/eurorack) by Émilie Gillet.
+
+### Effects
+
+- **Digital Delay**: a bright, clean delay, the opposite of the dark stock one: each repeat a little thinner. Based on
+  [gialloinfuso's PPPCCC mods](https://github.com/gialloinfuso/PPPCCC-M-S-Mods).
+- **POTS**: a lo-fi delay like an old phone line: each repeat darker, narrower and grainier.
+
+Both take the delay slot, chosen per pattern with PATTERN + Delay Time.
+
+### Track FX
+
+One per sound, after Volume + Dist, on SWEEP, CONTOUR, COLOR and SHAPE (MIDI CC 74, 71, 75, 76).
+
+- **LP/HP Filter**: a DJ-style filter: lowpass, off or highpass on one knob, with resonance.
+- **Crush**: makes a track grainy and lo-fi: a lower sample rate and fewer bits.
+- **Ring**: a ring modulator, from a fast chop to bell-like, metallic sounds.
+- **Reso**: a tuned resonator: noise and hits ring at a pitch you set.
+- **EQ**: a three-band EQ: a Mid band you can sweep, a Low and a High shelf, each up to 12 dB either way.
+
+### Workflow
+
+- **Perform Kit**: change patterns without changing the sound: the next pattern's trigs play on the sounds you have
+  right now.
+- **RESAMPLE**: records a track, the main mix or the USB input and saves it as a sample on the +Drive, ready for
+  SAMPLE.
+- **Control All Config**: choose which tracks Control All changes.
+- **Trig Preview**: hear a step without starting the sequencer. By
+  [drumkilla](https://github.com/drumkilla/elektron-model-tweaks).
+- **CHORD Tables**: CHORD plays your own wavetables from the +Drive, one for each pattern.
+- **CPU Page**: shows in SETTINGS how much of the Model:Cycles' processor the sound takes.
+- **Transpose**: plays the TRIG keys in other octaves and makes a track jump a fourth or a fifth.
+- **Trig Condition Order**: on CHANCE, the A:B conditions come before the percentages.
+
+### In the browser
+
+- **[Uploader](https://durchgemacht.github.io/model27/uploader/)**: puts audio files and whole folders on the +Drive
+  over USB, as 48 kHz mono samples for SAMPLE. Works with the official OS too.
+- **[Manager](https://durchgemacht.github.io/model27/manager/)**: keeps one project per firmware: backs up the
+  project, flashes the other firmware and brings its project back, in one go over USB.
+- **[Wavetables](https://durchgemacht.github.io/model27/wavetables/)**: makes a wavetable for CHORD from the waves of
+  Plaits and Braids or your own WAV files, and builds it into the official OS 1.13 or a model27 build.
+
+The [guide](https://durchgemacht.github.io/model27/guide/) explains every card. What changed in each release is in
+[CHANGELOG.md](CHANGELOG.md).
 
 > [!IMPORTANT]
 > **No Elektron firmware is included in this repository**, original or modified. You bring the official OS
@@ -83,93 +75,11 @@ mods stay buildable from the command line.
 > please bring questions and bug reports about it to this repository rather than to the Modded-Cycles maintainers.
 > Flashing a modified OS is **at your own risk** and may void your warranty.
 
-## Stability first: Gen 1 machines
-
-model27 is curated: each mod is chosen with care and made to work reliably alongside the others. Making machines
-work together takes a few ground rules. Some of them will probably loosen over time, but for now they define which
-machines get in. These are **Gen 1 machines**, as the
-[Cycles Mod Standard](https://github.com/durchgemacht/cycles-mod-standard) describes them today:
-
-- four knobs of their own, with DECAY, GATE and PUNCH working as on the stock machines;
-- up to four extra parameters, all on the same fixed shortcuts (MACHINES held + COLOR, SHAPE, SWEEP or CONTOUR),
-  and up to two on/off switches (MACHINES held + PUNCH or GATE), identical on every machine and saved with the sound;
-- they only hook into the parts of the OS the builder already knows how to share.
-
-The result still plays like a Model:Cycles. This is all at an early stage, and it will keep evolving. If more
-shortcuts are added one day, machines could get a few more controls, and those might become Gen 2. Whatever comes
-next, the focus stays the same: stability, and staying true to the Elektron spirit.
-
-## What gets easier
-
-In Modded-Cycles 1.55, an added machine is a tweak whose place in the OS is fixed when it is generated, so two
-machines go together only as a combination built in advance. In model27 a machine is a **package**, its code plus a
-manifest that says what it touches, and the builder composes the packages you tick each time it builds.
-
-| | One tweak per combination (Modded-Cycles 1.55) | One package per machine (model27) |
-|---|---|---|
-| **Machines ticked together** | only the combinations built in advance: 283 tweak files at the fork, 252 of them combinations of the Syntakt engines | any combination, up to six for now (to be raised soon) next to the six original machines |
-| **A new machine** | a new file for every combination with the machines already there | one package; the others stay as they are |
-| **Its slot, its place in memory, its registration in the OS** | fixed by its own generator | assigned by the builder at each build |
-| **Extra controls** | each machine picks its own key combinations | a fixed list of shortcuts, handled by the builder |
-
-## Shortcuts are predefined
-
-A machine does not choose its own key combinations. model27 gives a fixed list, today **MACHINES held + COLOR, SHAPE,
-SWEEP or CONTOUR**: up to four extra values on the machine's tracks, and **MACHINES held + PUNCH or GATE**: up to two
-switches, on or off. For a value, the machine declares its name, range and default in its manifest; the builder handles
-the keys, shows the value and saves it with the sound, and the machine only reads it. A switch flips on the press,
-instead of PUNCH or GATE on that machine's tracks; while MACHINES is held, PUNCH's and GATE's lights show the switches,
-and the machine shows them on the screen if it wants. On such a machine's tracks MACHINES is a held key: a tap still
-opens the machine list, when you let go of it, and holding it for a shortcut leaves the list closed. Each machine gives
-a shortcut its own meaning, so two machines can use the same one without meeting. Since release 0.50 a switch can be
-locked on single steps: hold the steps' TRIG keys and MACHINES, then press PUNCH or GATE. For now shortcut values cannot
-be p-locked, and neither values nor switches can be LFO destinations; SAMPLE's Loop and Reverse are the only switches
-on the page.
-
-The held key says what a combination works on: **PATTERN** the pattern (PATTERN + Delay Time / Reverb Size chooses its
-effects), **MACHINES** the track's machine (its values and switches above), **RETRIG** the track's filter (RETRIG +
-PITCH chooses the sound's filter, RETRIG + SWEEP and CONTOUR set its Cutoff and Reso; unlike a machine's values, these
-can be p-locked, used as LFO destinations and turned with Control All, on every machine). No mod gets a held key of its
-own, and a build has either machine values or filters ([notes/72](notes/72-track-filters.md)).
-
-## The conditions, roughly
-
-- **The machine is a package** that follows the standard. The machines Modded-Cycles ships pre-built (MACRO, ACID,
-  the Syntakt engines, Model-TG's Sampler) are not packages and do not go with the packages.
-- **Where two machines use the same place in the OS**, such as the main screen or the knob view, the builder adds a
-  small dispatcher that passes it on to the right machine. Where no dispatcher exists yet, the build stops with a
-  message instead of making a firmware.
-- **Two machines never share memory.** A machine that needs RAM of its own, as SAMPLE does for its samples, claims it
-  in its manifest; a build where two claims overlap stops with a message.
-- **Other mods go with the machines** unless they write the same bytes or use the same memory. The builder computes
-  that from the manifests and the mods themselves.
-- **The processor is shared and not measured by the builder.** How many heavy machines run on six tracks at once is
-  a matter of listening.
-- **A project for each set of machines.** A track remembers a machine's slot, not the machine itself, and the added
-  machines take their slots in the order of the cards. With other machine cards ticked, a track plays whichever
-  machine now has its slot, with the same knob values; a slot no machine has plays CHORD. To keep your sounds as they
-  are, keep projects on the Model:Cycles for each set of machine cards, as many as you like. Effects, Track FX and
-  the other mods can come and go in the same project: an effect, a Track FX or a CHORD Tables wavetable keeps its
-  number in every build, a build without it plays the stock effect, no Track FX or CHORD's own wavetable, and the
-  other mods keep nothing in the project ([notes/64](notes/64-projects-and-machines.md)).
-
-## What goes in first
-
-- The maintainer's own mods: the **SAMPLE** machine of [Cycles One-Shot](https://github.com/durchgemacht/cycles-one-shot)
-  (a one-shot sampler for samples on the +Drive) and
-  [Control All Config](https://github.com/durchgemacht/cycles-control-all-config), which is already here.
-- Then mods by other authors, with their agreement and full credit. If you have built a machine for the Cycles, or
-  would like to, the standard's
-  [porting guide](https://github.com/durchgemacht/cycles-mod-standard/blob/main/APPLYING.md#12-porting-a-machine-to-model27s-builder)
-  and the two reference machines in this repository show the way.
-- Everything else that Modded-Cycles 1.55 ships stays buildable from the command line until it is decided, mod by
-  mod, what the beta offers. Modded-Cycles' startup animation, which shows the Modded-Cycles name and logo, is that
-  project's own branding and will not be offered here.
-
 ## Install from the browser
 
-1. **Open the [web flasher](https://durchgemacht.github.io/model27/flasher/)** in Chrome, Edge or Opera on a desktop computer (it needs Web MIDI).
-2. **Tick SAMPLE.**
+1. **Open the [web flasher](https://durchgemacht.github.io/model27/flasher/)** in Chrome, Edge or Opera on a desktop
+   computer (it needs Web MIDI).
+2. **Tick the cards you want.**
 3. **Drop your official OS file**, `model-cycles_OS1.13.syx`, from the
    [Elektron download](https://www.elektron.se/support-downloads/modelcycles) (unzip it first).
 4. **Connect the Model:Cycles over USB and press Flash.** Close Elektron Transfer first and leave the machine on its
@@ -182,45 +92,16 @@ and samples with Elektron Transfer.
 
 A project belongs to the firmware it was made on: on another firmware its tracks can play other machines, and saving
 it there can lose what that firmware doesn't know. Save the project you work on before you flash, and after the flash
-load a project made on the new firmware, or start a new one, before you play or save anything.
-
-## Samples onto the +Drive: the Uploader
-
-The **[Uploader](https://durchgemacht.github.io/model27/uploader/)** puts audio files on the Model:Cycles' +Drive over
-USB, for SAMPLE: drop audio files or whole folders on the left, open a folder of the Cycles on the right, press
-**Upload**. Each file becomes a 48 kHz mono sample (WAV, AIFF, and what the browser decodes: MP3, FLAC, OGG, M4A), and
-a file that cannot be uploaded says why. The folders are made on the Cycles too; rows dragged onto a
-folder on the right go there. It also deletes several samples or folders in one go, and works with the official OS
-too. Close Elektron Transfer
-first. It is Cycles One-Shot's upload page, moved here.
-
-## A wavetable of your own for CHORD: Wavetables
-
-**[Wavetables](https://durchgemacht.github.io/model27/wavetables/)** gives CHORD a wavetable of your own: drag waves of
-Plaits and Braids, or your own WAV files (single cycles, or wavetables as Serum and Vital write them), onto its 31
-frames, hear them with SWEEP and an LFO, and save the wavetable into your firmware: the official OS 1.13, or a build of
-this flasher (its `.syx` from the last step), whose cards all stay. SWEEP then moves through your waves instead of
-CHORD's. Your files stay in your browser. It is the editor of CHORD Wave Bank, in the site's look;
-`tools/gen_wavetables_page.py` writes the page from it.
-
-## Building from the command line
-
-The build is Modded-Cycles' pure-Python toolchain: no compiler and no firmware in the repository.
-
-```sh
-python3 tools/build.py --list                       # every mod the repository holds today
-python3 tools/build.py -i model-cycles_OS1.13.syx -t control-all-config,latching-mute,trig-preview
-./flash.sh                                           # macOS / Linux  (flash.bat on Windows)
-```
-
-Details in [`BUILD.md`](BUILD.md) and [`FLASH.md`](FLASH.md) (both in French, inherited from Modded-Cycles).
+load a project made on the new firmware, or start a new one, before you play or save anything. The
+[Manager](https://durchgemacht.github.io/model27/manager/) does this for you.
 
 <details>
 <summary><b>Going back to the official firmware</b></summary>
 
 Build nothing: send your official OS file the way you installed it. Before that, set any track that uses an added
-machine (MACRO, ACID, a Syntakt engine, SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM or the Model-TG Sampler) back to one of the six original
-machines: a project that still names a machine the official OS does not have can freeze its MACHINES page.
+machine (MACRO, ACID, a Syntakt engine, SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM or the Model-TG Sampler) back to
+one of the six original machines: a project that still names a machine the official OS does not have can freeze its
+MACHINES page.
 
 </details>
 
@@ -234,12 +115,36 @@ stay as Elektron shipped them.
 
 </details>
 
-## How it is made
+## At a glance
 
-Every mod is checked in an emulator that runs the Model:Cycles' own code, then on a real Model:Cycles before it is
-marked *Tested*. The tools, the emulation proofs and the technical notes are Modded-Cycles' (the
-[notes](notes/README.md) are in French); model27 adds its own notes in English as it goes. Much of model27's code
-and documentation is written together with Claude, an AI.
+| | |
+|---|---|
+| **Device** | Elektron Model:Cycles |
+| **Needs** | the official OS 1.13 file from Elektron |
+| **Install** | in the browser, Chrome, Edge or Opera on a desktop computer (Web MIDI), over USB |
+| **Status** | beta, release 0.75 |
+| **Price** | free |
+| **License** | MIT |
+| **Based on** | [Modded-Cycles](https://github.com/18nelli18/Modded-Cycles) 1.55 |
+| **Links** | [flasher](https://durchgemacht.github.io/model27/flasher/), [guide](https://durchgemacht.github.io/model27/guide/), [changelog](CHANGELOG.md) |
+
+## Building from the command line
+
+The build is Modded-Cycles' pure-Python toolchain: no compiler and no firmware in the repository.
+
+```sh
+python3 tools/build.py --list                       # every mod the repository holds today
+python3 tools/build.py -i model-cycles_OS1.13.syx -t control-all-config,latching-mute,trig-preview
+./flash.sh                                           # macOS / Linux  (flash.bat on Windows)
+```
+
+Details in [`BUILD.md`](BUILD.md) and [`FLASH.md`](FLASH.md) (both in French, inherited from Modded-Cycles). The
+other Modded-Cycles 1.55 mods stay buildable from the command line.
+
+## Writing mods for model27
+
+How machines are packaged, which shortcuts they get, what the builder checks and how mods by other authors get in:
+[MAKING-MODS.md](MAKING-MODS.md).
 
 ## Credits
 
@@ -269,6 +174,7 @@ And the tools around it, none of whose code is in this repository:
 
 The authors of the individual mods are named in the mod table of the flasher, in
 [`PROVENANCE.md`](tweaks/model-cycles_OS1.13/PROVENANCE.md) and in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+Much of model27's code and documentation is written together with Claude, an AI.
 
 ## License
 

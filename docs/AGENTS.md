@@ -258,8 +258,9 @@ mods, the guide, the rest.
    line saying how it was checked. Copy the `#tempo` or `#trig-hold` section.
 6. A new entry at the top of `assets/release.js`: next version (the top entry is the last), today's date, 2 to 4 changes
    (what the user gets, the limits, how it was checked, which mods it goes with). The home page shows it as is (the
-   flasher only its version), so write it for musicians. Nothing posts it anywhere else: Modded-Cycles' Discord
-   workflow went with `.github/` at the fork.
+   flasher only its version), so write it for musicians. Then run `python3 tools/gen_changelog.py`: it writes the
+   same releases into the repository's `CHANGELOG.md` (never edit that file by hand). Nothing posts it anywhere else:
+   Modded-Cycles' Discord workflow went with `.github/` at the fork.
 7. Bump the version stamp: the same `YYYY-MM-DD-NN` string in `window.MC_BUILD` (`flasher/index.html`) and every
    `?v=` of the six pages (`index.html`, `flasher/index.html`, `manager/index.html`, `uploader/index.html`,
    `wavetables/index.html`, `guide/index.html`; the Wavetables page by running its generator again, or by hand: its
