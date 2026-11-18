@@ -1,0 +1,141 @@
+{
+ "schema": "cycles-mod/0.1",
+ "id": "vosim",
+ "version": "0.1",
+ "name": "VOSIM: Braids' VOSIM oscillator with formant tracking",
+ "description": "model27's machine after the VOSIM oscillator of Mutable Instruments Braids (notes/86), its code carried over integer for integer: two sine formants, the second at half the level, windowed over each period of the note and restarted with it. F1 and F2 set the formants, the knob's value their note (69 = 440 Hz); Follow lets them follow the note (0 fixed as in Braids, 127 fully, agreeing at C5); Window goes from Braids' bell to a window that fades within each period, as the classic VOSIM, in 17 steps with the level kept. The window's offset is taken out by the mean of the last period. DECAY, GATE and PUNCH are the stock amp chain as on TONE; while the envelope is closed the voice stands still. Pitch as on every machine.",
+ "license": "MIT",
+ "credit": {
+  "kind": "based",
+  "who": "Émilie Gillet (Mutable Instruments Braids)",
+  "repo": "pichenettes/eurorack"
+ },
+ "source": "https://github.com/pichenettes/eurorack/tree/08460a6/braids",
+ "device": "Model:Cycles",
+ "os": "1.13",
+ "order": 87,
+ "build": {
+  "sources": [
+   "vosim.c",
+   "vosim_cf.S"
+  ],
+  "include": [
+   "."
+  ],
+  "cflags": [
+   "-std=c99",
+   "-mcpu=54418",
+   "-O2",
+   "-ffreestanding",
+   "-fno-builtin",
+   "-fno-tree-loop-distribute-patterns",
+   "-nostdlib",
+   "-fno-pic",
+   "-fno-common",
+   "-ffunction-sections",
+   "-fdata-sections",
+   "-Wall",
+   "-Wextra",
+   "-Werror"
+  ],
+  "defines": {},
+  "objects": [
+   "vosim.o"
+  ],
+  "patch_points": [],
+  "symbols": {
+   "update": "vosim_update",
+   "render": "vosim_render"
+  }
+ },
+ "uses": [
+  {
+   "point": "machine",
+   "name": "VOSIM",
+   "image": 4,
+   "decay_default": 64,
+   "knobs": [
+    {
+     "long": "Vosim F1",
+     "short": "FRM1",
+     "default": 77
+    },
+    {
+     "long": "Vosim F2",
+     "short": "FRM2",
+     "default": 86
+    },
+    {
+     "long": "Vosim Follow",
+     "short": "TRCK",
+     "default": 0
+    },
+    {
+     "long": "Vosim Window",
+     "short": "WIND",
+     "default": 0
+    }
+   ]
+  }
+ ],
+ "claims": {
+  "sound_slots": [],
+  "record_slots": [],
+  "ram": [],
+  "gestures": [],
+  "views": []
+ },
+ "cost": {
+  "emulation": {
+   "default": 2910,
+   "color_shape_0": 2962,
+   "sweep_64_note_48": 2933,
+   "contour_64": 2913,
+   "contour_127": 2913,
+   "sweep_contour_64_note_48": 2936,
+   "punch": 2905,
+   "note_24": 2922,
+   "note_96": 2914,
+   "color_moving_median": 2918,
+   "shape_moving_median": 2922,
+   "sweep_moving_median": 2933,
+   "contour_moving_median": 2917,
+   "all_moving_median": 2948,
+   "all_moving_max": 2982,
+   "trig_block": 3324,
+   "paused": 183,
+   "six_contour_64": 17478,
+   "six_tone": 31746,
+   "stack_bytes": 216,
+   "pattern": "instructions a block, the whole voice loop less the same loop muted, note 60, DECAY 127 and default knobs unless named; tools/emu/test_vosim.py, the maintainer's run of 2026-11-18 (notes/86 §8.1)"
+  },
+  "device": {
+   "status": "not measured"
+  }
+ },
+ "stock_behaviour": {
+  "changes": [],
+  "fixes": [],
+  "unchanged": [
+   "other tracks and machines"
+  ]
+ },
+ "compat": {
+  "built_against": [
+   "model27"
+  ],
+  "requires": [],
+  "conflicts_declared": []
+ },
+ "tests": {
+  "emulation": {
+   "tool": "step 1: the core against Braids' RenderVosim (bit for bit with SWEEP 0 and CONTOUR 0, a trig as Braids' sync) and a model in double on the host, the ColdFire object against the host build in a ColdFire interpreter (notes/86 §3); step 2: the package's core against step 1's chosen variant, its object as the voice loop calls it in the interpreter (notes/86 §5); tools/emu/test_vosim.py (Unicorn, the OS's own code, against the host build tools/emu/vosim_ref.c, notes/86 §8): ALL OK, the core exact in 92 cases (12 626 blocks), the pause and the wake, the chain TONE's with VOSIM's stage, a retrig without a dip, the tracks, the far table after the boot, next to SAMPLE, CHIPS, Max Saw and TERRA",
+   "date": "2026-11-18",
+   "build": "alone and next to SAMPLE, CHIPS, Max Saw and TERRA, composed by compose.py"
+  },
+  "hardware": {
+   "status": "not tested"
+  },
+  "status": "experimental"
+ }
+}

@@ -233,6 +233,13 @@ tools/machines/terra/         TERRA (notes/85): wave terrain synthesis after Pla
                               boot, notes/85 §5); tools/gen_terra.py writes its tables and its object and composes it
                               alone into 86-terra.json; tools/emu/test_terra.py proves it (terra_ref.c, the core on the
                               host); the flasher's TERRA card, tested
+tools/machines/vosim/         VOSIM (working name, notes/86): Braids' VOSIM oscillator (MIT, LICENSE-Braids) carried
+                              over integer for integer, with formant tracking (SWEEP), a window from Braids' bell to a
+                              decaying e-curve in 17 steps (CONTOUR, the level made up in the tables, a far table) and
+                              the last period's mean taken out; vosim_cf.S its sample loop (the same bits as vosim.c's
+                              C, which the host builds); tools/gen_vosim.py writes its tables and its object and
+                              composes it alone into 87-vosim.json; tools/emu/test_vosim.py proves it (vosim_ref.c,
+                              the core on the host); the flasher's VOSIM card, experimental
 tools/machine_pictures.py     an added machine's own pictures as C (the OS's Bitmaps, their masks, the registrar's table):
                               gen_solid.py and gen_sampler.py write solid_pictures.c and sample_pictures.c with it
                               (notes/60 §25); SAMPLE's (sample_card.c, pictures/) are model27's, next to One-Shot's code
@@ -276,7 +283,7 @@ CONTRIBUTING.md               terms for outside contributions, and how a machine
 
 Follow the shape of the last ones (tempo-max: commits `5997b4a`, `14fb9fa`, `6e592bc`; trig-hold, arp). In order:
 
-1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 85 is the last) with the
+1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 86 is the last) with the
    user's request and its source, the OS code involved (addresses, `[FAIT]`/`[HYP]`), the design, free space used and
    conflicts with other tweaks. Add a row to `notes/README.md`. See `notes/AGENTS.md`.
 2. **Write the generator** `tools/gen_<mod>.py` (and sources under `tools/machines/<mod>/` if it has code). It reads

@@ -79,6 +79,11 @@ SELECTIONS = ((["sampler"], []), (["refmachine"], []), (["sampler", "refmachine"
               (["solid", "chips", "maxsaw", "terra", "chordtables", "crush"], []),
               (["sampler", "solid", "chips", "maxsaw", "terra", "chordtables", "digidelay", "pots", "smpfilter", "crush",
                 "ring", "reso", "eq", "cpu", "resample", "transpose", "perform"], []),
+              # notes/86 §11: VOSIM alone and after SAMPLE, and the full offered set with CHIPS and VOSIM: six added
+              # machines and CHORD Tables, seven entries in the dispatchers' tables (eight since dispatch 0.4)
+              (["vosim"], []), (["sampler", "vosim"], []),
+              (["sampler", "solid", "chips", "maxsaw", "terra", "vosim", "chordtables", "digidelay", "pots", "smpfilter",
+                "crush", "ring", "reso", "eq", "cpu", "resample", "transpose", "perform"], []),
               # notes/68: the effects alone, in both slots, with SAMPLE before and after them, with the shortcut layer
               # and the dispatchers (REF2, SAMPLE), and with an extension of CHORD (the stock descriptor table)
               (["digidelay"], []), (["refdelay", "refreverb"], []), (["sampler", "digidelay"], []),

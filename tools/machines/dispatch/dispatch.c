@@ -22,8 +22,9 @@
 
    dp_data, filled by the composer (part.json, "data"):
      +0 first machine (byte), +1 number of machines (byte)
-     +4 per machine, MainScreenView's draw; +28 the knob view's draw; +52 the tick; +76 the browser's hook;
-     +100 NoteVelocityView's draw (since 0.3)
+     +4 per machine, MainScreenView's draw; +36 the knob view's draw; +68 the tick; +100 the browser's hook;
+     +132 NoteVelocityView's draw (since 0.3); eight machines a table since 0.4 (six before: +4, +28, +52, +76, +100),
+     so that six added machines and an extension of a stock machine (CHORD Tables) fit, notes/63 §4, notes/86 §11
      (0 = none: the stock method for a draw and the browser, nothing for the tick)
 
    License: MIT (LICENSE next to this file). Plain C99, no libc. */
@@ -34,11 +35,11 @@ typedef uint32_t (*tick_fn)(void *view);
 
 struct dp_data {
 	uint8_t first, count, pad[2];
-	draw_fn main[6];
-	draw_fn knob[6];
-	tick_fn tick[6];
-	void *open[6];
-	draw_fn note[6];
+	draw_fn main[8];
+	draw_fn knob[8];
+	tick_fn tick[8];
+	void *open[8];
+	draw_fn note[8];
 };
 
 extern const struct dp_data dp_data;    /* the composer's block, right after this code: a patch point */

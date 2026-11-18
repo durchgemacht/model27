@@ -365,6 +365,30 @@ reso,eq --cpu --resample --transpose --perform --with control-all-config,trig-pr
 commande, seule avec la page CPU (`--machines terra --cpu`, MAIN OS `da29c17f…`), le 17/11/2026 (note 85 §8, §9) ;
 puis flashée depuis la page (servie en local, toutes les cartes cochées) le 17/11/2026 (note 85 §12).
 
+### Machine VOSIM
+
+`tweaks/model-cycles_OS1.13/87-vosim.json` est produit par `tools/gen_vosim.py`, qui écrit ses tables
+(`tools/machines/vosim/vosim_tables.h` : `lut_bell`, `wav_sine` et `lut_oscillator_increments` de Braids recopiées
+telles quelles, et la famille de fenêtres `FAM_H`, une table lointaine), compile `tools/machines/vosim/vosim.c` et
+`vosim_cf.S` en son objet et le compose seul avec `tools/compose.py` : une machine ajoutée, l'oscillateur VOSIM de
+Braids (Émilie Gillet, MIT) repris entier pour entier, avec le suivi des formants, la fenêtre qui s'éteint et le
+retrait du continu de model27 ([note 86](notes/86-vosim.md)). COLOR et SHAPE les deux formants, SWEEP leur suivi de la
+note, CONTOUR la fenêtre. La preuve tourne sur le code de l'OS (Unicorn), au bit près contre le build hôte du même
+fichier (`tools/emu/vosim_ref.c`) :
+```sh
+python3 tools/gen_vosim.py --cycles model-cycles_OS1.13.syx [--check]
+python3 tools/emu/test_vosim.py --cycles model-cycles_OS1.13.syx [--dry] [--quick] [--only core,chain,tracks,next,measure]
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines vosim                 # seule
+python3 tools/compose.py --cycles model-cycles_OS1.13.syx --machines sampler,vosim         # avec SAMPLE
+```
+MAIN OS patché, `vosim` 0.1 seule : `8d398d8d4e07461734a56d729acf505ff58ceefce01e63878308057def47425d` ; avec SAMPLE
+0.18 : `44388c485ede98c7be2248abefd078e8020c1cc9cfc8e983fdac2be3ac45e0fd` ; avec toutes les cartes de la page
+(vingt et une, release 0.75 : `--machines sampler,solid,chips,maxsaw,terra,vosim,chordtables,digidelay,pots,smpfilter,
+crush,ring,reso,eq --cpu --resample --transpose --perform --with control-all-config,trig-preview,trig-cond-order`) :
+`8136b1bec005d722fc1ff3d280b1db02fea558ad17746ff59a59c12abe9adc78`. Ce jeu complet tient grâce aux répartiteurs à huit
+machines (`dispatch` 0.4, note 63 §33). Essayée sur un Model:Cycles depuis la ligne de commande avec toutes les autres
+cartes, le 18/11/2026 (note 86 §9 à §11).
+
 ### CHORD Tables (wavetables du +Drive)
 
 `tweaks/model-cycles_OS1.13/36-chordtables.json` est produit par `tools/gen_chordtables.py`, qui compile

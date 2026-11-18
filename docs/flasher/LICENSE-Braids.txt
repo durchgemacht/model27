@@ -1,6 +1,11 @@
 Machine MACRO of Modded-Cycles: compiled code of Braids by Emilie Gillet (files braids/macro_oscillator,
 analog_oscillator, digital_oscillator, resources and stmlib/utils/random of
-https://github.com/pichenettes/eurorack, commit 08460a6), under the MIT license:
+https://github.com/pichenettes/eurorack, commit 08460a6).
+VOSIM, a machine of model27 (tools/machines/vosim/): Braids' VOSIM oscillator (DigitalOscillator::RenderVosim and
+ComputePhaseIncrement, braids/digital_oscillator.cc, and stmlib's Interpolate824) carried over integer for integer in
+C and ColdFire assembly; Braids' tables lut_bell, wav_sine and lut_oscillator_increments (braids/resources.cc) are
+copied as they are. The formant tracking, the window family and its level and the DC stage are model27's.
+Braids is under the MIT license:
 
 Copyright 2012-2013 Emilie Gillet.
 

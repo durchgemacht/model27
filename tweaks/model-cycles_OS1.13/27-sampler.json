@@ -322,7 +322,8 @@
   "syntakt-vintage",
   "terra",
   "track-filter",
-  "transpose"
+  "transpose",
+  "vosim"
  ],
  "writes": [
   {

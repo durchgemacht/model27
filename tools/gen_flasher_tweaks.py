@@ -421,6 +421,23 @@ ALL_FEATURES = [
         "package": "terra",
     },
     {
+        "id": "vosim",
+        "cat": "sound",
+        "label": "VOSIM",
+        "desc": "One extra machine after Chord that plays VOSIM: two vocal-like formants, restarted on every period of "
+                "the note, from soft vowels to buzzing tones. COLOR = F1 (the first formant), SHAPE = F2 (the second), "
+                "SWEEP = Follow (the formants follow the note), CONTOUR = Window (from a round to a fading pulse).",
+        # Braids' VOSIM oscillator (MIT), carried over integer for integer, with model27's formant tracking, window
+        # family and DC stage (notes/86); bit for bit its host build in emulation (test_vosim.py); tried on the
+        # Model:Cycles from the command line with every other card (notes/86 §9 to §11)
+        "status": "experimental",
+        "credit": {"kind": "based", "who": "Émilie Gillet", "repo": "pichenettes/eurorack"},
+        "license": "LICENSE-Braids",
+        # composed in the page from its package (notes/86): alone it gives 87-vosim.json byte for byte, whose
+        # conflicts give its excludes; its window family a far table (notes/85 §5)
+        "package": "vosim",
+    },
+    {
         "id": "chordtables",
         "cat": "sound",
         "label": "CHORD Tables",
@@ -700,7 +717,7 @@ ALL_FEATURES = [
 # model27 offers a short list of cards. The other definitions above stay as they are, for the command-line build
 # (every tweak of tweaks/ is still built by tools/build.py) and so that merges from upstream apply cleanly; a card
 # comes back into the flasher by adding its id here, once it has been reviewed against the Cycles Mod Standard.
-OFFERED = ("sampler", "solid", "chips", "maxsaw", "terra", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample",
+OFFERED = ("sampler", "solid", "chips", "maxsaw", "terra", "vosim", "chordtables", "digidelay", "pots", "smpfilter", "crush", "ring", "reso", "eq", "cpu", "resample",
            "transpose", "perform", "control-all-config", "trig-cond-order", "trig-preview")
 FEATURES = [f for f in ALL_FEATURES if f["id"] in OFFERED]
 _missing = set(OFFERED) - {f["id"] for f in FEATURES}

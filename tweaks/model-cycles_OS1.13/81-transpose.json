@@ -304,7 +304,8 @@
   "syntakt-vintage",
   "terra",
   "track-filter",
-  "trigless-dim"
+  "trigless-dim",
+  "vosim"
  ],
  "writes": [
   {

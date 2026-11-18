@@ -105,8 +105,11 @@ def compile_machine(tmp, code_at, bss_at, code_end, machine_index, desc_start, c
     m = compose.load_manifest("sampler")
     obj = compose.build_object(m, tmp)
     bad = compose.emit_bytes(compose.object_path(m), obj, check)
-    blob, syms, bss_end = compose.place_package(m, code_at, bss_at, code_end,
-                                                {"machine_index": machine_index, "descriptor_base": desc_start}, obj)
+    blob, syms, bss_end, far = compose.place_package(m, code_at, bss_at, code_end,
+                                                     {"machine_index": machine_index, "descriptor_base": desc_start},
+                                                     obj)
+    if far:                         # place_package returns the far tables too since notes/85 §5; SAMPLE has none
+        raise SystemExit("!! sampler: a far table, which this generator does not lay out")
     return blob, syms, bss_end, bad
 
 

@@ -48,6 +48,7 @@ stops with SIGILL at the first memory map): run it in a normal terminal.
     python3 tools/emu/test_views.py --cycles model-cycles_OS1.13.syx [--machines sampler,refmachine2] [--show]
 """
 import argparse
+import json
 import pathlib
 import random
 import struct
@@ -93,6 +94,11 @@ POINTS = {"main": (MAIN_ENTRY, 4, "smp_main_draw", "ref2_main_draw", "dp_main"),
           "note": (NOTE_ENTRY, 100, "smp_note_draw", "ref2_note_draw", "dp_note")}
 POINT_IDS = {"main": "view.main", "knob": "view.knob", "tick": "screen.tick", "open": "browser.open",
              "note": "view.note"}
+# the dispatchers' block as the part lays it out (part.json): each point's table and the machines a table holds (eight
+# since dispatch 0.4, notes/63 §33; the offsets in POINTS above are dispatch 0.3's and are not used for the block)
+_DP = json.loads((pathlib.Path(__file__).resolve().parent.parent / "machines" / "dispatch" / "part.json").read_text())
+DP_TABLE = {k: _DP["sites"][v]["table"] for k, v in POINT_IDS.items()}
+DP_N = _DP["data"]["max_machines"]
 REGS_IN = {mk.UC_M68K_REG_A0: RESULT, mk.UC_M68K_REG_A2: BROWSER_PP, mk.UC_M68K_REG_D4: INDEX}
 
 
@@ -235,14 +241,14 @@ def site_tests(key, img, runtime, syms, added):
     shared, own = [], []
     for kind, (site, table, _smp_sym, _ref2_sym, dp_sym) in POINTS.items():
         who = takers(added, kind)
-        got = struct.unpack(">6I", u.uc.mem_read(data + table, 24))
+        got = struct.unpack(f">{DP_N}I", u.uc.mem_read(data + DP_TABLE[kind], 4 * DP_N))
         if len(who) > 1:
             want = (tuple(syms[method(m["code"], kind)] if m["code"] in who else 0 for m in added)
-                    + (0,) * (6 - len(added)))
+                    + (0,) * (DP_N - len(added)))
             ok &= at(site, dp_sym) and got == want
             shared.append(kind)
         else:
-            ok &= len(who) == 1 and at(site, method(who[0], kind)) and got == (0,) * 6
+            ok &= len(who) == 1 and at(site, method(who[0], kind)) and got == (0,) * DP_N
             own.append(f"{kind} {who[0] if who else '?'}'s own")
     mine = ("sampler", "refmachine2")
     check(ok, f"{key}: the points both take ({', '.join(shared)}) -> their dispatchers, their tables at machines "

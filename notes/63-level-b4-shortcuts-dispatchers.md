@@ -202,6 +202,7 @@ joined the list as two switches on 2026-10-26 (§16 to §18; the standard's draf
   (§2). Every point SAMPLE uses is thus proven with two packages before the call for machines.
 - **SAMPLE's manifest** names its "after" and draw functions for the dispatchers. Its object does not change: the
   functions are already global symbols and go into `keep`.
+- **Eight machines a table since dispatch 0.4** (§33, 2026-11-18): six before.
 
 ## 5. The manifest and the builder
 
@@ -1684,4 +1685,41 @@ and §31 (`sample`: `d9859f0b…`, then `49ac6238…` for the pan; `all`: `a503f
 
 `[FAIT sur la machine]` for these builds. Left: the proofs once more over the final code (Unicorn), the commits, the
 release (P7).
+
+## 33. Eight machines a table: dispatch 0.4 (2026-11-18)
+
+With VOSIM (notes/86) every added machine of the page can be ticked: SAMPLE, SOLID, CHIPS, Max Saw, TERRA and VOSIM,
+six, the registrar's most; with CHORD Tables, an extension of CHORD that the tables by machine start from (notes/66
+§3), that is seven entries, and the dispatchers' tables held six: `compose.py` and `composer.js` refused the set
+(« 7 machines: the dispatchers' tables hold 6 »). The maintainer (2026-11-18): raise it to eight.
+
+- `dispatch.c`: the five tables of `struct dp_data` hold eight methods each; nothing else in the code depends on the
+  count (`pick` and `dp_tick` read `count`). `part.json` 0.4: the tables at +4, +36, +68, +100, +132 (were +4, +28,
+  +52, +76, +100), `size` 164 (124), `max_machines` 8 (6). `dispatch.o` rebuilt by `gen_parts.py` (the other parts
+  byte for byte the same). `compose.py` and `composer.js` read the layout and the limit from `part.json`: neither
+  changes. The registrar stays at six added machines (raising it comes with the next machine, notes/86 §11); the
+  shortcut layer already held eight.
+- Regenerated: `docs/flasher/tweaks.js` (it carries the part laid out); `REF_MAINOS` and `REF_MODS` in
+  `docs/flasher/app.js` (`ref_mainos.py`, the combinations with the dispatcher). No committed tweak holds the
+  dispatcher: every composed generator's `--check` passes unchanged.
+- Proven: `webcompose_check.sh` with the official file: OK, among the selections VOSIM alone, after SAMPLE and the full
+  offered set with CHIPS and VOSIM (six added machines and CHORD Tables: seven entries), identical to `compose.py`.
+  `compose.py` composes that set with the three other offered tweaks and the CPU page (MAIN OS `8136b1be…`, checksums
+  and HMAC ok). `compose.dispatch_layer` called directly: eight machines laid out (the block 164 bytes), nine refused
+  (« 9 machines: the dispatchers' tables hold 8 »). `gen_flasher_tweaks.py --check`, `check_overlaps.py`,
+  `claims.py --check`, `registry.py --check`: ok.
+- `tools/emu/test_views.py`, the dispatchers' Unicorn proof, read the block at dispatch 0.3's offsets and six entries:
+  it now takes both from `part.json` (no other test reads `dp_data`). `test_compose.py` and `test_chordtables.py`
+  `--dry` with SAMPLE, SOLID, CHIPS, Max Saw, TERRA and VOSIM (and CHORD Tables): ok. The Unicorn runs of
+  `test_views.py`, `test_compose.py` and `test_chordtables.py`: the maintainer's.
+- The maintainer's `test_views.py` (2026-11-18): the four default selections (REF2; SAMPLE + REF2 both orders;
+  SAMPLE, REF, REF2) ok on dispatch 0.4: the tables at the new offsets, the draws, the tick and the browser. A fifth
+  selection with SOLID, CHIPS, Max Saw and TERRA stops in the test itself (it knows only SAMPLE's and REF2's methods,
+  `KeyError: 'solid'`), not in the dispatcher; the seven entries are `test_chordtables.py`'s.
+- The maintainer's `test_compose.py --machines sampler,solid,chips,maxsaw,terra,vosim` (2026-11-18): ALL OK, the six
+  added machines as machines 6 to 11 (the registrar's most), the MACHINES page with 12 names on two rows.
+- The maintainer's `test_chordtables.py --machines sampler,solid,chips,maxsaw,terra,vosim,chordtables` (2026-11-18):
+  ALL OK (46 checks): CHORD Tables with the six added machines, seven entries in the dispatchers' tables, the tick
+  through `dp_tick`, CHORD Tables' loader and its chain hooks as alone. Dispatch 0.4 proven on the OS's own code.
+- On the device (the maintainer, 2026-11-18, every offered card with CHIPS and VOSIM, notes/86 §11): « passt ».
 

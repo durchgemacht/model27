@@ -1,9 +1,9 @@
 {
  "schema": "model27-part/0.1",
  "id": "dispatch",
- "version": "0.3",
+ "version": "0.4",
  "name": "Dispatchers: an OS point that two or more machines take, called for the right machine",
- "description": "A part of model27's builder, not a machine (notes/63 §4): compiled once into dispatch.o by tools/gen_parts.py, added by tools/compose.py to a build in which two or more machines take the same vtable entry or hook. The entry or hook goes to the part's dispatcher; the composer writes the data block (each machine's method by machine number) right after the part's code. A point one machine takes keeps that machine's own entry or hook, so SAMPLE alone does not change. The draws (main screen, knob view, and since 0.3 NoteVelocityView) and the browser go to the right track's machine, the tick to every machine.",
+ "description": "A part of model27's builder, not a machine (notes/63 §4): compiled once into dispatch.o by tools/gen_parts.py, added by tools/compose.py to a build in which two or more machines take the same vtable entry or hook. The entry or hook goes to the part's dispatcher; the composer writes the data block (each machine's method by machine number) right after the part's code. A point one machine takes keeps that machine's own entry or hook, so SAMPLE alone does not change. The draws (main screen, knob view, and since 0.3 NoteVelocityView) and the browser go to the right track's machine, the tick to every machine. Since 0.4 eight machines a table (six before), so that six added machines and CHORD Tables fit (notes/86 §11).",
  "license": "MIT",
  "build": {
   "sources": ["dispatch.c", "open.S"],
@@ -18,10 +18,10 @@
  },
  "sites": {
   "view.main": {"vtable": "0x400ffe30", "stock_ptr": "0x4001b22a", "symbol": "dp_main", "table": 4},
-  "view.knob": {"vtable": "0x4010053c", "stock_ptr": "0x4001e40a", "symbol": "dp_knob", "table": 28},
-  "screen.tick": {"hook": "0x400075f0", "stock": "4eb940076be4", "op": "jsr", "symbol": "dp_tick", "table": 52},
-  "browser.open": {"hook": "0x400a6602", "stock": "4eb9400a3052", "op": "jsr", "symbol": "dp_open", "table": 76},
-  "view.note": {"vtable": "0x40102578", "stock_ptr": "0x400299de", "symbol": "dp_note", "table": 100}
+  "view.knob": {"vtable": "0x4010053c", "stock_ptr": "0x4001e40a", "symbol": "dp_knob", "table": 36},
+  "screen.tick": {"hook": "0x400075f0", "stock": "4eb940076be4", "op": "jsr", "symbol": "dp_tick", "table": 68},
+  "browser.open": {"hook": "0x400a6602", "stock": "4eb9400a3052", "op": "jsr", "symbol": "dp_open", "table": 100},
+  "view.note": {"vtable": "0x40102578", "stock_ptr": "0x400299de", "symbol": "dp_note", "table": 132}
  },
- "data": {"first": 0, "count": 1, "size": 124, "max_machines": 6}
+ "data": {"first": 0, "count": 1, "size": 164, "max_machines": 8}
 }
