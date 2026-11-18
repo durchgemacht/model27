@@ -133034,7 +133034,7 @@ function renderOwn() {
   const key = !smp ? (restore ? "own_cyc_restore" : "own_cyc_mods")
     : st.modded ? (restore ? "own_cos_restore" : "own_cos_mods") : (restore ? "own_smp_restore" : "own_smp_mods");
   const sample = key === "own_smp_mods" ? " " + t(isOn("sampler") ? "own_smp_sample" : "own_smp_nosample") + " " + t("own_smp_back") : "";
-  $("own-say").innerHTML = (key === "own_cos_restore" ? tagHtml("experimental") + " " : "") + esc(t(key) + sample);
+  $("own-say").innerHTML = esc(t(key) + sample);       // the way back: tested on a Model:Samples (18/11/2026)
   const more = stop ? [] : ["more_backup"];
   if (smp && !stop) {
     more.push(restore ? "more_two_files_back" : "more_two_files");

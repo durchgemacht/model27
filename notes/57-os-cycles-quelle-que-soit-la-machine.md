@@ -197,3 +197,8 @@ en méthode rapide ; la page garde ensuite ce fichier (`st.sbackAlt`, `makeSback
 nouvelle réponse à l'étape 1. **Ce que la machine répond exactement sur l'USB quand la clé ne va pas n'est pas
 établi** (on suppose une erreur au dernier bloc, comme le contrôle porte sur tout le fichier) : le smoke test simule ce
 cas (`accept` du faux appareil, §7b-ter), pas la machine.
+
+**Retour testé sur un vrai Model:Samples (18/11/2026)** par un testeur connu du mainteneur : Model:Samples avec mods →
+« Back to the official firmware », Model:Samples + Yes → il redémarre sous son OS Samples. L'étiquette Expérimental du
+retour disparaît (étape 1, guide §22, release 0.74). Le second retour automatique (clé Cycles) n'est pas essayé sur une
+machine. Le même testeur signale un premier envoi bloqué à 0–1 % avec tous les flashers (notes/37 §8).

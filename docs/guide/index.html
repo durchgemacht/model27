@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-11-18-01">
-<link rel="stylesheet" href="../assets/guide.css?v=2026-11-18-01">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-18-02">
+<link rel="stylesheet" href="../assets/guide.css?v=2026-11-18-02">
 <script>try{var t=localStorage.getItem("mc-theme")}catch(e){}if(t)document.documentElement.setAttribute("data-theme",t)</script>
 </head>
 <body data-page="guide">
@@ -586,9 +586,9 @@
         </dl>
         <dl class="facts">
           <div><dt>Which answer</dt><dd>the page asks the machine who it is and only sends the right file: <b>No</b> goes to a machine that answers Model:Samples, <b>Yes</b> to one that answers Model:Cycles. If you answered wrong, step 3 says so and nothing is sent. With Model-TG's Transfer identity on SMP, set it back to CYC (or restart) before changing mods.</dd></div>
-          <div><dt>Coming back</dt><dd>over USB: <b>Back to the official firmware</b> under the cards, then <b>Model:Samples</b> and <b>Yes</b> in step 1. The page sends the official Model:Samples OS, unchanged, packed so that the Cycles OS from this page (or from Modded-Cycles, Supermodel or PPPCCC) accepts it, and the machine starts as a Model:Samples again (experimental: not yet tried on a real Model:Samples). If its Cycles OS was put on by hand and refuses that, the page sends the other way back by itself. The startup menu of the Model:Samples is never touched: through the MIDI IN, it stays the safety net (<a href="#recovery">Recovery</a>).</dd></div>
+          <div><dt>Coming back</dt><dd>over USB: <b>Back to the official firmware</b> under the cards, then <b>Model:Samples</b> and <b>Yes</b> in step 1. The page sends the official Model:Samples OS, unchanged, packed so that the Cycles OS from this page (or from Modded-Cycles, Supermodel or PPPCCC) accepts it, and the machine starts as a Model:Samples again. If its Cycles OS was put on by hand and refuses that, the page sends the other way back by itself. The startup menu of the Model:Samples is never touched: through the MIDI IN, it stays the safety net (<a href="#recovery">Recovery</a>).</dd></div>
           <div><dt>Limits</dt><dd>only for a real Model:Samples. Once on the Cycles OS, the machine refuses firmwares built for a Model:Cycles, even when Elektron Transfer offers one: nothing is written. A Model:Cycles OS installed with another tool refuses these files too. If it starts badly, switch it off and on; if it still hangs, <b>FUNC</b> at power-on then <b>TRIG 2</b> (EMPTY RESET clears the active project).</dd></div>
-          <div><dt>Tested</dt><dd>on a Model:Samples, both choices: on its own OS, and already on the Cycles OS to change mods; and in the emulator, on both OSes' own update checks and on the Model:Samples startup code, with the largest set of mods. Each mod keeps the status it has on a Model:Cycles. Thanks to RDS (AIM) for the original flasher, and DaftMaple for integrating it into Modded Cycles.</dd></div>
+          <div><dt>Tested</dt><dd>on a Model:Samples, both choices: on its own OS, and already on the Cycles OS to change mods; the way back to its own OS, from mods, on a real Model:Samples by a tester the maintainer knows (2026-11-18); and in the emulator, on both OSes' own update checks and on the Model:Samples startup code, with the largest set of mods. Each mod keeps the status it has on a Model:Cycles. Thanks to RDS (AIM) for the original flasher, and DaftMaple for integrating it into Modded Cycles.</dd></div>
         </dl>
       </section>
 
@@ -679,8 +679,8 @@
   </div>
 </footer>
 
-<script src="../assets/release.js?v=2026-11-18-01"></script>
-<script src="../assets/cycles.js?v=2026-11-18-01"></script>
-<script src="../assets/site.js?v=2026-11-18-01"></script>
+<script src="../assets/release.js?v=2026-11-18-02"></script>
+<script src="../assets/cycles.js?v=2026-11-18-02"></script>
+<script src="../assets/site.js?v=2026-11-18-02"></script>
 </body>
 </html>

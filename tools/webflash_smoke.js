@@ -844,7 +844,7 @@ async function main() {
     const back = S.mode === "mods" && S.screen === "choose" && !box("panel-mods").hidden && !/Model:Samples/.test(text(doc, "mod-sel"));
     await click(box("go-restore"));
     const sback = S.mode === "samples" && S.smpDir === "back" && /Official Model:Samples OS/.test(text(doc, "picked"))
-      && /Experimental/.test(say()) && /own OS back/.test(say()) && !box("step-file").hidden;
+      && !/Experimental/.test(say()) && /own OS back/.test(say()) && !box("step-file").hidden;
     await click(box("modded-no"));
     const stop = S.mode === "restore" && /nothing to undo/.test(say()) && box("step-file").hidden && box("step-connect").hidden
       && box("step-flash").hidden && box("own-more").hidden;

@@ -7,6 +7,9 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.74", date: "2026-11-18", changes: [
+    { en: "Back to the official firmware on a Model:Samples with mods is no longer marked Experimental: it was tried on a real Model:Samples by a tester the maintainer knows (2026-11-18), and the machine started as a Model:Samples again. The second way back, for a Cycles OS put on by hand, is not tried on a machine yet" }
+  ] },
   { version: "0.73", date: "2026-11-18", changes: [
     { en: "Installing over USB: if the machine stops answering during the send, the page now waits a moment and sends the firmware once more by itself. Some machines got stuck at 0 or 1 % on the first try, with every flasher, and always worked on the second. Nothing is written before you confirm on the machine's screen, so a send that stops halfway leaves nothing behind" },
     { en: "Checked with a simulated machine (2026-11-18); not yet seen on a machine that gets stuck" }
