@@ -429,8 +429,9 @@ ALL_FEATURES = [
                 "SWEEP = Follow (the formants follow the note), CONTOUR = Window (from a round to a fading pulse).",
         # Braids' VOSIM oscillator (MIT), carried over integer for integer, with model27's formant tracking, window
         # family and DC stage (notes/86); bit for bit its host build in emulation (test_vosim.py); tried on the
-        # Model:Cycles from the command line with every other card (notes/86 §9 to §11)
-        "status": "experimental",
+        # Model:Cycles from the command line with every other card (notes/86 §9 to §11), then flashed from this page
+        # (served locally, release 0.75, every card ticked) on 2026-11-18 (notes/86 §13)
+        "status": "tested",
         "credit": {"kind": "based", "who": "Émilie Gillet", "repo": "pichenettes/eurorack"},
         "license": "LICENSE-Braids",
         # composed in the page from its package (notes/86): alone it gives 87-vosim.json byte for byte, whose

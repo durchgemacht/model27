@@ -239,7 +239,7 @@ tools/machines/vosim/         VOSIM (working name, notes/86): Braids' VOSIM osci
                               the last period's mean taken out; vosim_cf.S its sample loop (the same bits as vosim.c's
                               C, which the host builds); tools/gen_vosim.py writes its tables and its object and
                               composes it alone into 87-vosim.json; tools/emu/test_vosim.py proves it (vosim_ref.c,
-                              the core on the host); the flasher's VOSIM card, experimental
+                              the core on the host); the flasher's VOSIM card, tested
 tools/machine_pictures.py     an added machine's own pictures as C (the OS's Bitmaps, their masks, the registrar's table):
                               gen_solid.py and gen_sampler.py write solid_pictures.c and sample_pictures.c with it
                               (notes/60 §25); SAMPLE's (sample_card.c, pictures/) are model27's, next to One-Shot's code

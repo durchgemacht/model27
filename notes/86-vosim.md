@@ -4,7 +4,7 @@ The maintainer's plan (notes/83, notes/85): machines after the Mutable Instrumen
 listening page of the originals (outside the repository, `_scratch/plaits-listen/pd-vosim/`: « Hörproben sind gut »)
 they chose VOSIM first, on Braids' code rather than Plaits' `VOSIMOscillator`. It follows the path of TERRA (notes/85):
 (1) the fixed point on the host against the original, (2) the package, (3) the proof in Unicorn and the load, (4)
-digiemu, (5) the device, (6) the card. Steps 1 and 2 are done (§3 to §5); step 3 waits for the maintainer. Step 1's
+digiemu, (5) the device, (6) the card. All six are done (§3 to §12); the card is tested, flashed from the page (§13). Step 1's
 programs, renders and listening page live outside the repository (`_scratch/vosim-machine/`, README there), step 2's
 proofs next to them (`_scratch/vosim-machine/step2/`). The name is open; VOSIM is a working name.
 
@@ -405,5 +405,13 @@ The maintainer: « schritt 6, danach commit », after release 0.74 (another sess
   SAMPLE and with SOLID, CHIPS, MAXSAW, TERRA, CHORD Tables, Crush and Transpose (seven entries in the dispatchers),
   every card together, its tag Experimental. `tools/webcompose_synth.py` has VOSIM's selections since §11.
 
-The card stays experimental until it is flashed from the page.
+The card stays experimental until it is flashed from the page (§13).
 
+## 13. Flashed from the page: tested (2026-11-18)
+
+After the commit of the card (`08b8ed8`), the maintainer flashed release 0.75 from the page, served locally with every
+card ticked, onto their Model:Cycles: « ich habe vosim von der seite geflasht, passt ». Before, every offered card with
+CHIPS and VOSIM from the command line (§9 to §11). The card's status tested (`gen_flasher_tweaks.py`, `tweaks.js`): no
+tag; the guide's line Tested, the release entry without « experimental », BUILD.md, PROVENANCE, AGENTS.md, the
+manifest (`tests.hardware`, tested), notes/README, CHANGELOG.md, `webflash_smoke.js` (the card without a tag); the stamp
+2026-11-18-04 on the six pages.

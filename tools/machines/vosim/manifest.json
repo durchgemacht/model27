@@ -134,8 +134,10 @@
    "build": "alone and next to SAMPLE, CHIPS, Max Saw and TERRA, composed by compose.py"
   },
   "hardware": {
-   "status": "not tested"
+   "date": "2026-11-18",
+   "by": "maintainer",
+   "build": "every offered card with CHIPS and VOSIM, from tools/compose.py (notes/86 §9 to §11): the sound, the names on the screen, VOSIM next to CHIPS; then release 0.75 flashed from the page, served locally, every card ticked (notes/86 §13)"
   },
-  "status": "experimental"
+  "status": "tested"
  }
 }

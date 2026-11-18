@@ -10,7 +10,7 @@ window.MC_RELEASES = [
   { version: "0.75", date: "2026-11-18", changes: [
     { en: "A new machine, VOSIM, plays two vocal formants that start again on every period of the note, from soft vowels to buzzing tones. COLOR and SHAPE set the two formants, SWEEP lets them follow the note, CONTOUR makes them fade within each period" },
     { en: "Every machine card can now be ticked together: SAMPLE, SOLID, CHIPS, MAXSAW, TERRA and VOSIM with CHORD Tables and all the other cards" },
-    { en: "Based on the VOSIM model of Mutable Instruments' Braids, carried over to the Model:Cycles. Goes with every other card. Checked in an emulator on the OS's own code, and tried on a Model:Cycles from the command line in a build with every other card (2026-11-18). Experimental until it is flashed from this page" }
+    { en: "Based on the VOSIM model of Mutable Instruments' Braids, carried over to the Model:Cycles. Goes with every other card. Checked in an emulator on the OS's own code, and tested on a Model:Cycles (2026-11-18): from the command line in a build with every other card, then flashed from this page with every card ticked" }
   ] },
   { version: "0.74", date: "2026-11-18", changes: [
     { en: "Back to the official firmware on a Model:Samples with mods is no longer marked Experimental: it was tried on a real Model:Samples by a tester the maintainer knows (2026-11-18), and the machine started as a Model:Samples again. The second way back, for a Cycles OS put on by hand, is not tried on a machine yet" }

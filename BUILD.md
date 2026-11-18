@@ -387,7 +387,8 @@ MAIN OS patché, `vosim` 0.1 seule : `8d398d8d4e07461734a56d729acf505ff58ceefce0
 crush,ring,reso,eq --cpu --resample --transpose --perform --with control-all-config,trig-preview,trig-cond-order`) :
 `8136b1bec005d722fc1ff3d280b1db02fea558ad17746ff59a59c12abe9adc78`. Ce jeu complet tient grâce aux répartiteurs à huit
 machines (`dispatch` 0.4, note 63 §33). Essayée sur un Model:Cycles depuis la ligne de commande avec toutes les autres
-cartes, le 18/11/2026 (note 86 §9 à §11).
+cartes, le 18/11/2026 (note 86 §9 à §11) ; puis flashée depuis la page (servie en local, toutes les cartes cochées)
+le 18/11/2026 (note 86 §13).
 
 ### CHORD Tables (wavetables du +Drive)
 

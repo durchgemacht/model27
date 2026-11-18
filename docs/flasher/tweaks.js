@@ -321,7 +321,7 @@ window.MC_TWEAKS = {
    "id": "vosim",
    "label": "VOSIM",
    "desc": "One extra machine after Chord that plays VOSIM: two vocal-like formants, restarted on every period of the note, from soft vowels to buzzing tones. COLOR = F1 (the first formant), SHAPE = F2 (the second), SWEEP = Follow (the formants follow the note), CONTOUR = Window (from a round to a fading pulse).",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "based",
     "who": "Émilie Gillet",
