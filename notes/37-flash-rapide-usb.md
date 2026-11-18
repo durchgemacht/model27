@@ -93,3 +93,15 @@ Deux écarts, sans effet sur ce qui part sur le câble :
 Aucun firmware n'est fourni : la page envoie le fichier construit sur l'ordinateur à partir de l'OS officiel de
 l'utilisateur. La récupération d'une machine qui ne démarre plus passe toujours par le menu de démarrage et le MIDI IN
 ([FLASH.md](../FLASH.md), [06](06-flash-et-recuperation.md)).
+
+## 8. Un second essai automatique (18/11/2026)
+
+Rapport d'un testeur (Model:Samples, 18/11/2026) : avec cette page comme avec tous les autres flashers, qui reprennent
+tous ce protocole de Modded-Cycles, le premier envoi reste bloqué à 0 ou 1 %, le second marche toujours. La cause n'est
+pas établie (`[HYP]` : la première réponse après la réouverture des ports se perd sous macOS/Chrome, ou la machine met
+plus longtemps à répondre au premier départ). La page n'attend jamais plus de 8 s une réponse (`XFER_TIMEOUT_MS`).
+
+Désormais, quand l'envoi s'arrête faute de réponse (`timeout`), la page attend 2 s, rouvre les ports, refait
+l'identification et renvoie tout le fichier, **une fois** (`flash()` dans `app.js`, texte `retry_try`). Sans risque :
+la machine n'écrit rien avant qu'on confirme sur son écran, un envoi interrompu ne laisse rien. Le smoke test simule un
+premier départ sans réponse (`muteStarts` du faux appareil). Pas encore vu sur une machine qui bloque.

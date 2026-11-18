@@ -7,6 +7,10 @@
  * of everything model27 builds on.
  */
 window.MC_RELEASES = [
+  { version: "0.73", date: "2026-11-18", changes: [
+    { en: "Installing over USB: if the machine stops answering during the send, the page now waits a moment and sends the firmware once more by itself. Some machines got stuck at 0 or 1 % on the first try, with every flasher, and always worked on the second. Nothing is written before you confirm on the machine's screen, so a send that stops halfway leaves nothing behind" },
+    { en: "Checked with a simulated machine (2026-11-18); not yet seen on a machine that gets stuck" }
+  ] },
   { version: "0.72", date: "2026-11-17", changes: [
     { en: "A new machine, TERRA, plays wave terrain synthesis: a point circles over a surface, and the height under it is the sound. COLOR chooses one of eight surfaces, fading from one into the next, SHAPE the size of the circle, from almost a sine wave to a rich sound, SWEEP moves it sideways over the surface, and CONTOUR mixes in a second sound, a sine wave that the surface bends" },
     { en: "Surfaces 1 to 5 are smooth, 6 to 8 are made of Plaits' wavetables and sound brighter. A new trig on a track that still sounds doesn't cut it" },

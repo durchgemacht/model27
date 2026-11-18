@@ -121,8 +121,9 @@ const cstr = (str) => [...Buffer.from(str, "latin1"), 0];
 // A Model:Cycles on USB: answers ping, version, OS upgrade start and blocks like the real one
 // (src/connectors/elektron.c), and records what it receives. accept(received): an OS that checks the whole file at
 // the last block and answers an error when it refuses it (a key that does not match), as the real check does.
+// muteStarts: that many upgrade starts get no answer (the first try that hangs at 0 %, users of every flasher).
 function fakeDevice(opts, reply) {
-  const dev = Object.assign({ id: 27, name: "Model Cycles", version: "1.13", startStatus: 0, writeError: -1, silent: false,
+  const dev = Object.assign({ id: 27, name: "Model Cycles", version: "1.13", startStatus: 0, writeError: -1, silent: false, muteStarts: 0,
     pings: 0, starts: 0, blocks: 0, received: null, size: 0, next: 0, bad: [] }, opts);
   dev.handle = (d) => {
     if (d.length < 8 || XHEAD.some((b, k) => d[k] !== b)) return;           // not for the Transfer protocol
@@ -133,6 +134,7 @@ function fakeDevice(opts, reply) {
     else if (m[4] === 0x02) r = [...head, 0, 0, 0, 0, 0, ...cstr(dev.version)];
     else if (m[4] === 0x50) {
       dev.starts++;
+      if (dev.muteStarts > 0) { dev.muteStarts--; return; }
       dev.size = m[5] | (m[6] << 8) | (m[7] << 16) | (m[8] << 24);      // little-endian, as Elektroid's memcpy
       if (Buffer.from(m.subarray(9, 16)).toString("latin1") !== "sysex\0\x01") dev.bad.push("start tail");
       dev.received = new Uint8Array(dev.size); dev.next = 0; dev.blocks = 0;
@@ -760,8 +762,9 @@ async function main() {
     check(box("feat-control-all-config") !== cb && doc.activeElement && doc.activeElement.id === "feat-control-all-config",
       "focus kept on the ticked box after the rebuild");
     await clearAll();
-    // search: only from 20 mods
-    check(feats.length < 20 && box("mod-find").hidden, `no search field with ${feats.length} mods (it appears from 20)`);
+    // search: only from 20 mods (SEARCH_FROM), both ways: TERRA made it 20 (5f70def)
+    check(feats.length < 20 ? box("mod-find").hidden : !box("mod-find").hidden,
+      `search field from 20 mods: ${feats.length} mods, ${box("mod-find").hidden ? "hidden" : "shown"}`);
     // a section shows only its title and its How to use (no line under the title); every card's Details in blocks under
     // headings (Writing for users)
     const marks = (sel) => [...doc.querySelectorAll(sel + " .key, " + sel + " .knob")].map((e) => e.className + ":" + e.textContent).join();
@@ -1012,6 +1015,14 @@ async function main() {
     doc.getElementById("flash").click();
     await untilSent(w);
     check(app.state.finished === "error" && /error while receiving/.test(text(doc, "result")) && dev.blocks === 4, "block refused -> stops there");
+    // no answer to the first start: the page waits, then sends the whole file once more, which arrives byte for byte
+    dev.writeError = -1; dev.muteStarts = 1;
+    const s0 = dev.starts;
+    doc.getElementById("flash").click();
+    await untilSent(w);
+    check(app.state.finished === "ok" && dev.starts - s0 === 2 && same(dev.received, app.state.fw.raw) && dev.bad.length === 0,
+      `first start unanswered -> sent again by itself, byte for byte (${dev.starts - s0} starts)`);
+    app.state.finished = null; app.render();       // the checks below read the page before a send, not after one
     dev.writeError = -1; dev.id = 25;
     doc.getElementById("refresh").click();
     await wait(150);

@@ -131672,6 +131672,7 @@ const T = {
   miss_cos_ack: "Confirm your backup and the official Model:Samples file (step 1).",
   done_cos: "It restarts as a <b>Model:Cycles</b>: Elektron Transfer and your computer see a “Model:Cycles”. To go back, choose “Model:Samples: back to its OS” in the Samples OS tab.",
   done_sback: "It restarts as a <b>Model:Samples</b>, with its own OS.",
+  retry_try: "No answer from the machine: sending it once more, from the start…",
   sback_alt_try: "It refused this way back: its Model:Cycles OS checks updates differently. Sending the other way back now…",
   sback_alt_failed: "Neither way back was taken. Turn it off and on and press the button again. If it still refuses, its startup menu takes the official Model:Samples OS through the MIDI IN (see the guide).",
   dev_fwd_on_cycles: "This machine answers as a Model:Cycles: it would refuse this firmware. If it is a Model:Samples already running the Cycles OS, there is nothing to install; to go back, choose “Model:Samples: back to its OS” if that Cycles OS came from this page, or “Model:Cycles → Samples OS” if it was installed another way.",
@@ -133756,6 +133757,17 @@ async function flash() {
     }
   } catch (e) {
     err = e;
+  }
+  // no answer on the first try (users of every flasher built on this protocol report it, 18/11/2026: stuck at 0 or 1 %,
+  // the second try always works): once, the whole file again, on ports opened anew. Nothing is written before the
+  // machine asks to confirm on its screen, so an interrupted send leaves nothing behind (notes/37 §8).
+  if (err && fast && err.code === "timeout" && !st.cancel && !gone()) {
+    log("No answer during the send: trying once more, from the start.", "is-warn");
+    $("watch").innerHTML = esc(t("retry_try")) + "<br>" + esc(t("keep_visible"));
+    onProgress(0, fw.raw.length);
+    await new Promise((ok) => setTimeout(ok, 2000));
+    err = null;
+    try { res = await flashFast(out, fw, onProgress, gone); } catch (e) { err = e; }
   }
   // a Model:Samples that refused its way back (nothing written): once, the other way back (makeSbackAlt)
   if (err && fast && fw.kind === "sback" && !fw.alt && ["refused", "write"].includes(err.code) && !st.cancel && st.os && st.samplesOs) {
