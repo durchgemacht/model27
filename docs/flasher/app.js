@@ -263092,7 +263092,7 @@ const FEAT = {
     desc: "An extra machine after Chord, always the last one (after the Sampler with Model-TG, then the Syntakt engines and MACRO if you tick them too): an acid bass in the style of the TB-303, from the open-source Open303 model by Robin Schmidt. COLOR is the cutoff, SHAPE the resonance, SWEEP the env mod, CONTOUR the drive (from clean to fuzz, at about the same volume) and DECAY the decay; PUNCH switches the wave from saw to square. A trig whose length (LEN) runs past the next trig slides into the next note instead of playing it again; a pad played while another is held slides too.",
     note: "About as heavy on the processor as Tone. Turn GATE on for notes that hold their whole length, as on the original. With the Syntakt engines, their load governor looks after ACID tracks too: a track it stopped plays its next note afresh, without sliding. A project using ACID needs a firmware with ACID at the same place: it is the last machine, so its number depends on Model-TG, the ticked Syntakt engines and MACRO." },
   sampler: { label: "SAMPLE",
-    short: "Plays samples from the +Drive, once or in a loop, forwards or backwards, through a DJ-style filter.",
+    short: "Plays samples from the +Drive the way the Model:Samples does.",
     clash: "both add machines at the same place of the firmware, and there is no combined build with SAMPLE yet",
     "clash_model-tg": "both change the same sound record functions of the firmware",
     "clash_track-filter": "both change the same sound record functions of the firmware",

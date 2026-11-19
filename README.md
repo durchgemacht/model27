@@ -10,9 +10,7 @@ the official OS.
 
 ### Machines
 
-- **SAMPLE**: plays samples from the +Drive, once or in a loop,
-  forwards or backwards, through a DJ-style filter. The pad and the TRIG keys play the sample under the browser's
-  cursor.
+- **SAMPLE**: plays samples from the +Drive the way the Model:Samples does.
 - **SOLID**: plays struck sounds: a string, drum skin, marimba, metal bar, bell or glass.
 - **CHIPS**: plays chiptune: a square wave that arpeggiates a chord, with a pitch sweep and a bass. Based on
   [Plaits](https://github.com/pichenettes/eurorack) by Émilie Gillet.
