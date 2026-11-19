@@ -262498,6 +262498,7 @@ const GUIDE_OF = {
 // without "other"). A feature without a known cat goes to "other", at the end.
 const CATS = ["pack", "sound", "seq", "live", "screen", "io", "other"];
 const SEARCH_FROM = 20;         // the search field shows from this many mods
+const SEARCH_UI = false;        // the search field above the cards, off the page (the maintainer's decision of 19/11/2026)
 const PARTLY = false;           // true: an unticked engine card tested with some engines only says "Partly tested"
 // What the page offers (redesign of 2026-10-31, step 1 of 17/11/2026): the cards, the way back to the official firmware,
 // and on the install screen the machine (a Model:Cycles, or a Model:Samples with or without mods from this page,
@@ -262510,7 +262511,7 @@ const CLASSIC_UI = false;
 // ---------------------------------------------------------------------------
 const T = {
   title: "Teach your Cycles new tricks",
-  tagline: "New machines, effects, filters and mods for your Model:Cycles. Pick what you like and install it over USB in about 30 seconds.",
+  tagline: "New machines, effects and workflow mods for the Model:Cycles. Focused on performance and stability.",
   tab_mods: "Mods",
   tab_restore: "Official firmware",
   kind_machine: "Machines", kind_effect: "Effects", kind_filter: "Track FX", kind_mod: "Mods",
@@ -263640,7 +263641,7 @@ function haystack(f) {
   if (f.credit) parts.push(f.credit.who);
   return (hay[f.id] = fold(parts.filter(Boolean).join(" ")));
 }
-const searching = () => features().length >= SEARCH_FROM && pick.q.trim() !== "";
+const searching = () => SEARCH_UI && features().length >= SEARCH_FROM && pick.q.trim() !== "";
 const matches = (f) => !searching() || fold(pick.q).split(/\s+/).filter(Boolean).every((w) => haystack(f).includes(w));
 
 // Step 1, three sections: the added machines, the effects (a package that takes an effect slot, notes/68), the mods.
@@ -263804,7 +263805,7 @@ function detailsHtml(f) {
 
 function renderFind() {
   if (!$("mod-find")) return;
-  $("mod-find").hidden = features().length < SEARCH_FROM;
+  $("mod-find").hidden = !SEARCH_UI || features().length < SEARCH_FROM;
   const q = $("mod-q");
   q.placeholder = t("search_ph");
   $("mod-q-clr").setAttribute("aria-label", t("search_clear"));

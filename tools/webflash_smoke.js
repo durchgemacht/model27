@@ -780,9 +780,9 @@ async function main() {
     check(box("feat-control-all-config") !== cb && doc.activeElement && doc.activeElement.id === "feat-control-all-config",
       "focus kept on the ticked box after the rebuild");
     await clearAll();
-    // search: only from 20 mods (SEARCH_FROM), both ways: TERRA made it 20 (5f70def)
-    check(feats.length < 20 ? box("mod-find").hidden : !box("mod-find").hidden,
-      `search field from 20 mods: ${feats.length} mods, ${box("mod-find").hidden ? "hidden" : "shown"}`);
+    // search: off the page (SEARCH_UI false, 19/11/2026), whatever the number of mods
+    check(box("mod-find").hidden && box("mod-found").hidden,
+      `search field off the page: ${feats.length} mods, ${box("mod-find").hidden ? "hidden" : "shown"}`);
     // a section shows only its title and its How to use (no line under the title); every card's Details in blocks under
     // headings (Writing for users)
     const marks = (sel) => [...doc.querySelectorAll(sel + " .key, " + sel + " .knob")].map((e) => e.className + ":" + e.textContent).join();
