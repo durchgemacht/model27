@@ -433,7 +433,8 @@ MAIN OS patché, `chordtables` 0.5 seul : `6fc17ea558ec256d5aa60c58b6d75251bf70c
 toutes les cartes de la page (vingt et une, release 0.76 : `--machines sampler,solid,chips,maxsaw,terra,vosim,
 chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq --cpu --resample --transpose --perform --with
 control-all-config,trig-preview,trig-cond-order`) : `10ca0b0b28c11e31d39f117bc450c543b8758bd2251a589c56daab698c1d33c4`.
-Chord Joy pas encore essayé sur un Model:Cycles.
+Chord Joy essayé sur un Model:Cycles le 19/11/2026, dans cette construction complète depuis la ligne de commande,
+avec le correctif de la note 87 §7 (note 87 §8).
 
 ### Digital Delay (effet)
 

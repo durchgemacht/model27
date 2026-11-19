@@ -10,7 +10,7 @@ This file is written by `tools/gen_changelog.py` from `docs/assets/release.js`.
 
 - CHORD Tables is now CHORD+ and adds Chord Joy: simple chords on CHORD tracks. Press and hold MACHINES and press PUNCH to turn it on for the sound. TRIG 1 to 7 then play the degrees of the major scale, each with its own chord on SHAPE, and TRIG 8 the first an octave up. Hold a degree and press TRIG 9 to 16 to colour its chord: dreamy, flipped, bluesy, dark, jazzy, sweet, open or lush. Let go and it springs back.
 - TRIG 1 plays the note it plays without Chord Joy, so the track's note and Transpose set the key. With REC and PLAY on, the chords are recorded like notes, each with a SHAPE lock for its chord. The wavetables work as before.
-- model27's own. Goes with every other card. Checked in an emulator on the OS's own code; Chord Joy not yet tried on a Model:Cycles, so the card is Experimental again until it is.
+- model27's own. Goes with every other card. Checked in an emulator on the OS's own code, and Chord Joy tested on a Model:Cycles (2026-11-19) from the command line in a build with every other card.
 
 ## 0.75 (2026-11-18)
 

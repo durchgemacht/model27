@@ -451,8 +451,9 @@ ALL_FEATURES = [
         # model27's own (notes/66 §27 to §33): 0.3 proven in emulation (test_chordtables.py, probe_chord_lines.py) and
         # tested on the Model:Cycles on 2026-11-08 in the maintainer's full build from the command line (notes/66 §33),
         # 0.4 on 2026-11-09 (§36.10), then flashed from the page the same day (§36.12): tested as this page builds it;
-        # 0.5 adds Chord Joy (notes/87): proven in emulation (test_chordjoy.py), not yet tried on the Model:Cycles
-        "status": "experimental",
+        # 0.5 adds Chord Joy (notes/87): proven in emulation (test_chordjoy.py) and tested on the Model:Cycles on
+        # 2026-11-19 in the maintainer's full build from the command line, with the fix of notes/87 §7 (§8)
+        "status": "tested",
         "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
         # an extension of CHORD composed in the page like a machine (notes/66 §3): alone it gives 36-chordtables.json
         # byte for byte; its chain hooks go in front of the effect slots' and the filter slot's (notes/66 §30.2)

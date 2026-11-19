@@ -335,7 +335,7 @@ window.MC_TWEAKS = {
    "id": "chordtables",
    "label": "CHORD+",
    "desc": "CHORD Tables and Chord Joy for the stock CHORD machine. CHORD Tables: CHORD plays wavetables from the +Drive, one table per pattern: the files 01 to 63 in a folder Wavetables. On a CHORD track, PATTERN + SWEEP picks the pattern's table (0 = CHORD's own, two steps of the knob a table); every CHORD track of the pattern plays it, and SWEEP moves through its waveforms. Chord Joy: MACHINES + PUNCH turns it on for the sound; TRIG 1 to 7 play the degrees of the major scale (TRIG 8 the first an octave up), each with its chord on SHAPE, and TRIG 9 to 16, with a degree held, colour its chord until you let go.",
-   "status": "experimental",
+   "status": "tested",
    "credit": {
     "kind": "by",
     "who": "durchgemacht",

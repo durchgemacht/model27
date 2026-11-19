@@ -85,14 +85,15 @@ with rec 0; alone, taken with nothing done. Run by the maintainer on 0.1 as pack
 failures, all in the proof (the release's two arguments compared as four; the Transpose builds compared with the
 stock OS instead of the build without it); after the fix "all ok" (2026-11-19) [FAIT en émulation]. In CHORD+
 (chordtables 0.5) the maintainer ran both proofs again the same day: `test_chordjoy.py` "all ok",
-`test_chordtables.py` ALL OK, no failure [FAIT en émulation].
+`test_chordtables.py` ALL OK, no failure [FAIT en émulation]. With the fix of §7 the maintainer ran `test_chordjoy.py`
+again: "all ok" (2026-11-19) [FAIT en émulation].
 
 MAIN OS: chordtables 0.5 alone `6fc17ea5…`, with every card of the page (release 0.76) `10ca0b0b…` (with the fix of §7) (BUILD.md).
 
 ## 6. Left to check
 
-- [À FAIRE] On the machine: the switch, the degrees and colours, recording with REC + PLAY (does the SHAPE lock land on
-  the same step as the note?), with Transpose.
+- [FAIT] On the machine (§8): the build with the fix of §7, "gerätetest ok"; which points the maintainer tried, not
+  said one by one.
 - [À FAIRE] The switch's state on the screen, like SAMPLE's Loop / Reverse.
 
 ## 7. First test on the machine (19/11/2026) and the fix
@@ -113,7 +114,7 @@ the trig's chord cleanly.
   diminished is row 19, its neighbours 3 and 4). A knob turned long before a trig has settled; a lock is put by the
   sequencer at the trig.
 - **SHAPE is k 12** (descriptor 72 in the table `0x4010dce0`, 56 bytes an entry, k at +4).
-- **The fix** `[FAIT en émulation]` (not yet heard): every SHAPE set by Chord Joy also writes the state long of
+- **The fix** `[FAIT en émulation, FAIT sur la machine §8]`: every SHAPE set by Chord Joy also writes the state long of
   (t, k 12) to the new word << 16, before the note's event, as `0x400582d0` does. One aligned long, written from
   the UI task, which the audio interrupt never splits.
 - **A second fault, found reading the code:** a degree pressed while another is held released the new degree's
@@ -121,3 +122,9 @@ the trig's chord cleanly.
   whose root sounds.
 - **The proof** checks both: the state long after every degree and direction, and three overlapped pairs (6 → 7,
   7 → 8, 1 → 6): the sounding root released, the new one played, the first key's release taken without a call.
+
+## 8. Tested on the machine (19/11/2026)
+
+The maintainer flashed the full build of release 0.76 with the fix of §7 (MAIN OS `10ca0b0b…`, from the command line)
+and ran `test_chordjoy.py` in Unicorn: "all ok. gerätetest ok". The card CHORD+ is tested again (no tag in the
+flasher); BUILD.md, the guide, the release entry and the manifest (`tests.hardware` 0.5) say so.

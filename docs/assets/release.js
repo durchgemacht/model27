@@ -10,7 +10,7 @@ window.MC_RELEASES = [
   { version: "0.76", date: "2026-11-19", changes: [
     { en: "CHORD Tables is now CHORD+ and adds Chord Joy: simple chords on CHORD tracks. Press and hold MACHINES and press PUNCH to turn it on for the sound. TRIG 1 to 7 then play the degrees of the major scale, each with its own chord on SHAPE, and TRIG 8 the first an octave up. Hold a degree and press TRIG 9 to 16 to colour its chord: dreamy, flipped, bluesy, dark, jazzy, sweet, open or lush. Let go and it springs back" },
     { en: "TRIG 1 plays the note it plays without Chord Joy, so the track's note and Transpose set the key. With REC and PLAY on, the chords are recorded like notes, each with a SHAPE lock for its chord. The wavetables work as before" },
-    { en: "model27's own. Goes with every other card. Checked in an emulator on the OS's own code; Chord Joy not yet tried on a Model:Cycles, so the card is Experimental again until it is" },
+    { en: "model27's own. Goes with every other card. Checked in an emulator on the OS's own code, and Chord Joy tested on a Model:Cycles (2026-11-19) from the command line in a build with every other card" },
   ] },
   { version: "0.75", date: "2026-11-18", changes: [
     { en: "A new machine, VOSIM, plays two vocal formants that start again on every period of the note, from soft vowels to buzzing tones. COLOR and SHAPE set the two formants, SWEEP lets them follow the note, CONTOUR makes them fade within each period" },

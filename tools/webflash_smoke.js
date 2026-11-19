@@ -498,9 +498,9 @@ async function main() {
       && ctOn && !chosen().length
       && doc.querySelector('#grp-mod #feat-chordtables') && doc.querySelector('#features a[href$="#chord-tables"]')
       && doc.querySelectorAll('input[name="var-chordtables"]').length === 0
-      && !!doc.querySelector("#mod-chordtables .tag"),
+      && !doc.querySelector("#mod-chordtables .tag"),
       `CHORD+ alone ${ctAlone}; with SAMPLE ${ctSmp}; with Digital Delay, Crush and Transpose ${ctFx}, one composed ` +
-      `tweak, no clash; in Mods; no sub-choice; its guide link; experimental, so a tag`);
+      `tweak, no clash; in Mods; no sub-choice; its guide link; tested, so no tag`);
     // SOLID: a machine card (notes/71 §12), composed with the other package cards, in Machines; tested
     box("feat-solid").click(); await wait(5);
     const solAlone = chosen();

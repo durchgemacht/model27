@@ -140,7 +140,7 @@ tools/machines/chordtables/   CHORD Tables (notes/66): an extension of CHORD; si
                               256, harmonics 1-40), --self-test; since 0.5 the card is CHORD+ and the package holds
                               Chord Joy too (chord_joy.c, notes/87): MACHINES + PUNCH, TRIG 1-8 the degrees with their
                               chord on SHAPE, TRIG 9-16 their colour, chained in KeyboardView's slot 0x400ff9cc in front
-                              of Transpose; proven by tools/emu/test_chordjoy.py
+                              of Transpose; proven by tools/emu/test_chordjoy.py, tested on the Model:Cycles (notes/87 §8)
 tools/machines/fxslot/        the effect slots, a part (notes/68): the mixer's delay and reverb go to the effect the playing
                               pattern chose there (bytes 29-31 of its header, PATTERN + Delay Time / Reverb Size), each slot
                               with a line of its own; compose.py adds it to the builds whose packages are effects
