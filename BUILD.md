@@ -429,10 +429,10 @@ d'origine (`0x4001a0d2`), qui joue la note de base. Preuve (Unicorn) :
 ```sh
 python3 tools/emu/test_chordjoy.py --cycles model-cycles_OS1.13.syx [--dry]
 ```
-MAIN OS patché, `chordtables` 0.5 seul : `cc92037442d3bf9e599c785ffef8acbd4d529279515ff3d25aa8a54b65f3d5f0` ; avec
+MAIN OS patché, `chordtables` 0.5 seul : `6fc17ea558ec256d5aa60c58b6d75251bf70c026d2ca7fb992ebc2aa691a4ec5` ; avec
 toutes les cartes de la page (vingt et une, release 0.76 : `--machines sampler,solid,chips,maxsaw,terra,vosim,
 chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq --cpu --resample --transpose --perform --with
-control-all-config,trig-preview,trig-cond-order`) : `b96ab75abb5804e660fd7b9c01c177121e6ab81668c9eb0cda24036493d07c16`.
+control-all-config,trig-preview,trig-cond-order`) : `10ca0b0b28c11e31d39f117bc450c543b8758bd2251a589c56daab698c1d33c4`.
 Chord Joy pas encore essayé sur un Model:Cycles.
 
 ### Digital Delay (effet)

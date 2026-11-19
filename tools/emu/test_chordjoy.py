@@ -11,7 +11,9 @@ on the OS's own code (Unicorn).
                 then the stock play of the degree's root key (the same call the stock OS makes for that key);
      TRIG 9-16  with a degree held: the stock release of the root, SHAPE to the direction's row, the play again;
                 released: SHAPE back (recording off), nothing played; without a degree held: taken, nothing else;
-     the degree's release: the stock release of its root key.
+     the degree's release: the stock release of its root key;
+     every SHAPE set also puts the track's smoothing state at the new word (notes/87 §7), and a degree pressed
+     while another is held releases the root that sounds, the other's.
    Registers d2-d7/a2-a6 and the stack kept.
 
     python3 tools/emu/test_chordjoy.py --cycles firmware/model-cycles_OS1.13.syx [--dry]
@@ -34,6 +36,7 @@ import test_sdvintage_7th as t7     # noqa: E402
 from test_sdvintage_7th import check  # noqa: E402
 
 KB_SLOT, KB_KEYS, PARAM_SET, SHAPE_DESC, CHORD = 0x400ff9cc, 0x4001a0d2, 0x4000ba7a, 72, 5
+SMOOTH = lambda t: 0x800011e8 + 4 * (7 + 33 * t + 12)   # noqa: E731  track t's SHAPE (k 12) smoothing state
 ROOT = [0, 2, 4, 5, 7, 9, 11, 12]
 QUAL = [0, 1, 1, 0, 0, 1, 2, 0]
 DIRS = [[4, 23, 3, 8, 3, 10, 16, 6, 14], [3, 23, 4, 8, 19, 7, 15, 6, 13], [19, 23, 3, 8, 12, 21, 5, 6, 27]]
@@ -83,6 +86,9 @@ def kb(u, code, flags, held=(), mode=None, t=2, machine=CHORD, k32=0x100):
     import probe_transpose as P
     import test_shortcuts as SH
     u.keys(held)
+    if not getattr(u, "sram", False):               # the internal SRAM: the smoothing state Chord Joy writes
+        u.uc.mem_map(0x80000000, 0x00020000)
+        u.sram = True
     st = bytearray(0x200)
     if mode == "grid":
         st[P.GRID_A] = st[P.GRID_B] = 1
@@ -122,6 +128,7 @@ def kb(u, code, flags, held=(), mode=None, t=2, machine=CHORD, k32=0x100):
             calls.append((n, a[:2]))
         elif n == "shape":
             calls.append((n, (a[1], a[2], a[3], a[4] & 0xff)))
+    kb.state = struct.unpack(">I", bytes(u.uc.mem_read(SMOOTH(t), 4)))[0]
     return d0 & 0xff, calls, u.sp_ok and kept and not u.bad
 
 
@@ -152,13 +159,16 @@ def key_tests(key, base, w):
 
     bad = []
     for d in range(1, 9):                           # a degree, pressed and released
+        b.uc.mem_write(SMOOTH(2), b"\0\0\0\0")
         r1 = kb(b, TRIG(d), 1)
+        if kb.state != (DIRS[QUAL[d - 1]][0] << 8) << 16:
+            bad.append((d, "smoothing state", hex(kb.state)))
         want = [("shape", (SHAPE_DESC, DIRS[QUAL[d - 1]][0] << 8, 2, 1))] + stock_calls(TRIG(1) + ROOT[d - 1], 1)
         r2 = kb(b, TRIG(d), 0)
         if r1[0] != 1 or r1[1] != want or not r1[2] or r2 != (1, stock_calls(TRIG(1) + ROOT[d - 1], 0), True):
             bad.append((d, r1, r2, want))
-    check(not bad, f"{key}: TRIG 1-8 with Chord Joy on: SHAPE to the degree's chord (recording on), then the stock "
-                   "play of its root key; the release, the stock release of that key"
+    check(not bad, f"{key}: TRIG 1-8 with Chord Joy on: SHAPE to the degree's chord (recording on) and its smoothing "
+                   "state, then the stock play of its root key; the release, the stock release of that key"
                    + (f"; DIFFERENT {bad[:2]}" if bad else ""))
 
     bad = []
@@ -174,10 +184,22 @@ def key_tests(key, base, w):
             r3 = kb(b, TRIG(d), 0)
             if r1 != (1, want, True) or r2 != (1, back, True) or r3 != (1, stock_calls(root, 0), True):
                 bad.append((d, k, r1, r2, r3))
+    for d1, d2 in ((6, 7), (7, 8), (1, 6)):           # a degree pressed while another is held
+        kb(b, TRIG(d1), 1)
+        r1 = kb(b, TRIG(d2), 1)
+        st = kb.state
+        r2 = kb(b, TRIG(d1), 0)
+        r3 = kb(b, TRIG(d2), 0)
+        root1, root2 = TRIG(1) + ROOT[d1 - 1], TRIG(1) + ROOT[d2 - 1]
+        want = stock_calls(root1, 0) + [("shape", (SHAPE_DESC, DIRS[QUAL[d2 - 1]][0] << 8, 2, 1))] + stock_calls(root2, 1)
+        if (r1 != (1, want, True) or st != (DIRS[QUAL[d2 - 1]][0] << 8) << 16 or r2 != (1, [], True)
+                or r3 != (1, stock_calls(root2, 0), True)):
+            bad.append(("overlap", d1, d2, r1, r2, r3))
     lone = [kb(b, TRIG(9 + i), f) for i in range(8) for f in (1, 0)]
     check(not bad and all(r == (1, [], True) for r in lone),
           f"{key}: TRIG 9-16 with a degree held: its release, SHAPE to the direction's chord, its play again; released: "
-          "SHAPE back without recording, nothing played; without a degree: taken, nothing done"
+          "SHAPE back without recording, nothing played; without a degree: taken, nothing done; a degree over another: "
+          "the sounding root released, the new chord's smoothing state set"
           + (f"; DIFFERENT {bad[:2]}" if bad else ""))
 
 

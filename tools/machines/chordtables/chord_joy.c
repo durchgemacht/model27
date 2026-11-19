@@ -12,6 +12,10 @@
  * track's parameter object (vtable 0x400fd134, its set method 0x4000ba7a), as a knob turned, which records a lock
  * of SHAPE on the step while REC + PLAY runs (0x4000f4b8). Every other key, track, mode or combination goes to the
  * entry behind (cj_next_keys: Transpose's tr_keys or the stock 0x4001a0d2) unchanged.
+ * The audio side smooths every knob's word over many blocks (0x40058474); a live note on the same sound keeps the
+ * glide, so the chord would start as the old one and slide to the new. Each SHAPE set here also puts the track's
+ * smoothing state at the new word, as the OS does when a note brings another sound (0x400582d0): the note starts on
+ * its chord (notes/87 §7).
  *
  * License: MIT (LICENSE next to this file). */
 #include <stdint.h>
@@ -41,6 +45,9 @@ typedef uint32_t (*keys_fn)(void *, uint8_t *);
 #define SHAPE_DESC 72                               /* CHORD's SHAPE */
 #define PARAM_VTABLE 0x400fd134u
 #define EV_COPY 32                                  /* the key event's bytes copied (code +12, flags +16) */
+#define SHAPE_K 12                                  /* descriptor 72's k (0x4010dce0 + 56 * 72 + 4) */
+#define SMOOTH_STATE 0x800011e8u                    /* the smoothing's state: word j's long, value << 16 */
+#define SMOOTH_J(t, k) (7 + 33 * (t) + (k))         /* j of track t's k, as 0x400582d0 and 0x40059534 count */
 
 extern char cj_next_keys[];                         /* the key handler behind: Transpose's, or the stock one */
 #define NEXT ((keys_fn)(uint32_t)cj_next_keys)
@@ -62,7 +69,7 @@ static struct {
 	uint8_t degree;                             /* the degree key held, 1..8, 0 none */
 	uint8_t dir;                                /* the direction key held, 1..8, 0 none */
 	uint8_t track;                              /* the track of the degree's press */
-	uint8_t sounding;                           /* the stock handler holds the degree's root key */
+	uint8_t sounding;                           /* the degree whose root key the stock handler holds, 0 none */
 	uint8_t taken;                              /* bits of TRIG 1..16 whose press this part took (16 bits) */
 	uint8_t taken_hi;
 } S;
@@ -109,6 +116,7 @@ static void set_shape(uint32_t t, uint32_t row, uint32_t record)
 	obj[0] = PARAM_VTABLE;
 	obj[1] = (uint32_t)track_holder(p, t);
 	PARAM_SET(obj, SHAPE_DESC, row << 8, t, record);
+	*(volatile uint32_t *)(SMOOTH_STATE + 4 * SMOOTH_J(t, SHAPE_K)) = (row << 8) << 16;
 }
 
 /* The stock handler sees the degree's root key, pressed or released, as the key event ev says. */
@@ -127,13 +135,13 @@ static void root_key(void *view, const uint8_t *ev, uint32_t degree, uint32_t pr
 static void strike(void *view, const uint8_t *ev, uint32_t record)
 {
 	uint32_t d = S.degree;
-	if (S.sounding) {
-		root_key(view, ev, d, 0);
+	if (S.sounding) {                           /* the root that sounds, maybe another degree's (keys overlapped) */
+		root_key(view, ev, S.sounding, 0);
 		S.sounding = 0;
 	}
 	set_shape(S.track, DIRS[QUAL[d - 1]][S.dir], record);
 	root_key(view, ev, d, 1);
-	S.sounding = 1;
+	S.sounding = (uint8_t)d;
 }
 
 static int taken(uint32_t k)
@@ -162,7 +170,7 @@ uint32_t cj_keys(void *view, uint8_t *ev)
 		if (k < 8) {
 			if (S.degree == k + 1) {
 				if (S.sounding)
-					root_key(view, ev, S.degree, 0);
+					root_key(view, ev, S.sounding, 0);
 				S.degree = S.dir = S.sounding = 0;
 			}
 		} else if (S.dir == k - 7) {

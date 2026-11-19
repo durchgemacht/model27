@@ -87,10 +87,37 @@ stock OS instead of the build without it); after the fix "all ok" (2026-11-19) [
 (chordtables 0.5) the maintainer ran both proofs again the same day: `test_chordjoy.py` "all ok",
 `test_chordtables.py` ALL OK, no failure [FAIT en émulation].
 
-MAIN OS: chordtables 0.5 alone `cc920374…`, with every card of the page (release 0.76) `b96ab75a…` (BUILD.md).
+MAIN OS: chordtables 0.5 alone `6fc17ea5…`, with every card of the page (release 0.76) `10ca0b0b…` (with the fix of §7) (BUILD.md).
 
 ## 6. Left to check
 
 - [À FAIRE] On the machine: the switch, the degrees and colours, recording with REC + PLAY (does the SHAPE lock land on
   the same step as the note?), with Transpose.
 - [À FAIRE] The switch's state on the screen, like SAMPLE's Loop / Reverse.
+
+## 7. First test on the machine (19/11/2026) and the fix
+
+The maintainer flashed the full build of release 0.76 (MAIN OS `b96ab75a…`): "grundsätzlich funktioniert es und es
+macht spaß", but some chords sound broken, a degree held and TRIG 9-16 pressed, and TRIG 1-8 alone too, most of all
+TRIG 6-8: first the held chord, then a jump to the new one. Their answers: also with the keys played one after the
+other, not overlapped; one change, not a run through chords; SHAPE turned by hand between quarter-note trigs plays
+the trig's chord cleanly.
+
+- **The cause** `[FAIT, read in the OS 1.13]`: `0x4000ba7a` writes the word into the sound and notifies its
+  observers; `0x4000e2ec` hands it to `0x40059534(value, track, k)`, which writes the voice's target
+  `0x800015ae + 66 t + 2 k` at once. But the audio side smooths every target each block (`0x40058474`: a one-pole,
+  0x03d7 / 0x7c29, state long `0x800011e8 + 4 j`, j = 7 + 33 t + k, the word in its high half), and CHORD reads the
+  smoothed word. The OS snaps the state to the targets only when a note brings another sound (`0x40058a0a` →
+  `0x400582d0`); a live note on the track's own sound keeps the glide, so the note starts on the old chord and
+  slides to the new one within a few blocks: heard as one jump, worst where the rows lie far apart (degree 7's
+  diminished is row 19, its neighbours 3 and 4). A knob turned long before a trig has settled; a lock is put by the
+  sequencer at the trig.
+- **SHAPE is k 12** (descriptor 72 in the table `0x4010dce0`, 56 bytes an entry, k at +4).
+- **The fix** `[FAIT en émulation]` (not yet heard): every SHAPE set by Chord Joy also writes the state long of
+  (t, k 12) to the new word << 16, before the note's event, as `0x400582d0` does. One aligned long, written from
+  the UI task, which the audio interrupt never splits.
+- **A second fault, found reading the code:** a degree pressed while another is held released the new degree's
+  root instead of the one sounding, so the old note went on with the new chord. `S.sounding` now keeps the degree
+  whose root sounds.
+- **The proof** checks both: the state long after every degree and direction, and three overlapped pairs (6 → 7,
+  7 → 8, 1 → 6): the sounding root released, the new one played, the first key's release taken without a call.
