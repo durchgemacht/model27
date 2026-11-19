@@ -484,7 +484,8 @@ async function main() {
       `Transpose alone ${trAlone}; with SAMPLE ${trSmp}, with the CPU page and RESAMPLE ${trAll}, one composed tweak; ` +
       `with Control All Config and Trig Preview ${trTp}, no clash; in Mods; no sub-choice; its guide link; ` +
       `tested, so no tag`);
-    // CHORD Tables: a package card on the stock CHORD (notes/66), composed with the machine cards, in Mods; tested
+    // CHORD+ (CHORD Tables and Chord Joy): a package card on the stock CHORD (notes/66, notes/87), composed with the
+    // machine cards, in Mods; experimental since Chord Joy (0.5)
     box("feat-chordtables").click(); await wait(5);
     const ctAlone = chosen();
     box("feat-sampler").click(); await wait(5);
@@ -497,9 +498,9 @@ async function main() {
       && ctOn && !chosen().length
       && doc.querySelector('#grp-mod #feat-chordtables') && doc.querySelector('#features a[href$="#chord-tables"]')
       && doc.querySelectorAll('input[name="var-chordtables"]').length === 0
-      && !doc.querySelector("#mod-chordtables .tag"),
-      `CHORD Tables alone ${ctAlone}; with SAMPLE ${ctSmp}; with Digital Delay, Crush and Transpose ${ctFx}, one composed ` +
-      `tweak, no clash; in Mods; no sub-choice; its guide link; tested, so no tag`);
+      && !!doc.querySelector("#mod-chordtables .tag"),
+      `CHORD+ alone ${ctAlone}; with SAMPLE ${ctSmp}; with Digital Delay, Crush and Transpose ${ctFx}, one composed ` +
+      `tweak, no clash; in Mods; no sub-choice; its guide link; experimental, so a tag`);
     // SOLID: a machine card (notes/71 §12), composed with the other package cards, in Machines; tested
     box("feat-solid").click(); await wait(5);
     const solAlone = chosen();
@@ -634,7 +635,7 @@ async function main() {
     // English only: no language switch; the cards by their names, their credits and guide links
     const names = [...doc.querySelectorAll("#features .nm")].map((e) => e.textContent);
     check(!doc.querySelector(".lang") && doc.documentElement.lang === "en" && /new tricks/.test(text(doc, "h1s"))
-      && names.join() === "SAMPLE,SOLID,CHIPS,MAXSAW,TERRA,VOSIM,Digital Delay,POTS,LP/HP Filter,Crush,Ring,Reso,EQ,CHORD Tables,RESAMPLE,Trig Preview,Trig Condition Order,Control All Config,Transpose,Perform Kit,CPU Page"
+      && names.join() === "SAMPLE,SOLID,CHIPS,MAXSAW,TERRA,VOSIM,Digital Delay,POTS,LP/HP Filter,Crush,Ring,Reso,EQ,CHORD+,RESAMPLE,Trig Preview,Trig Condition Order,Control All Config,Transpose,Perform Kit,CPU Page"
       && /by drumkilla/.test(text(doc, "features")) && /by durchgemacht/.test(text(doc, "features"))
       && doc.querySelector('#features a[href$="#control-all"]') && doc.querySelector('#features a[href$="#sampler"]'),
       "English only, no language switch; the cards by their names: " + names.join());

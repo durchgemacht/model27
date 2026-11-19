@@ -421,6 +421,20 @@ Depuis la 0.4 (note 66 §36), le chargeur lit le dossier `/Wavetables` avec les 
 cartes `0e1c33bc…`, le fichier essayé sur un Model:Cycles depuis la ligne de commande le 08/11/2026 (note 66 §33 : les
 huit essais). Pas encore flashé depuis la page.
 
+Depuis la 0.5 (CHORD+, [note 87](notes/87-chordjoy.md)), le paquet porte aussi Chord Joy
+(`tools/machines/chordtables/chord_joy.c`) : MACHINES + PUNCH l'allume pour le son (bit 8 de k 32) ; TRIG 1 à 8 jouent
+les degrés de la gamme majeure, TRIG 9 à 16 (un degré tenu) changent la couleur de l'accord. Son crochet en chaîne
+prend l'emplacement des touches de la KeyboardView (`0x400ff9cc`) devant celui de Transpose ou le gestionnaire
+d'origine (`0x4001a0d2`), qui joue la note de base. Preuve (Unicorn) :
+```sh
+python3 tools/emu/test_chordjoy.py --cycles model-cycles_OS1.13.syx [--dry]
+```
+MAIN OS patché, `chordtables` 0.5 seul : `cc92037442d3bf9e599c785ffef8acbd4d529279515ff3d25aa8a54b65f3d5f0` ; avec
+toutes les cartes de la page (vingt et une, release 0.76 : `--machines sampler,solid,chips,maxsaw,terra,vosim,
+chordtables,digidelay,pots,smpfilter,crush,ring,reso,eq --cpu --resample --transpose --perform --with
+control-all-config,trig-preview,trig-cond-order`) : `b96ab75abb5804e660fd7b9c01c177121e6ab81668c9eb0cda24036493d07c16`.
+Chord Joy pas encore essayé sur un Model:Cycles.
+
 ### Digital Delay (effet)
 
 `tweaks/model-cycles_OS1.13/39-digidelay.json` est produit par `tools/gen_digidelay.py`, qui compile

@@ -49,7 +49,8 @@ One per sound, after Volume + Dist, on SWEEP, CONTOUR, COLOR and SHAPE (MIDI CC 
 - **Control All Config**: choose which tracks Control All changes.
 - **Trig Preview**: hear a step without starting the sequencer. By
   [drumkilla](https://github.com/drumkilla/elektron-model-tweaks).
-- **CHORD Tables**: CHORD plays your own wavetables from the +Drive, one for each pattern.
+- **CHORD+**: CHORD plays your own wavetables from the +Drive, one for each pattern, and chords with one finger on
+  the TRIG keys.
 - **CPU Page**: shows in SETTINGS how much of the Model:Cycles' processor the sound takes.
 - **Transpose**: plays the TRIG keys in other octaves and makes a track jump a fourth or a fifth.
 - **Trig Condition Order**: on CHANCE, the A:B conditions come before the percentages.
@@ -120,7 +121,7 @@ stay as Elektron shipped them.
 | **Device** | Elektron Model:Cycles |
 | **Needs** | the official OS 1.13 file from Elektron |
 | **Install** | in the browser, Chrome, Edge or Opera on a desktop computer (Web MIDI), over USB |
-| **Status** | beta, release 0.75 |
+| **Status** | beta, release 0.76 |
 | **Price** | free |
 | **License** | MIT |
 | **Based on** | [Modded-Cycles](https://github.com/18nelli18/Modded-Cycles) 1.55 |

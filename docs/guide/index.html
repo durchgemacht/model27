@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Tiny5&display=swap">
-<link rel="stylesheet" href="../assets/site.css?v=2026-11-19-01">
-<link rel="stylesheet" href="../assets/guide.css?v=2026-11-19-01">
+<link rel="stylesheet" href="../assets/site.css?v=2026-11-19-02">
+<link rel="stylesheet" href="../assets/guide.css?v=2026-11-19-02">
 <script>try{var t=localStorage.getItem("mc-theme")}catch(e){}if(t)document.documentElement.setAttribute("data-theme",t)</script>
 </head>
 <body data-page="guide">
@@ -47,7 +47,7 @@
         <li><a href="#maxsaw">MAXSAW</a></li>
         <li><a href="#terra">TERRA</a></li>
         <li><a href="#vosim">VOSIM</a></li>
-        <li><a href="#chord-tables">CHORD Tables</a></li>
+        <li><a href="#chord-tables">CHORD+</a></li>
         <li><a href="#digital-delay">Digital Delay</a></li>
         <li><a href="#pots">POTS</a></li>
         <li><a href="#samples-filter">LP/HP Filter</a></li>
@@ -129,7 +129,7 @@
           <div><dt>Sound</dt><dd>one voice per track, once per trig or in a loop. No clicks at the edges: 4 ms fades at the end of what a trig plays, and at its start when Start lies inside the sample; a trig that cuts a sounding note brings the new one in over 0.67 ms, as on the Model:Samples. The filter fades rather than switches across the centre, so a square LFO on Cutoff does not click; at Cutoff 0 the track is untouched, bit for bit. Stereo files play as mono; files at other rates keep their pitch.</dd></div>
           <div><dt>Samples</dt><dd>the sample memory is 47 MB of RAM the Model:Cycles' OS leaves unused. Samples load in the background when a project, kit or sound names them, or when the PRESET browser's cursor rests on them, and unload when nothing does.</dd></div>
           <div><dt>Limits</dt><dd>Loop and Reverse are switches: they can be locked per step, but cannot be an LFO destination. The filter runs before Volume + Dist, where the Model:Samples has it after: with DIST above 0, the distortion acts on the filtered signal.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD Tables and the sequencer, screen, MIDI and USB mods. Not with MACRO, ACID, the Syntakt engines, Model-TG, the per-track filter, sample preview or LFO 2, 3, 4 for now: the other machines take the same place in the firmware and there is no combined build with SAMPLE yet; Model-TG and the per-track filter change the same sound record functions; LFO 2, 3, 4 keeps LFO 2 where SAMPLE saves Loop and Reverse.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD+ and the sequencer, screen, MIDI and USB mods. Not with MACRO, ACID, the Syntakt engines, Model-TG, the per-track filter, sample preview or LFO 2, 3, 4 for now: the other machines take the same place in the firmware and there is no combined build with SAMPLE yet; Model-TG and the per-track filter change the same sound record functions; LFO 2, 3, 4 keeps LFO 2 where SAMPLE saves Loop and Reverse.</dd></div>
           <div><dt>Tested</dt><dd>Its own card and icon (release 0.64): checked in an emulator on the OS's own code and in digiemu with every card (2026-11-14), the MACHINES page and the preset windows. One-Shot 0.18 (a note played from the PRESET menu ends when you let go) on a Model:Cycles, flashed from this page (2026-11-15), after the host tests, the maintainer's emulator run and digiemu. One-Shot 0.17 (the previewed sample follows the knobs) on a Model:Cycles from the command line with every card and then flashed from this page (2026-11-13), after the host tests and the maintainer's emulator run. One-Shot 0.16 (the browser's preview) on a Model:Cycles from the command line with every card (2026-11-12), after the maintainer's emulator runs and digiemu, then flashed from this page with every card the same day. One-Shot 0.7 on a Model:Cycles (2026-10-21): samples open and play, pitch, Start and Length, the filter, several SAMPLE tracks, saved projects, sound locks, the waveform view; One-Shot 0.9 (two boxes above the waveform, 2026-10-24) and 0.10 (the column on the left with the pattern, the track and its level, 2026-10-25), each in its own build in the digiemu emulator and on a Model:Cycles. This page builds One-Shot 0.14 composed from its compiled object by model27's registrar runtime, which differs from that firmware in how the machine is registered (a runtime reading a parameter block instead of detours assembled per build), at three instructions (the machine's index read as a symbol), and by the builder's shortcut layer, which gives SAMPLE its two switches (One-Shot's own firmware plays one shot, forward). Flashed from this page, that build of 0.8 was tested in the digiemu emulator and on a Model:Cycles (2026-10-22); the same runtime also ran there with a second machine next to SAMPLE. Flashed from this page, its build of 0.10 was tested on a Model:Cycles (2026-10-25). Its build of 0.11 (Loop, Reverse, the fade-in after a cut) was tested in the digiemu emulator and, flashed from this page, on a Model:Cycles (2026-10-26). One-Shot 0.12 (the view of a held trig's locks) was tested in its own build in the digiemu emulator and on a Model:Cycles (2026-10-30); this page's build of 0.12 not yet. This page's build of 0.13 (Start and Length on the note that plays), the same file byte for byte, was tested in the digiemu emulator and on a Model:Cycles, flashed over USB rather than from this page (2026-11-02): once, looped and reversed, with an LFO on Start and on Length. One-Shot 0.14 (the Model:Samples' pictures for Cutoff and Reso) was tested in its own build in the digiemu emulator and on a Model:Cycles (2026-11-04), and this page's build of 0.14, the same file byte for byte, on a Model:Cycles, flashed over USB rather than from this page (2026-11-04): the pictures, Loop and Reverse. This page's build of 0.15 (Loop and Reverse locked per step, the step panel, the pan) was tested on a Model:Cycles, flashed over USB rather than from this page, step by step as it was built, the last files the same as this page builds, SAMPLE alone and with every card (2026-11-05): locks on and off, against the track's switches, both on one step, the PRESET browser with a step held, save and load, the panel and the LEDs, the pan back to 0, a Track FX next to a lock, and the other machines' tracks as before. One-Shot 0.16, the sample under the PRESET browser's cursor on the pad and the TRIG keys, is experimental: not yet tested on a Model:Cycles.</dd></div>
         </dl>
         <p class="note"><b>Before flashing another choice or the official firmware,</b> set your SAMPLE tracks back to an original machine (Kick to Chord): the official OS doesn't have SAMPLE, and a project that still names it can freeze its MACHINES page.</p>
@@ -162,7 +162,7 @@
           <div><dt>Sound</dt><dd>one body per track. DECAY sets how long the body itself rings, and GATE damps it when the note ends; there is no envelope after it. The velocity sets the level, and up to CONTOUR 63 the mallet's hardness.</dd></div>
           <div><dt>Retrigs</dt><dd>a new trig strikes the ringing body again. On the same note, what still rings drops by 6 dB; on another note, or with another SHAPE, it is first damped by 12 dB, so two notes do not ring into each other at full level.</dd></div>
           <div><dt>Load</dt><dd>six SOLID tracks in a busy pattern, each with a Track FX, and POTS on the delay: about 60 % on the CPU Page, with peaks up to 75 %.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, CHIPS, MAXSAW, TERRA, VOSIM, CHORD Tables, the effects, the Track FX, the CPU Page, RESAMPLE, Transpose, Trig Condition Order, Trig Preview and Control All Config.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, CHIPS, MAXSAW, TERRA, VOSIM, CHORD+, the effects, the Track FX, the CPU Page, RESAMPLE, Transpose, Trig Condition Order, Trig Preview and Control All Config.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code: the sound is bit for bit that of the same code built for a computer, with every body, exciter, note, velocity and retrig, alone and next to SAMPLE, on six tracks and among the original machines, which still sound as on the stock OS. Tested on a Model:Cycles (2026-11-11), from the command line with all other cards: the MACHINES page, the four knobs and their names, the bodies over SHAPE, and six SOLID tracks under load; then flashed from this page the same day. Its own card and icon (release 0.64): checked in an emulator on the OS's own code and in digiemu with every card (2026-11-14), the MACHINES page, the main screen and the preset windows, then on a Model:Cycles from the command line with every card the same day, the MACHINES page.</dd></div>
         </dl>
         <p class="note"><b>Before flashing another choice or the official firmware,</b> set your SOLID tracks back to an original machine (Kick to Chord): the official OS doesn't have SOLID.</p>
@@ -198,7 +198,7 @@
           <div><dt>Arpeggio</dt><dd>up goes from the root to the top note and starts again; up and down turns at the top and at the root. With 5, its two notes alternate either way.</dd></div>
           <div><dt>Bass</dt><dd>a stepped triangle wave an octave below the note the arpeggio plays, sweeping with it. With PUNCH on it is as loud as the square wave, with PUNCH off 6 dB quieter.</dd></div>
           <div><dt>Saved</dt><dd>the bass and up and down with the preset, a step's lock with the pattern.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, MAXSAW, TERRA, VOSIM, CHORD Tables, the effects, the Track FX, the CPU Page, RESAMPLE, Transpose, Perform Kit, Trig Condition Order, Trig Preview and Control All Config.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, MAXSAW, TERRA, VOSIM, CHORD+, the effects, the Track FX, the CPU Page, RESAMPLE, Transpose, Perform Kit, Trig Condition Order, Trig Preview and Control All Config.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code: the sound is bit for bit that of the same code built for a computer, with every chord, arpeggio speed, sweep, note and switch and with a step's lock, alone and next to SAMPLE, on six tracks and among the original machines, which still sound as on the stock OS. Tried on a Model:Cycles from the command line, CHIPS alone (2026-11-15 and 2026-11-16): the MACHINES page, the four knobs and what the screen shows, the bass, up and down, and a step's lock of the bass, kept through a project's save and reload. Then flashed from this page with every other card (2026-11-16).</dd></div>
         </dl>
         <p class="note"><b>Before flashing another choice or the official firmware,</b> set your CHIPS tracks back to an original machine (Kick to Chord): the official OS doesn't have CHIPS.</p>
@@ -233,7 +233,7 @@
           <div><dt>Sub</dt><dd>a sawtooth two octaves below the note, softened so that it adds low end without a buzz. It comes in after the low cut, so SWEEP doesn't thin it.</dd></div>
           <div><dt>Level</dt><dd>at the defaults MAXSAW is a little quieter than Tone: turn up the track's level if you need more. With CONTOUR below about 24 and COLOR low, all sawtooths start together and the start of a note can distort briefly.</dd></div>
           <div><dt>Saved</dt><dd>the sub with the preset, a step's lock with the pattern.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, TERRA, VOSIM, CHORD Tables, the effects, the Track FX, the CPU Page, RESAMPLE, Transpose, Perform Kit, Trig Condition Order, Trig Preview and Control All Config.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, TERRA, VOSIM, CHORD+, the effects, the Track FX, the CPU Page, RESAMPLE, Transpose, Perform Kit, Trig Condition Order, Trig Preview and Control All Config.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code: the sound is bit for bit that of the same code built for a computer, with every knob, note and the sub, with a step's lock, alone and next to SAMPLE and CHIPS, on six tracks and among the original machines, which still sound as on the stock OS. Tried on a Model:Cycles from the command line in a build with every card (2026-11-16): the sound, the sub and the names on the screen. Then flashed from this page with every other card (2026-11-16).</dd></div>
         </dl>
         <p class="note"><b>Before flashing another choice or the official firmware,</b> set your MAXSAW tracks back to an original machine (Kick to Chord): the official OS doesn't have MAXSAW.</p>
@@ -268,7 +268,7 @@
           <div><dt>Surfaces</dt><dd>at SHAPE 64 and SWEEP 64: 1 few overtones; 2 many, with almost no fundamental; 3 and 4 the octave above the note louder than the note itself; 5 a strong fundamental with overtones up to the sixth. 6 to 8 are made of Plaits' wavetables, the circle reading across many waves: 6 a wave of short spikes, 7 brighter than all five before, 8 the sharpest, with much of its sound very high up.</dd></div>
           <div><dt>Level</dt><dd>with surface 1, the default, and with surface 8 TERRA is a little quieter than Tone; the other surfaces are about as loud. With SHAPE near 0 it gets much quieter: little of the surface lies under the small circle.</dd></div>
           <div><dt>Load</dt><dd>six TERRA tracks, each a long note between two surfaces with the second sound mixed in half: about 67 % on the CPU Page, with peaks up to 80 %. On one surface without the second sound, a track takes less than half of that.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, VOSIM, CHORD Tables, the effects, the Track FX, the CPU Page, RESAMPLE, Transpose, Perform Kit, Trig Condition Order, Trig Preview and Control All Config.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, VOSIM, CHORD+, the effects, the Track FX, the CPU Page, RESAMPLE, Transpose, Perform Kit, Trig Condition Order, Trig Preview and Control All Config.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code: the sound is bit for bit that of the same code built for a computer, with every surface and the ones between them, every size, shift, mix and note, alone and next to SAMPLE, CHIPS and MAXSAW, on six tracks and among the original machines, which still sound as on the stock OS; a new trig on a sounding track doesn't cut it. Tried on a Model:Cycles from the command line, TERRA alone with the CPU Page (2026-11-17): the sound, six tracks under load, and trigs without clicks. Then flashed from this page with every other card (2026-11-17).</dd></div>
         </dl>
         <p class="note"><b>Before flashing another choice or the official firmware,</b> set your TERRA tracks back to an original machine (Kick to Chord): the official OS doesn't have TERRA.</p>
@@ -301,16 +301,18 @@
           <div><dt>Sound</dt><dd>two formants per track, the second at half the level, started again on every period of the note. DECAY, GATE and PUNCH shape the note as on Tone. A new trig on a track that still sounds doesn't cut it and doesn't start the period again: the level moves on from where it was to the new note.</dd></div>
           <div><dt>Level</dt><dd>at the defaults VOSIM is about 5 dB quieter than Tone, its peaks about as high. High formants are a little louder; low ones, COLOR and SHAPE below about 40, much quieter. Raise a VOSIM track with its Track Level or Volume as usual. With PUNCH on, the brightest settings with CONTOUR far right can clip for a moment.</dd></div>
           <div><dt>Load</dt><dd>the same in every setting: six VOSIM tracks take a little over half of what six Tone tracks take (measured in an emulator).</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, CHORD Tables, the effects, the Track FX, the CPU Page, RESAMPLE, Transpose, Perform Kit, Trig Condition Order, Trig Preview and Control All Config.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, CHORD+, the effects, the Track FX, the CPU Page, RESAMPLE, Transpose, Perform Kit, Trig Condition Order, Trig Preview and Control All Config.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code: the sound is bit for bit that of the same code built for a computer, and with SWEEP and CONTOUR at 0 bit for bit that of Braids' own code; every knob, note and setting, alone and next to SAMPLE, CHIPS, MAXSAW and TERRA, on six tracks and among the original machines, which still sound as on the stock OS; a new trig on a sounding track doesn't cut it. Tried on a Model:Cycles from the command line in a build with every other card (2026-11-18): the sound, the names on the screen, and VOSIM next to CHIPS; then flashed from this page with every card ticked (2026-11-18).</dd></div>
         </dl>
         <p class="note"><b>Before flashing another choice or the official firmware,</b> set your VOSIM tracks back to an original machine (Kick to Chord): the official OS doesn't have VOSIM.</p>
       </section>
 
       <section id="chord-tables">
-        <h2><span class="n">9</span>CHORD Tables</h2>
+        <h2><span class="n">9</span>CHORD+</h2>
         <p class="by">model27's own · MIT license</p>
-        <p class="lede">CHORD plays your own wavetables from the +Drive. Each pattern chooses one, and every CHORD track in the pattern plays it; SWEEP moves through its waveforms as through CHORD's own.</p>
+        <p class="lede">Two additions to the stock CHORD machine. <b>CHORD Tables</b>: CHORD plays your own wavetables from the +Drive. <b>Chord Joy</b>: chords with one finger on the TRIG keys.</p>
+        <h3>CHORD Tables</h3>
+        <p>CHORD plays your own wavetables from the +Drive. Each pattern chooses one, and every CHORD track in the pattern plays it; SWEEP moves through its waveforms as through CHORD's own.</p>
         <ol>
           <li>Make your wavetables on the <a href="../wavetables/">Wavetables</a> page. Fill its 31 slots, then press <b>Save…</b>. Under CHORD Tables, choose the wavetable's number and press <b>Save .wav</b>.</li>
           <li>From another program, a wavetable is up to 32 single-cycle waveforms of 256 samples, one after the other, mono, at 48 kHz. Its first waveform should be a sine; if it is not, CHORD Tables puts one in front.</li>
@@ -323,9 +325,25 @@
           <div><dt>Patterns</dt><dd>one wavetable per pattern, for every CHORD track in it. When the pattern changes, the new wavetable comes in at once, also on notes that still sound, without a click.</dd></div>
           <div><dt>Files</dt><dd>a wavetable uploaded, deleted or renamed while the Model:Cycles runs is read within about two seconds. A number without a file plays CHORD's own sound. A name that does not start with <code>01</code> to <code>63</code> is not played (<code>7 Pad</code>, <code>070</code>). Of two files with the same number, the one whose name comes first alphabetically plays, capitals before small letters.</dd></div>
           <div><dt>Load</dt><dd>the wavetable plays from the same fast memory as CHORD's own, so six CHORD tracks with LFOs on SWEEP cost about what they cost with CHORD's own sound.</dd></div>
-          <div><dt>Other firmware</dt><dd>without CHORD Tables, another model27 build or the official one, every pattern plays CHORD's own sound. Flash CHORD Tables again and the patterns play their wavetables again. If you saved the project in between, set the wavetables again.</dd></div>
+          <div><dt>Other firmware</dt><dd>without CHORD+, another model27 build or the official one, every pattern plays CHORD's own sound. Flash CHORD+ again and the patterns play their wavetables again. If you saved the project in between, set the wavetables again.</dd></div>
           <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, the effects, the Track FX, the CPU Page, RESAMPLE, Transpose, Trig Condition Order, Trig Preview and Control All Config.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code: every CHORD track sounds sample for sample like the stock OS switched to the same wavetable, through every change of pattern, and like the stock OS at 0. Tested on a Model:Cycles (2026-11-08), from the command line with all fourteen other cards: the knob, the wavetables, SWEEP and LFOs, six CHORD tracks with LFOs and Control All, pattern changes, saving and loading, the other mods, files added and deleted, and the official OS. The names after the number are checked in the emulator and tested on a Model:Cycles (2026-11-09) with the same fifteen cards: a name after the number, a name without one, two files with one number, a deleted file, and six CHORD tracks under load; then flashed from this page.</dd></div>
+        </dl>
+        <h3>Chord Joy</h3>
+        <p>TRIG 1 to 7 play the degrees of the major scale, each with its own chord; hold one and press TRIG 9 to 16 to colour it.</p>
+        <ol>
+          <li>Press <b>MACHINES</b> and pick <b>CHORD</b>. Hold <b>MACHINES</b> and press <b>PUNCH</b>: Chord Joy is on for this sound, and the <b>PUNCH</b> LED is lit while you hold <b>MACHINES</b>. Press it again to turn it off.</li>
+          <li>Press <b>TRIG 1</b> to <b>TRIG 7</b>: the degrees I to VII of the major scale, each with its chord on SHAPE. 1, 4 and 5 are major, 2, 3 and 6 minor, 7 diminished. <b>TRIG 8</b> plays the first an octave up.</li>
+          <li><b>TRIG 1</b> plays the note it plays without Chord Joy, and the scale starts there. To change the key, change the track's note as usual, or the octave with Transpose.</li>
+          <li>Hold a degree and press <b>TRIG 9</b> to <b>TRIG 16</b> to colour its chord. The chord plays again in its new colour; let go and it springs back. Without a degree held they do nothing.</li>
+          <li>To record, press <b>REC</b> and <b>PLAY</b> and play. Each chord goes into the pattern as the stock keyboard records a note, with a SHAPE lock for its chord.</li>
+        </ol>
+        <dl class="facts">
+          <div><dt>Colours</dt><dd>9 dreamy (augmented), 10 flipped (major to minor and back), 11 bluesy (seventh), 12 dark, 13 jazzy, 14 sweet (sixth), 15 open (sus4), 16 lush (ninth).</dd></div>
+          <div><dt>SHAPE</dt><dd>stays at the last chord you played. A colour you let go sets it back without a lock.</dd></div>
+          <div><dt>Keys</dt><dd>only on CHORD tracks with Chord Joy on; with FUNC, TRACK, PATTERN or MACHINES held, in grid mode and in the pattern selection the TRIG keys work as usual.</dd></div>
+          <div><dt>Other firmware</dt><dd>without Chord Joy, the TRIG keys play notes as usual. Recorded SHAPE locks stay chords of CHORD.</dd></div>
+          <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code: with it off, on another machine or with a key held, every TRIG key does what it does without it; with it on, each degree and colour sets SHAPE and plays through the stock keyboard. Not yet tried on a Model:Cycles.</dd></div>
         </dl>
       </section>
 
@@ -341,7 +359,7 @@
         </ol>
         <dl class="facts">
           <div><dt>Sound</dt><dd>mono: the two sides of the send summed, the same repeat on both. A high-pass of about 240 Hz and a low-pass of about 12.8 kHz sit in the feedback. It starts from silence each time it is chosen: no old echo comes back.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD Tables, POTS and Control All Config. On a firmware without Digital, the official one too, a pattern that chose it plays the stock Delay.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD+, POTS and Control All Config. On a firmware without Digital, the official one too, a pattern that chose it plays the stock Delay.</dd></div>
           <div><dt>Tested</dt><dd>its sound is PPPCCC's bit for bit, checked in an emulator against their own code. On a Model:Cycles (2026-10-27), from the command line, then flashed from this page alone and with SAMPLE: the choice per pattern, long times and high feedback, switching back and forth, saved projects, six tracks playing.</dd></div>
         </dl>
       </section>
@@ -358,7 +376,7 @@
         </ol>
         <dl class="facts">
           <div><dt>Sound</dt><dd>mono: the two sides of the send summed, the same repeat on both. The line passes about 350 Hz to 3 kHz, so kicks and low notes come back thin, as down a phone; middle tones come back about as loud as from the stock delay. A hot send (a loud sample, several tracks on the delay) is held at the level the sound was tuned at, so the repeats keep their tone instead of turning to noise. It starts from silence each time it is chosen: no old echo comes back.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD Tables, Digital Delay and Control All Config. On a firmware without POTS, the official one too, a pattern that chose it plays the stock Delay.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD+, Digital Delay and Control All Config. On a firmware without POTS, the official one too, a pattern that chose it plays the stock Delay.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code, tried on a Model:Cycles from the command line (2026-11-03), then flashed from this page and tested on a Model:Cycles (2026-11-04). This build runs the line at 6 kHz with simpler parts and takes about a third of the processor time the 12 kHz build took. It sounds a little different: a little more low-mid in the first repeats, a slightly duller echo, a faint fizz from bright sounds such as hats, and a hot beat breaks up a bit more. The 12 kHz build before it was tested on a Model:Cycles, flashed from this page (2026-10-29).</dd></div>
         </dl>
       </section>
@@ -376,7 +394,7 @@
         <dl class="facts">
           <div><dt>Sound</dt><dd>the filter inside SAMPLE, measured on the Model:Samples: 2 poles and a resonant peak. It comes after Volume + Dist, so a hot, distorted track with a lot of resonance can clip its peaks. Moving the knob, a lock or the LFO across the middle doesn't click; in the middle the sound passes untouched.</dd></div>
           <div><dt>Processor</dt><dd>six tracks filtered at once use about a tenth of the processor's time. A silent track whose filter has rung out costs almost nothing.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE (its own filter stays on SWEEP and CONTOUR, the track filter comes on top), SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD Tables, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a Samples track <b>RETRIG</b> + <b>COLOR</b> or <b>SHAPE</b> shows <b>SMP ---</b>, and on a sound with no Track FX any of the four shows <b>Track FX OFF</b>: such a knob changes nothing, also with a trig, <b>TRACK</b> or <b>LFO</b> held. On a firmware without it, the official one too, a sound plays without the filter and keeps everything else.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE (its own filter stays on SWEEP and CONTOUR, the track filter comes on top), SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD+, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a Samples track <b>RETRIG</b> + <b>COLOR</b> or <b>SHAPE</b> shows <b>SMP ---</b>, and on a sound with no Track FX any of the four shows <b>Track FX OFF</b>: such a knob changes nothing, also with a trig, <b>TRACK</b> or <b>LFO</b> held. On a firmware without it, the official one too, a sound plays without the filter and keeps everything else.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code, bit for bit against SAMPLE's filter. On a Model:Cycles (2026-11-01) from the command line: the filter's choice, Cutoff and Reso, locks, the LFO, Control All on six tracks, saving and loading, next to SAMPLE and the effects; then flashed from this page (release 0.24, the same day).</dd></div>
         </dl>
       </section>
@@ -394,7 +412,7 @@
         </ol>
         <dl class="facts">
           <div><dt>Sound</dt><dd>both knobs move without steps. Every note restarts the sample-rate clock. At Rate 0 and Bits 127 the sound passes untouched. Values glide in, as any parameter does on the Model:Cycles, so right after a switch you may hear them settle for a moment.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD Tables, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a Crush track <b>RETRIG</b> + <b>COLOR</b> or <b>SHAPE</b> shows <b>CRU ---</b>, and on a sound with no Track FX any of the four shows <b>Track FX OFF</b>: such a knob changes nothing, also with a trig, <b>TRACK</b> or <b>LFO</b> held. On a firmware without Crush, the official one too, a sound plays without it and keeps everything else.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD+, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a Crush track <b>RETRIG</b> + <b>COLOR</b> or <b>SHAPE</b> shows <b>CRU ---</b>, and on a sound with no Track FX any of the four shows <b>Track FX OFF</b>: such a knob changes nothing, also with a trig, <b>TRACK</b> or <b>LFO</b> held. On a firmware without Crush, the official one too, a sound plays without it and keeps everything else.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code, bit for bit against its own code built for a computer. Played on a Model:Cycles (2026-11-01) from the command line, then flashed from this page (release 0.26, the same day).</dd></div>
         </dl>
       </section>
@@ -413,7 +431,7 @@
         </ol>
         <dl class="facts">
           <div><dt>Sound</dt><dd>every note starts the carrier again from its peak, so every hit sounds the same and its attack comes through. At Mix 0 the sound passes untouched. With Wave up, high notes alias. Values glide in, as any parameter does on the Model:Cycles, so right after a switch you may hear them settle for a moment.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD Tables, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a Ring track <b>RETRIG</b> + <b>SHAPE</b> shows <b>RNG ---</b>, and on a sound with no Track FX any of the four shows <b>Track FX OFF</b>: such a knob changes nothing, also with a trig, <b>TRACK</b> or <b>LFO</b> held. On a firmware without Ring, the official one too, a sound plays without it and keeps everything else.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD+, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a Ring track <b>RETRIG</b> + <b>SHAPE</b> shows <b>RNG ---</b>, and on a sound with no Track FX any of the four shows <b>Track FX OFF</b>: such a knob changes nothing, also with a trig, <b>TRACK</b> or <b>LFO</b> held. On a firmware without Ring, the official one too, a sound plays without it and keeps everything else.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code, bit for bit against its own code built for a computer. Played on a Model:Cycles (2026-11-01) from the command line, then flashed from this page (release 0.28, the same day). CC 75 (release 0.60) checked in an emulator on the OS's own code; on a Model:Cycles (2026-11-11) CC 75 and 76 were played with Reso and EQ, from the command line, then flashed from this page.</dd></div>
         </dl>
       </section>
@@ -433,7 +451,7 @@
         </ol>
         <dl class="facts">
           <div><dt>Sound</dt><dd>the pitch is the knob's: it does not follow the notes you play. Noise comes out about as loud as it goes in; a single hit rings quieter the longer it rings. A dull or high pitch rings shorter than Decay asks. At Amount 0 the sound passes untouched. Values glide in, as any parameter does on the Model:Cycles.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD Tables, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a sound with no Track FX, <b>RETRIG</b> + any of the four knobs shows <b>Track FX OFF</b> and changes nothing, also with a trig, <b>TRACK</b> or <b>LFO</b> held. On a firmware without Reso, the official one too, a sound plays without it and keeps everything else.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD+, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a sound with no Track FX, <b>RETRIG</b> + any of the four knobs shows <b>Track FX OFF</b> and changes nothing, also with a trig, <b>TRACK</b> or <b>LFO</b> held. On a firmware without Reso, the official one too, a sound plays without it and keeps everything else.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code, bit for bit against its own code built for a computer. Played on a Model:Cycles (2026-11-01) from the command line, then flashed from this page (release 0.28, the same day). CC 75 and 76 (release 0.60) checked in an emulator on the OS's own code and played on a Model:Cycles from the command line (2026-11-11), in and out, then flashed from this page the same day.</dd></div>
         </dl>
       </section>
@@ -452,7 +470,7 @@
         </ol>
         <dl class="facts">
           <div><dt>Sound</dt><dd>the bands are the classic studio-EQ curves; a cut is the mirror of the same boost. With the three gains at 0 the sound passes untouched. A boost that goes past full scale clips. Values glide in, as any parameter does on the Model:Cycles.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD Tables, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a sound with no Track FX, <b>RETRIG</b> + any of the four knobs shows <b>Track FX OFF</b> and changes nothing, also with a trig, <b>TRACK</b> or <b>LFO</b> held. On a firmware without EQ, the official one too, a sound plays without it and keeps everything else.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD+, the effects, the other Track FX and Control All Config. A sound has one Track FX at a time. On a sound with no Track FX, <b>RETRIG</b> + any of the four knobs shows <b>Track FX OFF</b> and changes nothing, also with a trig, <b>TRACK</b> or <b>LFO</b> held. On a firmware without EQ, the official one too, a sound plays without it and keeps everything else.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code, bit for bit against its own code built for a computer. Played on a Model:Cycles (2026-11-01) from the command line, then flashed from this page (release 0.28, the same day). CC 75 and 76 (release 0.60) checked in an emulator on the OS's own code and played on a Model:Cycles from the command line (2026-11-11), in and out, then flashed from this page the same day.</dd></div>
         </dl>
       </section>
@@ -469,7 +487,7 @@
         <dl class="facts">
           <div><dt>Patterns</dt><dd>a trig keeps the same condition as on the stock OS: the sequencer plays it and the screen names it as before. Patterns made with or without the mod are the same both ways, the official firmware included.</dd></div>
           <div><dt>First turn</dt><dd>a trig without a condition starts at FILL, as on the stock OS.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD Tables, Digital Delay, POTS and Control All Config.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD+, Digital Delay, POTS and Control All Config.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code. Tested on a Model:Cycles from the command line (2026-10-30), the order and the five dots; then flashed from this page and tested on a Model:Cycles (2026-10-30).</dd></div>
         </dl>
       </section>
@@ -486,7 +504,7 @@
         <dl class="facts">
           <div><dt>Always sounds</dt><dd>whatever the trig's condition and probability, also on a muted track. The trig stays.</dd></div>
           <div><dt>Limits</dt><dd>while the sequencer plays, PAGE turns the page as on the stock OS.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD Tables, Digital Delay, POTS, Trig conditions and Control All Config.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD+, Digital Delay, POTS, Trig conditions and Control All Config.</dd></div>
           <div><dt>Credit</dt><dd>drumkilla's trig preview, version 1.2.0 (MIT), unchanged. Since that version it also plays with the sequencer paused, a fix that came from Modded-Cycles.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code: stopped, playing, paused and after a MIDI Stop. Tested on a Model:Cycles (2026-10-04) with the same code inside Model-TG; then flashed from this page and tested on a Model:Cycles (2026-10-30).</dd></div>
         </dl>
@@ -505,7 +523,7 @@
           <div><dt>Also</dt><dd>left-out tracks keep their machine, LFO destination and PUNCH/GATE when you change those with TRACK held.</dd></div>
           <div><dt>Not saved</dt><dd>after power-on every track follows again, as on the stock OS.</dd></div>
           <div><dt>Limits</dt><dd>TRACK + LEVEL/DATA (volume, and pan with FUNC) still moves all six tracks. A left-out track that is the active one shows dark but follows while it is active.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM and CHORD Tables.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM and CHORD+.</dd></div>
           <div><dt>Credit</dt><dd>Control All Config 1.0 by durchgemacht (MIT), unchanged; placed here in four free sprite masks so that it goes with every other mod, as in Modded-Cycles 1.56.</dd></div>
           <div><dt>Tested</dt><dd>by its author on a Model:Cycles, in their own build; then flashed from this page and tested on a Model:Cycles, alone and with SAMPLE (2026-10-22).</dd></div>
         </dl>
@@ -524,7 +542,7 @@
         <dl class="facts">
           <div><dt>What it counts</dt><dd>the sound only: the voices, Volume + Dist and the Track FX, the mix and the effects. The screen and the knobs come on top, in the time that is left.</dd></div>
           <div><dt>Effects</dt><dd>counted in the slots that hold an effect of your build; a slot with only the stock effect is in CPU, not in EFFECTS.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD Tables, the effects, the Track FX, Trig conditions, Trig Preview and Control All Config.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD+, the effects, the Track FX, Trig conditions, Trig Preview and Control All Config.</dd></div>
           <div><dt>Credit</dt><dd>the row and the page are built the way Model-TG by TinyGregAudio (MIT) builds its System page.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code: the sound bit for bit the same with the page as without it, the measure, the row, the page and its picture. Tried on a Model:Cycles from the command line (2026-11-03), with POTS and Crush as this page builds them: the values move twice a second and PEAK starts again at each opening. Then flashed from this page and tested on a Model:Cycles (2026-11-04).</dd></div>
         </dl>
@@ -549,7 +567,7 @@
           <div><dt>Level</dt><dd>without NORM, a track's take plays back on SAMPLE as loud as you heard it. The page shows <b>CLIP</b> when a take reached full scale: try NORM, or turn the source down. Volume + Dist above 60 distorts before the recording, so a take played back with the same setting gets it twice; keep it at 60 or below on the track that plays the take.</dd></div>
           <div><dt>Saving</dt><dd>the sound pauses while the take is written to the +Drive, as with every save on the Model:Cycles.</dd></div>
           <div><dt>Settings</dt><dd>the page keeps them until you switch the Model:Cycles off.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD Tables, the effects, the Track FX, the CPU Page, Trig conditions, Trig Preview and Control All Config. Playing a trig with the sequencer stopped needs Trig Preview; TO Tn needs SAMPLE.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD+, the effects, the Track FX, the CPU Page, Trig conditions, Trig Preview and Control All Config. Playing a trig with the sequencer stopped needs Trig Preview; TO Tn needs SAMPLE.</dd></div>
           <div><dt>Credit</dt><dd>the page, the way SETTINGS is read and the save are built the way Model-TG by TinyGregAudio (MIT) builds its own resampling.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code: the sound bit for bit the same with the recorder as without it, the take, the keys, the page and its picture, the save. Tried on a Model:Cycles from the command line (2026-11-03 and 2026-11-04), then flashed from this page with SAMPLE and Trig Preview and tested on a Model:Cycles (2026-11-04): a track's take by Trig Preview and by LEVEL, the name editor and the save, TO Tn, a track's take played back on SAMPLE as loud as the track, the main mix in stereo with NOW, LENGTH and NORM, and USB in stereo.</dd></div>
         </dl>
@@ -571,7 +589,7 @@
           <div><dt>Not saved</dt><dd>each track keeps its octave and its jump until you change the pattern; then all of them go back. A temporary reload (<b>FUNC</b> + <b>PATTERN</b>) or a reload from the project (<b>FUNC</b> + <b>PATTERN</b> held, then YES) brings every jump back and keeps the octaves; if the reload cannot be done, the jumps stay too. Nothing is saved with the project. A jump is not recorded and not sent over MIDI; LIVE RECORDING keeps the notes you play, octave included.</dd></div>
           <div><dt>MACHINES</dt><dd>with this card, MACHINES opens the MACHINES menu when you let go of it, on every track, not when you press it. A press while the menu is open closes it at once, as before.</dd></div>
           <div><dt>Lights</dt><dd>the dim and half lights are the LEDs switched on and off 250 times a second, at the brightness set by LED in SETTINGS.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD Tables, the effects, the Track FX, the CPU Page, RESAMPLE, Trig conditions, Trig Preview and Control All Config.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD+, the effects, the Track FX, the CPU Page, RESAMPLE, Trig conditions, Trig Preview and Control All Config.</dd></div>
           <div><dt>Credit</dt><dd>the dimmed lights follow the idea of djd_oz's dimmed trigless trigs in Modded-Cycles, written anew.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code: every key as on the stock OS but these six, the notes of the TRIG keys, the jumps sample for sample like turning PITCH on every stock machine, the lights and their dimming in the panel's own interrupt. Tested on a Model:Cycles (2026-11-06): from the command line with SAMPLE and with all fourteen cards, both ways of reloading the pattern included, then flashed from this page.</dd></div>
         </dl>
@@ -593,11 +611,11 @@
           <div><dt>The pattern you started in</dt><dd>is not changed. When you switch the mode off there, it plays as it did before you switched the mode on.</dd></div>
           <div><dt>Saving</dt><dd>only Save Pattern (<b>FUNC</b> + <b>SETTINGS</b> held, or the CONFIG menu) keeps what you hear, in the pattern you are in. Save Project and switching the Model:Cycles off store every pattern with the sound it had before the mode. Reload Pattern (<b>FUNC</b> + <b>PATTERN</b> held) brings the saved pattern back and leaves the mode on.</dd></div>
           <div><dt>Temporary save</dt><dd><b>FUNC</b> + <b>SETTINGS</b> and <b>FUNC</b> + <b>PATTERN</b> work as always while the mode is on. Once you switch it off, a temporary reload brings back the pattern as it sounded before the mode, not what you saved temporarily in the mode.</dd></div>
-          <div><dt>Effects and wavetables</dt><dd>with the effect cards and <a href="#chord-tables">CHORD Tables</a>, which delay and reverb a pattern uses (<b>PATTERN</b> + DELAY TIME or REVERB SIZE) and its CHORD wavetable (<b>PATTERN</b> + SWEEP) belong to the pattern. The mode keeps the settings of the delay and the reverb, not the choice: set it in every pattern you play.</dd></div>
+          <div><dt>Effects and wavetables</dt><dd>with the effect cards and <a href="#chord-tables">CHORD+</a>, which delay and reverb a pattern uses (<b>PATTERN</b> + DELAY TIME or REVERB SIZE) and its CHORD wavetable (<b>PATTERN</b> + SWEEP) belong to the pattern. The mode keeps the settings of the delay and the reverb, not the choice: set it in every pattern you play.</dd></div>
           <div><dt>Paste, clear, load</dt><dd>pasting a pattern, clearing all of a pattern's data and loading another project switch the mode off. The screen shows the OS's own message; the stripe goes.</dd></div>
           <div><dt>The stripe</dt><dd>shows on the main screen, also on <a href="#sampler">SAMPLE</a>'s. It hides while a value is shown.</dd></div>
           <div><dt>Not saved</dt><dd>the mode itself: the Model:Cycles starts with it off.</dd></div>
-          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD Tables, the effects, the Track FX, the CPU Page, RESAMPLE, Transpose, Trig conditions, Trig Preview and Control All Config.</dd></div>
+          <div><dt>Other mods</dt><dd>goes with SAMPLE, SOLID, CHIPS, MAXSAW, TERRA, VOSIM, CHORD+, the effects, the Track FX, the CPU Page, RESAMPLE, Transpose, Trig conditions, Trig Preview and Control All Config.</dd></div>
           <div><dt>Tested</dt><dd>checked in an emulator on the OS's own code: every write of the sequencer, the screen and the saving against the stock OS. Tested on a Model:Cycles from the command line (2026-11-14), alone and with every card: the switch, pattern changes, sound locks, saving and reloading a pattern, saving the project, switching off inside the mode, paste, clear and loading a project; then flashed from this page the same day. Not tried: a pattern chain, and clearing only the sequence with FUNC + PLAY, while the mode is on.</dd></div>
         </dl>
       </section>
@@ -713,8 +731,8 @@
   </div>
 </footer>
 
-<script src="../assets/release.js?v=2026-11-19-01"></script>
-<script src="../assets/cycles.js?v=2026-11-19-01"></script>
-<script src="../assets/site.js?v=2026-11-19-01"></script>
+<script src="../assets/release.js?v=2026-11-19-02"></script>
+<script src="../assets/cycles.js?v=2026-11-19-02"></script>
+<script src="../assets/site.js?v=2026-11-19-02"></script>
 </body>
 </html>

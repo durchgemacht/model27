@@ -137,7 +137,10 @@ tools/machines/chordtables/   CHORD Tables (notes/66): an extension of CHORD; si
                               front of the parts at those sites (a use's "chain", resolved by compose.py and composer.js
                               after the parts, notes/66 §30.2); tools/gen_chordtables.py builds it into
                               36-chordtables.json; tools/wavetable.py turns a wavetable WAV into its files (32 frames of
-                              256, harmonics 1-40), --self-test
+                              256, harmonics 1-40), --self-test; since 0.5 the card is CHORD+ and the package holds
+                              Chord Joy too (chord_joy.c, notes/87): MACHINES + PUNCH, TRIG 1-8 the degrees with their
+                              chord on SHAPE, TRIG 9-16 their colour, chained in KeyboardView's slot 0x400ff9cc in front
+                              of Transpose; proven by tools/emu/test_chordjoy.py
 tools/machines/fxslot/        the effect slots, a part (notes/68): the mixer's delay and reverb go to the effect the playing
                               pattern chose there (bytes 29-31 of its header, PATTERN + Delay Time / Reverb Size), each slot
                               with a line of its own; compose.py adds it to the builds whose packages are effects
@@ -285,7 +288,7 @@ CONTRIBUTING.md               terms for outside contributions, and how a machine
 
 Follow the shape of the last ones (tempo-max: commits `5997b4a`, `14fb9fa`, `6e592bc`; trig-hold, arp). In order:
 
-1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 86 is the last) with the
+1. **Investigate and write the note.** New file `notes/NN-<slug>.md` (next free number; 87 is the last) with the
    user's request and its source, the OS code involved (addresses, `[FAIT]`/`[HYP]`), the design, free space used and
    conflicts with other tweaks. Add a row to `notes/README.md`. See `notes/AGENTS.md`.
 2. **Write the generator** `tools/gen_<mod>.py` (and sources under `tools/machines/<mod>/` if it has code). It reads

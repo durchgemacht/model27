@@ -441,14 +441,18 @@ ALL_FEATURES = [
     {
         "id": "chordtables",
         "cat": "sound",
-        "label": "CHORD Tables",
-        "desc": "CHORD plays wavetables from the +Drive, one table per pattern: the files 01 to 63 in a folder Wavetables. "
-                "On a CHORD track, PATTERN + SWEEP picks the pattern's table (0 = CHORD's own, two steps of the knob a "
-                "table); every CHORD track of the pattern plays it, and SWEEP moves through its waveforms.",
+        "label": "CHORD+",
+        "desc": "CHORD Tables and Chord Joy for the stock CHORD machine. CHORD Tables: CHORD plays wavetables from the "
+                "+Drive, one table per pattern: the files 01 to 63 in a folder Wavetables. On a CHORD track, PATTERN + "
+                "SWEEP picks the pattern's table (0 = CHORD's own, two steps of the knob a table); every CHORD track of "
+                "the pattern plays it, and SWEEP moves through its waveforms. Chord Joy: MACHINES + PUNCH turns it on for "
+                "the sound; TRIG 1 to 7 play the degrees of the major scale (TRIG 8 the first an octave up), each with "
+                "its chord on SHAPE, and TRIG 9 to 16, with a degree held, colour its chord until you let go.",
         # model27's own (notes/66 §27 to §33): 0.3 proven in emulation (test_chordtables.py, probe_chord_lines.py) and
         # tested on the Model:Cycles on 2026-11-08 in the maintainer's full build from the command line (notes/66 §33),
-        # 0.4 on 2026-11-09 (§36.10), then flashed from the page the same day (§36.12): tested as this page builds it
-        "status": "tested",
+        # 0.4 on 2026-11-09 (§36.10), then flashed from the page the same day (§36.12): tested as this page builds it;
+        # 0.5 adds Chord Joy (notes/87): proven in emulation (test_chordjoy.py), not yet tried on the Model:Cycles
+        "status": "experimental",
         "credit": {"kind": "by", "who": "durchgemacht", "repo": "durchgemacht/model27"},   # model27's own: the card links the project
         # an extension of CHORD composed in the page like a machine (notes/66 §3): alone it gives 36-chordtables.json
         # byte for byte; its chain hooks go in front of the effect slots' and the filter slot's (notes/66 §30.2)
@@ -895,8 +899,18 @@ def machine_excludes(features, by_id):
             sys.exit(f"!! {feat['id']}: no tweak {composed(feat)!r} in tweaks/ (its generator writes it alone)")
         clash = set(alone.get("conflicts", []))
         ex = [g["id"] for g in features if not composed(g) and clash & set(card_tweaks(g))]
+        # two packages that extend the same stock machine never go together (compose.py and composer.js refuse
+        # them): CHORD Tables and Chord Joy (notes/87)
+        ex += [g["id"] for g in features if g is not feat and feat.get("package") and g.get("package")
+               and stock_extended(feat["package"]) and stock_extended(feat["package"]) == stock_extended(g["package"])]
         if ex:
             feat["excludes"] = ex
+
+
+def stock_extended(pkg):
+    """The stock machine a package extends (its uses' machine.stock), or None."""
+    m = json.loads((ROOT / "tools" / "machines" / pkg / "manifest.json").read_text(encoding="utf-8"))
+    return next((u["machine"] for u in m.get("uses", []) if u.get("point") == "machine.stock"), None)
 
 
 def render():
